@@ -1,27 +1,36 @@
-# [Tidepool Data Science Project Template]
-(Instructions: Everything in [ ] should be changed.)
-(Everthing in ( )'s is instructions)
+# Tidepool Data Science Simulator
 
-# [Project Name]
-
-#### -- Project Status: [Active, On-Hold, Completed]
-#### -- Project Disclaimer: This work is [Exploratory, Pre-Production, For-Production]
+#### -- Project Status: Active
+#### -- Project Disclaimer: This work is Pre-Production
 
 ## Project Objective
-The purpose of this project is to [___]. 
+The purpose of this project is to enable simulation of patient
+metabolism and the interactions of controllers such as Tidepool Loop.
+The current phase is for supporting FDA risk analysis. The longer term goal
+is to support many activities such as Tidepool
+Loop performance analysis and evaluation of algorithms for 
+settings optimization.
 
 ## Definition of Done
-This phase of the project will be done when [___].
+The current phase of this project will be done when the code base has been
+ tested thoroughly and the current FDA
+risk analysis and iCGM risk sensitivity analysis have been
+implemented in this environment.
 
 ## Project Description
-(Add a short paragraph with some details, Why?, How?, Link to Jira and/or Confluence)
-In order to learn [___], we did [___].
+During refactoring of the FDA risk analysis it became clear that
+ increased generality/abstraction in an object-oriented
+ approach to that code would support multiple projects of interest to Tidepool and
+ Tidepool Data Science. The current state of this project is a generic simulator
+that facilitates answering questions around Tidepool Loop risk, Tidepool
+Loop performance, data-driven user modeling, and many others. 
 
-### Technologies (Update this list)
-* Python (99% of the time)
+The refactored code on which this is based is in `/notebooks/TEMPLATE_Run_Risk_Scenario_in_pyloopkit_in_colab_v0_5.ipynb`
+
+### Technologies
+* Python
 * [Anaconda](https://www.anaconda.com/) for our virtual environments
 * Pandas for working with data (99% of the time)
-* Google Colab for sharing examples
 * Plotly for visualization
 * Pytest for testing
 * Travis for continuous integration testing
@@ -48,10 +57,8 @@ that was created from the environmental.yml file (hint: environment name is at t
 1. Run `deactivate` to stop the environment.
 
 ## Getting Started with this project
-1. Raw Data is being kept [here](Repo folder containing raw data) within this repo.
-(If using offline data mention that and how they may obtain the data from the froup)
-1. Data processing/transformation scripts are being kept [here](Repo folder containing data processing scripts/notebooks)
-1. etc...
+1. Current FDA scenarios are being kept `/data/raw/fda_risk_scenarios` within this repo.
+2. Current demo use cases are the `/src`.
 
 ## Contributing Guide
 1. All are welcome to contribute to this project.
@@ -67,7 +74,17 @@ or `project_data_figure-2020-04-25-v-0-1-0.png`.
 NOTE: PHI data is never stored in github and the .gitignore file includes this requirement as well.
 
 ## Featured Notebooks/Analysis/Deliverables
-* [Colab Notebook/Figures/Website](link)
+* 
+
+## Important TODOs
+
+* Integrate iCGM sensor and analysis scenarios (size: medium)
+* Testing and cleanup (size: medium to large)
+* Decouple input scenario format from Loop (size: medium)
+* Integrate visuals and metrics repos (size: small)
+* Surface all parameters for configuration (size: small)
+* Control randomness via config seed(s) (size: small)
+* Speed up Pyloopkit, possible in this code base (size: medium to large)
 
 ## Tidepool Data Science Team
 |Name (with github link)    |  [Tidepool Slack](https://tidepoolorg.slack.com/)   |  
