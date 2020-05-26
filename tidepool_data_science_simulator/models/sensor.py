@@ -6,7 +6,7 @@ Sensor model classes
 
 import numpy as np
 
-from src.models.simulation import SimulationComponent
+from tidepool_data_science_simulator.models.simulation import SimulationComponent
 
 
 class Sensor(SimulationComponent):

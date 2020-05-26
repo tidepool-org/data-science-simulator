@@ -5,7 +5,7 @@ setup(
     version="0.1.0",
     author="Cameron Summers",
     author_email="cameron@tidepool.org",
-    package_dir={'tidepool_data_science_simulator': 'src'},
+    package_dir={'tidepool_data_science_simulator': 'tidepool_data_science_simulator'},
     packages=[
         'tidepool_data_science_simulator',
         'tidepool_data_science_simulator.evaluation',

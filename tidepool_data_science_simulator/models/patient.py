@@ -4,11 +4,11 @@ import copy
 import numpy as np
 import datetime
 
-from src.models.simulation import SimulationComponent
-from src.makedata.scenario_parser import PatientConfig
-from src.models.measures import Carb, Bolus
-from src.models.events import MealModel
-from src.utils import get_bernoulli_trial_uniform_step_prob
+from tidepool_data_science_simulator.models.simulation import SimulationComponent
+from tidepool_data_science_simulator.makedata.scenario_parser import PatientConfig
+from tidepool_data_science_simulator.models.measures import Carb, Bolus
+from tidepool_data_science_simulator.models.events import MealModel
+from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 
 
 # ============= Patient Stuff ===================

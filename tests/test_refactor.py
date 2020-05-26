@@ -4,12 +4,12 @@ import numpy as np
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
-from src.models.simulation import Simulation
-from src.models.controller import DoNothingController, LoopController
-from src.models.patient import VirtualPatient
-from src.models.pump import Omnipod
-from src.models.sensor import IdealSensor
-from src.makedata.scenario_parser import ScenarioParserCSV
+from tidepool_data_science_simulator.models.simulation import Simulation
+from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController
+from tidepool_data_science_simulator.models.patient import VirtualPatient
+from tidepool_data_science_simulator.models.pump import Omnipod
+from tidepool_data_science_simulator.models.sensor import IdealSensor
+from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 
 
 def test_simulator_refactor():

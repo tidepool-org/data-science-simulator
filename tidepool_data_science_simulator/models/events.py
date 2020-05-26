@@ -3,8 +3,8 @@ __author__ = "Cameron Summers"
 import datetime
 import numpy as np
 
-from src.models.measures import Carb
-from src.utils import get_bernoulli_trial_uniform_step_prob
+from tidepool_data_science_simulator.models.measures import Carb
+from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 
 
 class MealModel(object):
