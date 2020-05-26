@@ -4,18 +4,19 @@ import datetime
 import numpy as np
 
 from src.models.measures import Carb
+from src.utils import get_bernoulli_trial_uniform_step_prob
 
 
 class MealModel(object):
     """
     A meal that says if it is time for the meal and probabilistically determines carbs.
     """
-    def __init__(self, name, time_start, time_end, prob_of_occurring):
+    def __init__(self, name, time_start, time_end, prob_of_eating):
 
         self.name = name
         self.time_start = time_start
         self.time_end = time_end
-        self.prob_of_occurring = prob_of_occurring
+        self.prob_of_eating = prob_of_eating
 
         # Get number of simulation steps in meal time range
         datetime_start = datetime.datetime.combine(datetime.date.today(), time_start)
@@ -25,8 +26,8 @@ class MealModel(object):
         datetime_delta_steps = int(datetime_delta_minutes / 5.0)  # 5 min per step
         self.num_steps = datetime_delta_steps
 
-        # num_steps Bernoulli trials to get prob_of_occurring
-        self.step_prob = 1.0 - np.power(1 - self.prob_of_occurring, 1 / self.num_steps)
+        # num_steps Bernoulli trials to get prob_of_eating
+        self.step_prob = get_bernoulli_trial_uniform_step_prob(self.num_steps, prob_of_eating)
 
     def is_meal_time(self, time):
 

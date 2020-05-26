@@ -2,7 +2,7 @@ __author__ = "Cameron Summers"
 
 import numpy as np
 
-from tdsm.models.simple_metabolism_model import SimpleMetabolismModel
+from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 from src.models.simulation import Simulation
 from src.models.controller import DoNothingController, LoopController

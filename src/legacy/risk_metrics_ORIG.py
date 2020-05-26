@@ -1,7 +1,7 @@
 import numpy as np
 
 
-from tdsm.models.simple_metabolism_model import SimpleMetabolismModel
+from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 
 def get_bgri(bg_df):

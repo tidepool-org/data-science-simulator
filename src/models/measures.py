@@ -21,6 +21,13 @@ class Measure(object):
 
         return "{} {}".format(self.value, self.units)
 
+    def __add__(self, other):
+
+        if self.units == other.units:
+            return Measure(self.value + other.value, self.units)
+        else:
+            raise ValueError("Cannot add measures of different units.")
+
 
 class MeasureRange(object):
     """

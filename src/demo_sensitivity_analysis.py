@@ -8,7 +8,7 @@ import numpy as np
 from collections import defaultdict
 import time
 
-from tdsm.models.simple_metabolism_model import SimpleMetabolismModel
+from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 from src.models.simulation import Simulation
 from src.models.controller import (

@@ -287,8 +287,8 @@ class VirtualPatient(SimulationComponent):
 
         metabolism_model_instance = self.instantiate_metabolism_model()
 
-        combined_delta_bg, t_min, insulin_amount, iob = metabolism_model_instance.run(
-            insulin_amount=insulin_amount, carb_amount=carb_amount, five_min=True
+        combined_delta_bg, t_min, carb_amount, insulin_amount, iob = metabolism_model_instance.run(
+            insulin_amount=insulin_amount, carb_amount=carb_amount
         )
 
         return combined_delta_bg, iob
@@ -384,6 +384,9 @@ class VirtualPatientModel(VirtualPatient):
         meal_carb = None
         if meal is not None:
             meal_carb = meal.get_carb()
+
+        # TODO maybe don't combine since different durations and better accounting
+        #   instead let predict() run on multiple carbs at a time.
         correction_carb = self.get_correction_carb()
         total_carb = self.combine_carbs(meal_carb, correction_carb)
 
@@ -509,8 +512,8 @@ class VirtualPatientModel(VirtualPatient):
         -------
         Bolus
         """
-
         if meal_bolus is not None and correction_bolus is not None:
+            # TODO use measure __add__() here instead
             bolus = Bolus(value=correction_bolus.value + meal_bolus.value, units="U")
         elif meal_bolus is not None:
             bolus = meal_bolus
@@ -536,6 +539,7 @@ class VirtualPatientModel(VirtualPatient):
         """
 
         if meal_carb is not None and correction_carb is not None:
+            # TODO use measure __add__() here instead?
             carb = Carb(
                 value=meal_carb.value + correction_carb.value,
                 units="g",
