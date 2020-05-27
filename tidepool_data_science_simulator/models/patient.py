@@ -287,8 +287,8 @@ class VirtualPatient(SimulationComponent):
 
         metabolism_model_instance = self.instantiate_metabolism_model()
 
-        combined_delta_bg, t_min, carb_amount, insulin_amount, iob = metabolism_model_instance.run(
-            insulin_amount=insulin_amount, carb_amount=carb_amount
+        combined_delta_bg, t_min, insulin_amount, iob = metabolism_model_instance.run(
+            insulin_amount=insulin_amount, carb_amount=carb_amount, five_min=True,
         )
 
         return combined_delta_bg, iob
