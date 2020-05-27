@@ -3,19 +3,19 @@ __author__ = "Cameron Summers"
 import os
 import numpy as np
 
-from tdsm.models.simple_metabolism_model import SimpleMetabolismModel
+from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
-from src.models.simulation import Simulation
-from src.models.controller import (
+from tidepool_data_science_simulator.models.simulation import Simulation
+from tidepool_data_science_simulator.models.controller import (
     DoNothingController,
     LoopController,
     LoopControllerDisconnector,
 )
-from src.models.patient import VirtualPatient, VirtualPatientModel
-from src.models.pump import Omnipod
-from src.models.sensor import IdealSensor, NoisySensor
-from src.makedata.scenario_parser import ScenarioParserCSV
-from src.visualization.sim_viz import plot_sim_results
+from tidepool_data_science_simulator.models.patient import VirtualPatient, VirtualPatientModel
+from tidepool_data_science_simulator.models.pump import Omnipod
+from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
+from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 
 
 def analyze_controllers(scenario_csv_filepath):

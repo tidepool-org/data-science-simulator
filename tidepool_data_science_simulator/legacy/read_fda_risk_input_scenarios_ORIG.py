@@ -4,8 +4,8 @@ import datetime
 
 from pyloopkit.dose import DoseType
 
-# from src.models.simple_metabolism_model import get_iob_from_sbr, simple_metabolism_model
-from src.legacy.risk_metrics_ORIG import get_bgri, lbgi_risk_score, hbgi_risk_score
+# from tidepool_data_science_simulator.models.simple_metabolism_model import get_iob_from_sbr, simple_metabolism_model
+from tidepool_data_science_simulator.legacy.risk_metrics_ORIG import get_bgri, lbgi_risk_score, hbgi_risk_score
 
 
 # %% create pandas dataframes from the input data

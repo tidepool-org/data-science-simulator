@@ -7,7 +7,16 @@ import numpy as np
 def get_bernoulli_trial_uniform_step_prob(num_trials, prob_of_occurring):
     """
     Given an event has a probability P of happening in a set number of trials,
-    what is the bias B that the coin should have to yield P on average?
+    what is the trial bias B that the coin should have to yield P
+    on average of events occurring?
+
+    For meals:
+    P(meal=False) = (1 - B) ^ (num_trials)
+    P(meal=True) = 1 - P(meal=False) = 1 - (1 - B) ^ num_trials = prob_of_occuring
+
+    1 - prob_of_occurring = (1 - B) ^ num_trials
+    (1 - prob_of_occurring) ^ -num_trials = 1 - B
+    B = 1 - (1 - prob_of_occurring) ^ -num_trials
 
     Parameters
     ----------

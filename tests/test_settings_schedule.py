@@ -2,8 +2,8 @@ __author__ = "Cameron Summers"
 
 import datetime
 
-from src.models.simulation import SettingSchedule24Hr
-from src.models.measures import BasalRate
+from tidepool_data_science_simulator.models.simulation import SettingSchedule24Hr
+from tidepool_data_science_simulator.models.measures import BasalRate
 
 
 def test_basal_rate_retrieval():

@@ -8,9 +8,9 @@ into a normalized format for the simulation.
 import pandas as pd
 import numpy as np
 
-from src.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
-from src.models.simulation import EventTimeline, SettingSchedule24Hr
-from src.models.measures import (
+from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
+from tidepool_data_science_simulator.models.simulation import EventTimeline, SettingSchedule24Hr
+from tidepool_data_science_simulator.models.measures import (
     Carb,
     Bolus,
     BasalRate,

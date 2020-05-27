@@ -1,5 +1,5 @@
 __author__ = "Cameron Summers"
 
-from src.loop_risk_analysis import VirtualPatient
+from tidepool_data_science_simulator.loop_risk_analysis import VirtualPatient
 
 

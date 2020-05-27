@@ -22,3 +22,5 @@ dependencies:
   - pip:
     - pip-chill==1.0.0
     - python-dotenv==0.13.0
+    - git+git://github.com/tidepool-org/data-science-models@master
+    - pyloopkit-test

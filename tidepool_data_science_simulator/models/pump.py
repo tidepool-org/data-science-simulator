@@ -2,10 +2,10 @@ __author__ = "Cameron Summers"
 
 import copy
 
-from src.models.simulation import SimulationComponent
-from src.models.measures import TempBasal, BasalRate
+from tidepool_data_science_simulator.models.simulation import SimulationComponent
+from tidepool_data_science_simulator.models.measures import TempBasal, BasalRate
 
-from src.makedata.scenario_parser import PumpConfig
+from tidepool_data_science_simulator.makedata.scenario_parser import PumpConfig
 
 
 # ======= Pump stuff ==========

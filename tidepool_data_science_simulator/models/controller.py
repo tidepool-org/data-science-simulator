@@ -5,8 +5,8 @@ import datetime
 import copy
 import numpy as np
 
-from src.models.simulation import SimulationComponent
-from src.models.measures import GlucoseTrace
+from tidepool_data_science_simulator.models.simulation import SimulationComponent
+from tidepool_data_science_simulator.models.measures import GlucoseTrace
 
 from pyloopkit.loop_data_manager import update
 from pyloopkit.dose import DoseType
