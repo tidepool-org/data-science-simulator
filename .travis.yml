@@ -19,6 +19,6 @@ install:
   - conda activate test-environment
 
 script:
-  - pytest
+  - python -m pytest
 
 
