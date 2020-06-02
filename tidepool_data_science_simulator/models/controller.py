@@ -94,7 +94,7 @@ class LoopController(SimulationComponent):
         -------
 
         """
-        glucose_dates, glucose_values = virtual_patient.bg_history.get_loop_format()
+        glucose_dates, glucose_values = virtual_patient.true_bg_history.get_loop_format()
         loop_inputs_dict = copy.deepcopy(self.simulation_config)
         loop_update_dict = {
             "time_to_calculate_at": self.time,

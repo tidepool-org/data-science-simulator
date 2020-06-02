@@ -19,9 +19,9 @@ class VirtualPatientState(object):
 
     def __init__(
         self,
-        bg,
+        true_bg,
         sensor_bg,
-        bg_prediction,
+        true_bg_metabolism_prediction,
         pump_state,
         iob,
         iob_prediction,
@@ -30,9 +30,9 @@ class VirtualPatientState(object):
         cir,
     ):
 
-        self.bg = bg
+        self.bg = true_bg
         self.sensor_bg = sensor_bg
-        self.bg_prediction = bg_prediction
+        self.bg_prediction = true_bg_metabolism_prediction
         self.sensor_bg_prediction = sensor_bg_prediction
         self.iob = iob
         self.iob_prediction = iob_prediction
@@ -69,13 +69,13 @@ class VirtualPatient(SimulationComponent):
 
         self.patient_config = copy.deepcopy(patient_config)
 
-        self.bg_history = self.patient_config.glucose_history
+        self.true_bg_history = self.patient_config.glucose_history
         self.iob_history = []  # TODO: make trace obj, not list
 
-        self.bg_prediction = None
+        self.true_bg_metabolism_prediction = None
         self.iob_prediction = None
 
-        self.bg_current = None
+        self.true_bg = None
         self.iob_current = None
         self.sbr_iob = None
 
@@ -90,7 +90,7 @@ class VirtualPatient(SimulationComponent):
         #       e.g. basal rate has been constant, bg is set and not predicted
         # TODO: Ideally set initial state based previous prediction_horizon_hrs up to t=0
 
-        bg_time, self.bg_current = self.patient_config.glucose_history.get_last()
+        bg_time, self.true_bg = self.patient_config.glucose_history.get_last()
         assert bg_time == self.time
 
         # Scenario doesn't give iob info so derive from steady state pump basal rate
@@ -110,13 +110,13 @@ class VirtualPatient(SimulationComponent):
         """
 
         patient_state = VirtualPatientState(
-            bg=self.bg_current,
-            sensor_bg=self.sensor.get_bg(self.bg_current),
-            bg_prediction=self.bg_prediction,
+            true_bg=self.true_bg,
+            sensor_bg=self.sensor.get_bg(self.true_bg),
+            true_bg_metabolism_prediction=self.true_bg_metabolism_prediction,
             pump_state=self.pump.get_state(),
             iob=self.iob_current,
             iob_prediction=self.iob_prediction,
-            sensor_bg_prediction=self.sensor.get_bg_trace(self.bg_prediction),
+            sensor_bg_prediction=self.sensor.get_bg_trace(self.true_bg_metabolism_prediction),
             isf=self.patient_config.insulin_sensitivity_schedule.get_state(),
             cir=self.patient_config.carb_ratio_schedule.get_state(),
         )
@@ -159,10 +159,10 @@ class VirtualPatient(SimulationComponent):
         """
         Set the patient state to the result of the metabolism simulation.
         """
-        self.bg_current = self.sensor.get_bg(self.bg_prediction[0])
+        self.true_bg = self.true_bg_metabolism_prediction[0]
         self.iob_current = self.iob_prediction[0]
 
-        self.bg_history.append(time, self.bg_current)
+        self.true_bg_history.append(time, self.true_bg)
         self.iob_history.append(self.iob_current)
 
     def get_steady_state_basal_iob(self, basal_rate):
@@ -239,10 +239,10 @@ class VirtualPatient(SimulationComponent):
             )
 
         # Update bg prediction with delta bgs
-        if self.bg_prediction is None:  # At initialization t=0
-            self.bg_prediction = self.bg_current + np.cumsum(combined_delta_bg_pred)
-            self.bg_prediction = np.append(
-                self.bg_prediction[1:], self.bg_prediction[-1]
+        if self.true_bg_metabolism_prediction is None:  # At initialization t=0
+            self.true_bg_metabolism_prediction = self.true_bg + np.cumsum(combined_delta_bg_pred)
+            self.true_bg_metabolism_prediction = np.append(
+                self.true_bg_metabolism_prediction[1:], self.true_bg_metabolism_prediction[-1]
             )
 
             self.iob_prediction = self.iob_current + iob_pred
@@ -255,10 +255,10 @@ class VirtualPatient(SimulationComponent):
         else:
             # Get shifted predictions for the next time
             bg_pred_prev_shifted = np.append(
-                self.bg_prediction[1:], self.bg_prediction[-1]
+                self.true_bg_metabolism_prediction[1:], self.true_bg_metabolism_prediction[-1]
             )
             delta_bg_pred_next_t = np.cumsum(np.append(combined_delta_bg_pred[1:], 0))
-            self.bg_prediction = bg_pred_prev_shifted + delta_bg_pred_next_t
+            self.true_bg_metabolism_prediction = bg_pred_prev_shifted + delta_bg_pred_next_t
 
             iob_pred_prev_shifted = np.append(
                 self.iob_prediction[1:], self.iob_prediction[-1]
@@ -320,7 +320,7 @@ class VirtualPatient(SimulationComponent):
 
     def __repr__(self):
 
-        return "BG: {:.2f}. IOB: {:.2f}".format(self.bg_current, self.iob_current)
+        return "BG: {:.2f}. IOB: {:.2f}".format(self.true_bg, self.iob_current)
 
 
 class VirtualPatientModel(VirtualPatient):
@@ -430,7 +430,7 @@ class VirtualPatientModel(VirtualPatient):
 
         carb = None
         if (
-            self.bg_current <= self.correct_carb_bg_threshold
+            self.true_bg <= self.correct_carb_bg_threshold
             and u <= self.correct_carb_step_prob
         ):
             carb = Carb(value=10, units="g", duration_minutes=3 * 60)
@@ -449,7 +449,7 @@ class VirtualPatientModel(VirtualPatient):
 
         correction_bolus = None
         if (
-            self.bg_current >= self.correct_bolus_bg_threshold
+            self.true_bg >= self.correct_bolus_bg_threshold
             and u <= self.correct_bolus_step_prob
         ):
             isf = self.patient_config.insulin_sensitivity_schedule.get_state()
@@ -463,7 +463,7 @@ class VirtualPatientModel(VirtualPatient):
             #       Really this should be a pump-specific function so we can model different bolus calculators
             insulin_amt = max(
                 0,
-                (self.bg_current - target_bg) / isf.value - (self.iob_current - self.sbr_iob),
+                (self.true_bg - target_bg) / isf.value - (self.iob_current - self.sbr_iob),
             )
 
             correction_bolus = Bolus(value=insulin_amt, units="U")
