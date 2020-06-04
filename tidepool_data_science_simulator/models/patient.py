@@ -4,7 +4,7 @@ import copy
 import numpy as np
 import datetime
 
-from tidepool_data_science_simulator.models.simulation import SimulationComponent
+from tidepool_data_science_simulator.models.simulation import SimulationComponent, EventTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import PatientConfig
 from tidepool_data_science_simulator.models.measures import Carb, Bolus
 from tidepool_data_science_simulator.models.events import MealModel
@@ -28,6 +28,8 @@ class VirtualPatientState(object):
         sensor_bg_prediction,
         isf,
         cir,
+        bolus,
+        carb
     ):
 
         self.bg = bg
@@ -39,6 +41,8 @@ class VirtualPatientState(object):
         self.pump_state = pump_state
         self.isf = isf
         self.cir = cir
+        self.bolus = bolus
+        self.carb = carb
 
 
 class VirtualPatient(SimulationComponent):
@@ -79,6 +83,9 @@ class VirtualPatient(SimulationComponent):
         self.iob_current = None
         self.sbr_iob = None
 
+        self.carb_event_timeline = patient_config.carb_event_timeline
+        self.bolus_event_timeline = patient_config.bolus_event_timeline
+
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
         self.num_prediction_steps = int(prediction_horizon_hrs * 60 / 5)
@@ -100,6 +107,8 @@ class VirtualPatient(SimulationComponent):
         self.iob_current = iob_steady_state[0]
         self.sbr_iob = iob_steady_state[0]
 
+        self.pump.init()
+
     def get_state(self):
         """
         Get the current state of the patient.
@@ -119,6 +128,8 @@ class VirtualPatient(SimulationComponent):
             sensor_bg_prediction=self.sensor.get_bg_trace(self.bg_prediction),
             isf=self.patient_config.insulin_sensitivity_schedule.get_state(),
             cir=self.patient_config.carb_ratio_schedule.get_state(),
+            bolus=self.bolus_event_timeline.get_event_value(self.time),
+            carb=self.carb_event_timeline.get_event_value(self.time)
         )
 
         return patient_state
@@ -132,10 +143,10 @@ class VirtualPatient(SimulationComponent):
         (Insulin Event, Carb Event)
         """
         # Get boluses at time
-        bolus = self.patient_config.insulin_events.get_event(self.time)
+        bolus = self.bolus_event_timeline.get_event(self.time)
 
         # Get carbs at time
-        carb = self.patient_config.carb_events.get_event(self.time)
+        carb = self.carb_event_timeline.get_event(self.time)
 
         return bolus, carb
 
@@ -194,17 +205,15 @@ class VirtualPatient(SimulationComponent):
         float
 
         """
-        patient_basal_rate = self.patient_config.basal_schedule.get_state()
+        patient_egp_basal_rate_equivalent = self.patient_config.basal_schedule.get_state()
+        patient_egp_basal_value_equivalent = patient_egp_basal_rate_equivalent.get_insulin_in_interval()
 
-        pump_state = self.pump.get_state()
-        pump_basal_rate = pump_state.get_basal_rate()
+        pump_basal_value = self.pump.insulin_delivered_last_update
+        pump_basal_value = self.pump.deliver_basal(pump_basal_value)
 
-        patient_true_basal_amt = patient_basal_rate.get_insulin_in_interval()
-        pump_basal_amt = pump_basal_rate.get_insulin_in_interval()
+        net_basal_insulin_value = pump_basal_value - patient_egp_basal_value_equivalent
 
-        net_basal_insulin_amt = pump_basal_amt - patient_true_basal_amt
-
-        return net_basal_insulin_amt
+        return net_basal_insulin_value
 
     def predict(self):
         """
@@ -220,7 +229,7 @@ class VirtualPatient(SimulationComponent):
         bolus, carb = self.get_actions()
 
         if bolus is not None:
-            delivered_bolus = self.pump.deliver_insulin(bolus)
+            delivered_bolus = self.pump.deliver_bolus(bolus)
             insulin_amount += delivered_bolus.value
 
         carb_amount = 0
@@ -305,18 +314,21 @@ class VirtualPatient(SimulationComponent):
         isf = self.patient_config.insulin_sensitivity_schedule.get_state()
         cir = self.patient_config.carb_ratio_schedule.get_state()
 
-        # TODO: hack due to non-explicit carb bolusing
-        #  Is insulin always in scenario config???
-        # metab model run() function will compute this if insulin_amount is np.nan,
-        # but let's move away from this and update run() function to take only explicit input
-        # if carb_amount > 0:
-        #     insulin_amount += cir.calculate_bolus(carb_amount)
-
         metabolism_model_instance = self.metabolism_model(
             insulin_sensitivity_factor=isf.value, carb_insulin_ratio=cir.value
         )
 
         return metabolism_model_instance
+
+    def does_accept_bolus_recommendation(self):
+
+        does_accept = False
+        u = np.random.random()
+
+        if u <= self.patient_config.recommendation_accept_prob:
+            does_accept = True
+
+        return does_accept
 
     def __repr__(self):
 
@@ -336,15 +348,18 @@ class VirtualPatientModel(VirtualPatient):
         sensor,
         metabolism_model,
         patient_config,
-        remember_meal_bolus_prob=1.0,
+        remember_meal_bolus_prob=1.0,  # TODO: move these into config object. Separate config object?
         correct_bolus_bg_threshold=180,
         correct_bolus_delay_minutes=30,
         correct_carb_bg_threshold=80,
         correct_carb_delay_minutes=10,
         carb_count_noise_percentage=0.1,
-        id="",
+        id=None,
     ):
         super().__init__(time, pump, sensor, metabolism_model, patient_config)
+
+        if id is None:
+            id = np.random.randint(0, 1000000)
 
         self.name = "VP-{}".format(id)
 
@@ -353,6 +368,9 @@ class VirtualPatientModel(VirtualPatient):
             MealModel("Lunch", datetime.time(hour=11), datetime.time(hour=13), 0.98),
             MealModel("Dinner", datetime.time(hour=17), datetime.time(hour=21), 0.999),
         ]
+
+        self.report_carb_probability = 1.0  # TODO: move into config object
+        self.report_bolus_probability = 1.0
 
         self.remember_meal_bolus_prob = remember_meal_bolus_prob
 
@@ -394,7 +412,40 @@ class VirtualPatientModel(VirtualPatient):
         correction_bolus = self.get_correction_bolus()
         total_bolus = self.combine_boluses(meal_bolus, correction_bolus)
 
+        if total_carb is not None:
+            self.carb_event_timeline.add_event(self.time, total_carb)
+            self.report_carb(total_carb)
+
+        if total_bolus is not None:
+            self.bolus_event_timeline.add_event(self.time, total_bolus)
+            self.report_bolus(total_bolus)
+
         return total_bolus, total_carb
+
+    def report_carb(self, carb):
+        """
+        Probabilistically report carb to pump. Controller knows about pump events.
+
+        Parameters
+        ----------
+        carb
+        """
+        u = np.random.random()
+        if u <= self.report_carb_probability:
+            self.pump.carb_event_timeline.add_event(self.time, carb)
+
+    def report_bolus(self, bolus):
+        """
+        Probabilistically report bolus to pump. Controller knows about pump events.
+        This case is more for an MDI or Afrezza type situation.
+
+        Parameters
+        ----------
+        bolus
+        """
+        u = np.random.random()
+        if u <= self.report_bolus_probability:
+            self.pump.bolus_event_timeline.add_event(self.time, bolus)
 
     def get_meal(self):
         """
@@ -453,7 +504,7 @@ class VirtualPatientModel(VirtualPatient):
             and u <= self.correct_bolus_step_prob
         ):
             isf = self.patient_config.insulin_sensitivity_schedule.get_state()
-            target_range = self.patient_config.target_range_schedule.get_state()
+            target_range = self.pump.pump_config.target_range_schedule.get_state()
             target_bg = (
                 target_range.min_value
                 + (target_range.max_value - target_range.min_value) / 2

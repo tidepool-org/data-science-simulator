@@ -11,8 +11,9 @@ from tidepool_data_science_simulator.models.controller import (
     LoopController,
     LoopControllerDisconnector,
 )
+from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient
 from tidepool_data_science_simulator.models.patient import VirtualPatient, VirtualPatientModel
-from tidepool_data_science_simulator.models.pump import Omnipod
+from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
@@ -41,28 +42,10 @@ def analyze_controllers(scenario_csv_filepath):
         # LoopControllerDisconnector(time=t0, loop_config=sim_parser.get_controller_config(), simulation_config=sim_parser.get_simulation_config(), connect_prob=0.25),
     ]
 
-    pump = Omnipod(time=t0, pump_config=sim_parser.get_pump_config())
-
-    # sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
-    sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
-
-    virtual_patients = [
-        VirtualPatientModel(
-            time=t0,
-            pump=pump,
-            sensor=sensor,
-            metabolism_model=SimpleMetabolismModel,
-            patient_config=sim_parser.get_patient_config(),
-            remember_meal_bolus_prob=1.0,
-            correct_bolus_bg_threshold=180,
-            correct_bolus_delay_minutes=30,
-            correct_carb_bg_threshold=80,
-            correct_carb_delay_minutes=10,
-            carb_count_noise_percentage=0.1,
-            id=i,
-        )
-        for i in range(5)
-    ]
+    virtual_patients = []
+    for i in range(1):
+        t0, vp = get_canonical_risk_patient(t0, patient_class=VirtualPatientModel)
+        virtual_patients.append(vp)
 
     all_results = {}
     for controller in controllers:
@@ -72,7 +55,7 @@ def analyze_controllers(scenario_csv_filepath):
 
             simulation = Simulation(
                 time=t0,
-                duration_hrs=24.0,
+                duration_hrs=8.0,
                 simulation_config=sim_parser.get_simulation_config(),
                 virtual_patient=vp,
                 controller=controller,
@@ -84,7 +67,6 @@ def analyze_controllers(scenario_csv_filepath):
 
     plot_sim_results(all_results)
 
-    # TODO: NOTE: Not passing in doses and carbs to loop
     # Then...
     # Do statistical significance test on outcome variables
     # e.g. Measure amount of "work" for each controller, human vs loop, for a given outcome

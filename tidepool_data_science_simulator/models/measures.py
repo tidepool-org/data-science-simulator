@@ -124,7 +124,7 @@ class Carb(Measure):
     def __init__(self, value, units, duration_minutes):
         super().__init__(value, units)
 
-        self.duration_minutes = duration_minutes
+        self.duration_minutes = int(duration_minutes)
 
 
 class CarbInsulinRatio(Measure):
@@ -226,7 +226,7 @@ class GlucoseTrace(object):
         self.datetimes.append(date)
         self.bg_values.append(bg)
 
-    def get_loop_format(self):
+    def get_loop_inputs(self):
         """
         Get two numpy arrays for dates and values, used for Loop input
         """

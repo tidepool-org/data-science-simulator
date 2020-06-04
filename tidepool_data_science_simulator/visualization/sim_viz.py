@@ -13,7 +13,7 @@ def plot_sim_results(all_results):
 
     # ==== TMP ====
     # TODO - This is a placeholder for dev. Replace with viz tools module.
-    fig, ax = plt.subplots(2, 1, figsize=(16, 20))
+    fig, ax = plt.subplots(3, 1, figsize=(16, 20))
     for sim_id, ctrl_result_df in all_results.items():
 
         ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id))
@@ -21,6 +21,11 @@ def plot_sim_results(all_results):
         ax[0].set_xlabel("Time (5min)")
         ax[0].set_ylabel("BG (mg/dL)")
         ax[0].set_ylim((0, 400))
+        median = ctrl_result_df["bg"].median()
+        std = round(ctrl_result_df["bg"].std())
+        # ax[0].axhline(median, label="BG Median {}".format(median), color="green")
+        # ax[0].axhline(median + std, label="BG Std {}".format(std), color="green")
+        # ax[0].axhline(median - std, label="BG Std {}".format(std), color="green")
         ax[0].legend()
 
         ax[1].plot(ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id))
@@ -29,8 +34,16 @@ def plot_sim_results(all_results):
         ax[1].set_xlabel("Time (5 mins)")
         ax[1].plot(ctrl_result_df["temp_basal"], label="{} {}".format("tmp_br", sim_id))
         ax[1].set_title("Temp Basal Rate")
+        ax[1].plot(ctrl_result_df["bolus"], label="{} {}".format("bolus", sim_id))
+        ax[1].set_ylim((0, 3))
         ax[1].legend()
-        ax[1].legend()
+
+        ax[2].plot(ctrl_result_df["carb"], label="{} {}".format("carb", sim_id))
+        ax[2].set_title("Carb Events")
+        ax[2].set_ylabel("Carbs (g)")
+        ax[2].set_xlabel("Time (5 mins)")
+        ax[2].set_ylim((0, 40))
+        ax[2].legend()
 
         print(
             "Patient Bg min {} max {}".format(
@@ -49,8 +62,9 @@ def plot_sim_results(all_results):
         # ax[2].set_xlabel("BG (mg/dL)")
         # ax[2].legend()
         #
-        # counts, bins, patches = ax[3].hist(ctrl_result_df['bg'], bins=50, label="{} {} {}".format("bg", vp_name, ctr_name), alpha=0.1)
+        # counts, bins, patches = ax[3].hist(ctrl_result_df['bg'], bins=50, label="{} {}".format("bg", sim_id), alpha=0.1)
         # ax[3].set_xscale("log")
+        # ax[3].set_title("BG Distribution")
         # ax[3].set_xlabel("BG (mg/dL)")
         # ax[3].legend()
 

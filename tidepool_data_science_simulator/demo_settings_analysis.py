@@ -10,7 +10,7 @@ from tidepool_data_science_models.models.treatment_models import PalermInsulinMo
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_simulator.models.patient import VirtualPatient, VirtualPatientModel
-from tidepool_data_science_simulator.models.pump import Omnipod
+from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
@@ -56,7 +56,7 @@ def analyze_settings(scenario_csv_filepath, param_grid):
             loop_config=sim_parser.get_controller_config(),
             simulation_config=sim_parser.get_simulation_config(),
         )
-        pump = Omnipod(time=t0, pump_config=sim_parser.get_pump_config())
+        pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
         sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
         # sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
 

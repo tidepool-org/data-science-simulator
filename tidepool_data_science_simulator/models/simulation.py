@@ -9,6 +9,8 @@ import copy
 import datetime
 import pandas as pd
 
+from pyloopkit.dose import DoseType
+
 
 class SimulationComponent(object):
     """
@@ -23,7 +25,7 @@ class SimulationComponent(object):
 
     def get_time_delta_minutes(self, end_time):
         tdelta = end_time - self.time
-        return tdelta.minutes
+        return tdelta.total_seconds() / 60
 
 
 class SimulationState(object):
@@ -178,9 +180,17 @@ class Simulation(multiprocessing.Process):
         pd.DataFrame
             The time series result of the simulation
         """
+        data = []
+        for time, simulation_state in self.simulation_results.items():
+            bolus = simulation_state.patient_state.bolus
+            if bolus is None:
+                bolus = 0
 
-        data = [
-            {
+            carb = simulation_state.patient_state.carb
+            if carb is None:
+                carb = 0
+
+            row = {
                 "time": time,
                 "bg": simulation_state.patient_state.bg,
                 "bg_sensor": simulation_state.patient_state.sensor_bg,
@@ -194,9 +204,10 @@ class Simulation(multiprocessing.Process):
                 "sbr": simulation_state.patient_state.pump_state.scheduled_basal_rate.value,
                 "cir": simulation_state.patient_state.cir,
                 "isf": simulation_state.patient_state.isf,
+                "bolus": bolus,
+                "carb": carb
             }
-            for time, simulation_state in self.simulation_results.items()
-        ]
+            data.append(row)
 
         df = pd.DataFrame(data)
         df.set_index("time")
@@ -294,10 +305,21 @@ class EventTimeline(object):
     """
     A class for insulin/carb/etc. events
     """
+    def __init__(self, datetimes=None, events=None):
 
-    def __init__(self, datetimes, events):
+        self.events = dict()
 
-        self.events = pd.DataFrame({"date": datetimes, "event": events})
+        if datetimes is not None:
+            for dt, event in zip(datetimes, events):
+                self.events[dt] = event
+
+    def add_event(self, time, event):
+
+        # FIXME: Uncomment these when scenario file is decoupled from patient model.
+        # if time in self.events:
+        #     raise Exception("Event timeline only allows one event at a time")
+
+        self.events[time] = event
 
     def get_event(self, time):
         """
@@ -313,10 +335,121 @@ class EventTimeline(object):
         object
             The insulin/carb/etc. event or None
         """
-        event = None
-
-        event_mask = self.events["date"] == time
-        if event_mask.any():
-            event = self.events[event_mask]["event"].values[0]
+        try:
+            event = self.events[time]
+        except KeyError:
+            event = None
 
         return event
+
+    def get_event_value(self, time, default=0):
+
+        try:
+            event = self.events[time]
+            event_value = event.value
+        except KeyError:
+            event_value = default
+
+        return event_value
+
+    def get_recent_event_times(self, time=None, num_hours_history=6):
+        """
+        Get event times within the specified history window.
+
+        Parameters
+        ----------
+        time
+        num_hours_history
+
+        Returns
+        -------
+        list
+            Times of recent events
+        """
+        # FIXME Soon: here is where we'll get most recent events
+        #  for Pyloopkit speedup. Logic not here yet.
+        return self.events.keys()
+
+
+class BolusTimeline(EventTimeline):
+
+    def get_loop_inputs(self, num_hours_history=6):
+        """
+        Convert event timeline into format for input into Pyloopkit.
+
+        Returns
+        -------
+        (list, list, list, list)
+        """
+        dose_types = []
+        dose_values = []
+        dose_start_times = []
+        dose_end_times = []
+
+        recent_event_times = self.get_recent_event_times(num_hours_history=num_hours_history)
+        sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
+        for time in sorted_trecent_event_times:
+
+            dose_types.append(DoseType.bolus)
+            dose_values.append(self.events[time].value)
+            dose_start_times.append(time)
+            dose_end_times.append(time)
+
+        return dose_types, dose_values, dose_start_times, dose_end_times
+
+
+class TempBasalTimeline(EventTimeline):
+
+    def get_loop_inputs(self, num_hours_history=6):
+        """
+        Convert event timeline into format for input into Pyloopkit.
+
+        Returns
+        -------
+        (list, list, list, list)
+        """
+
+        dose_types = []
+        dose_values = []
+        dose_start_times = []
+        dose_end_times = []
+
+        recent_event_times = self.get_recent_event_times(num_hours_history=num_hours_history)
+        sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
+        for time in sorted_trecent_event_times:
+            temp_basal_event = self.events[time]
+            dose_types.append(DoseType.tempbasal)
+            dose_values.append(temp_basal_event.value)
+            dose_start_times.append(time)
+            dose_end_times.append(time + datetime.timedelta(minutes=temp_basal_event.duration_minutes))
+
+        return dose_types, dose_values, dose_start_times, dose_end_times
+
+
+class CarbTimeline(EventTimeline):
+
+    def get_loop_inputs(self, num_hours_history=6):
+        """
+        Convert event timeline into format for input into Pyloopkit.
+
+        Returns
+        -------
+        (list, list, list, list)
+        """
+
+        carb_values = []
+        carb_start_times = []
+        carb_durations = []
+
+        recent_event_times = self.get_recent_event_times(num_hours_history=num_hours_history)
+        sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
+
+        for time in sorted_trecent_event_times:
+            carb_event = self.events[time]
+            carb_values.append(carb_event.value)
+            carb_start_times.append(time)
+            carb_durations.append(carb_event.duration_minutes)
+
+        return carb_values, carb_start_times, carb_durations
+
+

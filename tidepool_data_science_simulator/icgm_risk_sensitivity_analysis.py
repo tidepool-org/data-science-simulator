@@ -6,7 +6,7 @@ from tidepool_data_science_models.models.simple_metabolism_model import SimpleMe
 
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.patient import VirtualPatient
-from tidepool_data_science_simulator.models.pump import Omnipod
+from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import NoisySensor, iCGMSensorGenerator
 from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
@@ -23,7 +23,7 @@ def do_icgm_risk_analysis(scenario_csv_filepath):
         simulation_config=sim_parser.get_simulation_config(),
     )
 
-    pump = Omnipod(time=t0, pump_config=sim_parser.get_pump_config())
+    pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
 
     num_sensors = 30
     sensor_generator = iCGMSensorGenerator(sensor_config=sim_parser.get_sensor_config())

@@ -17,7 +17,7 @@ from tidepool_data_science_simulator.models.controller import (
     LoopControllerDisconnector,
 )
 from tidepool_data_science_simulator.models.patient import VirtualPatient, VirtualPatientModel
-from tidepool_data_science_simulator.models.pump import Omnipod
+from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
@@ -48,7 +48,7 @@ def analyze_variance(scenario_csv_filepath, param_grid, plot):
         # LoopControllerDisconnector(time=t0, loop_config=sim_parser.get_controller_config(), simulation_config=sim_parser.get_simulation_config(), connect_prob=0.25),
     ]
 
-    pump = Omnipod(time=t0, pump_config=sim_parser.get_pump_config())
+    pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
 
     # sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
     sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
@@ -119,7 +119,7 @@ def analyze_variance_multiprocess(scenario_csv_filepath, param_grid, plot):
         # LoopControllerDisconnector(time=t0, loop_config=sim_parser.get_controller_config(), simulation_config=sim_parser.get_simulation_config(), connect_prob=0.25),
     ]
 
-    pump = Omnipod(time=t0, pump_config=sim_parser.get_pump_config())
+    pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
 
     # sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
     sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
@@ -184,8 +184,8 @@ if __name__ == "__main__":
             "correct_carb_bg_threshold": b,
             "carb_count_noise_percentage": c,
         }
-        for a in np.arange(140, 200, 10)
-        for b in np.arange(50, 90, 10)
+        for a in np.arange(140, 200, 20)
+        for b in np.arange(50, 90, 20)
         for c in np.arange(0.05, 0.2, 0.02)
     ]
 
