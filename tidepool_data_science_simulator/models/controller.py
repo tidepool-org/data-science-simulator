@@ -215,11 +215,8 @@ class LoopController(SimulationComponent):
         # Add to patient timeline
         virtual_patient.bolus_event_timeline.add_event(self.time, bolus)
 
-        # Log in loop timeline
-        # TODO: actually maybe this should go on patient's timeline with a
-        #       "reported" flag set to True. Then in update() controller reads
-        #       all reported events from virtual patient.
-        self.bolus_event_timeline.add_event(self.time, bolus)
+        # Log in pump, which Loop will read at update
+        virtual_patient.pump.bolus_event_timeline.add_event(self.time, bolus)
 
     def modulate_temp_basal(self, virtual_patient, temp_basal):
         """
