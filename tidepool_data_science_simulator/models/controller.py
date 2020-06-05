@@ -270,20 +270,6 @@ class LoopControllerDisconnector(LoopController):
         time: datetime
         kwargs: VirtualPatient
         """
-
         self.time = time
-
         if self.is_connected():
-
-            virtual_patient = kwargs["virtual_patient"]
-
-            loop_inputs_dict = self.prepare_inputs(virtual_patient)
-            loop_algorithm_output = update(loop_inputs_dict)
-            loop_algorithm_output.get("recommended_temp_basal")
-
-            self.modulate_temp_basal(virtual_patient, loop_algorithm_output)
-            self.recommendations = loop_algorithm_output
-
-        else:
-            # Disconnected. Do Nothing.
-            pass
+            super().update(time, **kwargs)
