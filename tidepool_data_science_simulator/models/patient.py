@@ -320,7 +320,22 @@ class VirtualPatient(SimulationComponent):
 
         return metabolism_model_instance
 
-    def does_accept_bolus_recommendation(self):
+    def does_accept_bolus_recommendation(self, bolus):
+        """
+        This models in a basic way whether a patient accepts a recommended bolus or not. Overrides
+        of this function should consider the size of the bolus and other state info
+        like time of day.
+
+        Parameters
+        ----------
+        bolus: Bolus
+            The recommended bolus
+
+        Returns
+        -------
+        bool
+            True if patient accepts
+        """
 
         does_accept = False
         u = np.random.random()

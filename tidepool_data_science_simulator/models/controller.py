@@ -151,7 +151,7 @@ class LoopController(SimulationComponent):
         bolus_rec = self.get_recommended_bolus(loop_algorithm_output)
         temp_basal_rec = self.get_recommended_temp_basal(loop_algorithm_output)
 
-        if bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation():
+        if bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation(bolus_rec):
             self.set_bolus_recommendation_event(virtual_patient, bolus_rec)
         elif temp_basal_rec is not None:
             self.modulate_temp_basal(virtual_patient, temp_basal_rec)
