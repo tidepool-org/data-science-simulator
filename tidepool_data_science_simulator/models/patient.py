@@ -219,7 +219,7 @@ class VirtualPatient(SimulationComponent):
         -------
         (float, float)
         """
-        abs_insulin_amount = self.pump.deliver_basal(self.pump.insulin_delivered_last_update)
+        abs_insulin_amount = self.pump.deliver_basal(self.pump.basal_insulin_delivered_last_update)
 
         patient_egp_basal_value_equivalent = self.patient_config.basal_schedule.get_state().get_insulin_in_interval()
         rel_insulin_amount = abs_insulin_amount - patient_egp_basal_value_equivalent

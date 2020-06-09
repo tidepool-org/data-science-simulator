@@ -20,7 +20,7 @@ from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses, Omnipod, ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
-from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results_missing_insulin
 from tidepool_data_science_simulator.utils import timing
 
 
@@ -40,8 +40,8 @@ def analyze_omnipod_missing_pulses():
         temp_basal = TempBasal(next_time, temp_basal_value, duration_minutes=30, units="U/hr")
         patient.pump.set_temp_basal(temp_basal)
 
-        delivered_insulin.append(patient.pump.insulin_delivered_last_update)
-        undelivered_insulin.append(patient.pump.undelivered_insulin)
+        delivered_insulin.append(patient.pump.basal_insulin_delivered_last_update)
+        undelivered_insulin.append(patient.pump.basal_undelivered_insulin_since_last_update)
 
     total_delivered_insulin = np.sum(delivered_insulin)
     total_undelivered_insulin = np.sum(undelivered_insulin)
@@ -78,15 +78,16 @@ def analyze_omnipod_missing_pulses_wLoop(scenario_csv_filepath):
         DoNothingController(
             time=t0, controller_config=sim_parser.get_controller_config()
         ),
-        LoopController(
-            time=t0,
-            loop_config=sim_parser.get_controller_config(),
-            simulation_config=sim_parser.get_simulation_config(),
-        ),
+        # LoopController(
+        #     time=t0,
+        #     loop_config=sim_parser.get_controller_config(),
+        #     simulation_config=sim_parser.get_simulation_config(),
+        # ),
     ]
 
     all_results = {}
     for controller in controllers:
+        np.random.seed(1234)
         sim_id = controller.name
         print("Running: {}".format(sim_id))
 
@@ -120,7 +121,7 @@ def analyze_omnipod_missing_pulses_wLoop(scenario_csv_filepath):
         results_df = simulation.get_results_df()
         all_results[sim_id] = results_df
 
-    plot_sim_results(all_results)
+    plot_sim_results_missing_insulin(all_results)
 
 
 if __name__ == "__main__":

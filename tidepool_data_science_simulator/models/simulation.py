@@ -198,7 +198,9 @@ class Simulation(multiprocessing.Process):
                 "cir": simulation_state.patient_state.cir,
                 "isf": simulation_state.patient_state.isf,
                 "bolus": bolus,
-                "carb": carb
+                "carb": carb,
+                "delivered_basal_insulin": simulation_state.patient_state.pump_state.delivered_basal_insulin,
+                "undelivered_basal_insulin": simulation_state.patient_state.pump_state.undelivered_basal_insulin
             }
             data.append(row)
 
