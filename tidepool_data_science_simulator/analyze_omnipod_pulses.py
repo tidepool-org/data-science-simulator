@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient
 from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses
+from tidepool_data_science_simulator.models.measures import TempBasal
 
 
 def analyze_omnipod_missing_pulses():
@@ -24,7 +25,8 @@ def analyze_omnipod_missing_pulses():
         next_time = current_time + datetime.timedelta(minutes=5)
 
         patient.pump.update(next_time)
-        patient.pump.set_temp_basal(temp_basal_value, "U")
+        temp_basal = TempBasal(next_time, temp_basal_value, duration_minutes=30, units="U/hr")
+        patient.pump.set_temp_basal(temp_basal)
 
         delivered_insulin.append(patient.pump.insulin_delivered_last_update)
         undelivered_insulin.append(patient.pump.undelivered_insulin)

@@ -94,15 +94,11 @@ class Simulation(multiprocessing.Process):
         """
         Initialize the simulation
         """
-
-        # Set any temp basals at t=0
-        self.controller.update(self.time, virtual_patient=self.virtual_patient)
-
         # Setup steady state basal and t0 glucose
         self.virtual_patient.init()
 
-        # Establish prediction based on events at t0 and init above
-        self.virtual_patient.predict()
+        # Set any temp basals at t=0
+        self.controller.update(self.time, virtual_patient=self.virtual_patient)
 
         # Store info at t=0
         self.store_state()
@@ -116,14 +112,11 @@ class Simulation(multiprocessing.Process):
         time: datetime
         """
         # Set patient state at time from prediction at time - 1
-        self.virtual_patient.update_from_prediction(time)
+        self.virtual_patient.update(time)
 
         # Get and set on patient the next action from controller,
         #   e.g. temp basal, at time
         self.controller.update(time, virtual_patient=self.virtual_patient)
-
-        # Update patient prediction and member states
-        self.virtual_patient.update(time)
 
     def step(self):
         """

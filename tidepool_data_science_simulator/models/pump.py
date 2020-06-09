@@ -25,7 +25,6 @@ class ContinuousInsulinPump(SimulationComponent):
 
         self.active_temp_basal = None
         self.insulin_delivered_last_update = 0
-        self.temp_basal_duration = 30
 
     def init(self):
         """
@@ -33,14 +32,12 @@ class ContinuousInsulinPump(SimulationComponent):
         """
         self.insulin_delivered_last_update = self.get_delivered_insulin_since_update()
 
-    def set_temp_basal(self, value, units):
+    def set_temp_basal(self, temp_basal):
         """
         Set a temp basal
         """
-        if self.is_valid_temp_basal(value, self.temp_basal_duration):
-            self.active_temp_basal = TempBasal(
-                self.time, value, self.temp_basal_duration, units
-            )
+        if self.is_valid_temp_basal(temp_basal):
+            self.active_temp_basal = temp_basal
         else:
             raise ValueError("Temp basal request is invalid")
 
@@ -63,9 +60,9 @@ class ContinuousInsulinPump(SimulationComponent):
         insulin_in_hour = self.get_basal_rate().value
         return update_interval_minutes / 60 * insulin_in_hour
 
-    def is_valid_temp_basal(self, value, duration_minutes):
+    def is_valid_temp_basal(self, temp_basal):
         request_valid = True
-        if value >= self.pump_config.max_temp_basal:
+        if temp_basal.value >= self.pump_config.max_temp_basal:
             request_valid = False
 
         return request_valid
@@ -288,11 +285,11 @@ class OmnipodMissingPulses(Omnipod):
 
         self.name = "OmnipodMissingPulses"
 
-    def set_temp_basal(self, value, units):
+    def set_temp_basal(self, temp_basal):
         """
         Set a temp basal and "forget" any existing fractional pulses.
         """
-        super().set_temp_basal(value, units)
+        super().set_temp_basal(temp_basal)
 
         # The Omnipod gives the insulin at the last possible moment between pulses.
         # Code below models a current known issue that when a temp basal

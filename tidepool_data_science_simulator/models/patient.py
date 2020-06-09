@@ -92,6 +92,9 @@ class VirtualPatient(SimulationComponent):
 
     def init(self):
         """
+        This is similar to the "initial scenario" setup in the original code.
+
+        Establish conditions for t=0 and get the initial prediction
         """
         # Note: Initializing this class currently makes assumptions about the state at time,
         #       e.g. basal rate has been constant, bg is set and not predicted
@@ -104,10 +107,22 @@ class VirtualPatient(SimulationComponent):
         iob_steady_state = self.get_steady_state_basal_iob(
             self.pump.get_state().scheduled_basal_rate
         )
-        self.iob_current = iob_steady_state[0]
+
+        # Only use iob up to t=time-1 since we account for basal insulin at t=0
+        self.iob_init = np.append(iob_steady_state[1:], 0)
+        self.iob_current = self.iob_init[0]
+
         self.sbr_iob = iob_steady_state[0]
 
+        # Initialize the pump for t=0
         self.pump.init()
+
+        # Establish prediction based on events at t0
+        self.predict()
+
+        # Set current values at t=0
+        self.bg_current = self.bg_prediction[0]
+        self.iob_current = self.iob_prediction[0]
 
     def get_state(self):
         """
@@ -165,6 +180,7 @@ class VirtualPatient(SimulationComponent):
         self.sensor.update(time)
 
         self.predict()
+        self.update_from_prediction(time)
 
     def update_from_prediction(self, time):
         """
@@ -195,86 +211,92 @@ class VirtualPatient(SimulationComponent):
         metabolism_model_instance = self.instantiate_metabolism_model()
         return metabolism_model_instance.get_iob_from_sbr(basal_rate.value)
 
-    def get_net_basal_insulin(self):
+    def get_basal_insulin_amount_since_update(self):
         """
-        Get the insulin from the difference between the pump and the patient,
-        which could come from a temp basal or a pump scheduled basal.
+        Get the absolute and relative insulin amount delivered since the last update
 
         Returns
         -------
-        float
-
+        (float, float)
         """
-        patient_egp_basal_rate_equivalent = self.patient_config.basal_schedule.get_state()
-        patient_egp_basal_value_equivalent = patient_egp_basal_rate_equivalent.get_insulin_in_interval()
+        abs_insulin_amount = self.pump.deliver_basal(self.pump.insulin_delivered_last_update)
 
-        pump_basal_value = self.pump.insulin_delivered_last_update
-        pump_basal_value = self.pump.deliver_basal(pump_basal_value)
+        patient_egp_basal_value_equivalent = self.patient_config.basal_schedule.get_state().get_insulin_in_interval()
+        rel_insulin_amount = abs_insulin_amount - patient_egp_basal_value_equivalent
 
-        net_basal_insulin_value = pump_basal_value - patient_egp_basal_value_equivalent
+        return abs_insulin_amount, rel_insulin_amount
 
-        return net_basal_insulin_value
-
-    def predict(self):
+    def get_total_insulin_and_carb_amounts(self):
         """
-        Using state at t=time, predict the patient state from t=time+1 to
-        t=time + prediction_horizon_hrs + 1 based on the basal/bolus/carbs.
-        """
-        # Insulin from basal state
-        # Should be zero if no temp basal or if pump basal matches patient basal
-        insulin_amount = self.get_net_basal_insulin()
+        Get the basal/bolus insulin and carb amounts at current time.
 
-        # TODO: NOTE: Here is where we'd add additional events,
-        #       e.g. exercise, sensor compression, pump site change, etc.
+        Returns
+        -------
+        (float, float, float)
+        """
+        abs_insulin_amount, rel_insulin_amount = self.get_basal_insulin_amount_since_update()
+
         bolus, carb = self.get_actions()
 
         if bolus is not None:
             delivered_bolus = self.pump.deliver_bolus(bolus)
-            insulin_amount += delivered_bolus.value
+            rel_insulin_amount += delivered_bolus.value
+            abs_insulin_amount += delivered_bolus.value
 
         carb_amount = 0
         if carb is not None:
             carb_amount = carb.value
 
+        return abs_insulin_amount, rel_insulin_amount, carb_amount
+
+    def predict(self):
+        """
+        Using state at t=time, ie
+         1. Insulin delivered via basal since the last update, between t=time-1 and t=time
+         2. Insulin administered as a bolus at t=time
+         3. Carbs administered at t=time
+
+         predict the horizon for bg and insulin on board
+        """
+        abs_insulin_amount, rel_insulin_amount, carb_amount = self.get_total_insulin_and_carb_amounts()
+
         # Initialize zero change
         combined_delta_bg_pred = np.zeros(self.num_prediction_steps)
         iob_pred = np.zeros(self.num_prediction_steps)
 
-        # Apply insulin and carbs according to metabolism model
-        if insulin_amount != 0 or carb_amount > 0:  # NOTE: Insulin can be negative
+        # Apply insulin and carbs to get change in bg relative to endogenous glucose production
+        if rel_insulin_amount != 0 or carb_amount > 0:  # NOTE: Insulin can be negative
             # This gives results for t=time -> t=time+prediction_horizon_hrs
-            combined_delta_bg_pred, iob_pred = self.run_metabolism_model(
-                insulin_amount, carb_amount
+            combined_delta_bg_pred, _ = self.run_metabolism_model(
+                rel_insulin_amount, carb_amount
+            )
+
+        # Apply the absolute amount of insulin to get the insulin on board
+        if abs_insulin_amount != 0:
+            # TODO: Is it possible to avoid running this twice with a change in the
+            #       metabolism model?
+            _, iob_pred = self.run_metabolism_model(
+                abs_insulin_amount, carb_amount=0
             )
 
         # Update bg prediction with delta bgs
         if self.bg_prediction is None:  # At initialization t=0
             self.bg_prediction = self.bg_current + np.cumsum(combined_delta_bg_pred)
-            self.bg_prediction = np.append(
-                self.bg_prediction[1:], self.bg_prediction[-1]
-            )
-
-            self.iob_prediction = self.iob_current + iob_pred
-
-            # TODO: need this if events, but feels awkward here
-            self.iob_current = self.iob_prediction[0]
-            self.iob_prediction = np.append(
-                self.iob_prediction[1:], self.iob_prediction[-1]
-            )
+            self.iob_prediction = self.iob_init + iob_pred
         else:
             # Get shifted predictions for the next time
             bg_pred_prev_shifted = np.append(
                 self.bg_prediction[1:], self.bg_prediction[-1]
             )
-            delta_bg_pred_next_t = np.cumsum(np.append(combined_delta_bg_pred[1:], 0))
+            delta_bg_pred_next_t = np.cumsum(combined_delta_bg_pred)
             self.bg_prediction = bg_pred_prev_shifted + delta_bg_pred_next_t
 
-            iob_pred_prev_shifted = np.append(
-                self.iob_prediction[1:], self.iob_prediction[-1]
+            iob_pred_shifted = np.append(
+                self.iob_prediction[1:], 0
             )
-            iob_pred_next_t = np.append(iob_pred[1:], 0)
-            self.iob_prediction = iob_pred_prev_shifted + iob_pred_next_t
-            pass
+            self.iob_prediction = iob_pred + iob_pred_shifted
+
+        pass
 
     def run_metabolism_model(self, insulin_amount, carb_amount):
         """
@@ -347,7 +369,7 @@ class VirtualPatient(SimulationComponent):
 
     def __repr__(self):
 
-        return "BG: {:.2f}. IOB: {:.2f}".format(self.bg_current, self.iob_current)
+        return "BG: {:.2f}. IOB: {:.2f}. BR {:.2f}".format(self.bg_current, self.iob_current, self.pump.get_basal_rate().value)
 
 
 class VirtualPatientModel(VirtualPatient):

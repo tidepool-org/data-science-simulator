@@ -227,7 +227,7 @@ class LoopController(SimulationComponent):
         virtual_patient
         temp_basal
         """
-        virtual_patient.pump.set_temp_basal(temp_basal.value, "U")
+        virtual_patient.pump.set_temp_basal(temp_basal)
 
         # Log in loop timeline
         self.temp_basal_event_timeline.add_event(self.time, temp_basal)
