@@ -8,8 +8,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient
-from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses
 from tidepool_data_science_simulator.models.measures import TempBasal
+
+import os
+
+from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
+
+from tidepool_data_science_simulator.models.simulation import Simulation
+from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController
+from tidepool_data_science_simulator.models.patient import VirtualPatient
+from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses, Omnipod, ContinuousInsulinPump
+from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
+from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
+from tidepool_data_science_simulator.utils import timing
 
 
 def analyze_omnipod_missing_pulses():
@@ -47,6 +59,78 @@ def analyze_omnipod_missing_pulses():
     plt.show()
 
 
+@timing
+def analyze_omnipod_missing_pulses_wLoop(scenario_csv_filepath):
+    """
+    Compare two controllers for a given scenario file:
+        1. No controller, ie no insulin modulation except for pump schedule
+        2. Loop controller
+
+    Parameters
+    ----------
+    scenario_csv_filepath: str
+        Path to the scenario file
+    """
+    sim_parser = ScenarioParserCSV(scenario_csv_filepath)
+    t0 = sim_parser.get_simulation_start_time()
+
+    controllers = [
+        DoNothingController(
+            time=t0, controller_config=sim_parser.get_controller_config()
+        ),
+        LoopController(
+            time=t0,
+            loop_config=sim_parser.get_controller_config(),
+            simulation_config=sim_parser.get_simulation_config(),
+        ),
+    ]
+
+    all_results = {}
+    for controller in controllers:
+        sim_id = controller.name
+        print("Running: {}".format(sim_id))
+
+        pump = OmnipodMissingPulses(time=t0, pump_config=sim_parser.get_pump_config())
+        # pump = Omnipod(time=t0, pump_config=sim_parser.get_pump_config())
+        # pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
+
+        # sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
+        sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
+
+        patient_config = sim_parser.get_patient_config()
+        patient_config.recommendation_accept_prob = 0.0  # TODO: put in scenario file
+        vp = VirtualPatient(
+            time=t0,
+            pump=pump,
+            sensor=sensor,
+            metabolism_model=SimpleMetabolismModel,
+            patient_config=patient_config,
+        )
+
+        simulation = Simulation(
+            time=t0,
+            duration_hrs=24.0,
+            simulation_config=sim_parser.get_simulation_config(),
+            virtual_patient=vp,
+            controller=controller,
+        )
+
+        simulation.run()
+
+        results_df = simulation.get_results_df()
+        all_results[sim_id] = results_df
+
+    plot_sim_results(all_results)
+
+
 if __name__ == "__main__":
 
-    analyze_omnipod_missing_pulses()
+    scenarios_folder_path = "../data/raw/"
+    scenario_csv_filepath = os.path.join(
+        scenarios_folder_path, "Scenario-0-simulation-template - inputs - OmnipodMissingPulses.tsv"
+    )
+    analyze_omnipod_missing_pulses_wLoop(scenario_csv_filepath)
+
+    # analyze_omnipod_missing_pulses()
+
+

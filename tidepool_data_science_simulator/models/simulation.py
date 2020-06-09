@@ -361,12 +361,18 @@ class EventTimeline(object):
         """
         # FIXME Soon: here is where we'll get most recent events
         #  for Pyloopkit speedup. Logic not here yet.
-        return self.events.keys()
+        recent_event_times = []
+        for event_time in self.events.keys():
+            time_since_event_hrs = (time - event_time).total_seconds() / 3600
+            if time_since_event_hrs <= num_hours_history:
+                recent_event_times.append(event_time)
+
+        return recent_event_times
 
 
 class BolusTimeline(EventTimeline):
 
-    def get_loop_inputs(self, num_hours_history=6):
+    def get_loop_inputs(self, time, num_hours_history=6):
         """
         Convert event timeline into format for input into Pyloopkit.
 
@@ -379,7 +385,7 @@ class BolusTimeline(EventTimeline):
         dose_start_times = []
         dose_end_times = []
 
-        recent_event_times = self.get_recent_event_times(num_hours_history=num_hours_history)
+        recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
         sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
         for time in sorted_trecent_event_times:
 
@@ -393,7 +399,7 @@ class BolusTimeline(EventTimeline):
 
 class TempBasalTimeline(EventTimeline):
 
-    def get_loop_inputs(self, num_hours_history=6):
+    def get_loop_inputs(self, time, num_hours_history=6):
         """
         Convert event timeline into format for input into Pyloopkit.
 
@@ -407,7 +413,7 @@ class TempBasalTimeline(EventTimeline):
         dose_start_times = []
         dose_end_times = []
 
-        recent_event_times = self.get_recent_event_times(num_hours_history=num_hours_history)
+        recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
         sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
         for time in sorted_trecent_event_times:
             temp_basal_event = self.events[time]
@@ -421,7 +427,7 @@ class TempBasalTimeline(EventTimeline):
 
 class CarbTimeline(EventTimeline):
 
-    def get_loop_inputs(self, num_hours_history=6):
+    def get_loop_inputs(self, time, num_hours_history=6):
         """
         Convert event timeline into format for input into Pyloopkit.
 
@@ -434,7 +440,7 @@ class CarbTimeline(EventTimeline):
         carb_start_times = []
         carb_durations = []
 
-        recent_event_times = self.get_recent_event_times(num_hours_history=num_hours_history)
+        recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
         sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
 
         for time in sorted_trecent_event_times:

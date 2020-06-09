@@ -50,6 +50,8 @@ class LoopController(SimulationComponent):
         self.temp_basal_event_timeline = loop_config.temp_basal_event_timeline
         self.carb_event_timeline = loop_config.carb_event_timeline
 
+        self.num_hours_history = 6  # how many hours of recent events to pass to Loop
+
         # self.ctr = -5  # TODO remove once we feel refactor is good
 
     def get_state(self):
@@ -78,13 +80,13 @@ class LoopController(SimulationComponent):
         loop_inputs_dict = copy.deepcopy(self.simulation_config)
 
         bolus_dose_types, bolus_dose_values, bolus_start_times, bolus_end_times = \
-            self.bolus_event_timeline.get_loop_inputs()
+            self.bolus_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
         temp_basal_dose_types, temp_basal_dose_values, temp_basal_start_times, temp_basal_end_times = \
-            self.temp_basal_event_timeline.get_loop_inputs()
+            self.temp_basal_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
         carb_values, carb_start_times, carb_durations = \
-            self.carb_event_timeline.get_loop_inputs()
+            self.carb_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
         # TODO NOW: add bolus and temp basal events
         loop_update_dict = {
