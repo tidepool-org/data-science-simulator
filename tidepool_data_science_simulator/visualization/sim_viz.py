@@ -116,4 +116,10 @@ def plot_sim_results_missing_insulin(all_results):
             )
         )
 
+        delivered_sum = np.sum(ctrl_result_df["delivered_basal_insulin"])
+        undelivered_sum = np.sum(ctrl_result_df["undelivered_basal_insulin"])
+        total = delivered_sum + undelivered_sum
+        print("Delivered Basal", delivered_sum, delivered_sum / total)
+        print("Undelivered Basal", undelivered_sum, undelivered_sum / total)
+
     plt.show()
