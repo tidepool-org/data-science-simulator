@@ -29,11 +29,10 @@ def plot_sim_results(all_results):
         ax[0].legend()
 
         ax[1].plot(ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id))
-        ax[1].set_title("Schedule Basal Rate Over Time")
-        ax[1].set_ylabel("Insulin (U)")
+        ax[1].set_title("Insulin")
+        ax[1].set_ylabel("Insulin (U or U/hr)")
         ax[1].set_xlabel("Time (5 mins)")
         ax[1].plot(ctrl_result_df["temp_basal"], label="{} {}".format("tmp_br", sim_id))
-        ax[1].set_title("Temp Basal Rate")
         ax[1].plot(ctrl_result_df["bolus"], label="{} {}".format("bolus", sim_id))
         ax[1].set_ylim((0, 3))
         ax[1].legend()
@@ -67,5 +66,60 @@ def plot_sim_results(all_results):
         # ax[3].set_title("BG Distribution")
         # ax[3].set_xlabel("BG (mg/dL)")
         # ax[3].legend()
+
+    plt.show()
+
+
+def plot_sim_results_missing_insulin(all_results):
+
+    fig, ax = plt.subplots(4, 1, figsize=(16, 20))
+    for sim_id, ctrl_result_df in all_results.items():
+        ax[0].scatter(range(len(ctrl_result_df['time'])), ctrl_result_df["bg"],
+                   label="{} {}".format("bg", sim_id),
+                   color="purple",
+                      s=6)
+        ax[0].set_title("BG Over Time")
+        ax[0].set_xlabel("Time (5min)")
+        ax[0].set_ylabel("BG (mg/dL)")
+        ax[0].set_ylim((0, 400))
+        median = ctrl_result_df["bg"].median()
+        std = round(ctrl_result_df["bg"].std())
+        # ax[0].axhline(median, label="BG Median {}".format(median), color="green")
+        # ax[0].axhline(median + std, label="BG Std {}".format(std), color="green")
+        # ax[0].axhline(median - std, label="BG Std {}".format(std), color="green")
+        ax[0].legend()
+
+        ax[1].plot(ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id), color="gray")
+        ax[1].set_ylabel("Insulin (U or U/hr)")
+        ax[1].set_xlabel("Time (5 mins)")
+        ax[1].set_title("Insulin Delivery")
+        ax[1].plot(ctrl_result_df["temp_basal"], label="{} {}".format("tmp_br", sim_id), color="green")
+        ax[1].plot(ctrl_result_df["bolus"], label="{} {}".format("bolus", sim_id), color="brown")
+        ax[1].set_ylim((0, 3))
+        ax[1].legend()
+
+        ax[2].stem(ctrl_result_df["delivered_basal_insulin"],
+                   label="{} {}".format("delivered_basal", sim_id), linefmt="C1-")
+        ax[2].set_title("Delivered Basal Insulin")
+        ax[2].set_ylabel("Insulin (U)")
+        ax[2].set_xlabel("Time (5 mins)")
+
+        ax[3].stem(ctrl_result_df["undelivered_basal_insulin"],
+                   label="{} {}".format("undelivered_basal", sim_id), linefmt="C4-")
+        ax[3].set_title("Undelivered Basal Insulin")
+        ax[3].set_ylabel("Insulin (U)")
+        ax[3].set_xlabel("Time (5 mins)")
+
+        print(
+            "Patient Bg min {} max {}".format(
+                ctrl_result_df["bg"].min(), ctrl_result_df["bg"].max()
+            )
+        )
+
+        delivered_sum = np.sum(ctrl_result_df["delivered_basal_insulin"])
+        undelivered_sum = np.sum(ctrl_result_df["undelivered_basal_insulin"])
+        total = delivered_sum + undelivered_sum
+        print("Delivered Basal", delivered_sum, delivered_sum / total)
+        print("Undelivered Basal", undelivered_sum, undelivered_sum / total)
 
     plt.show()

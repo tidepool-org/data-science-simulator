@@ -24,13 +24,14 @@ class ContinuousInsulinPump(SimulationComponent):
         self.carb_event_timeline = self.pump_config.carb_event_timeline
 
         self.active_temp_basal = None
-        self.insulin_delivered_last_update = 0
+        self.basal_insulin_delivered_last_update = 0
+        self.basal_undelivered_insulin_since_last_update = 0
 
     def init(self):
         """
         Initialize the pump for t0
         """
-        self.insulin_delivered_last_update = self.get_delivered_insulin_since_update()
+        self.basal_insulin_delivered_last_update = self.get_delivered_basal_insulin_since_update()
 
     def set_temp_basal(self, temp_basal):
         """
@@ -41,7 +42,7 @@ class ContinuousInsulinPump(SimulationComponent):
         else:
             raise ValueError("Temp basal request is invalid")
 
-    def get_delivered_insulin_since_update(self, update_interval_minutes=5):
+    def get_delivered_basal_insulin_since_update(self, update_interval_minutes=5):
         """
         Get the insulin delivered since the last update based on continuous
         insulin delivery. There is no state change in this function.
@@ -133,7 +134,8 @@ class ContinuousInsulinPump(SimulationComponent):
         return PumpState(
             scheduled_basal_rate,
             temp_basal_rate,
-            self.insulin_delivered_last_update,
+            self.basal_insulin_delivered_last_update,
+            self.basal_undelivered_insulin_since_last_update
         )
 
     def get_basal_rate(self):
@@ -169,7 +171,7 @@ class ContinuousInsulinPump(SimulationComponent):
             if not self.active_temp_basal.is_active(self.time):  # Remove if inactive
                 self.deactivate_temp_basal()
 
-        self.insulin_delivered_last_update = self.get_delivered_insulin_since_update()
+        self.basal_insulin_delivered_last_update = self.get_delivered_basal_insulin_since_update()
 
     def deactivate_temp_basal(self):
         """
@@ -206,7 +208,6 @@ class Omnipod(ContinuousInsulinPump):
         self.name = "Omnipod"
 
         self.current_cummulative_pulses = 0
-        self.undelivered_insulin = 0
         self.insulin_units_per_pulse = 0.05
 
     def get_pulses_per_hour(self):
@@ -221,7 +222,7 @@ class Omnipod(ContinuousInsulinPump):
 
         return int(round(self.get_basal_rate().value / self.insulin_units_per_pulse))
 
-    def get_delivered_insulin_since_update(self, update_interval_minutes=5):
+    def get_delivered_basal_insulin_since_update(self, update_interval_minutes=5):
         """
         Get the insulin delivered since the last update based on Omnipod behavior
         of delivering pulses at the last second between pulse intervals. Also updates
@@ -252,27 +253,6 @@ class Omnipod(ContinuousInsulinPump):
 
         return num_pulses_delivered * self.insulin_units_per_pulse
 
-    def get_state(self):
-        """
-        Get the state of the scheduled and temporary basal rates. Temp basal should be None
-        if not active.
-
-        Returns
-        -------
-        PumpState
-            The pump state
-        """
-
-        temp_basal_rate = self.active_temp_basal
-        scheduled_basal_rate = self.pump_config.basal_schedule.get_state()
-
-        return PumpState(
-            scheduled_basal_rate,
-            temp_basal_rate,
-            self.insulin_delivered_last_update,
-            self.undelivered_insulin
-        )
-
 
 class OmnipodMissingPulses(Omnipod):
     """
@@ -297,7 +277,7 @@ class OmnipodMissingPulses(Omnipod):
         # pulses remaining are "forgotten" by the pump.
         pulses_delivered = int(self.current_cummulative_pulses)
         fractional_pulses_remaining = self.current_cummulative_pulses - pulses_delivered
-        self.undelivered_insulin = fractional_pulses_remaining * self.insulin_units_per_pulse
+        self.basal_undelivered_insulin_since_last_update = fractional_pulses_remaining * self.insulin_units_per_pulse
         self.current_cummulative_pulses = pulses_delivered
 
 
@@ -310,14 +290,14 @@ class PumpState(object):
             self,
             scheduled_basal_rate,
             temp_basal_rate,
-            delivered_insulin,
-            undelivered_insulin=0
+            delivered_basal_insulin,
+            undelivered_basal_insulin=0
     ):
 
         self.scheduled_basal_rate = scheduled_basal_rate
         self.temp_basal_rate = temp_basal_rate
-        self.delivered_insulin = delivered_insulin
-        self.undelivered_insulin = undelivered_insulin
+        self.delivered_basal_insulin = delivered_basal_insulin
+        self.undelivered_basal_insulin = undelivered_basal_insulin
 
     def get_temp_basal_rate_value(self, default=None):
         """
