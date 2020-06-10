@@ -88,6 +88,9 @@ class LoopController(SimulationComponent):
         carb_values, carb_start_times, carb_durations = \
             self.carb_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
+        basal_rate_values, basal_rate_start_times, basal_rate_durations = \
+            virtual_patient.pump.pump_config.basal_schedule.get_loop_inputs()
+
         # TODO NOW: add bolus and temp basal events
         loop_update_dict = {
             "time_to_calculate_at": self.time,
@@ -99,7 +102,10 @@ class LoopController(SimulationComponent):
             "dose_end_times": bolus_end_times + temp_basal_end_times,
             "carb_dates": carb_start_times,
             "carb_values": carb_values,
-            "carb_absorption_times": carb_durations
+            "carb_absorption_times": carb_durations,
+            "basal_rate_values": basal_rate_values,
+            "basal_rate_minutes": basal_rate_durations,
+            "basal_rate_start_times": basal_rate_start_times
         }
         loop_inputs_dict.update(loop_update_dict)
 

@@ -236,6 +236,7 @@ class SettingSchedule24Hr(SimulationComponent):
 
         self.time = time
         self.name = name
+        self.schedule_durations = {}
 
         # All the same length
         assert (
@@ -258,6 +259,7 @@ class SettingSchedule24Hr(SimulationComponent):
             )
             end_time = end_datetime.time()
             self.schedule[(start_time, end_time)] = value
+            self.schedule_durations[(start_time, end_time)] = duration_minutes
 
     def get_state(self):
         """
@@ -294,6 +296,21 @@ class SettingSchedule24Hr(SimulationComponent):
         """
 
         self.time = time
+
+
+class BasalSchedule24hr(SettingSchedule24Hr):
+
+    def get_loop_inputs(self):
+
+        values = []
+        start_times = []
+        durations = []
+        for (start_time, end_time), basal_rate in self.schedule.items():
+            values.append(basal_rate.value)
+            start_times.append(start_time)
+            durations.append(self.schedule_durations[(start_time, end_time)])
+
+        return values, start_times, durations
 
 
 class EventTimeline(object):
