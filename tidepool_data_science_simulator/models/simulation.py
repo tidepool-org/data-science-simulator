@@ -300,6 +300,9 @@ class SettingSchedule24Hr(SimulationComponent):
 
 class BasalSchedule24hr(SettingSchedule24Hr):
 
+    def __init__(self, time, start_times, values, duration_minutes):
+        super().__init__(time, "Basal Schedule", start_times, values, duration_minutes)
+
     def get_loop_inputs(self):
 
         values = []

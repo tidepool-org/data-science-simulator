@@ -28,6 +28,10 @@ class Measure(object):
         else:
             raise ValueError("Cannot add measures of different units.")
 
+    def __eq__(self, other):
+
+        return self.value == other.value and self.units == other.units
+
 
 class MeasureRange(object):
     """
@@ -84,6 +88,13 @@ class TempBasal(BasalRate):
 
     def __repr__(self):
         return "{} {}min".format(super().__repr__(), self.duration_minutes)
+
+    def __eq__(self, other):
+
+        return  self.start_time == other.start_time and \
+                self.value == other.value and \
+                self.units == other.units and \
+                self.duration_minutes == other.duration_minutes
 
     def is_active(self, time):
         """
