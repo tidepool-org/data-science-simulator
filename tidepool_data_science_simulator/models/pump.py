@@ -37,10 +37,11 @@ class ContinuousInsulinPump(SimulationComponent):
         """
         Set a temp basal
         """
-        if self.is_valid_temp_basal(temp_basal):
+        is_valid, message = self.is_valid_temp_basal(temp_basal)
+        if is_valid:
             self.active_temp_basal = temp_basal
         else:
-            raise ValueError("Temp basal request is invalid")
+            raise ValueError("Temp basal request is invalid. {}".format(message))
 
     def get_delivered_basal_insulin_since_update(self, update_interval_minutes=5):
         """
@@ -63,10 +64,25 @@ class ContinuousInsulinPump(SimulationComponent):
 
     def is_valid_temp_basal(self, temp_basal):
         request_valid = True
+        message = ""
+
         if temp_basal.value >= self.pump_config.max_temp_basal:
             request_valid = False
+            message = "Temp basal value is above the maximum allowed on pump."
 
-        return request_valid
+        if temp_basal.duration_minutes != 30:
+            request_valid = False
+            message = "Temp basals must be 30 minutes in duration."
+
+        if temp_basal.value < 0:
+            request_valid = False
+            message = "Invalid temp basal value."
+
+        if temp_basal.start_time != self.time:
+            request_valid = False
+            message = "Can only set temp basal for current time."
+
+        return request_valid, message
 
     def deliver_bolus(self, bolus):
         """

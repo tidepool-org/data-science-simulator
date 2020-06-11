@@ -45,7 +45,7 @@ def get_canonical_risk_patient(t0=None,
             t0,
             "basal",
             start_times=[setting_start_time],
-            values=[BasalRate(0.3, "mg/dL")],
+            values=[BasalRate(0.3, "U/hr")],
             duration_minutes=[1440]
         ),
         carb_ratio_schedule=SettingSchedule24Hr(
@@ -59,7 +59,7 @@ def get_canonical_risk_patient(t0=None,
             t0,
             "ISF",
             start_times=[setting_start_time],
-            values=[InsulinSensitivityFactor(150, "md/dL / U")],
+            values=[InsulinSensitivityFactor(150, "mg/dL/U")],
             duration_minutes=[1440]
         ),
         target_range_schedule=SettingSchedule24Hr(
