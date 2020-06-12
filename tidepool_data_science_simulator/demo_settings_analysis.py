@@ -53,8 +53,7 @@ def analyze_settings(scenario_csv_filepath, param_grid):
 
         controller = LoopController(
             time=t0,
-            loop_config=sim_parser.get_controller_config(),
-            simulation_config=sim_parser.get_simulation_config(),
+            controller_config=sim_parser.get_controller_config(),
         )
         pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
         sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
@@ -76,7 +75,6 @@ def analyze_settings(scenario_csv_filepath, param_grid):
         simulation = Simulation(
             time=t0,
             duration_hrs=18.0,
-            simulation_config=sim_parser.get_simulation_config(),
             virtual_patient=vp,
             controller=controller,
             multiprocess=True,

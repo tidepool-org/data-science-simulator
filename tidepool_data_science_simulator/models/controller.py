@@ -11,12 +11,24 @@ from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus,
 from pyloopkit.loop_data_manager import update
 
 
-class DoNothingController(SimulationComponent):
+class BaseControllerClass(SimulationComponent):
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def get_classname(cls):
+        return cls.__name__
+
+
+class DoNothingController(BaseControllerClass):
     """
     A controller that does nothing, which means that pump schedules
     are the only modulation.
     """
-
     def __init__(self, time, controller_config):
         self.name = "Do Nothing"
         self.time = time
@@ -30,25 +42,26 @@ class DoNothingController(SimulationComponent):
         pass
 
 
-class LoopController(SimulationComponent):
+class LoopController(BaseControllerClass):
     """
     A controller class for the Pyloopkit algorithm
     """
+    def __repr__(self):
+        return "PyLoopkit_v0.1"
 
-    def __init__(self, time, loop_config, simulation_config):
+    def __str__(self):
+        return "PyLoopkit_v0.1"
+
+    def __init__(self, time, controller_config):
 
         self.name = "PyLoopkit v0.1"
         self.time = time
-        self.loop_config = copy.deepcopy(loop_config)
+        self.controller_config = copy.deepcopy(controller_config)
         self.recommendations = None
 
-        # This is a hack to get this working quickly, it's too coupled to the input file format
-        #  Future: Collect the information for the various simulation components
-        self.simulation_config = copy.deepcopy(simulation_config)
-
-        self.bolus_event_timeline = loop_config.bolus_event_timeline
-        self.temp_basal_event_timeline = loop_config.temp_basal_event_timeline
-        self.carb_event_timeline = loop_config.carb_event_timeline
+        self.bolus_event_timeline = controller_config.bolus_event_timeline
+        self.temp_basal_event_timeline = controller_config.temp_basal_event_timeline
+        self.carb_event_timeline = controller_config.carb_event_timeline
 
         self.num_hours_history = 6  # how many hours of recent events to pass to Loop
 
@@ -63,10 +76,6 @@ class LoopController(SimulationComponent):
         """
         Collect inputs to the loop update call for the current time.
 
-        Note: TODO: MVP needs to conform to the current pyloopkit interface which
-                needs a lot of info. In the future, expose pyloopkit interface
-                that takes minimal state info for computing at time
-
         Parameters
         ----------
         virtual_patient:
@@ -77,7 +86,6 @@ class LoopController(SimulationComponent):
             Inputs for Pyloopkit algo
         """
         glucose_dates, glucose_values = virtual_patient.bg_history.get_loop_inputs()
-        loop_inputs_dict = copy.deepcopy(self.simulation_config)
 
         bolus_dose_types, bolus_dose_values, bolus_start_times, bolus_end_times = \
             self.bolus_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
@@ -91,23 +99,46 @@ class LoopController(SimulationComponent):
         basal_rate_values, basal_rate_start_times, basal_rate_durations = \
             virtual_patient.pump.pump_config.basal_schedule.get_loop_inputs()
 
-        # TODO NOW: add bolus and temp basal events
-        loop_update_dict = {
+        isf_values, isf_start_times, isf_end_times = \
+            virtual_patient.pump.pump_config.insulin_sensitivity_schedule.get_loop_inputs()
+
+        cir_values, cir_start_times, cir_durations = \
+            virtual_patient.pump.pump_config.carb_ratio_schedule.get_loop_inputs()
+
+        tr_min_values, tr_max_values, tr_start_times, tr_end_times = \
+            virtual_patient.pump.pump_config.target_range_schedule.get_loop_inputs()
+
+        loop_inputs_dict = {
             "time_to_calculate_at": self.time,
             "glucose_dates": glucose_dates,
             "glucose_values": glucose_values,
+
             "dose_types": bolus_dose_types + temp_basal_dose_types,
             "dose_values": bolus_dose_values + temp_basal_dose_values,
             "dose_start_times": bolus_start_times + temp_basal_start_times,
             "dose_end_times": bolus_end_times + temp_basal_end_times,
+
             "carb_dates": carb_start_times,
             "carb_values": carb_values,
             "carb_absorption_times": carb_durations,
+
             "basal_rate_values": basal_rate_values,
             "basal_rate_minutes": basal_rate_durations,
-            "basal_rate_start_times": basal_rate_start_times
+            "basal_rate_start_times": basal_rate_start_times,
+
+            "carb_ratio_values": cir_values,
+            "carb_ratio_start_times": cir_start_times,
+
+            "sensitivity_ratio_values": isf_values,
+            "sensitivity_ratio_start_times": isf_start_times,
+            "sensitivity_ratio_end_times": isf_end_times,
+
+            "target_range_minimum_values": tr_min_values,
+            "target_range_maximum_values": tr_max_values,
+            "target_range_start_times": tr_start_times,
+            "target_range_end_times": tr_end_times,
+            "settings_dictionary": self.controller_config.controller_settings
         }
-        loop_inputs_dict.update(loop_update_dict)
 
         return loop_inputs_dict
 
@@ -247,8 +278,8 @@ class LoopControllerDisconnector(LoopController):
     setting of temp basals.
     """
 
-    def __init__(self, time, loop_config, simulation_config, connect_prob):
-        super().__init__(time, loop_config, simulation_config)
+    def __init__(self, time, controller_config, connect_prob):
+        super().__init__(time, controller_config)
 
         self.name = "PyLoopkit v0.1, P(Connect)={}".format(connect_prob)
         self.original_time = copy.copy(time)

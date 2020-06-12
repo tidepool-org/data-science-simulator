@@ -38,8 +38,8 @@ def analyze_controllers(scenario_csv_filepath):
         DoNothingController(
             time=t0, controller_config=sim_parser.get_controller_config()
         ),
-        # LoopController(time=t0, loop_config=sim_parser.get_controller_config(), simulation_config=sim_parser.get_simulation_config()),
-        # LoopControllerDisconnector(time=t0, loop_config=sim_parser.get_controller_config(), simulation_config=sim_parser.get_simulation_config(), connect_prob=0.25),
+        # LoopController(time=t0, loop_config=sim_parser.get_controller_config()),
+        # LoopControllerDisconnector(time=t0, loop_config=sim_parser.get_controller_config(), connect_prob=0.25),
     ]
 
     virtual_patients = []
@@ -56,7 +56,6 @@ def analyze_controllers(scenario_csv_filepath):
             simulation = Simulation(
                 time=t0,
                 duration_hrs=8.0,
-                simulation_config=sim_parser.get_simulation_config(),
                 virtual_patient=vp,
                 controller=controller,
             )

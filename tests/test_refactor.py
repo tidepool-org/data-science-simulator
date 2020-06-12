@@ -1,5 +1,8 @@
 __author__ = "Cameron Summers"
 
+import os
+import subprocess
+
 import numpy as np
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
@@ -10,6 +13,12 @@ from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
+
+from tidepool_data_science_simulator.makedata.make_simulation import get_canonical_simulation
+
+REGRESSION_COMMIT = "5b4d5f5"
+
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 
 
 def SUNSETTED_TEST_simulator_refactor():
@@ -25,8 +34,7 @@ def SUNSETTED_TEST_simulator_refactor():
 
     controllers = [
         DoNothingController(time=t0, controller_config=sim_parser.get_controller_config()),
-        LoopController(time=t0, loop_config=sim_parser.get_controller_config(),
-                       simulation_config=sim_parser.get_simulation_config()),
+        LoopController(time=t0, controller_config=sim_parser.get_controller_config())
     ]
 
     all_controller_results = []
@@ -47,7 +55,6 @@ def SUNSETTED_TEST_simulator_refactor():
         simulation = Simulation(
             time=t0,
             duration_hrs=sim_parser.get_simulation_duration_hours(),
-            simulation_config=sim_parser.get_simulation_config(),
             virtual_patient=vp,
             controller=controller
         )
@@ -71,5 +78,75 @@ def SUNSETTED_TEST_simulator_refactor():
     assert np.sum(np.abs(loop_results_df['temp_basal'].to_numpy() - old_code_temp_basal)) < 1e-6
     assert np.sum(np.abs(loop_results_df['bg'].to_numpy() - old_code_bg_actual)) < 1e-6
 
-    # TODO: Ed, we need to sort this detail.
     # assert np.sum(np.abs(loop_results_df['iob'].to_numpy()[:96] - old_code_iob[:96])) < 1e-6
+
+
+def test_regression():
+    """
+    Test the output of the canonical simulation to saved values from a standard commit.
+    """
+
+    controllers = [
+        DoNothingController,
+        LoopController
+    ]
+
+    for controller in controllers:
+        load_path = "tests/data/regression/commit-{}/{}/".format(REGRESSION_COMMIT, controller.get_classname())
+
+        t0, sim = get_canonical_simulation(
+            controller_class=controller,
+            duration_hrs=8,
+            include_initial_events=True
+        )
+        sim.run()
+        results_df = sim.get_results_df()
+
+        regr_bg = np.load(os.path.join(load_path, "bg.npy"))
+        assert np.sum(np.abs(results_df['bg'].to_numpy() - regr_bg)) < 1e-6
+
+        regr_iob = np.load(os.path.join(load_path, "iob.npy"))
+        assert np.sum(np.abs(results_df['iob'].to_numpy() - regr_iob)) < 1e-6
+
+
+def make_regression():
+    """
+    Make a regression test with the current version of the code.
+    """
+
+    current_commit = subprocess.check_output(["git", "describe", "--always"]).strip().decode("utf-8")
+
+    controllers = [
+        DoNothingController,
+        LoopController
+    ]
+
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+
+    for controller in controllers:
+        save_path = os.path.join(this_dir,
+                                 "data/regression/commit-{}/{}/".format(current_commit, controller.get_classname()))
+        if not os.path.isdir(save_path):
+            os.makedirs(save_path)
+        else:
+            raise Exception("Save path exists: {}".format(save_path))
+
+        t0, sim = get_canonical_simulation(
+            controller_class=controller,
+            duration_hrs=8,
+            include_initial_events=True
+        )
+        sim.run()
+        results_df = sim.get_results_df()
+
+        np.save(os.path.join(save_path, "bg.npy"), results_df['bg'].to_numpy())
+        np.save(os.path.join(save_path, "iob.npy"), results_df['iob'].to_numpy())
+        np.save(os.path.join(save_path, "temp_basal.npy"), results_df['temp_basal'].to_numpy())
+        pass
+
+        # plot_sim_results({0: results_df})
+
+
+if __name__ == "__main__":
+
+    make_regression()

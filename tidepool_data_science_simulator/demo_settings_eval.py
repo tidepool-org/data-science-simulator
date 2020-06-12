@@ -31,8 +31,7 @@ def eval_settings(scenario_csv_filepath):
 
     controller = LoopController(
             time=t0,
-            loop_config=sim_parser.get_controller_config(),
-            simulation_config=sim_parser.get_simulation_config(),
+            controller_config=sim_parser.get_controller_config(),
         )
 
     sim_id = controller.name
@@ -61,7 +60,6 @@ def eval_settings(scenario_csv_filepath):
     simulation = Simulation(
         time=t0,
         duration_hrs=8.0,
-        simulation_config=sim_parser.get_simulation_config(),
         virtual_patient=vp,
         controller=controller,
     )

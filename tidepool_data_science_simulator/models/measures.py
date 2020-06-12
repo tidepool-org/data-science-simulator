@@ -241,5 +241,5 @@ class GlucoseTrace(object):
         """
         Get two numpy arrays for dates and values, used for Loop input
         """
-        loop_bg_values = [max(40, min(400, round(bg))) for bg in self.bg_values]
+        loop_bg_values = [max(40, min(400, float(round(bg)))) for bg in self.bg_values]
         return self.datetimes, loop_bg_values
