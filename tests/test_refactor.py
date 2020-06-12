@@ -16,9 +16,7 @@ from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioPar
 
 from tidepool_data_science_simulator.makedata.make_simulation import get_canonical_simulation
 
-REGRESSION_COMMIT = "5b4d5f5"
-
-from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
+REGRESSION_COMMIT = "d3a1e74"
 
 
 def SUNSETTED_TEST_simulator_refactor():
