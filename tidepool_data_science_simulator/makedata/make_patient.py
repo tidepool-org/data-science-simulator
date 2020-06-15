@@ -56,6 +56,7 @@ def get_canonical_risk_patient(t0=None,
     glucose_dates.reverse()
     glucose_values = [110.0] * num_glucose_values
     glucose_history = GlucoseTrace(glucose_dates, glucose_values)
+    sensor_glucose_history = glucose_history
 
     pump_config = PumpConfig(
         basal_schedule=BasalSchedule24hr(
@@ -93,7 +94,7 @@ def get_canonical_risk_patient(t0=None,
         pump_config=pump_config
     )
 
-    sensor = sensor_class(sensor_config=None)
+    sensor = sensor_class(sensor_config=sensor_glucose_history)
 
     patient_config = PatientConfig(
         basal_schedule=BasalSchedule24hr(
