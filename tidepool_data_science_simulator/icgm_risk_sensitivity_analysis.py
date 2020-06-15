@@ -19,8 +19,7 @@ def do_icgm_risk_analysis(scenario_csv_filepath):
     t0 = sim_parser.get_simulation_start_time()
     controller = LoopController(
         time=t0,
-        loop_config=sim_parser.get_controller_config(),
-        simulation_config=sim_parser.get_simulation_config(),
+        controller_config=sim_parser.get_controller_config(),
     )
 
     pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
@@ -53,7 +52,6 @@ def do_icgm_risk_analysis(scenario_csv_filepath):
                 simulation = Simulation(
                     time=t0,
                     duration_hrs=sim_parser.get_simulation_duration_hours(),
-                    simulation_config=sim_parser.get_simulation_config(),
                     virtual_patient=vp,
                     controller=controller,
                 )

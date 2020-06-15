@@ -65,7 +65,6 @@ class Simulation(multiprocessing.Process):
         self,
         time,
         duration_hrs,
-        simulation_config,
         virtual_patient,
         controller,
         multiprocess=False,
@@ -75,8 +74,6 @@ class Simulation(multiprocessing.Process):
         super().__init__()
         self.queue = multiprocessing.Queue()
         self.multiprocess = multiprocess
-
-        self.simulation_config = simulation_config
 
         self.start_time = copy.deepcopy(time)
         self.time = time
@@ -297,23 +294,55 @@ class SettingSchedule24Hr(SimulationComponent):
 
         self.time = time
 
+    def get_loop_inputs(self):
+
+        values = []
+        start_times = []
+        end_times = []
+        for (start_time, end_time), setting in self.schedule.items():
+            values.append(setting.value)
+            start_times.append(start_time)
+            end_times.append(end_time)
+
+        return values, start_times, end_times
+
 
 class BasalSchedule24hr(SettingSchedule24Hr):
 
     def __init__(self, time, start_times, values, duration_minutes):
-        super().__init__(time, "Basal Schedule", start_times, values, duration_minutes)
+        super().__init__(time, "Basal Rate Schedule", start_times, values, duration_minutes)
 
     def get_loop_inputs(self):
 
         values = []
         start_times = []
         durations = []
-        for (start_time, end_time), basal_rate in self.schedule.items():
-            values.append(basal_rate.value)
+        for (start_time, end_time), setting in self.schedule.items():
+            values.append(setting.value)
             start_times.append(start_time)
             durations.append(self.schedule_durations[(start_time, end_time)])
 
         return values, start_times, durations
+
+
+class TargetRangeSchedule24hr(SettingSchedule24Hr):
+
+    def __init__(self, time, start_times, values, duration_minutes):
+        super().__init__(time, "Target Range Schedule", start_times, values, duration_minutes)
+
+    def get_loop_inputs(self):
+
+        min_values = []
+        max_values = []
+        start_times = []
+        end_times = []
+        for (start_time, end_time), target_range in self.schedule.items():
+            min_values.append(target_range.min_value)
+            max_values.append(target_range.max_value)
+            start_times.append(start_time)
+            end_times.append(end_time)
+
+        return min_values, max_values, start_times, end_times
 
 
 class EventTimeline(object):

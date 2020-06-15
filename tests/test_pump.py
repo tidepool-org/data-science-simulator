@@ -3,7 +3,7 @@ __author__ = "Cameron Summers"
 import datetime
 
 from tidepool_data_science_simulator.models.measures import TempBasal, BasalRate
-from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump, OmnipodMissingPulses
+from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump, OmnipodMissingPulses, Omnipod
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient
 
 
@@ -93,6 +93,23 @@ def test_continous_insulin_pump():
     for _ in range(5):
         pump.update(pump.time + update_time_delta)
     assert not pump.has_active_temp_basal()
+
+
+def test_omnipod():
+
+    t0, vp = get_canonical_risk_patient(pump_class=Omnipod)
+    pump = vp.pump
+    assert pump.get_basal_rate() == BasalRate(0.3, "U/hr")
+
+    # Test initialization prior to any updating, ie t0 setup behavior in simulation
+    assert pump.basal_insulin_delivered_last_update == 0
+    pump.init()
+    assert pump.basal_insulin_delivered_last_update == 0  # No pulses for 0.3 rate in 5 minutes
+
+    temp_basal = TempBasal(pump.time, 0.6, 30, "U/hr")
+    pump.set_temp_basal(temp_basal)
+    pump.init()
+    assert pump.basal_insulin_delivered_last_update == 0.05
 
 
 def test_omnipod_missing_pulses():

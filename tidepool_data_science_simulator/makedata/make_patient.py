@@ -2,10 +2,12 @@ __author__ = "Cameron Summers"
 
 import datetime
 
-from tidepool_data_science_simulator.models.simulation import SettingSchedule24Hr, CarbTimeline, BolusTimeline
+from tidepool_data_science_simulator.models.simulation import (
+    SettingSchedule24Hr, CarbTimeline, BolusTimeline, BasalSchedule24hr, TargetRangeSchedule24hr
+)
 from tidepool_data_science_simulator.makedata.scenario_parser import PumpConfig, PatientConfig
 from tidepool_data_science_simulator.models.measures import (
-    InsulinSensitivityFactor, CarbInsulinRatio, BasalRate, TargetRange, GlucoseTrace
+    InsulinSensitivityFactor, CarbInsulinRatio, BasalRate, TargetRange, GlucoseTrace, Bolus, Carb
 )
 from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses, Omnipod, ContinuousInsulinPump
 from tidepool_data_science_simulator.models.patient import VirtualPatient, VirtualPatientModel
@@ -19,7 +21,8 @@ from tidepool_data_science_models.models.simple_metabolism_model import SimpleMe
 def get_canonical_risk_patient(t0=None,
                                patient_class=VirtualPatient,
                                pump_class=ContinuousInsulinPump,
-                               sensor_class=IdealSensor):
+                               sensor_class=IdealSensor,
+                               include_initial_events=False):
     """
     Get patient with settings from the FDA risk analysis scenario template.
     Putting here to simplify testing and decouple from specific scenarios.
@@ -31,46 +34,58 @@ def get_canonical_risk_patient(t0=None,
     """
 
     if t0 is None:
-        t0 = datetime.datetime(year=2020, month=1, day=1, hour=0, minute=0, second=0)
+        t0 = datetime.datetime(year=2019, month=8, day=15, hour=12, minute=0, second=0)
+
+    if include_initial_events:
+        pump_carb_timeline = CarbTimeline([t0], [Carb(40.0, "g", 180)])
+        pump_bolus_timeline =BolusTimeline([t0], [Bolus(2.0, "U")])
+
+        patient_carb_timeline = CarbTimeline([t0], [Carb(20.0, "g", 180)])
+        patient_bolus_timeline = BolusTimeline([t0], [Bolus(2.0, "U")])
+    else:
+        pump_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
+        pump_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
+
+        patient_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
+        patient_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
 
     setting_start_time = datetime.time(hour=0, minute=0, second=0)
 
-    glucose_dates = [t0 + datetime.timedelta(minutes=i * 5) for i in range(144)]
+    num_glucose_values = 137
+    glucose_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_glucose_values)]
     glucose_dates.reverse()
-    glucose_values = [110] * 144  # 12 hours of glucose data
+    glucose_values = [110.0] * num_glucose_values
     glucose_history = GlucoseTrace(glucose_dates, glucose_values)
 
     pump_config = PumpConfig(
-        basal_schedule=SettingSchedule24Hr(
+        basal_schedule=BasalSchedule24hr(
             t0,
-            "basal",
             start_times=[setting_start_time],
             values=[BasalRate(0.3, "U/hr")],
-            duration_minutes=[1440]
+            duration_minutes=[1440.0]
         ),
         carb_ratio_schedule=SettingSchedule24Hr(
             t0,
             "CIR",
             start_times=[setting_start_time],
-            values=[CarbInsulinRatio(20, "g/U")],
-            duration_minutes=[1440]
+            values=[CarbInsulinRatio(20.0, "g/U")],
+            duration_minutes=[1440.0]
         ),
         insulin_sensitivity_schedule=SettingSchedule24Hr(
             t0,
             "ISF",
             start_times=[setting_start_time],
-            values=[InsulinSensitivityFactor(150, "mg/dL/U")],
-            duration_minutes=[1440]
+            values=[InsulinSensitivityFactor(150.0, "mg/dL/U")],
+            duration_minutes=[1440.0]
         ),
-        target_range_schedule=SettingSchedule24Hr(
+        target_range_schedule=TargetRangeSchedule24hr(
             t0,
-            "TargetRange",
             start_times=[setting_start_time],
             values=[TargetRange(100, 120, "mg/dL")],
-            duration_minutes=[1440]
+            duration_minutes=[1440.0]
         ),
-        carb_event_timeline=CarbTimeline(),
-        bolus_event_timeline=BolusTimeline()
+        carb_event_timeline=pump_carb_timeline,
+        bolus_event_timeline=pump_bolus_timeline
     )
 
     pump = pump_class(
@@ -81,30 +96,29 @@ def get_canonical_risk_patient(t0=None,
     sensor = sensor_class(sensor_config=None)
 
     patient_config = PatientConfig(
-        basal_schedule=SettingSchedule24Hr(
+        basal_schedule=BasalSchedule24hr(
             t0,
-            "basal",
             start_times=[setting_start_time],
             values=[BasalRate(0.3, "mg/dL")],
-            duration_minutes=[1440]
+            duration_minutes=[1440.0]
         ),
         carb_ratio_schedule=SettingSchedule24Hr(
             t0,
             "CIR",
             start_times=[setting_start_time],
-            values=[CarbInsulinRatio(20, "g/U")],
-            duration_minutes=[1440]
+            values=[CarbInsulinRatio(20.0, "g/U")],
+            duration_minutes=[1440.0]
         ),
         insulin_sensitivity_schedule=SettingSchedule24Hr(
             t0,
             "ISF",
             start_times=[setting_start_time],
-            values=[InsulinSensitivityFactor(150, "md/dL / U")],
-            duration_minutes=[1440]
+            values=[InsulinSensitivityFactor(150.0, "md/dL / U")],
+            duration_minutes=[1440.0]
         ),
         glucose_history=glucose_history,
-        carb_event_timeline=CarbTimeline(),
-        bolus_event_timeline=BolusTimeline(),
+        carb_event_timeline=patient_carb_timeline,
+        bolus_event_timeline=patient_bolus_timeline,
         recommendation_accept_prob=0.0  # Does not accept any recommendations
     )
 

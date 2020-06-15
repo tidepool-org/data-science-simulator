@@ -33,8 +33,7 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
         ),
         LoopController(
             time=t0,
-            loop_config=sim_parser.get_controller_config(),
-            simulation_config=sim_parser.get_simulation_config(),
+            controller_config=sim_parser.get_controller_config(),
         ),
     ]
 
@@ -63,7 +62,6 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
         simulation = Simulation(
             time=t0,
             duration_hrs=8.0,
-            simulation_config=sim_parser.get_simulation_config(),
             virtual_patient=vp,
             controller=controller,
         )

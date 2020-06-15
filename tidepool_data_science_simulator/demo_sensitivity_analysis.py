@@ -44,8 +44,8 @@ def analyze_variance(scenario_csv_filepath, param_grid, plot):
         DoNothingController(
             time=t0, controller_config=sim_parser.get_controller_config()
         ),
-        # LoopController(time=t0, loop_config=sim_parser.get_controller_config(), simulation_config=sim_parser.get_simulation_config()),
-        # LoopControllerDisconnector(time=t0, loop_config=sim_parser.get_controller_config(), simulation_config=sim_parser.get_simulation_config(), connect_prob=0.25),
+        # LoopController(time=t0, loop_config=sim_parser.get_controller_config()()),
+        # LoopControllerDisconnector(time=t0, loop_config=sim_parser.get_controller_config(), connect_prob=0.25),
     ]
 
     pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
@@ -79,7 +79,6 @@ def analyze_variance(scenario_csv_filepath, param_grid, plot):
             simulation = Simulation(
                 time=t0,
                 duration_hrs=24.0 * 10,
-                simulation_config=sim_parser.get_simulation_config(),
                 virtual_patient=vp,
                 controller=controller,
             )
@@ -115,8 +114,8 @@ def analyze_variance_multiprocess(scenario_csv_filepath, param_grid, plot):
         DoNothingController(
             time=t0, controller_config=sim_parser.get_controller_config()
         ),
-        # LoopController(time=t0, loop_config=sim_parser.get_controller_config(), simulation_config=sim_parser.get_simulation_config()),
-        # LoopControllerDisconnector(time=t0, loop_config=sim_parser.get_controller_config(), simulation_config=sim_parser.get_simulation_config(), connect_prob=0.25),
+        # LoopController(time=t0, loop_config=sim_parser.get_controller_config()),
+        # LoopControllerDisconnector(time=t0, loop_config=sim_parser.get_controller_config(), connect_prob=0.25),
     ]
 
     pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
@@ -150,7 +149,6 @@ def analyze_variance_multiprocess(scenario_csv_filepath, param_grid, plot):
             simulation = Simulation(
                 time=t0,
                 duration_hrs=24.0 * 10,
-                simulation_config=sim_parser.get_simulation_config(),
                 virtual_patient=vp,
                 controller=controller,
                 multiprocess=True,
@@ -184,7 +182,7 @@ if __name__ == "__main__":
             "correct_carb_bg_threshold": b,
             "carb_count_noise_percentage": c,
         }
-        for a in np.arange(140, 200, 20)
+        for a in np.arange(140, 200, 40)
         for b in np.arange(50, 90, 20)
         for c in np.arange(0.05, 0.2, 0.02)
     ]

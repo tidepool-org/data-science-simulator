@@ -10,7 +10,7 @@ import numpy as np
 
 from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
 from tidepool_data_science_simulator.models.simulation import (
-    CarbTimeline, BolusTimeline, TempBasalTimeline, SettingSchedule24Hr
+    CarbTimeline, BolusTimeline, TempBasalTimeline, SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
 )
 from tidepool_data_science_simulator.models.measures import (
     Carb,
@@ -24,8 +24,6 @@ from tidepool_data_science_simulator.models.measures import (
 
 
 class SimulationParser(object):
-    def get_simulation_config(self):
-        raise NotImplementedError
 
     def get_pump_config(self):
         raise NotImplementedError
@@ -60,9 +58,8 @@ class ScenarioParserCSV(SimulationParser):
         time = self.get_simulation_start_time()
 
         # ========== Pump =============
-        self.pump_basal_schedule = SettingSchedule24Hr(
+        self.pump_basal_schedule = BasalSchedule24hr(
             time,
-            "Basal Rate",
             start_times=self.tmp_dict.get("basal_rate_start_times"),
             values=[
                 BasalRate(rate, units)
@@ -106,9 +103,8 @@ class ScenarioParserCSV(SimulationParser):
             ),  # TODO: hack
         )
 
-        self.pump_target_range_schedule = SettingSchedule24Hr(
+        self.pump_target_range_schedule = TargetRangeSchedule24hr(
             time,
-            "Target Range",
             start_times=self.tmp_dict.get("target_range_start_times"),
             values=[
                 TargetRange(min_value, max_value, units)
@@ -146,9 +142,8 @@ class ScenarioParserCSV(SimulationParser):
         )
 
         # ======== Patient ==========
-        self.patient_basal_schedule = SettingSchedule24Hr(
+        self.patient_basal_schedule = BasalSchedule24hr(
             time,
-            "Basal Rate",
             start_times=self.tmp_dict.get("basal_rate_start_times"),
             values=[
                 BasalRate(rate, units)
@@ -192,9 +187,8 @@ class ScenarioParserCSV(SimulationParser):
             ),  # TODO: hack
         )
 
-        self.patient_target_range_schedule = SettingSchedule24Hr(
+        self.patient_target_range_schedule = TargetRangeSchedule24hr(
             time,
-            "Target Range",
             start_times=self.tmp_dict.get("target_range_start_times"),
             values=[
                 TargetRange(min_value, max_value, units)
@@ -240,17 +234,6 @@ class ScenarioParserCSV(SimulationParser):
             datetimes=self.tmp_dict["glucose_dates"],
             values=self.tmp_dict["glucose_values"],
         )
-
-    def get_simulation_config(self):
-        """
-        Shortcut for passing the Loop specific format of current scenario files.
-
-        Returns
-        -------
-        dict
-            Scenario dict from the original code
-        """
-        return self.tmp_dict
 
     def get_pump_config(self):
         """
@@ -314,9 +297,6 @@ class ScenarioParserCSV(SimulationParser):
         """
         Get the Loop controller configuration.
 
-        TODO: This is a shortcut to get loop working. We'll want to construct a general
-                config object for this.
-
         Returns
         -------
         dict
@@ -346,8 +326,6 @@ class ScenarioParserCSV(SimulationParser):
     def get_simulation_duration_hours(self):
         """
         Get the length of the simulation
-
-        TODO: read from scenario config
 
         Returns
         -------
