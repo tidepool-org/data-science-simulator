@@ -186,7 +186,7 @@ class VirtualPatient(SimulationComponent):
         """
         Set the patient state to the result of the metabolism simulation.
         """
-        self.bg_current = self.sensor.get_bg(self.bg_prediction[0])
+        self.bg_current = self.bg_prediction[0]
         self.iob_current = self.iob_prediction[0]
 
         self.bg_history.append(time, self.bg_current)
