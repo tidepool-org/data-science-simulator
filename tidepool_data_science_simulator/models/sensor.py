@@ -51,6 +51,9 @@ class NoisySensor(Sensor):
         # No state
         pass
 
+    def get_loop_inputs(self):
+        return self.sensor_config.get_loop_inputs()
+
 
 class IdealSensor(Sensor):
     """
@@ -74,3 +77,6 @@ class IdealSensor(Sensor):
     def update(self, time):
         # No state
         pass
+
+    def get_loop_inputs(self):
+        return self.sensor_config.get_loop_inputs()
