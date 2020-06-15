@@ -50,8 +50,12 @@ class ScenarioParserCSV(SimulationParser):
     """
 
     def __init__(self, path_to_csv=None):
+        if path_to_csv[-3:] == 'csv':
+            separator=","
+        else:
+            separator = "\t"
         self.csv_path = path_to_csv
-        data = pd.read_csv(path_to_csv, sep="\t")
+        data = pd.read_csv(path_to_csv, sep=separator)
         custom_table_df = data.set_index("setting_name")
         self.tmp_dict = input_table_to_dict(custom_table_df)
 
