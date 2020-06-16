@@ -10,10 +10,8 @@ from tidepool_data_science_simulator.models.sensor import IdealSensor
 
 # %%
 def test_sensitivity_analysis_patient():
-    """
-    Tests the appropriate t0 conditions unique to the VirtualPatientISA class
+    """Tests the VirtualPatientISA class's handling of different analysis types"""
 
-    """
     scenario_csv_filepath = "tests/data/Scenario-test-0-carbs-0-insulin.tsv"
     sim_parser = ScenarioParserCSV(scenario_csv_filepath)
     t0 = sim_parser.get_simulation_start_time()
