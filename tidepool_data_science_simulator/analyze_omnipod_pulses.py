@@ -30,6 +30,10 @@ from tidepool_data_science_metrics.insulin.insulin import dka_index, dka_risk_sc
 
 
 def analyze_omnipod_missing_pulses():
+    """
+    Set temp basals every 5 minutes according to the scenario and plot
+    the delivered and undelivered insulin.
+    """
     current_time, patient = get_canonical_risk_patient(pump_class=OmnipodMissingPulses)
     pump = patient.pump
 
@@ -67,6 +71,10 @@ def analyze_omnipod_missing_pulses():
 
 
 def analyze_omnipod_missing_insulin_across_basal_rates():
+    """
+    Set temp basals every 5 minutes for 1 hour at the same rate and plot the cummulative delivered
+    and undelivered insulin.
+    """
     basal_rates = np.arange(0.0, 3.0, 0.05)
 
     all_delivered_insulin = []
@@ -101,18 +109,11 @@ def analyze_omnipod_missing_insulin_across_basal_rates():
 
 
 @timing
-def analyze_omnipod_missing_pulses_wLoop(dry_run):
+def analyze_omnipod_missing_pulses_wLoop(dry_run=False, plot_summary=False):
     """
-    Compare two controllers for a given scenario file:
-        1. No controller, ie no insulin modulation except for pump schedule
-        2. Loop controller
-
-    Parameters
-    ----------
-    scenario_csv_filepath: str
-        Path to the scenario file
+    Run loop with given basal rate settings to estimate risk of DKA due to
+    omnipod pulse issue.
     """
-
     param_grid = [
         {
             "loop_max_basal_rate": round(sbr * xer, 2),
@@ -134,8 +135,6 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run):
     sim_params = {}
     for pgrid in param_grid:
 
-        np.random.seed(1234)
-
         t0, sim = get_canonical_simulation(
             sensor_class=NoisySensor,
             pump_class=OmnipodMissingPulses,
@@ -143,6 +142,8 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run):
             multiprocess=True,
             duration_hrs=sim_num_hours
         )
+
+        sim.seed = 1234
 
         sim_id = "SBR {pump_basal_rate} VPBR {patient_basal_rate} MBR {loop_max_basal_rate}".format(**pgrid)
         print("Running: {}".format(sim_id))
@@ -171,6 +172,7 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run):
     all_results = {id: sim.queue.get() for id, sim in sims.items()}
     [sim.join() for id, sim in sims.items()]
 
+    # Gather results and get dka risk
     summary_results_df = []
     for sim_id, results_df in all_results.items():
         dkai = dka_index(results_df['iob'], sim_params[sim_id]["patient_basal_rate"])
@@ -187,7 +189,7 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run):
 
     summary_results_df = pd.DataFrame(summary_results_df)
 
-    if 1:
+    if plot_summary:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
 
         summary_results_pivot_df = summary_results_df.pivot(index='sbr', columns='loop_max_basal_rate',
@@ -208,6 +210,6 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run):
 
 if __name__ == "__main__":
 
-    # analyze_omnipod_missing_pulses_wLoop(False)
+    # analyze_omnipod_missing_pulses_wLoop(dry_run=False, plot_summary=True)
     analyze_omnipod_missing_pulses()
     # analyze_omnipod_missing_insulin_across_basal_rates()

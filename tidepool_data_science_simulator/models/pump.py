@@ -146,9 +146,13 @@ class ContinuousInsulinPump(SimulationComponent):
 
         temp_basal_rate = self.active_temp_basal
         scheduled_basal_rate = self.pump_config.basal_schedule.get_state()
+        isf = self.pump_config.insulin_sensitivity_schedule.get_state()
+        cir = self.pump_config.carb_ratio_schedule.get_state()
 
         return PumpState(
             scheduled_basal_rate,
+            cir,
+            isf,
             temp_basal_rate,
             self.basal_insulin_delivered_last_update,
             self.basal_undelivered_insulin_since_last_update
@@ -305,12 +309,16 @@ class PumpState(object):
     def __init__(
             self,
             scheduled_basal_rate,
+            scheduled_cir,
+            schedule_isf,
             temp_basal_rate,
             delivered_basal_insulin,
-            undelivered_basal_insulin=0
+            undelivered_basal_insulin=0,
     ):
 
         self.scheduled_basal_rate = scheduled_basal_rate
+        self.scheduled_carb_insulin_ratio = scheduled_cir
+        self.scheduled_insulin_sensitivity_factor = schedule_isf
         self.temp_basal_rate = temp_basal_rate
         self.delivered_basal_insulin = delivered_basal_insulin
         self.undelivered_basal_insulin = undelivered_basal_insulin

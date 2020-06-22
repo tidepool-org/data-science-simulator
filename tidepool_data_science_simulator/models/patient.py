@@ -26,6 +26,7 @@ class VirtualPatientState(object):
         iob,
         iob_prediction,
         sensor_bg_prediction,
+        sbr,
         isf,
         cir,
         bolus,
@@ -39,6 +40,7 @@ class VirtualPatientState(object):
         self.iob = iob
         self.iob_prediction = iob_prediction
         self.pump_state = pump_state
+        self.sbr = sbr
         self.isf = isf
         self.cir = cir
         self.bolus = bolus
@@ -141,6 +143,7 @@ class VirtualPatient(SimulationComponent):
             iob=self.iob_current,
             iob_prediction=self.iob_prediction,
             sensor_bg_prediction=self.sensor.get_bg_trace(self.bg_prediction),
+            sbr=self.patient_config.basal_schedule.get_state(),
             isf=self.patient_config.insulin_sensitivity_schedule.get_state(),
             cir=self.patient_config.carb_ratio_schedule.get_state(),
             bolus=self.bolus_event_timeline.get_event_value(self.time),
@@ -576,6 +579,7 @@ class VirtualPatientModel(VirtualPatient):
         bolus = None
         if carb is not None:
             u = np.random.random()
+
             if u <= self.remember_meal_bolus_prob:
 
                 estimated_carb = self.estimate_meal_carb(carb)
@@ -583,7 +587,7 @@ class VirtualPatientModel(VirtualPatient):
 
                 bolus = Bolus(value=cir.calculate_bolus(estimated_carb), units="U")
             else:
-                print("Forgot bolus")
+                print("{} Forgot bolus".format(self.name))
 
         return bolus
 
