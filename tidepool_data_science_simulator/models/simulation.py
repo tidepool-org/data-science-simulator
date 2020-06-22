@@ -8,6 +8,7 @@ import multiprocessing
 import copy
 import datetime
 import pandas as pd
+import numpy as np
 
 from pyloopkit.dose import DoseType
 
@@ -68,12 +69,14 @@ class Simulation(multiprocessing.Process):
         virtual_patient,
         controller,
         multiprocess=False,
+        seed=1234
     ):
 
         # To enable multiprocessing
         super().__init__()
         self.queue = multiprocessing.Queue()
         self.multiprocess = multiprocess
+        self.seed = seed
 
         self.start_time = copy.deepcopy(time)
         self.time = time
@@ -128,6 +131,8 @@ class Simulation(multiprocessing.Process):
         """
         Run the simulation until it's finished.
         """
+        np.random.seed(self.seed)
+
         while not self.is_finished():
             self.step()
             self.store_state()
@@ -191,9 +196,12 @@ class Simulation(multiprocessing.Process):
                 "temp_basal_zeros": simulation_state.patient_state.pump_state.get_temp_basal_rate_value(
                     default=0
                 ),
-                "sbr": simulation_state.patient_state.pump_state.scheduled_basal_rate.value,
+                "sbr": simulation_state.patient_state.sbr.value,
                 "cir": simulation_state.patient_state.cir,
                 "isf": simulation_state.patient_state.isf,
+                "pump_sbr": simulation_state.patient_state.pump_state.scheduled_basal_rate,
+                "pump_isf": simulation_state.patient_state.pump_state.scheduled_insulin_sensitivity_factor,
+                "pump_cir": simulation_state.patient_state.pump_state.scheduled_carb_insulin_ratio,
                 "bolus": bolus,
                 "carb": carb,
                 "delivered_basal_insulin": simulation_state.patient_state.pump_state.delivered_basal_insulin,
@@ -210,8 +218,7 @@ class SettingSchedule24Hr(SimulationComponent):
     """
     A class for settings schedules on a 24 hour cycle.
     """
-
-    def __init__(self, time, name, start_times, values, duration_minutes):
+    def __init__(self, time, name, start_times=None, values=None, duration_minutes=None):
         """
         Parameters
         ----------
@@ -230,10 +237,10 @@ class SettingSchedule24Hr(SimulationComponent):
         duration_minutes: list
             List of ints
         """
-
         self.time = time
         self.name = name
         self.schedule_durations = {}
+        self.schedule = {}
 
         # All the same length
         assert (
@@ -241,7 +248,6 @@ class SettingSchedule24Hr(SimulationComponent):
             == len(start_times) * 3
         )
 
-        self.schedule = {}
         for start_time, value, duration_minutes in zip(
             start_times, values, duration_minutes
         ):
@@ -343,6 +349,40 @@ class TargetRangeSchedule24hr(SettingSchedule24Hr):
             end_times.append(end_time)
 
         return min_values, max_values, start_times, end_times
+
+
+class SingleSettingSchedule24Hr(SimulationComponent):
+    """
+    Convenience class for creating single value setting schedules.
+    """
+    def __init__(self, time, name, setting):
+
+        self.time = time
+        self.name = name
+        self.setting = setting
+
+    def get_state(self):
+
+        return self.setting
+
+    def update(self, time, **kwargs):
+
+        pass  # stateless
+
+    def get_loop_inputs(self, use_durations):
+
+        values = [self.setting.value]
+        start_times = [datetime.time(0, 0, 0)]
+
+        end_times = [datetime.time(23, 59, 59)]
+        durations = [1440]
+
+        if use_durations:
+            end = durations
+        else:
+            end = end_times
+
+        return values, start_times, end
 
 
 class EventTimeline(object):

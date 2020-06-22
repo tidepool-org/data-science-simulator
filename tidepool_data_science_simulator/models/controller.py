@@ -108,6 +108,11 @@ class LoopController(BaseControllerClass):
         tr_min_values, tr_max_values, tr_start_times, tr_end_times = \
             virtual_patient.pump.pump_config.target_range_schedule.get_loop_inputs()
 
+        if len(temp_basal_dose_types) > 0:
+            last_temp_basal = [temp_basal_dose_types[-1], temp_basal_start_times[-1], temp_basal_end_times[-1], temp_basal_dose_values[-1]]
+        else:
+            last_temp_basal = None
+
         loop_inputs_dict = {
             "time_to_calculate_at": self.time,
             "glucose_dates": glucose_dates,
@@ -137,6 +142,9 @@ class LoopController(BaseControllerClass):
             "target_range_maximum_values": tr_max_values,
             "target_range_start_times": tr_start_times,
             "target_range_end_times": tr_end_times,
+
+            "last_temporary_basal": last_temp_basal,
+
             "settings_dictionary": self.controller_config.controller_settings
         }
 
@@ -193,11 +201,13 @@ class LoopController(BaseControllerClass):
         if bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation(bolus_rec):
             self.set_bolus_recommendation_event(virtual_patient, bolus_rec)
         elif temp_basal_rec is not None:
-            self.modulate_temp_basal(virtual_patient, temp_basal_rec)
+            if temp_basal_rec.duration_minutes == 0 and temp_basal_rec.value == 0:
+                # In pyloopkit this is a "cancel"
+                virtual_patient.pump.deactivate_temp_basal()
+            else:
+                self.modulate_temp_basal(virtual_patient, temp_basal_rec)
         else:
-            # Should only happen if temp basal rate recommendation is same as the scheduled
-            # basal rate.
-            virtual_patient.pump.deactivate_temp_basal()
+            pass  # no recommendations
 
         self.recommendations = loop_algorithm_output
 
