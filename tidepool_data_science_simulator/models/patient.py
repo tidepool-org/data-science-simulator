@@ -87,10 +87,7 @@ class VirtualPatient(SimulationComponent):
 
         self.carb_event_timeline = patient_config.carb_event_timeline
         self.bolus_event_timeline = patient_config.bolus_event_timeline
-        self.action_event_timeline = []
-
-        self.decisions = { #TODO: Add possible user actions: editing settings? bolus? infusion set change?, meal,
-        }
+        self.action_event_timeline = patient_config.action_event_timeline
 
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
@@ -151,36 +148,20 @@ class VirtualPatient(SimulationComponent):
             cir=self.patient_config.carb_ratio_schedule.get_state(),
             bolus=self.bolus_event_timeline.get_event_value(self.time),
             carb=self.carb_event_timeline.get_event_value(self.time),
-            actions=self.action_event_timeline.get_event_value(self.time)
+            actions=self.action_event_timeline.get_event(self.time)
         )
 
         return patient_state
 
-    def get_events(self):
-        """
-        Get events from configuration that influence the internal metabolism model.
-
-        Returns
-        -------
-        (Insulin Event, Carb Event)
-        """
-        # Get boluses at time
-        bolus = self.bolus_event_timeline.get_event(self.time)
-
-        # Get carbs at time
-        carb = self.carb_event_timeline.get_event(self.time)
-
-        return bolus, carb
-
-    def get_action(self):
+    def get_actions(self):
         """
         Get actions that the user has performed which are not boluses or meals.
         Possible actions: set change, battery change, user deletes all data,
         Returns
         -------
-        (Action)
+        [Action]
         """
-
+        return self.action_event_timeline.get_event(self.time)
 
     def update(self, time, **kwargs):
         """
@@ -255,7 +236,8 @@ class VirtualPatient(SimulationComponent):
         """
         abs_insulin_amount, rel_insulin_amount = self.get_basal_insulin_amount_since_update()
 
-        bolus, carb = self.get_events()
+        bolus = self.bolus_event_timeline.get_event(self.time)
+        carb = self.carb_event_timeline.get_event(self.time)
 
         if bolus is not None:
             delivered_bolus = self.pump.deliver_bolus(bolus)

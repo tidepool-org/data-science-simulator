@@ -502,3 +502,13 @@ class CarbTimeline(EventTimeline):
         return carb_values, carb_start_times, carb_durations
 
 
+class ActionTimeline(EventTimeline):
+    def add_action(self, time, action):
+        actions = [action]
+        if time in self.events:
+            self.events[time] = self.events[time].append(action)
+        else:
+            self.add_event(time, actions)
+
+    def get_actions(self, time):
+        return self.get_event(time)
