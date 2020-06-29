@@ -29,7 +29,8 @@ class VirtualPatientState(object):
         isf,
         cir,
         bolus,
-        carb
+        carb,
+        actions=None
     ):
 
         self.bg = bg
@@ -43,6 +44,7 @@ class VirtualPatientState(object):
         self.cir = cir
         self.bolus = bolus
         self.carb = carb
+        self.actions = actions
 
 
 class VirtualPatient(SimulationComponent):
@@ -85,6 +87,10 @@ class VirtualPatient(SimulationComponent):
 
         self.carb_event_timeline = patient_config.carb_event_timeline
         self.bolus_event_timeline = patient_config.bolus_event_timeline
+        self.action_event_timeline = []
+
+        self.decisions = { #TODO: Add possible user actions: editing settings? bolus? infusion set change?, meal,
+        }
 
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
@@ -144,12 +150,13 @@ class VirtualPatient(SimulationComponent):
             isf=self.patient_config.insulin_sensitivity_schedule.get_state(),
             cir=self.patient_config.carb_ratio_schedule.get_state(),
             bolus=self.bolus_event_timeline.get_event_value(self.time),
-            carb=self.carb_event_timeline.get_event_value(self.time)
+            carb=self.carb_event_timeline.get_event_value(self.time),
+            actions=self.action_event_timeline.get_event_value(self.time)
         )
 
         return patient_state
 
-    def get_actions(self):
+    def get_events(self):
         """
         Get events from configuration that influence the internal metabolism model.
 
@@ -165,6 +172,16 @@ class VirtualPatient(SimulationComponent):
 
         return bolus, carb
 
+    def get_action(self):
+        """
+        Get actions that the user has performed which are not boluses or meals.
+        Possible actions: set change, battery change, user deletes all data,
+        Returns
+        -------
+        (Action)
+        """
+
+
     def update(self, time, **kwargs):
         """
         Predict the future state of the patient given the current state.
@@ -179,6 +196,8 @@ class VirtualPatient(SimulationComponent):
         self.pump.update(time)
         self.sensor.update(time)
 
+        # TODO: Adding in framework for actions other than boluses and carbs
+        actions = self.get_actions()
         self.predict()
         self.update_from_prediction(time)
 
@@ -236,7 +255,7 @@ class VirtualPatient(SimulationComponent):
         """
         abs_insulin_amount, rel_insulin_amount = self.get_basal_insulin_amount_since_update()
 
-        bolus, carb = self.get_actions()
+        bolus, carb = self.get_events()
 
         if bolus is not None:
             delivered_bolus = self.pump.deliver_bolus(bolus)
@@ -278,7 +297,7 @@ class VirtualPatient(SimulationComponent):
             _, iob_pred = self.run_metabolism_model(
                 abs_insulin_amount, carb_amount=0
             )
-
+        # TODO: Add append to front helper function?
         # Update bg prediction with delta bgs
         if self.bg_prediction is None:  # At initialization t=0
             self.bg_prediction = self.bg_current + np.cumsum(combined_delta_bg_pred)
@@ -428,9 +447,10 @@ class VirtualPatientModel(VirtualPatient):
         # TODO: Actually need something more robust than this method to avoid duplicate meal
         #       events. Case example: user eats breakfast, skips lunch and dinner, then eats
         #       breakfast again, this will prevent that.
+        # Why is this not a plausible scenario?
         self.last_meal = None
 
-    def get_actions(self):
+    def get_events(self):
         """
         Get carb and insulin actions.
         """

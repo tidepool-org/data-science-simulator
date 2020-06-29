@@ -11,7 +11,6 @@ from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioPar
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_simulator.utils import timing
 
-
 @timing
 def compare_loop_to_pump_only(scenario_csv_filepath):
     """
@@ -47,7 +46,7 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
         pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
 
         sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
-        # sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
+        #sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
 
         patient_config = sim_parser.get_patient_config()
         patient_config.recommendation_accept_prob = 0.0  # TODO: put in scenario file
@@ -71,13 +70,16 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
         results_df = simulation.get_results_df()
         all_results[sim_id] = results_df
 
-    plot_sim_results(all_results)
+    plot_sim_results(all_results, save=False)
 
 
 if __name__ == "__main__":
 
     scenarios_folder_path = "../data/raw/fda_risk_scenarios/"
-    scenario_csv_filepath = os.path.join(
-        scenarios_folder_path, "Scenario-0-simulation-template - inputs.tsv"
-    )
-    compare_loop_to_pump_only(scenario_csv_filepath)
+    scenario_file_names = os.listdir(scenarios_folder_path)
+
+    for file_name in scenario_file_names:
+        scenario_csv_filepath = os.path.join(
+            scenarios_folder_path, file_name
+        )
+        compare_loop_to_pump_only(scenario_csv_filepath)

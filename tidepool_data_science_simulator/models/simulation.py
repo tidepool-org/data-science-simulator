@@ -11,7 +11,6 @@ import pandas as pd
 
 from pyloopkit.dose import DoseType
 
-
 class SimulationComponent(object):
     """
     A class with abstract and convenience methods for use in the simulation.

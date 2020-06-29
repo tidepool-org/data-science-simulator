@@ -9,7 +9,7 @@ style.use("seaborn-poster")  # sets the size of the charts
 style.use("ggplot")
 
 
-def plot_sim_results(all_results):
+def plot_sim_results(all_results, save=False):
 
     # ==== TMP ====
     # TODO - This is a placeholder for dev. Replace with viz tools module.
@@ -67,8 +67,11 @@ def plot_sim_results(all_results):
         # ax[3].set_xlabel("BG (mg/dL)")
         # ax[3].legend()
 
-    plt.show()
 
+    if save:
+        plt.savefig("data-science-simulator-image.png")
+    else:
+        plt.show()
 
 def plot_sim_results_missing_insulin(all_results):
 

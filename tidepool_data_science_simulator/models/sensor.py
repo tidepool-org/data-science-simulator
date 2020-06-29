@@ -58,7 +58,6 @@ class IdealSensor(Sensor):
     """
 
     def __init__(self, sensor_config):
-
         self.name = "IdealSensor"
         self.sensor_config = sensor_config
 

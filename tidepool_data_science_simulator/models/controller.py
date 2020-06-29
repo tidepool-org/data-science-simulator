@@ -63,7 +63,7 @@ class LoopController(BaseControllerClass):
         self.temp_basal_event_timeline = controller_config.temp_basal_event_timeline
         self.carb_event_timeline = controller_config.carb_event_timeline
 
-        self.num_hours_history = 6  # how many hours of recent events to pass to Loop
+        self.num_hours_history = 24  # how many hours of recent events to pass to Loop
 
         # self.ctr = -5  # TODO remove once we feel refactor is good
 

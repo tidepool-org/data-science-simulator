@@ -2,9 +2,39 @@ __author__ = "Cameron Summers"
 
 import datetime
 import numpy as np
+from enum import Enum
 
 from tidepool_data_science_simulator.models.measures import Carb
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
+
+
+class Action(object):
+    """
+    A class for user executed actions that do not require large modeling.
+    # TODO: Find a better explanation for this
+    """
+
+    def __init__(self, name):
+        self.name = name
+
+    def execute(self):
+        #implement swift switch clause
+        pass
+
+    def delete_pump_event_history(self):
+        pass
+
+    def delete_reservoir_history(self):
+        pass
+
+    def change_infusion_set(self):
+        pass
+
+
+class ActionNames(Enum):
+    deletePumpEventHistory = 1
+    deleteReservoirHistory = 2
+    changeInfusionSet = 3
 
 
 class MealModel(object):
