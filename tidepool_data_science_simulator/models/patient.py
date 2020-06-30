@@ -4,7 +4,7 @@ import copy
 import numpy as np
 import datetime
 
-from tidepool_data_science_simulator.models.simulation import SimulationComponent, EventTimeline
+from tidepool_data_science_simulator.models.simulation import SimulationComponent, EventTimeline, ActionTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import PatientConfig
 from tidepool_data_science_simulator.models.measures import Carb, Bolus
 from tidepool_data_science_simulator.models.events import MealModel
@@ -87,7 +87,7 @@ class VirtualPatient(SimulationComponent):
 
         self.carb_event_timeline = patient_config.carb_event_timeline
         self.bolus_event_timeline = patient_config.bolus_event_timeline
-        self.action_event_timeline = patient_config.action_event_timeline
+        self.action_event_timeline = ActionTimeline()
 
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
@@ -148,7 +148,7 @@ class VirtualPatient(SimulationComponent):
             cir=self.patient_config.carb_ratio_schedule.get_state(),
             bolus=self.bolus_event_timeline.get_event_value(self.time),
             carb=self.carb_event_timeline.get_event_value(self.time),
-            actions=self.action_event_timeline.get_event(self.time)
+            actions=self.action_event_timeline.get_actions(self.time)
         )
 
         return patient_state
