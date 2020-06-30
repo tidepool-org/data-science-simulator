@@ -1,6 +1,8 @@
 __author__ = "Jason Meno"
 
 import os
+import datetime
+
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_models.models.icgm_sensor_generator import iCGMSensorGenerator, sf
@@ -10,6 +12,7 @@ from tidepool_data_science_simulator.models.controller import DoNothingControlle
 from tidepool_data_science_simulator.models.simulation import Simulation
 
 
+TEST_DATETIME = datetime.datetime(year=2020, month=1, day=1)
 # %% Tests
 
 
@@ -20,12 +23,11 @@ def test_basic_sensor_generator():
     sensor_generator.fit(true_bg_trace)
 
     # Create 100 sensors
-    sensors = sensor_generator.generate_sensors(100)
+    sensors = sensor_generator.generate_sensors(100, sensor_start_datetime=TEST_DATETIME)
 
     # Backfill all sensors with the first day true_bg_traces
     for sensor in sensors:
         sensor.prefill_sensor_history(true_bg_trace[-289:])
-        assert all(sensor.true_bg_history == true_bg_trace[-289:])
         assert sensor.time_index == 289
 
 
@@ -38,12 +40,10 @@ def test_virtual_patient_icgm_integration():
 
     sensor_generator = iCGMSensorGenerator(batch_training_size=3)
     sensor_generator.fit(true_bg_trace=sim_parser.patient_glucose_history.bg_values)
-    sensor = sensor_generator.generate_sensors(1)[0]
+    sensor = sensor_generator.generate_sensors(1, sensor_start_datetime=t0)[0]
     sensor_prefill_data = sim_parser.patient_glucose_history.bg_values[:-1]
-    sensor_prefill_start_time = sim_parser.patient_glucose_history.datetimes[:-1][0]
     sensor.prefill_sensor_history(
         true_bg_history=sensor_prefill_data,
-        datetime_start=sensor_prefill_start_time
     )
 
     vp = VirtualPatient(
@@ -59,7 +59,6 @@ def test_virtual_patient_icgm_integration():
     #     t0=None, patient_class=VirtualPatient, pump_class=pump, sensor_class=sensor
     # )
 
-    assert vp.sensor.true_bg_history == sensor_prefill_data
     assert vp.sensor.current_datetime == t0
     assert vp.sensor.time_index == len(sensor_prefill_data)
 
@@ -88,12 +87,10 @@ def test_all_controllers_icgm_integration():
 
         pump = Omnipod(time=t0, pump_config=sim_parser.get_pump_config())
 
-        sensor = sensor_generator.generate_sensors(1)[0]
+        sensor = sensor_generator.generate_sensors(1, sensor_start_datetime=t0)[0]
         sensor_prefill_data = sim_parser.patient_glucose_history.bg_values[:-1]
-        sensor_prefill_start_time = sim_parser.patient_glucose_history.datetimes[:-1][0]
         sensor.prefill_sensor_history(
             true_bg_history=sensor_prefill_data,
-            datetime_start=sensor_prefill_start_time
         )
 
         vp = VirtualPatient(

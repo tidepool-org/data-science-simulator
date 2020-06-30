@@ -4,9 +4,10 @@ from tidepool_data_science_simulator.models.simulation import CarbTimeline, Bolu
 from tidepool_data_science_simulator.makedata.scenario_parser import ControllerConfig
 
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
+from tidepool_data_science_simulator.makedata.make_patient import DATETIME_DEFAULT
 
 
-def get_canonical_controller(t0, controller_class):
+def get_canonical_controller_config(t0=DATETIME_DEFAULT):
 
     controller_settings = {
         "model": [360.0, 65],
@@ -29,6 +30,14 @@ def get_canonical_controller(t0, controller_class):
         carb_event_timeline=CarbTimeline(),
         controller_settings=controller_settings
     )
+
+    return t0, controller_config
+
+
+def get_canonical_controller(t0, controller_class, controller_config=None):
+
+    if controller_config is None:
+        t0, controller_config = get_canonical_controller_config(t0)
 
     controller = controller_class(t0, controller_config)
 

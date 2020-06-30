@@ -9,6 +9,7 @@ from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_models.models.icgm_sensor_generator import iCGMSensorGenerator
 
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 # %% Tests
 
 
@@ -35,7 +36,7 @@ def test_icgm_sensitivity_analysis():
             true_bg_trace = sim_parser.patient_glucose_history.bg_values
             sensor_generator = iCGMSensorGenerator(batch_training_size=30)
             sensor_generator.fit(true_bg_trace)
-            sensors = sensor_generator.generate_sensors(n_sensors)
+            sensors = sensor_generator.generate_sensors(n_sensors, sensor_start_datetime=t0)
 
             for sensor_num in range(len(sensors)):
                 sensor = sensors[sensor_num]

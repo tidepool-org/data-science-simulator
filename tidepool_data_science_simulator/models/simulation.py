@@ -10,6 +10,8 @@ import datetime
 import pandas as pd
 import numpy as np
 
+from tidepool_data_science_simulator.models.measures import Bolus, Carb, TempBasal
+
 from pyloopkit.dose import DoseType
 
 
@@ -195,6 +197,9 @@ class Simulation(multiprocessing.Process):
                 ),
                 "temp_basal_zeros": simulation_state.patient_state.pump_state.get_temp_basal_rate_value(
                     default=0
+                ),
+                "temp_basal_time_remaining": simulation_state.patient_state.pump_state.get_temp_basal_minutes_left(
+                    time
                 ),
                 "sbr": simulation_state.patient_state.sbr.value,
                 "cir": simulation_state.patient_state.cir,
@@ -403,7 +408,11 @@ class EventTimeline(object):
         # if time in self.events:
         #     raise Exception("Event timeline only allows one event at a time")
 
+        self.is_event_valid(event)
         self.events[time] = event
+
+    def is_event_valid(self, event):
+        return isinstance(event, self.event_type)
 
     def get_event(self, time):
         """
@@ -463,6 +472,10 @@ class EventTimeline(object):
 
 class BolusTimeline(EventTimeline):
 
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = Bolus
+
     def get_loop_inputs(self, time, num_hours_history=6):
         """
         Convert event timeline into format for input into Pyloopkit.
@@ -475,6 +488,7 @@ class BolusTimeline(EventTimeline):
         dose_values = []
         dose_start_times = []
         dose_end_times = []
+        dose_delivered_units = []
 
         recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
         sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
@@ -484,11 +498,16 @@ class BolusTimeline(EventTimeline):
             dose_values.append(self.events[time].value)
             dose_start_times.append(time)
             dose_end_times.append(time)
+            dose_delivered_units.append(self.events[time].value)  # fixme: shouldn't be same value
 
-        return dose_types, dose_values, dose_start_times, dose_end_times
+        return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
 
 
 class TempBasalTimeline(EventTimeline):
+
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = TempBasal
 
     def get_loop_inputs(self, time, num_hours_history=6):
         """
@@ -503,6 +522,7 @@ class TempBasalTimeline(EventTimeline):
         dose_values = []
         dose_start_times = []
         dose_end_times = []
+        dose_delivered_units = []
 
         recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
         sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
@@ -511,12 +531,17 @@ class TempBasalTimeline(EventTimeline):
             dose_types.append(DoseType.tempbasal)
             dose_values.append(temp_basal_event.value)
             dose_start_times.append(time)
-            dose_end_times.append(time + datetime.timedelta(minutes=temp_basal_event.duration_minutes))
+            dose_end_times.append(temp_basal_event.get_end_time())
+            dose_delivered_units.append(temp_basal_event.delivered_units)  # fixme: put actual values here
 
-        return dose_types, dose_values, dose_start_times, dose_end_times
+        return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
 
 
 class CarbTimeline(EventTimeline):
+
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = Carb
 
     def get_loop_inputs(self, time, num_hours_history=6):
         """

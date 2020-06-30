@@ -3,13 +3,17 @@ __author__ = "Cameron Summers"
 __author__ = "Cameron Summers"
 
 import os
+import sys
 import datetime
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient
+from tidepool_data_science_simulator.makedata.make_patient import (
+    get_canonical_risk_patient, get_canonical_risk_patient_config, get_canonical_risk_pump_config
+)
+from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
 from tidepool_data_science_simulator.makedata.make_simulation import get_canonical_simulation
 from tidepool_data_science_simulator.models.measures import TempBasal, BasalRate
 
@@ -109,7 +113,11 @@ def analyze_omnipod_missing_insulin_across_basal_rates():
 
 
 @timing
-def analyze_omnipod_missing_pulses_wLoop(dry_run=False, plot_summary=False):
+def analyze_omnipod_missing_pulses_wLoop(
+        dry_run=False,
+        save_results=True,
+        save_dir=None
+):
     """
     Run loop with given basal rate settings to estimate risk of DKA due to
     omnipod pulse issue.
@@ -121,49 +129,59 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run=False, plot_summary=False):
             "pump_basal_rate": round(sbr, 2)
         }
         # for sbr in np.arange(0.05, 0.75, 0.05)
-        # for xer in [1.5, 2, 3, 4, 5, 6] #range(2, 20)
-        for sbr in [0.2, 0.3]
-        for xer in [2, 3]
+        # for xer in [1.5, 2, 3, 5, 10] #range(2, 20)
+        for sbr in [0.05]#, 0.3]
+        for xer in [2]#, 3]
     ]
+
+    # Auto set plotting since I keep forgetting to set it correctly.
+    plot_summary = True
+    if len(param_grid) <= 2:
+        plot_summary = False
+
     sim_num_hours = 24
 
     if dry_run:
         sim_num_hours = 2
         param_grid = param_grid[:1]
 
+    sim_seed = 1234
     sims = {}
     sim_params = {}
     for pgrid in param_grid:
+        np.random.seed(sim_seed)  # set here for object instantiation
 
-        t0, sim = get_canonical_simulation(
-            sensor_class=NoisySensor,
-            pump_class=OmnipodMissingPulses,
-            controller_class=LoopController,
-            multiprocess=True,
-            duration_hrs=sim_num_hours
-        )
-
-        sim.seed = 1234
-
-        sim_id = "SBR {pump_basal_rate} VPBR {patient_basal_rate} MBR {loop_max_basal_rate}".format(**pgrid)
-        print("Running: {}".format(sim_id))
-
-        patient_config = sim.virtual_patient.patient_config
-        patient_config.recommendation_accept_prob = 0.0  # TODO: put in scenario file
-
+        t0, patient_config = get_canonical_risk_patient_config()
         patient_config.basal_schedule = BasalSchedule24hr(t0,
                                                           [datetime.time(hour=0, minute=0, second=0)],
                                                           [BasalRate(pgrid['patient_basal_rate'], "U/hr")],
                                                           [1440])
 
-        pump_config = sim.virtual_patient.pump.pump_config
+        t0, pump_config = get_canonical_risk_pump_config()
         pump_config.basal_schedule = BasalSchedule24hr(t0,
                                                        [datetime.time(hour=0, minute=0, second=0)],
                                                        [BasalRate(pgrid['pump_basal_rate'], "U/hr")],
                                                        [1440])
 
-        controller_config = sim.controller.controller_config
+        t0, controller_config = get_canonical_controller_config()
         controller_config.controller_settings["max_basal_rate"] = pgrid["loop_max_basal_rate"]
+
+        t0, sim = get_canonical_simulation(
+            t0=t0,
+            patient_config=patient_config,
+            sensor_class=NoisySensor,
+            pump_class=OmnipodMissingPulses,
+            pump_config=pump_config,
+            controller_class=LoopController,
+            controller_config=controller_config,
+            multiprocess=True,
+            duration_hrs=sim_num_hours,
+        )
+
+        sim.seed = sim_seed  # set here for multiprocessing
+
+        sim_id = "SBR {pump_basal_rate} VPBR {patient_basal_rate} MBR {loop_max_basal_rate}".format(**pgrid)
+        print("Running: {}".format(sim_id))
 
         sims[sim_id] = sim
         sim_params[sim_id] = pgrid
@@ -175,6 +193,10 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run=False, plot_summary=False):
     # Gather results and get dka risk
     summary_results_df = []
     for sim_id, results_df in all_results.items():
+
+        if save_results:
+            results_df.to_csv(os.path.join(save_dir, sim_id + ".csv"))
+
         dkai = dka_index(results_df['iob'], sim_params[sim_id]["patient_basal_rate"])
         dkars = dka_risk_score(dkai)
 
@@ -189,7 +211,11 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run=False, plot_summary=False):
 
     summary_results_df = pd.DataFrame(summary_results_df)
 
+    if save_results:
+        summary_results_df.to_csv(os.path.join(save_dir, "summary.csv"))
+
     if plot_summary:
+        summary_results_df = pd.read_csv(os.path.join("..", "data", "results", "summary.csv"))
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
 
         summary_results_pivot_df = summary_results_df.pivot(index='sbr', columns='loop_max_basal_rate',
@@ -210,6 +236,10 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run=False, plot_summary=False):
 
 if __name__ == "__main__":
 
-    # analyze_omnipod_missing_pulses_wLoop(dry_run=False, plot_summary=True)
-    analyze_omnipod_missing_pulses()
+    analyze_omnipod_missing_pulses_wLoop(
+        dry_run=False,
+        save_results=True,
+        save_dir="../data/results"
+    )
+    # analyze_omnipod_missing_pulses()
     # analyze_omnipod_missing_insulin_across_basal_rates()

@@ -25,10 +25,10 @@ def test_sensitivity_analysis_patient():
             time=t0,
             controller_config=sim_parser.get_controller_config(),
         )
-        controller.num_hours_history = 8 # Force 8 hours to look for historical boluses
+        controller.num_hours_history = 8  # Force 8 hours to look for historical boluses
 
         pump = Omnipod(time=t0, pump_config=sim_parser.get_pump_config())
-        sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
+        sensor = IdealSensor(time=t0, sensor_config=sim_parser.get_sensor_config())
 
         vp = VirtualPatientISA(
             time=t0,
@@ -61,8 +61,6 @@ def test_sensitivity_analysis_patient():
     assert all_results['temp_basal_only'].bolus.sum() == 0
     assert all_results['correction_bolus'].bolus[1:].sum() == 0
     assert all_results['meal_bolus'].bolus[1:].sum() == 0
-
-
 
 
 

@@ -7,6 +7,7 @@ into a normalized format for the simulation.
 
 import pandas as pd
 import numpy as np
+import copy
 
 from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
 from tidepool_data_science_simulator.models.simulation import (
@@ -268,13 +269,7 @@ class ScenarioParserCSV(SimulationParser):
         -------
         GlucoseTrace
         """
-
-        sensor_glucose_history = GlucoseTrace(
-            datetimes=self.tmp_dict["glucose_dates"],
-            values=self.tmp_dict["glucose_values"],
-        )
-
-        return sensor_glucose_history
+        return SensorConfig(copy.deepcopy(self.sensor_glucose_history))
 
     def get_patient_config(self):
         """
@@ -292,7 +287,7 @@ class ScenarioParserCSV(SimulationParser):
             insulin_sensitivity_schedule=self.patient_insulin_sensitivity_schedule,
             carb_event_timeline=self.patient_carb_events,
             bolus_event_timeline=self.patient_bolus_events,
-            glucose_history=self.patient_glucose_history,
+            glucose_history=copy.deepcopy(self.patient_glucose_history),
         )
 
         return patient_config
@@ -448,3 +443,10 @@ class PumpConfig(object):
         # FIXME - these should be explicit somewhere
         self.max_temp_basal = np.inf
         self.max_bolus = np.inf
+
+
+class SensorConfig(object):
+
+    def __init__(self, sensor_bg_history=None):
+
+        self.sensor_bg_history = sensor_bg_history

@@ -17,6 +17,7 @@ def plot_sim_results(all_results):
     for sim_id, ctrl_result_df in all_results.items():
 
         ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id))
+        ax[0].plot(ctrl_result_df["bg_sensor"], label="{} {}".format("bg_sensor", sim_id))
         ax[0].set_title("BG Over Time")
         ax[0].set_xlabel("Time (5min)")
         ax[0].set_ylabel("BG (mg/dL)")
@@ -34,6 +35,7 @@ def plot_sim_results(all_results):
         ax[1].set_xlabel("Time (5 mins)")
         ax[1].plot(ctrl_result_df["temp_basal"], label="{} {}".format("tmp_br", sim_id))
         ax[1].plot(ctrl_result_df["bolus"], label="{} {}".format("bolus", sim_id))
+        ax[1].plot(ctrl_result_df["iob"], label="{} {}".format("iob", sim_id))
         ax[1].set_ylim((0, 3))
         ax[1].legend()
 
@@ -77,6 +79,10 @@ def plot_sim_results_missing_insulin(all_results):
         ax[0].scatter(range(len(ctrl_result_df['time'])), ctrl_result_df["bg"],
                    label="{} {}".format("bg", sim_id),
                    color="purple",
+                      s=6)
+        ax[0].scatter(range(len(ctrl_result_df['time'])), ctrl_result_df["bg_sensor"],
+                      label="{} {}".format("bg", sim_id),
+                      color="green",
                       s=6)
         ax[0].set_title("BG Over Time")
         ax[0].set_xlabel("Time (5min)")

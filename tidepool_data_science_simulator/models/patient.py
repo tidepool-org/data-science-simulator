@@ -85,8 +85,8 @@ class VirtualPatient(SimulationComponent):
         self.iob_current = None
         self.sbr_iob = None
 
-        self.carb_event_timeline = patient_config.carb_event_timeline
-        self.bolus_event_timeline = patient_config.bolus_event_timeline
+        self.carb_event_timeline = self.patient_config.carb_event_timeline
+        self.bolus_event_timeline = self.patient_config.bolus_event_timeline
 
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
@@ -135,17 +135,19 @@ class VirtualPatient(SimulationComponent):
         VirtualPatientState
         """
 
+        sensor_state = self.sensor.get_state()  # todo: put whole state below
+
         patient_state = VirtualPatientState(
             bg=self.bg_current,
-            sensor_bg=self.sensor.get_bg(self.bg_current),
             bg_prediction=self.bg_prediction,
-            pump_state=self.pump.get_state(),
+            sensor_bg=sensor_state.sensor_bg,
+            sensor_bg_prediction=sensor_state.sensor_bg_prediction,
             iob=self.iob_current,
             iob_prediction=self.iob_prediction,
-            sensor_bg_prediction=self.sensor.get_bg_trace(self.bg_prediction),
             sbr=self.patient_config.basal_schedule.get_state(),
             isf=self.patient_config.insulin_sensitivity_schedule.get_state(),
             cir=self.patient_config.carb_ratio_schedule.get_state(),
+            pump_state=self.pump.get_state(),
             bolus=self.bolus_event_timeline.get_event_value(self.time),
             carb=self.carb_event_timeline.get_event_value(self.time)
         )
@@ -172,18 +174,27 @@ class VirtualPatient(SimulationComponent):
         """
         Predict the future state of the patient given the current state.
 
+        Order is important:
+        Pump: Get the insulin delivery that affects the patient prediction
+        -> Patient: Update bg prediction based on events from pump and elsewhere
+        -> Sensor: Update sensor based on bg from patient
+
         Parameters
         ----------
         time: datetime
         """
         self.time = time
 
-        # Update member simulation components
         self.pump.update(time)
-        self.sensor.update(time)
 
         self.predict()
         self.update_from_prediction(time)
+
+        # Update sensor after patient prediction to use the current bg
+        self.sensor.update(time,
+                           patient_true_bg=self.bg_current,
+                           patient_true_bg_prediction=self.bg_prediction
+                           )
 
     def update_from_prediction(self, time):
         """
