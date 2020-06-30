@@ -156,12 +156,29 @@ class VirtualPatient(SimulationComponent):
     def get_actions(self):
         """
         Get actions that the user has performed which are not boluses or meals.
-        Possible actions: set change, battery change, user deletes all data,
+        Possible actions: set change, battery change, user deletes all data, exercise.
+
         Returns
         -------
         [Action]
         """
         return self.action_event_timeline.get_event(self.time)
+
+    def get_user_inputs(self):
+        """
+        Get user inputs (boluses, carbs) that directly affect Loop calculations.
+
+        Returns
+        _______
+        (Insulin Event, Carb Event)
+        """
+        # Get boluses at time
+        bolus = self.patient_config.insulin_events.get_event(self.time)
+
+        # Get carbs at time
+        carb = self.patient_config.carb_events.get_event(self.time)
+
+        return bolus, carb
 
     def update(self, time, **kwargs):
         """
@@ -178,7 +195,7 @@ class VirtualPatient(SimulationComponent):
         self.sensor.update(time)
 
         # TODO: Adding in framework for actions other than boluses and carbs
-        actions = self.get_actions()
+        #actions = self.get_actions()
         self.predict()
         self.update_from_prediction(time)
 
@@ -236,8 +253,7 @@ class VirtualPatient(SimulationComponent):
         """
         abs_insulin_amount, rel_insulin_amount = self.get_basal_insulin_amount_since_update()
 
-        bolus = self.bolus_event_timeline.get_event(self.time)
-        carb = self.carb_event_timeline.get_event(self.time)
+        bolus, carb = self.get_user_inputs()
 
         if bolus is not None:
             delivered_bolus = self.pump.deliver_bolus(bolus)

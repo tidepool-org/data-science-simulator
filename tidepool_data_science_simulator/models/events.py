@@ -37,15 +37,20 @@ class ActionNames(Enum):
     changeInfusionSet = 3
 
 
-class MealModel(object):
+class UserInput(object):
+    def __init__(self, name, time_start, time_end=None):
+        self.name = name
+        self.time_start = time_start
+        self.time_end = time_end
+
+
+class MealModel(UserInput):
     """
     A meal that says if it is time for the meal and probabilistically determines carbs.
     """
     def __init__(self, name, time_start, time_end, prob_of_eating):
 
-        self.name = name
-        self.time_start = time_start
-        self.time_end = time_end
+        super().__init__(name, time_start, time_end)
         self.prob_of_eating = prob_of_eating
 
         # Get number of simulation steps in meal time range
