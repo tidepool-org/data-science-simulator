@@ -11,7 +11,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from tidepool_data_science_simulator.makedata.make_patient import (
-    get_canonical_risk_patient, get_canonical_risk_patient_config, get_canonical_risk_pump_config
+    get_canonical_risk_patient,
+    get_canonical_risk_patient_config,
+    get_canonical_risk_pump_config,
 )
 from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
 from tidepool_data_science_simulator.makedata.make_simulation import get_canonical_simulation
@@ -20,7 +22,10 @@ from tidepool_data_science_simulator.models.measures import TempBasal, BasalRate
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 from tidepool_data_science_simulator.models.simulation import (
-    Simulation, SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr
+    Simulation,
+    SettingSchedule24Hr,
+    BasalSchedule24hr,
+    TargetRangeSchedule24hr,
 )
 from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController
 from tidepool_data_science_simulator.models.patient import VirtualPatient
@@ -59,16 +64,22 @@ def analyze_omnipod_missing_pulses():
     total_delivered_insulin = np.sum(delivered_insulin)
     total_undelivered_insulin = np.sum(undelivered_insulin)
     total_expected_insulin = total_delivered_insulin + total_undelivered_insulin
-    print("Total Delivered Insulin  {:>4} ({:.0f}%)".format(total_delivered_insulin,
-                                                            total_delivered_insulin / total_expected_insulin * 100.0)),
-    print("Total Undelivered Insulin {:>4} ({:.0f}%)".format(total_undelivered_insulin,
-                                                             total_undelivered_insulin / total_expected_insulin * 100.0))
+    print(
+        "Total Delivered Insulin  {:>4} ({:.0f}%)".format(
+            total_delivered_insulin, total_delivered_insulin / total_expected_insulin * 100.0
+        )
+    ),
+    print(
+        "Total Undelivered Insulin {:>4} ({:.0f}%)".format(
+            total_undelivered_insulin, total_undelivered_insulin / total_expected_insulin * 100.0
+        )
+    )
 
     plt.title("Omnipod Missing Insulin Pulses")
     plt.xlabel("Time Step (5 min)")
     plt.ylabel("Insulin (U or U/hr)")
     plt.plot(delivered_insulin, label="delivered", marker=".")
-    plt.plot(undelivered_insulin, label="undelivered", marker='.')
+    plt.plot(undelivered_insulin, label="undelivered", marker=".")
     plt.plot(temp_basal_scenario, label="Temp Basal Values", marker=".")
     plt.legend()
     plt.show()
@@ -103,8 +114,8 @@ def analyze_omnipod_missing_insulin_across_basal_rates():
         all_delivered_insulin.append(delivered_basal_insulin)
         all_undelivered_insulin.append(undelivered_basal_insulin)
 
-    plt.plot(basal_rates, all_delivered_insulin, label="Delivered Basal", marker='.')
-    plt.plot(basal_rates, all_undelivered_insulin, label="Undelivered Basal", marker='.')
+    plt.plot(basal_rates, all_delivered_insulin, label="Delivered Basal", marker=".")
+    plt.plot(basal_rates, all_undelivered_insulin, label="Undelivered Basal", marker=".")
     plt.xlabel("Temp Basal Rate (U/hr)")
     plt.ylabel("Total Basal Insulin over 1 Hr (U)")
     plt.title("Constant Temp Basal Missing Insulin")
@@ -113,11 +124,7 @@ def analyze_omnipod_missing_insulin_across_basal_rates():
 
 
 @timing
-def analyze_omnipod_missing_pulses_wLoop(
-        dry_run=False,
-        save_results=True,
-        save_dir=None
-):
+def analyze_omnipod_missing_pulses_wLoop(dry_run=False, save_results=True, save_dir=None):
     """
     Run loop with given basal rate settings to estimate risk of DKA due to
     omnipod pulse issue.
@@ -126,12 +133,12 @@ def analyze_omnipod_missing_pulses_wLoop(
         {
             "loop_max_basal_rate": round(sbr * xer, 2),
             "patient_basal_rate": round(sbr, 2),
-            "pump_basal_rate": round(sbr, 2)
+            "pump_basal_rate": round(sbr, 2),
         }
         # for sbr in np.arange(0.05, 0.75, 0.05)
         # for xer in [1.5, 2, 3, 5, 10] #range(2, 20)
-        for sbr in [0.05]#, 0.3]
-        for xer in [2]#, 3]
+        for sbr in [0.05]  # , 0.3]
+        for xer in [2]  # , 3]
     ]
 
     # Auto set plotting since I keep forgetting to set it correctly.
@@ -152,16 +159,14 @@ def analyze_omnipod_missing_pulses_wLoop(
         np.random.seed(sim_seed)  # set here for object instantiation
 
         t0, patient_config = get_canonical_risk_patient_config()
-        patient_config.basal_schedule = BasalSchedule24hr(t0,
-                                                          [datetime.time(hour=0, minute=0, second=0)],
-                                                          [BasalRate(pgrid['patient_basal_rate'], "U/hr")],
-                                                          [1440])
+        patient_config.basal_schedule = BasalSchedule24hr(
+            t0, [datetime.time(hour=0, minute=0, second=0)], [BasalRate(pgrid["patient_basal_rate"], "U/hr")], [1440]
+        )
 
         t0, pump_config = get_canonical_risk_pump_config()
-        pump_config.basal_schedule = BasalSchedule24hr(t0,
-                                                       [datetime.time(hour=0, minute=0, second=0)],
-                                                       [BasalRate(pgrid['pump_basal_rate'], "U/hr")],
-                                                       [1440])
+        pump_config.basal_schedule = BasalSchedule24hr(
+            t0, [datetime.time(hour=0, minute=0, second=0)], [BasalRate(pgrid["pump_basal_rate"], "U/hr")], [1440]
+        )
 
         t0, controller_config = get_canonical_controller_config()
         controller_config.controller_settings["max_basal_rate"] = pgrid["loop_max_basal_rate"]
@@ -197,7 +202,7 @@ def analyze_omnipod_missing_pulses_wLoop(
         if save_results:
             results_df.to_csv(os.path.join(save_dir, sim_id + ".csv"))
 
-        dkai = dka_index(results_df['iob'], sim_params[sim_id]["patient_basal_rate"])
+        dkai = dka_index(results_df["iob"], sim_params[sim_id]["patient_basal_rate"])
         dkars = dka_risk_score(dkai)
 
         print("dkai", dkai)
@@ -205,7 +210,7 @@ def analyze_omnipod_missing_pulses_wLoop(
             "dka_index": dkai,
             "dka_risk_score": dkars,
             "loop_max_basal_rate": sim_params[sim_id]["loop_max_basal_rate"],
-            "sbr": sim_params[sim_id]["patient_basal_rate"]
+            "sbr": sim_params[sim_id]["patient_basal_rate"],
         }
         summary_results_df.append(row)
 
@@ -218,14 +223,16 @@ def analyze_omnipod_missing_pulses_wLoop(
         summary_results_df = pd.read_csv(os.path.join("..", "data", "results", "summary.csv"))
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
 
-        summary_results_pivot_df = summary_results_df.pivot(index='sbr', columns='loop_max_basal_rate',
-                                                            values='dka_index')
+        summary_results_pivot_df = summary_results_df.pivot(
+            index="sbr", columns="loop_max_basal_rate", values="dka_index"
+        )
         sns.heatmap(summary_results_pivot_df, ax=ax1)
         ax1.set_title("DKAI for Canonical Patient with Low Basal Settings")
 
         plt.figure()
-        summary_results_pivot_df = summary_results_df.pivot(index='sbr', columns='loop_max_basal_rate',
-                                                            values='dka_risk_score')
+        summary_results_pivot_df = summary_results_df.pivot(
+            index="sbr", columns="loop_max_basal_rate", values="dka_risk_score"
+        )
         sns.heatmap(summary_results_pivot_df, ax=ax2)
         ax2.set_title("DKA Risk Score for Canonical Patient with Low Basal Settings")
 
@@ -236,10 +243,6 @@ def analyze_omnipod_missing_pulses_wLoop(
 
 if __name__ == "__main__":
 
-    analyze_omnipod_missing_pulses_wLoop(
-        dry_run=False,
-        save_results=True,
-        save_dir="../data/results"
-    )
+    analyze_omnipod_missing_pulses_wLoop(dry_run=False, save_results=True, save_dir="../data/results")
     # analyze_omnipod_missing_pulses()
     # analyze_omnipod_missing_insulin_across_basal_rates()
