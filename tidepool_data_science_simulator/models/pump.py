@@ -2,10 +2,10 @@ __author__ = "Cameron Summers"
 
 import copy
 
-from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.models.measures import TempBasal, BasalRate
 
 from tidepool_data_science_simulator.makedata.scenario_parser import PumpConfig
+from tidepool_data_science_simulator.models.simulation import SimulationComponent, TempBasalTimeline
 
 
 class ContinuousInsulinPump(SimulationComponent):
@@ -22,6 +22,7 @@ class ContinuousInsulinPump(SimulationComponent):
 
         self.bolus_event_timeline = self.pump_config.bolus_event_timeline
         self.carb_event_timeline = self.pump_config.carb_event_timeline
+        self.temp_basal_event_timeline = TempBasalTimeline()  # Not currently in scenario files
 
         self.active_temp_basal = None
         self.basal_insulin_delivered_last_update = 0
@@ -39,7 +40,11 @@ class ContinuousInsulinPump(SimulationComponent):
         """
         is_valid, message = self.is_valid_temp_basal(temp_basal)
         if is_valid:
+            if self.has_active_temp_basal():
+                self.deactivate_temp_basal()
+
             self.active_temp_basal = temp_basal
+            self.temp_basal_event_timeline.add_event(self.time, temp_basal)
         else:
             raise ValueError("Temp basal request is invalid. {}".format(message))
 
@@ -70,7 +75,7 @@ class ContinuousInsulinPump(SimulationComponent):
             request_valid = False
             message = "Temp basal value is above the maximum allowed on pump."
 
-        if temp_basal.duration_minutes != 30:
+        if temp_basal.scheduled_duration_minutes != 30:
             request_valid = False
             message = "Temp basals must be 30 minutes in duration."
 
@@ -146,9 +151,13 @@ class ContinuousInsulinPump(SimulationComponent):
 
         temp_basal_rate = self.active_temp_basal
         scheduled_basal_rate = self.pump_config.basal_schedule.get_state()
+        isf = self.pump_config.insulin_sensitivity_schedule.get_state()
+        cir = self.pump_config.carb_ratio_schedule.get_state()
 
         return PumpState(
             scheduled_basal_rate,
+            cir,
+            isf,
             temp_basal_rate,
             self.basal_insulin_delivered_last_update,
             self.basal_undelivered_insulin_since_last_update
@@ -182,17 +191,22 @@ class ContinuousInsulinPump(SimulationComponent):
         """
         self.time = time
 
+        self.basal_insulin_delivered_last_update = self.get_delivered_basal_insulin_since_update()
+
         if self.active_temp_basal is not None:  # Temp basal current active
+
+            self.active_temp_basal.delivered_units += self.basal_insulin_delivered_last_update
 
             if not self.active_temp_basal.is_active(self.time):  # Remove if inactive
                 self.deactivate_temp_basal()
-
-        self.basal_insulin_delivered_last_update = self.get_delivered_basal_insulin_since_update()
 
     def deactivate_temp_basal(self):
         """
         Deactivate current temp basal.
         """
+        self.active_temp_basal.actual_end_time = self.time
+        self.active_temp_basal.actual_duration_minutes = (self.time - self.active_temp_basal.start_time).total_seconds() / 60
+        self.active_temp_basal.active = False
         self.active_temp_basal = None
 
     def get_scheduled_basal_rate(self):
@@ -267,7 +281,9 @@ class Omnipod(ContinuousInsulinPump):
         num_pulses_delivered = int(self.current_cummulative_pulses)
         self.current_cummulative_pulses -= num_pulses_delivered
 
-        return num_pulses_delivered * self.insulin_units_per_pulse
+        insulin_delivered = num_pulses_delivered * self.insulin_units_per_pulse
+
+        return insulin_delivered
 
 
 class OmnipodMissingPulses(Omnipod):
@@ -305,12 +321,16 @@ class PumpState(object):
     def __init__(
             self,
             scheduled_basal_rate,
+            scheduled_cir,
+            schedule_isf,
             temp_basal_rate,
             delivered_basal_insulin,
-            undelivered_basal_insulin=0
+            undelivered_basal_insulin=0,
     ):
 
         self.scheduled_basal_rate = scheduled_basal_rate
+        self.scheduled_carb_insulin_ratio = scheduled_cir
+        self.scheduled_insulin_sensitivity_factor = schedule_isf
         self.temp_basal_rate = temp_basal_rate
         self.delivered_basal_insulin = delivered_basal_insulin
         self.undelivered_basal_insulin = undelivered_basal_insulin
@@ -327,4 +347,11 @@ class PumpState(object):
         if self.temp_basal_rate is not None:
             value = self.temp_basal_rate.value
 
+        return value
+
+    def get_temp_basal_minutes_left(self, time, default=None):
+
+        value = default
+        if self.temp_basal_rate is not None:
+            value = self.temp_basal_rate.get_minutes_remaining(time)
         return value

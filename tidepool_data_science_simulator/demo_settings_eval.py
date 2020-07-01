@@ -40,7 +40,7 @@ def eval_settings(scenario_csv_filepath):
     pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
 
     # sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
-    sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
+    sensor = NoisySensor(time=t0, sensor_config=sim_parser.get_sensor_config())
 
     vp = VirtualPatientModel(
         time=t0,

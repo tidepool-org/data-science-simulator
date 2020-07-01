@@ -56,7 +56,7 @@ def analyze_settings(scenario_csv_filepath, param_grid):
             controller_config=sim_parser.get_controller_config(),
         )
         pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
-        sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
+        sensor = IdealSensor(time=t0, sensor_config=sim_parser.get_sensor_config())
         # sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
 
         print("Length of param grid: {}".format(len(param_grid)))

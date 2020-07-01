@@ -8,6 +8,9 @@ import multiprocessing
 import copy
 import datetime
 import pandas as pd
+import numpy as np
+
+from tidepool_data_science_simulator.models.measures import Bolus, Carb, TempBasal
 
 from pyloopkit.dose import DoseType
 
@@ -67,12 +70,14 @@ class Simulation(multiprocessing.Process):
         virtual_patient,
         controller,
         multiprocess=False,
+        seed=1234
     ):
 
         # To enable multiprocessing
         super().__init__()
         self.queue = multiprocessing.Queue()
         self.multiprocess = multiprocess
+        self.seed = seed
 
         self.start_time = copy.deepcopy(time)
         self.time = time
@@ -127,6 +132,8 @@ class Simulation(multiprocessing.Process):
         """
         Run the simulation until it's finished.
         """
+        np.random.seed(self.seed)
+
         while not self.is_finished():
             self.step()
             self.store_state()
@@ -190,9 +197,15 @@ class Simulation(multiprocessing.Process):
                 "temp_basal_zeros": simulation_state.patient_state.pump_state.get_temp_basal_rate_value(
                     default=0
                 ),
-                "sbr": simulation_state.patient_state.pump_state.scheduled_basal_rate.value,
+                "temp_basal_time_remaining": simulation_state.patient_state.pump_state.get_temp_basal_minutes_left(
+                    time
+                ),
+                "sbr": simulation_state.patient_state.sbr.value,
                 "cir": simulation_state.patient_state.cir,
                 "isf": simulation_state.patient_state.isf,
+                "pump_sbr": simulation_state.patient_state.pump_state.scheduled_basal_rate,
+                "pump_isf": simulation_state.patient_state.pump_state.scheduled_insulin_sensitivity_factor,
+                "pump_cir": simulation_state.patient_state.pump_state.scheduled_carb_insulin_ratio,
                 "bolus": bolus,
                 "carb": carb,
                 "delivered_basal_insulin": simulation_state.patient_state.pump_state.delivered_basal_insulin,
@@ -209,8 +222,7 @@ class SettingSchedule24Hr(SimulationComponent):
     """
     A class for settings schedules on a 24 hour cycle.
     """
-
-    def __init__(self, time, name, start_times, values, duration_minutes):
+    def __init__(self, time, name, start_times=None, values=None, duration_minutes=None):
         """
         Parameters
         ----------
@@ -229,10 +241,10 @@ class SettingSchedule24Hr(SimulationComponent):
         duration_minutes: list
             List of ints
         """
-
         self.time = time
         self.name = name
         self.schedule_durations = {}
+        self.schedule = {}
 
         # All the same length
         assert (
@@ -240,7 +252,6 @@ class SettingSchedule24Hr(SimulationComponent):
             == len(start_times) * 3
         )
 
-        self.schedule = {}
         for start_time, value, duration_minutes in zip(
             start_times, values, duration_minutes
         ):
@@ -344,6 +355,40 @@ class TargetRangeSchedule24hr(SettingSchedule24Hr):
         return min_values, max_values, start_times, end_times
 
 
+class SingleSettingSchedule24Hr(SimulationComponent):
+    """
+    Convenience class for creating single value setting schedules.
+    """
+    def __init__(self, time, name, setting):
+
+        self.time = time
+        self.name = name
+        self.setting = setting
+
+    def get_state(self):
+
+        return self.setting
+
+    def update(self, time, **kwargs):
+
+        pass  # stateless
+
+    def get_loop_inputs(self, use_durations):
+
+        values = [self.setting.value]
+        start_times = [datetime.time(0, 0, 0)]
+
+        end_times = [datetime.time(23, 59, 59)]
+        durations = [1440]
+
+        if use_durations:
+            end = durations
+        else:
+            end = end_times
+
+        return values, start_times, end
+
+
 class EventTimeline(object):
     """
     A class for insulin/carb/etc. events
@@ -362,7 +407,11 @@ class EventTimeline(object):
         # if time in self.events:
         #     raise Exception("Event timeline only allows one event at a time")
 
+        self.is_event_valid(event)
         self.events[time] = event
+
+    def is_event_valid(self, event):
+        return isinstance(event, self.event_type)
 
     def get_event(self, time):
         """
@@ -422,6 +471,10 @@ class EventTimeline(object):
 
 class BolusTimeline(EventTimeline):
 
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = Bolus
+
     def get_loop_inputs(self, time, num_hours_history=6):
         """
         Convert event timeline into format for input into Pyloopkit.
@@ -434,6 +487,7 @@ class BolusTimeline(EventTimeline):
         dose_values = []
         dose_start_times = []
         dose_end_times = []
+        dose_delivered_units = []
 
         recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
         sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
@@ -443,11 +497,16 @@ class BolusTimeline(EventTimeline):
             dose_values.append(self.events[time].value)
             dose_start_times.append(time)
             dose_end_times.append(time)
+            dose_delivered_units.append(self.events[time].value)  # fixme: shouldn't be same value
 
-        return dose_types, dose_values, dose_start_times, dose_end_times
+        return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
 
 
 class TempBasalTimeline(EventTimeline):
+
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = TempBasal
 
     def get_loop_inputs(self, time, num_hours_history=6):
         """
@@ -462,6 +521,7 @@ class TempBasalTimeline(EventTimeline):
         dose_values = []
         dose_start_times = []
         dose_end_times = []
+        dose_delivered_units = []
 
         recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
         sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
@@ -470,12 +530,17 @@ class TempBasalTimeline(EventTimeline):
             dose_types.append(DoseType.tempbasal)
             dose_values.append(temp_basal_event.value)
             dose_start_times.append(time)
-            dose_end_times.append(time + datetime.timedelta(minutes=temp_basal_event.duration_minutes))
+            dose_end_times.append(temp_basal_event.get_end_time())
+            dose_delivered_units.append(temp_basal_event.delivered_units)  # fixme: put actual values here
 
-        return dose_types, dose_values, dose_start_times, dose_end_times
+        return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
 
 
 class CarbTimeline(EventTimeline):
+
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = Carb
 
     def get_loop_inputs(self, time, num_hours_history=6):
         """

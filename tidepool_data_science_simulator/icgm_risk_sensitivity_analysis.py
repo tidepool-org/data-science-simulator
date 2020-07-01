@@ -40,7 +40,7 @@ def do_icgm_risk_analysis(scenario_csv_filepath):
 
     all_results = {}
     for vp in virtual_patients:
-        for bg_trace in vp.patient_config.glucose_history.bg_traces:
+        for bg_trace in vp.patient_config.sensor_bg_history.bg_traces:
 
             sensor_generator.fit(bg_trace)
             sensors = [sensor_generator.get_sensor() for _ in range(num_sensors)]

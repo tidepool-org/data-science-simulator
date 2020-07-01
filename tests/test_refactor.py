@@ -15,8 +15,12 @@ from tidepool_data_science_simulator.models.sensor import IdealSensor
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 
 from tidepool_data_science_simulator.makedata.make_simulation import get_canonical_simulation
+from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient_config, get_canonical_risk_pump_config
 
-REGRESSION_COMMIT = "d3a1e74"
+from tidepool_data_science_simulator.models.measures import Bolus, Carb
+from tidepool_data_science_simulator.models.simulation import CarbTimeline, BolusTimeline
+
+REGRESSION_COMMIT = "5fb7820"
 
 
 def SUNSETTED_TEST_simulator_refactor():
@@ -40,7 +44,7 @@ def SUNSETTED_TEST_simulator_refactor():
     for controller in controllers:
         print("Running w/controller: {}".format(controller.name))
         pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
-        sensor = IdealSensor(sensor_config=sim_parser.get_sensor_config())
+        sensor = IdealSensor(time=t0, sensor_config=sim_parser.get_sensor_config())
         vp = VirtualPatient(
             time=t0,
             pump=pump,
@@ -92,10 +96,21 @@ def test_regression():
     for controller in controllers:
         load_path = "tests/data/regression/commit-{}/{}/".format(REGRESSION_COMMIT, controller.get_classname())
 
+        t0, patient_config = get_canonical_risk_patient_config()
+        patient_config.bolus_event_timeline = BolusTimeline([t0], [Bolus(2.0, "U")])
+        patient_config.carb_event_timeline = CarbTimeline([t0], [Carb(20.0, "g", 180)])
+
+        t0, pump_config = get_canonical_risk_pump_config(t0)
+        pump_config.bolus_event_timeline = BolusTimeline([t0], [Bolus(2.0, "U")])
+        pump_config.carb_event_timeline = CarbTimeline([t0], [Carb(40.0, "g", 180)])
+
         t0, sim = get_canonical_simulation(
+            patient_config=patient_config,
+            sensor_class=IdealSensor,
+            pump_config=pump_config,
+            pump_class=ContinuousInsulinPump,
             controller_class=controller,
             duration_hrs=8,
-            include_initial_events=True
         )
         sim.run()
         results_df = sim.get_results_df()
@@ -110,6 +125,8 @@ def test_regression():
 def make_regression():
     """
     Make a regression test with the current version of the code.
+
+    This should match exactly the output of the test_regression for the same commit.
     """
 
     current_commit = subprocess.check_output(["git", "describe", "--always"]).strip().decode("utf-8")
@@ -129,10 +146,21 @@ def make_regression():
         else:
             raise Exception("Save path exists: {}".format(save_path))
 
+        t0, patient_config = get_canonical_risk_patient_config()
+        patient_config.bolus_event_timeline = BolusTimeline([t0], [Bolus(2.0, "U")])
+        patient_config.carb_event_timeline = CarbTimeline([t0], [Carb(20.0, "g", 180)])
+
+        t0, pump_config = get_canonical_risk_pump_config(t0)
+        pump_config.bolus_event_timeline = BolusTimeline([t0], [Bolus(2.0, "U")])
+        pump_config.carb_event_timeline = CarbTimeline([t0], [Carb(40.0, "g", 180)])
+
         t0, sim = get_canonical_simulation(
+            patient_config=patient_config,
+            sensor_class=IdealSensor,
+            pump_config=pump_config,
+            pump_class=ContinuousInsulinPump,
             controller_class=controller,
             duration_hrs=8,
-            include_initial_events=True
         )
         sim.run()
         results_df = sim.get_results_df()
@@ -140,9 +168,6 @@ def make_regression():
         np.save(os.path.join(save_path, "bg.npy"), results_df['bg'].to_numpy())
         np.save(os.path.join(save_path, "iob.npy"), results_df['iob'].to_numpy())
         np.save(os.path.join(save_path, "temp_basal.npy"), results_df['temp_basal'].to_numpy())
-        pass
-
-        # plot_sim_results({0: results_df})
 
 
 if __name__ == "__main__":
