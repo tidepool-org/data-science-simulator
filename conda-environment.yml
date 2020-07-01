@@ -19,6 +19,7 @@ dependencies:
   - python-dotenv==0.13.0
   - requests==2.23.0
   - scipy==1.4.1
+  - seaborn==0.10.1
   - pip:
     - pip-chill==1.0.0
     - python-dotenv==0.13.0
