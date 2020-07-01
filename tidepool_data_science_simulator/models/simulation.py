@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 
 from tidepool_data_science_simulator.models.measures import Bolus, Carb, TempBasal
+from tidepool_data_science_simulator.models.events import Action
 
 from pyloopkit.dose import DoseType
 
@@ -567,13 +568,24 @@ class CarbTimeline(EventTimeline):
         return carb_values, carb_start_times, carb_durations
 
 
-class ActionTimeline(EventTimeline):
-    def add_action(self, time, action):
-        actions = [action]
-        if time in self.events:
-            self.events[time] = self.events[time].append(action)
-        else:
-            self.add_event(time, actions)
+# Moved to simulation because of import error, TODO: solve error?
+class VirtualPatientDeleteLoopData(Action):
+    def execute(self, virtual_patient):
+        virtual_patient.pump.bolus_event_timeline = BolusTimeline()
+        virtual_patient.pump.temp_basal_event_timeline = TempBasalTimeline()
 
-    def get_actions(self, time):
-        return self.get_event(time)
+
+class ActionTimeline(EventTimeline):
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = Action
+    # TODO: add once scenario is running
+    # def add_action(self, time, action):
+    #     actions = [action]
+    #     if time in self.events:
+    #         self.events[time] = self.events[time].append(action)
+    #     else:
+    #         self.add_event(time, actions)
+    #
+    # def get_actions(self, time):
+    #     return self.get_event(time)

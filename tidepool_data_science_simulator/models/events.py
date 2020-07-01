@@ -4,7 +4,7 @@ import datetime
 import numpy as np
 
 from tidepool_data_science_simulator.models.measures import Carb
-from tidepool_data_science_simulator.models.simulation import CarbTimeline, BolusTimeline, TempBasalTimeline
+#from tidepool_data_science_simulator.models.simulation import CarbTimeline, BolusTimeline, TempBasalTimeline
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 
 
@@ -14,13 +14,6 @@ class Action(object):
     """
     def execute(self, **kwargs):
         raise NotImplementedError
-
-
-class VirtualPatientDeleteLoopData(Action):
-    def execute(self, virtual_patient):
-        virtual_patient.pump.carb_event_timeline = CarbTimeline()
-        virtual_patient.pump.bolus_event_timeline = BolusTimeline()
-        virtual_patient.pump.temp_basal_event_timeline = TempBasalTimeline()
 
 
 class UserInput(object):

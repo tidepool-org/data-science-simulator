@@ -4,7 +4,7 @@ import copy
 import numpy as np
 import datetime
 
-from tidepool_data_science_simulator.models.simulation import SimulationComponent, EventTimeline, ActionTimeline
+from tidepool_data_science_simulator.models.simulation import SimulationComponent, ActionTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import PatientConfig
 from tidepool_data_science_simulator.models.measures import Carb, Bolus
 from tidepool_data_science_simulator.models.events import MealModel, Action
@@ -89,7 +89,7 @@ class VirtualPatient(SimulationComponent):
 
         self.carb_event_timeline = patient_config.carb_event_timeline
         self.bolus_event_timeline = patient_config.bolus_event_timeline
-        self.action_event_timeline = patient_config.action_event_timeline
+        self.action_timeline = patient_config.action_timeline
 
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
@@ -153,7 +153,7 @@ class VirtualPatient(SimulationComponent):
             pump_state=self.pump.get_state(),
             bolus=self.bolus_event_timeline.get_event_value(self.time),
             carb=self.carb_event_timeline.get_event_value(self.time),
-            actions=self.action_event_timeline.get_event(self.time)
+            actions=self.action_timeline.get_event(self.time)
         )
 
         return patient_state
@@ -167,7 +167,7 @@ class VirtualPatient(SimulationComponent):
         -------
         [Action]
         """
-        actions = self.action_event_timeline.get_event(self.time)
+        actions = self.action_timeline.get_event(self.time)
 
         return actions
 
@@ -682,7 +682,7 @@ class VirtualPatientModel(VirtualPatient):
         return carb
 
     def delete_pump_event_history(self):
-        self.action_event_timeline.add_action(self.time, "delete_pump_event_history")
+        self.action_timeline.add_action(self.time, "delete_pump_event_history")
 
     def estimate_meal_carb(self, carb):
         """
