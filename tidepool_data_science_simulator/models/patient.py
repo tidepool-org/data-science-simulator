@@ -7,7 +7,7 @@ import datetime
 from tidepool_data_science_simulator.models.simulation import SimulationComponent, EventTimeline, ActionTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import PatientConfig
 from tidepool_data_science_simulator.models.measures import Carb, Bolus
-from tidepool_data_science_simulator.models.events import MealModel
+from tidepool_data_science_simulator.models.events import MealModel, Action
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 
 
@@ -87,7 +87,7 @@ class VirtualPatient(SimulationComponent):
 
         self.carb_event_timeline = patient_config.carb_event_timeline
         self.bolus_event_timeline = patient_config.bolus_event_timeline
-        self.action_event_timeline = ActionTimeline()
+        self.action_event_timeline = patient_config.action_event_timeline
 
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
@@ -173,10 +173,10 @@ class VirtualPatient(SimulationComponent):
         (Insulin Event, Carb Event)
         """
         # Get boluses at time
-        bolus = self.patient_config.insulin_events.get_event(self.time)
+        bolus = self.bolus_event_timeline.get_event(self.time)
 
         # Get carbs at time
-        carb = self.patient_config.carb_events.get_event(self.time)
+        carb = self.carb_event_timeline.get_event(self.time)
 
         return bolus, carb
 
@@ -295,7 +295,7 @@ class VirtualPatient(SimulationComponent):
             _, iob_pred = self.run_metabolism_model(
                 abs_insulin_amount, carb_amount=0
             )
-        # TODO: Add append to front helper function?
+
         # Update bg prediction with delta bgs
         if self.bg_prediction is None:  # At initialization t=0
             self.bg_prediction = self.bg_current + np.cumsum(combined_delta_bg_pred)
@@ -447,10 +447,11 @@ class VirtualPatientModel(VirtualPatient):
         #       breakfast again, this will prevent that.
         # Why is this not a plausible scenario?
         self.last_meal = None
+        self.patient_actions = Action()
 
     def get_events(self):
         """
-        Get carb and insulin actions.
+        Get carb and insulin inputs.
         """
         meal = self.get_meal()
 
@@ -659,6 +660,9 @@ class VirtualPatientModel(VirtualPatient):
             carb = None
 
         return carb
+
+    def delete_pump_event_history(self):
+        self.action_event_timeline.add_action(self.time, "delete_pump_event_history")
 
     def estimate_meal_carb(self, carb):
         """

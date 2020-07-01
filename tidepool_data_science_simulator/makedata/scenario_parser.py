@@ -358,6 +358,7 @@ class PatientConfig(object):
         glucose_history,
         carb_event_timeline,
         bolus_event_timeline,
+        action_event_timeline=None,
         recommendation_accept_prob=1.0,
     ):
         """
@@ -393,6 +394,7 @@ class PatientConfig(object):
 
         self.bolus_event_timeline = bolus_event_timeline
         self.carb_event_timeline = carb_event_timeline
+        self.action_event_timeline = action_event_timeline
 
         self.glucose_history = glucose_history
 

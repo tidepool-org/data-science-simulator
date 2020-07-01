@@ -62,6 +62,7 @@ class LoopController(BaseControllerClass):
         self.bolus_event_timeline = controller_config.bolus_event_timeline
         self.temp_basal_event_timeline = controller_config.temp_basal_event_timeline
         self.carb_event_timeline = controller_config.carb_event_timeline
+        #TODO: Fix
 
         self.num_hours_history = 24  # how many hours of recent events to pass to Loop
 
@@ -162,6 +163,7 @@ class LoopController(BaseControllerClass):
         # Loop knows about any events reported on pump.
         self.bolus_event_timeline = virtual_patient.pump.bolus_event_timeline
         self.carb_event_timeline = virtual_patient.pump.carb_event_timeline
+        #TODO: get actions and do something with them
 
         loop_inputs_dict = self.prepare_inputs(virtual_patient)
 

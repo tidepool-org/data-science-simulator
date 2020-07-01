@@ -10,16 +10,16 @@ from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_st
 
 class Action(object):
     """
-    A class for user executed actions that do not require large modeling.
-    # TODO: Find a better explanation for this
+    A class for user executed actions that are not inputs.
+
+    Valid actions:
+    delete_pump_event_history
+    delete_reservoir_history
     """
 
-    def __init__(self, name):
-        self.name = name
-
-    def execute(self):
-        #implement swift switch clause
-        pass
+    def execute(self, action):
+        default = "No action named {} currently implemented".format(action)
+        return getattr(self, str(action), lambda: default)()
 
     def delete_pump_event_history(self):
         pass
@@ -29,12 +29,6 @@ class Action(object):
 
     def change_infusion_set(self):
         pass
-
-
-class ActionNames(Enum):
-    deletePumpEventHistory = 1
-    deleteReservoirHistory = 2
-    changeInfusionSet = 3
 
 
 class UserInput(object):

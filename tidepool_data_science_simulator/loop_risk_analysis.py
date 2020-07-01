@@ -2,7 +2,7 @@ import os
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
-from tidepool_data_science_simulator.models.simulation import Simulation
+from tidepool_data_science_simulator.models.simulation import Simulation, ActionTimeline
 from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController
 from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses, Omnipod, ContinuousInsulinPump
@@ -50,6 +50,7 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
 
         patient_config = sim_parser.get_patient_config()
         patient_config.recommendation_accept_prob = 0.0  # TODO: put in scenario file
+        patient_config.action_event_timeline = ActionTimeline()
         vp = VirtualPatient(
             time=t0,
             pump=pump,
