@@ -37,6 +37,7 @@ from tidepool_data_science_simulator.utils import timing
 
 from tidepool_data_science_metrics.insulin.insulin import dka_index, dka_risk_score
 
+current_date_time = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 def analyze_omnipod_missing_pulses():
     """
@@ -200,7 +201,7 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run=False, save_results=True, save_
     for sim_id, results_df in all_results.items():
 
         if save_results:
-            results_df.to_csv(os.path.join(save_dir, sim_id + ".csv"))
+            results_df.to_csv(os.path.join(save_dir, "{}-{}.csv".format(current_date_time, sim_id)))
 
         dkai = dka_index(results_df["iob"], sim_params[sim_id]["patient_basal_rate"])
         dkars = dka_risk_score(dkai)
@@ -217,7 +218,7 @@ def analyze_omnipod_missing_pulses_wLoop(dry_run=False, save_results=True, save_
     summary_results_df = pd.DataFrame(summary_results_df)
 
     if save_results:
-        summary_results_df.to_csv(os.path.join(save_dir, "summary.csv"))
+        summary_results_df.to_csv(os.path.join(save_dir, "{}-summary.csv".format(current_date_time)))
 
     if plot_summary:
         summary_results_df = pd.read_csv(os.path.join("..", "data", "results", "summary.csv"))
