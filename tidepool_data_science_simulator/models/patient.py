@@ -148,7 +148,7 @@ class VirtualPatient(SimulationComponent):
             cir=self.patient_config.carb_ratio_schedule.get_state(),
             bolus=self.bolus_event_timeline.get_event_value(self.time),
             carb=self.carb_event_timeline.get_event_value(self.time),
-            actions=self.action_event_timeline.get_actions(self.time)
+            actions=self.action_event_timeline.get_event(self.time)
         )
 
         return patient_state
@@ -162,7 +162,9 @@ class VirtualPatient(SimulationComponent):
         -------
         [Action]
         """
-        return self.action_event_timeline.get_event(self.time)
+        actions = self.action_event_timeline.get_event(self.time)
+
+        return actions
 
     def get_user_inputs(self):
         """
@@ -195,7 +197,10 @@ class VirtualPatient(SimulationComponent):
         self.sensor.update(time)
 
         # TODO: Adding in framework for actions other than boluses and carbs
-        #actions = self.get_actions()
+        user_action = self.get_actions()
+        if user_action is not None:
+            user_action.execute(self)
+
         self.predict()
         self.update_from_prediction(time)
 

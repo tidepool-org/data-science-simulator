@@ -161,8 +161,10 @@ class LoopController(BaseControllerClass):
         virtual_patient = kwargs["virtual_patient"]
 
         # Loop knows about any events reported on pump.
+        # TODO: Change this so that if user history is cleared, only history after that clear is pulled
         self.bolus_event_timeline = virtual_patient.pump.bolus_event_timeline
         self.carb_event_timeline = virtual_patient.pump.carb_event_timeline
+
         #TODO: get actions and do something with them
 
         loop_inputs_dict = self.prepare_inputs(virtual_patient)

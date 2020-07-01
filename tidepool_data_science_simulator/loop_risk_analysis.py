@@ -1,9 +1,11 @@
 import os
+import datetime
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
-from tidepool_data_science_simulator.models.simulation import Simulation, ActionTimeline
+from tidepool_data_science_simulator.models.simulation import Simulation, EventTimeline
 from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController
+from tidepool_data_science_simulator.models.events import VirtualPatientDeleteLoopData
 from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses, Omnipod, ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
@@ -50,7 +52,12 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
 
         patient_config = sim_parser.get_patient_config()
         patient_config.recommendation_accept_prob = 0.0  # TODO: put in scenario file
-        patient_config.action_event_timeline = ActionTimeline()
+        patient_config.action_event_timeline = EventTimeline()
+
+        user_delete_loop_data_action = VirtualPatientDeleteLoopData()
+        patient_config.action_event_timeline.add_event(t0 + datetime.timedelta(minutes=30),
+                                                       user_delete_loop_data_action)
+
         vp = VirtualPatient(
             time=t0,
             pump=pump,
@@ -79,7 +86,7 @@ if __name__ == "__main__":
     scenarios_folder_path = "../data/raw/fda_risk_scenarios/"
     scenario_file_names = os.listdir(scenarios_folder_path)
 
-    for file_name in scenario_file_names:
+    for file_name in scenario_file_names[:1]:
         scenario_csv_filepath = os.path.join(
             scenarios_folder_path, file_name
         )
