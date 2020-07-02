@@ -191,6 +191,7 @@ class ContinuousInsulinPump(SimulationComponent):
         """
         self.time = time
 
+        self.basal_undelivered_insulin_since_last_update = 0.0
         self.basal_insulin_delivered_last_update = self.get_delivered_basal_insulin_since_update()
 
         if self.active_temp_basal is not None:  # Temp basal current active
