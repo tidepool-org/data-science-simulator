@@ -144,6 +144,14 @@ class Simulation(multiprocessing.Process):
 
         return self.simulation_results
 
+    def run_until(self, action_time):
+
+        np.random.seed(self.seed)
+
+        while self.time != action_time:
+            self.step()
+            self.store_state()
+
     def store_state(self):
         """
         Store the current state of the simulation in the results.
@@ -401,6 +409,12 @@ class EventTimeline(object):
         if datetimes is not None:
             for dt, event in zip(datetimes, events):
                 self.events[dt] = event
+
+    def is_empty_timeline(self):
+        if not self.events:
+            return True
+        else:
+            return False
 
     def add_event(self, time, event):
 

@@ -12,6 +12,9 @@ class Action(object):
     """
     A class for user executed actions that are not inputs.
     """
+    def __init__(self, name):
+        self.name = name
+
     def execute(self, **kwargs):
         raise NotImplementedError
 
