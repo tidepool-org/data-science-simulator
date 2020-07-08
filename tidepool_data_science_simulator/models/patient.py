@@ -90,6 +90,8 @@ class VirtualPatient(SimulationComponent):
         self.carb_event_timeline = patient_config.carb_event_timeline
         self.bolus_event_timeline = patient_config.bolus_event_timeline
         self.action_timeline = patient_config.action_timeline
+        if self.action_timeline is None:
+            self.action_timeline = ActionTimeline() # fixme: quick fix to allow Travis build to pass, fix later
 
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
