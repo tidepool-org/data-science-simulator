@@ -53,9 +53,6 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
         patient_config.recommendation_accept_prob = 0.0  # TODO: put in scenario file
         patient_config.action_timeline = ActionTimeline()
 
-        user_delete_loop_data_action = VirtualPatientDeleteLoopData()
-        patient_config.action_timeline.add_event(t0 + datetime.timedelta(minutes=30), user_delete_loop_data_action)
-
         vp = VirtualPatient(
             time=t0,
             pump=pump,
