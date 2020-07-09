@@ -1,61 +1,83 @@
 import os
 import datetime
+from datetime import timedelta
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 from tidepool_data_science_simulator.models.simulation import Simulation, ActionTimeline, VirtualPatientDeleteLoopData
 from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController
 from tidepool_data_science_simulator.models.patient import VirtualPatient
-from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses, Omnipod, ContinuousInsulinPump
-from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
+from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
+from tidepool_data_science_simulator.models.sensor import IdealSensor
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_simulator.utils import timing
 
 
 @timing
-def compare_loop_to_pump_only(scenario_csv_filepath):
+def compare_two_loop_scenarios(scenario_csv_filepath):
     """
-    Compare two controllers for a given scenario file:
-        1. No controller, ie no insulin modulation except for pump schedule
-        2. Loop controller
+    Compare loop running with an action and without that action.
 
     Parameters
     ----------
     scenario_csv_filepath: str
         Path to the scenario file
     """
+
     sim_parser = ScenarioParserCSV(scenario_csv_filepath)
     t0 = sim_parser.get_simulation_start_time()
 
-    controllers = [
+    comparison_controllers = [
         DoNothingController(
-            time=t0, controller_config=sim_parser.get_controller_config()
+            time=t0,
+            controller_config=sim_parser.get_controller_config()
         ),
         LoopController(
             time=t0,
-            controller_config=sim_parser.get_controller_config(),
-        ),
+            controller_config=sim_parser.get_controller_config()
+        )
+    ]
+
+    comparison_patient_action_configs = [
+        [],
+        [
+            {
+                "t0_delay_minutes": 30,
+                "action": VirtualPatientDeleteLoopData("Deleted Insulin History")
+            }
+        ]
+    ]
+
+    configurations = [
+        {
+            "controller": controller,
+            "actions": actions,
+        }
+        for controller in comparison_controllers
+        for actions in comparison_patient_action_configs
     ]
 
     all_results = {}
-    for controller in controllers:
-        sim_id = controller.name
+    for i, config in enumerate(configurations):
+
+        sim_id = i
+        actions = config["actions"]
+        controller = config["controller"]
+
         print("Running: {}".format(sim_id))
 
-        # pump = OmnipodMissingPulses(time=t0, pump_config=sim_parser.get_pump_config())
-        # pump = Omnipod(time=t0, pump_config=sim_parser.get_pump_config())
         pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
-
         sensor = IdealSensor(time=t0, sensor_config=sim_parser.get_sensor_config())
-        #sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
 
         patient_config = sim_parser.get_patient_config()
         patient_config.recommendation_accept_prob = 0.0  # TODO: put in scenario file
         patient_config.action_timeline = ActionTimeline()
 
-        user_delete_loop_data_action = VirtualPatientDeleteLoopData()
-        patient_config.action_timeline.add_event(t0 + datetime.timedelta(minutes=30), user_delete_loop_data_action)
+        for action_config in actions:
+            delay_minutes = action_config["t0_delay_minutes"]
+            action = action_config["action"]
+            patient_config.action_timeline.add_event(t0 + timedelta(minutes=delay_minutes), action)
 
         vp = VirtualPatient(
             time=t0,
@@ -76,82 +98,6 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
 
         results_df = simulation.get_results_df()
         all_results[sim_id] = results_df
-
-    plot_sim_results(all_results, save=False)
-
-
-def compare_two_loop_scenarios(scenario_csv_filepath):
-    """
-    Compare loop running with an action and without that action.
-
-    Parameters
-    ----------
-    scenario_csv_filepath: str
-        Path to the scenario file
-    """
-
-    sim_parser = ScenarioParserCSV(scenario_csv_filepath)
-    t0 = sim_parser.get_simulation_start_time()
-
-    controllers = [
-        DoNothingController(
-            time=t0, controller_config=sim_parser.get_controller_config()
-        ),
-        LoopController(
-        time=t0,
-        controller_config=sim_parser.get_controller_config()
-        )
-    ]
-
-    all_results = {}
-
-    for controller in controllers:
-        if controller.name == "Do Nothing":
-            actions = [None]
-        else:
-            actions = [None, VirtualPatientDeleteLoopData("Deleted Insulin History")]
-
-        for action in actions:
-            if action is not None:
-                sim_id = action.name
-            else:
-                sim_id = controller.name
-
-            print("Running: {}".format(sim_id))
-
-            # pump = OmnipodMissingPulses(time=t0, pump_config=sim_parser.get_pump_config())
-            # pump = Omnipod(time=t0, pump_config=sim_parser.get_pump_config())
-            pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
-
-            sensor = IdealSensor(time=t0, sensor_config=sim_parser.get_sensor_config())
-            # sensor = NoisySensor(sensor_config=sim_parser.get_sensor_config())
-
-            patient_config = sim_parser.get_patient_config()
-            patient_config.recommendation_accept_prob = 0.0  # TODO: put in scenario file
-            patient_config.action_timeline = ActionTimeline()
-
-            if action is not None:
-                patient_config.action_timeline.add_event(t0 + datetime.timedelta(minutes=30), action)
-
-            vp = VirtualPatient(
-                time=t0,
-                pump=pump,
-                sensor=sensor,
-                metabolism_model=SimpleMetabolismModel,
-                patient_config=patient_config,
-            )
-
-            simulation = Simulation(
-                time=t0,
-                duration_hrs=8.0,
-                virtual_patient=vp,
-                controller=controller,
-            )
-
-            simulation.run()
-
-            results_df = simulation.get_results_df()
-            all_results[sim_id] = results_df
 
     plot_sim_results(all_results, save=False)
 
