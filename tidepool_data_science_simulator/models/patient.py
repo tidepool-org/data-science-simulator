@@ -4,10 +4,12 @@ import copy
 import numpy as np
 import datetime
 
-from tidepool_data_science_simulator.models.simulation import SimulationComponent, ActionTimeline
+from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.makedata.scenario_parser import PatientConfig
-from tidepool_data_science_simulator.models.measures import Carb, Bolus
-from tidepool_data_science_simulator.models.events import MealModel, Action
+from tidepool_data_science_simulator.models.measures import Carb, Bolus, ManualBolus
+from tidepool_data_science_simulator.models.events import (
+    MealModel, Action, ActionTimeline, BolusTimeline, CarbTimeline, TempBasalTimeline
+)
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 
 
@@ -139,8 +141,11 @@ class VirtualPatient(SimulationComponent):
         -------
         VirtualPatientState
         """
-
         sensor_state = self.sensor.get_state()  # todo: put whole state below
+
+        pump_state = None
+        if self.pump is not None:
+            pump_state = self.pump.get_state()
 
         patient_state = VirtualPatientState(
             bg=self.bg_current,
@@ -152,9 +157,9 @@ class VirtualPatient(SimulationComponent):
             sbr=self.patient_config.basal_schedule.get_state(),
             isf=self.patient_config.insulin_sensitivity_schedule.get_state(),
             cir=self.patient_config.carb_ratio_schedule.get_state(),
-            pump_state=self.pump.get_state(),
-            bolus=self.bolus_event_timeline.get_event_value(self.time),
-            carb=self.carb_event_timeline.get_event_value(self.time),
+            pump_state=pump_state,
+            bolus=self.bolus_event_timeline.get_event(self.time),
+            carb=self.carb_event_timeline.get_event(self.time),
             actions=self.action_timeline.get_event(self.time)
         )
 
@@ -204,7 +209,8 @@ class VirtualPatient(SimulationComponent):
         """
         self.time = time
 
-        self.pump.update(time)
+        if self.pump is not None:
+            self.pump.update(time)
 
         # TODO: Adding in framework for actions other than boluses and carbs
         user_action = self.get_actions()
@@ -257,7 +263,9 @@ class VirtualPatient(SimulationComponent):
         -------
         (float, float)
         """
-        abs_insulin_amount = self.pump.deliver_basal(self.pump.basal_insulin_delivered_last_update)
+        abs_insulin_amount = 0
+        if self.pump is not None:
+            abs_insulin_amount = self.pump.deliver_basal(self.pump.basal_insulin_delivered_last_update)
 
         patient_egp_basal_value_equivalent = self.patient_config.basal_schedule.get_state().get_insulin_in_interval()
         rel_insulin_amount = abs_insulin_amount - patient_egp_basal_value_equivalent
@@ -277,7 +285,7 @@ class VirtualPatient(SimulationComponent):
         bolus, carb = self.get_user_inputs()
 
         if bolus is not None:
-            delivered_bolus = self.pump.deliver_bolus(bolus)
+            delivered_bolus = self.deliver_bolus(bolus)
             rel_insulin_amount += delivered_bolus.value
             abs_insulin_amount += delivered_bolus.value
 
@@ -286,6 +294,63 @@ class VirtualPatient(SimulationComponent):
             carb_amount = carb.value
 
         return abs_insulin_amount, rel_insulin_amount, carb_amount
+
+    def deliver_bolus(self, bolus):
+        """
+        Deliver a bolus either manually or via the pump. It's expected that the incoming
+        bolus is the correct type for the circumstance, e.g. a manual bolus if the
+        user is not wearing a pump
+
+        Parameters
+        ----------
+        bolus
+
+        Returns
+        -------
+        Bolus
+        """
+        if isinstance(bolus, ManualBolus):
+            bolus = self.deliver_manual_bolus(bolus)
+        else:
+            bolus = self.pump.deliver_bolus(bolus)
+
+        return bolus
+
+    def deliver_manual_bolus(self, bolus):
+        """
+        Deliver a manual bolus. Override to model differently.
+
+        Parameters
+        ----------
+        bolus
+
+        Returns
+        -------
+        ManualBolus
+        """
+        if not isinstance(bolus, ManualBolus):
+            raise TypeError("Cannot manually deliver a bolus not of ManualBolus type.")
+
+        return bolus
+
+    def get_pump_events(self):
+        """
+        Read events off the pump.
+
+        Returns
+        -------
+        (BolusTimeline, CarbTimeline, TempBasalTimeline)
+        """
+        pump_bolus_event_timeline = BolusTimeline()
+        pump_carb_event_timeline = CarbTimeline()
+        pump_temp_basal_event_timeline = TempBasalTimeline()
+
+        if self.pump is not None:
+            pump_bolus_event_timeline = self.pump.bolus_event_timeline
+            pump_carb_event_timeline = self.pump.carb_event_timeline
+            pump_temp_basal_event_timeline = self.pump.temp_basal_event_timeline
+
+        return pump_bolus_event_timeline, pump_carb_event_timeline, pump_temp_basal_event_timeline
 
     def predict(self):
         """
@@ -405,6 +470,30 @@ class VirtualPatient(SimulationComponent):
 
         return does_accept
 
+    def stop_pump_session(self):
+        """
+        Stop a pump session
+        """
+
+        if self.pump is None:
+            raise Exception("Trying to stop a pump session, but there is no pump")
+
+        self.pump = None
+
+    def start_pump_session(self, pump_class, pump_config):
+        """
+        Start a new pump session.
+
+        Parameters
+        ----------
+        pump_class
+        pump_config
+        """
+        if self.pump is not None:
+            raise Exception("Trying to start pump session during existing session.")
+
+        self.pump = pump_class(time=self.time, pump_config=pump_config)
+
     def __repr__(self):
 
         return "BG: {:.2f}. IOB: {:.2f}. BR {:.2f}".format(self.bg_current, self.iob_current, self.pump.get_basal_rate().value)
@@ -470,7 +559,7 @@ class VirtualPatientModel(VirtualPatient):
         self.last_meal = None
         self.patient_actions = Action()
 
-    def get_events(self):
+    def get_user_inputs(self):
         """
         Get carb and insulin inputs.
         """

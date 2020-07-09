@@ -1,6 +1,6 @@
 __author__ = "Cameron Summers"
 
-from tidepool_data_science_simulator.models.simulation import CarbTimeline, BolusTimeline
+from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import ControllerConfig
 
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV

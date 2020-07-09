@@ -18,7 +18,7 @@ from tidepool_data_science_simulator.makedata.make_simulation import get_canonic
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient_config, get_canonical_risk_pump_config
 
 from tidepool_data_science_simulator.models.measures import Bolus, Carb
-from tidepool_data_science_simulator.models.simulation import CarbTimeline, BolusTimeline
+from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline
 
 REGRESSION_COMMIT = "5fb7820"
 

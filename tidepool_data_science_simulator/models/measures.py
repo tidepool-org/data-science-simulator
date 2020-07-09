@@ -148,9 +148,16 @@ class TempBasal(BasalRate):
 
 class Bolus(Measure):
     """
-    A bolus
+    A bolus delivered by a pump
     """
+    def __init__(self, value, units):
+        super().__init__(value, units)
 
+
+class ManualBolus(Bolus):
+    """
+    A Bolus that is delivered manually, e.g. via injection
+    """
     def __init__(self, value, units):
         super().__init__(value, units)
 

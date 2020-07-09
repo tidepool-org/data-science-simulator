@@ -5,7 +5,8 @@ import copy
 from tidepool_data_science_simulator.models.measures import TempBasal, BasalRate
 
 from tidepool_data_science_simulator.makedata.scenario_parser import PumpConfig
-from tidepool_data_science_simulator.models.simulation import SimulationComponent, TempBasalTimeline
+from tidepool_data_science_simulator.models.simulation import SimulationComponent
+from tidepool_data_science_simulator.models.events import TempBasalTimeline
 
 
 class ContinuousInsulinPump(SimulationComponent):

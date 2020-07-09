@@ -10,12 +10,7 @@ import datetime
 import pandas as pd
 import numpy as np
 
-import pdb
-
-from tidepool_data_science_simulator.models.measures import Bolus, Carb, TempBasal
-from tidepool_data_science_simulator.models.events import Action
-
-from pyloopkit.dose import DoseType
+from tidepool_data_science_simulator.models.measures import Bolus, Carb
 
 
 class SimulationComponent(object):
@@ -189,36 +184,52 @@ class Simulation(multiprocessing.Process):
         for time, simulation_state in self.simulation_results.items():
             bolus = simulation_state.patient_state.bolus
             if bolus is None:
-                bolus = 0
+                bolus = Bolus(0, "U")
 
             carb = simulation_state.patient_state.carb
             if carb is None:
-                carb = 0
+                carb = Carb(0, "g", 0)
+
+            # Pump stuff
+            pump_state = simulation_state.patient_state.pump_state
+            temp_basal_value = None
+            temp_basal_time_remaining = None
+            pump_sbr = None
+            pump_isf = None
+            pump_cir = None
+            delivered_basal_insulin = None
+            undelivered_basal_insulin = None
+            if pump_state is not None:
+                temp_basal_value = simulation_state.patient_state.pump_state.get_temp_basal_rate_value(
+                    default=None
+                )
+                temp_basal_time_remaining = simulation_state.patient_state.pump_state.get_temp_basal_minutes_left(
+                    time
+                )
+                pump_sbr = simulation_state.patient_state.pump_state.scheduled_basal_rate
+                pump_isf = simulation_state.patient_state.pump_state.scheduled_insulin_sensitivity_factor
+                pump_cir = simulation_state.patient_state.pump_state.scheduled_carb_insulin_ratio
+                delivered_basal_insulin = simulation_state.patient_state.pump_state.delivered_basal_insulin
+                undelivered_basal_insulin = simulation_state.patient_state.pump_state.undelivered_basal_insulin
 
             row = {
                 "time": time,
                 "bg": simulation_state.patient_state.bg,
                 "bg_sensor": simulation_state.patient_state.sensor_bg,
                 "iob": simulation_state.patient_state.iob,
-                "temp_basal": simulation_state.patient_state.pump_state.get_temp_basal_rate_value(
-                    default=None
-                ),
-                "temp_basal_zeros": simulation_state.patient_state.pump_state.get_temp_basal_rate_value(
-                    default=0
-                ),
-                "temp_basal_time_remaining": simulation_state.patient_state.pump_state.get_temp_basal_minutes_left(
-                    time
-                ),
+                "temp_basal": temp_basal_value,
+                "temp_basal_time_remaining": temp_basal_time_remaining,
                 "sbr": simulation_state.patient_state.sbr.value,
-                "cir": simulation_state.patient_state.cir,
-                "isf": simulation_state.patient_state.isf,
-                "pump_sbr": simulation_state.patient_state.pump_state.scheduled_basal_rate,
-                "pump_isf": simulation_state.patient_state.pump_state.scheduled_insulin_sensitivity_factor,
-                "pump_cir": simulation_state.patient_state.pump_state.scheduled_carb_insulin_ratio,
-                "bolus": bolus,
-                "carb": carb,
-                "delivered_basal_insulin": simulation_state.patient_state.pump_state.delivered_basal_insulin,
-                "undelivered_basal_insulin": simulation_state.patient_state.pump_state.undelivered_basal_insulin
+                "cir": simulation_state.patient_state.cir.value,
+                "isf": simulation_state.patient_state.isf.value,
+                "pump_sbr": pump_sbr,
+                "pump_isf": pump_isf,
+                "pump_cir": pump_cir,
+                "bolus": bolus.value,
+                "carb_value": carb.value,
+                "carb_duration": carb.duration_minutes,
+                "delivered_basal_insulin": delivered_basal_insulin,
+                "undelivered_basal_insulin": undelivered_basal_insulin
             }
             data.append(row)
 
@@ -396,216 +407,3 @@ class SingleSettingSchedule24Hr(SimulationComponent):
             end = end_times
 
         return values, start_times, end
-
-
-class EventTimeline(object):
-    """
-    A class for insulin/carb/etc. events
-    """
-    def __init__(self, datetimes=None, events=None):
-
-        self.events = dict()
-
-        if datetimes is not None:
-            for dt, event in zip(datetimes, events):
-                self.events[dt] = event
-
-    def is_empty_timeline(self):
-        """
-        Determine if there are events in the timeline.
-
-        Returns
-        -------
-        bool:
-            True if no events
-        """
-
-        return len(self.events) == 0
-
-    def add_event(self, time, event):
-
-        # FIXME: Uncomment these when scenario file is decoupled from patient model.
-        # if time in self.events:
-        #     raise Exception("Event timeline only allows one event at a time")
-
-        self.is_event_valid(event)
-        self.events[time] = event
-
-    def is_event_valid(self, event):
-        return isinstance(event, self.event_type)
-
-    def get_event(self, time):
-        """
-        Get the event at the given time. If no event, returns None
-
-        Parameters
-        ----------
-        time: datetime
-            Time to check for event
-
-        Returns
-        -------
-        object
-            The insulin/carb/etc. event or None
-        """
-        try:
-            event = self.events[time]
-        except KeyError:
-            event = None
-
-        return event
-
-    def get_event_value(self, time, default=0):
-
-        try:
-            event = self.events[time]
-            event_value = event.value
-        except KeyError:
-            event_value = default
-
-        return event_value
-
-    def get_recent_event_times(self, time=None, num_hours_history=6):
-        """
-        Get event times within the specified history window.
-
-        Parameters
-        ----------
-        time
-        num_hours_history
-
-        Returns
-        -------
-        list
-            Times of recent events
-        """
-        # FIXME Soon: here is where we'll get most recent events
-        #  for Pyloopkit speedup. Logic not here yet.
-        recent_event_times = []
-        for event_time in self.events.keys():
-            time_since_event_hrs = (time - event_time).total_seconds() / 3600
-            if time_since_event_hrs <= num_hours_history:
-                recent_event_times.append(event_time)
-
-        return recent_event_times
-
-
-class BolusTimeline(EventTimeline):
-
-    def __init__(self, datetimes=None, events=None):
-        super().__init__(datetimes, events)
-        self.event_type = Bolus
-
-    def get_loop_inputs(self, time, num_hours_history=6):
-        """
-        Convert event timeline into format for input into Pyloopkit.
-
-        Returns
-        -------
-        (list, list, list, list)
-        """
-        dose_types = []
-        dose_values = []
-        dose_start_times = []
-        dose_end_times = []
-        dose_delivered_units = []
-
-        recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
-        sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
-        for time in sorted_trecent_event_times:
-
-            dose_types.append(DoseType.bolus)
-            dose_values.append(self.events[time].value)
-            dose_start_times.append(time)
-            dose_end_times.append(time)
-            dose_delivered_units.append(self.events[time].value)  # fixme: shouldn't be same value
-
-        return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
-
-
-class TempBasalTimeline(EventTimeline):
-
-    def __init__(self, datetimes=None, events=None):
-        super().__init__(datetimes, events)
-        self.event_type = TempBasal
-
-    def get_loop_inputs(self, time, num_hours_history=6):
-        """
-        Convert event timeline into format for input into Pyloopkit.
-
-        Returns
-        -------
-        (list, list, list, list)
-        """
-
-        dose_types = []
-        dose_values = []
-        dose_start_times = []
-        dose_end_times = []
-        dose_delivered_units = []
-
-        recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
-        sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
-        for time in sorted_trecent_event_times:
-            temp_basal_event = self.events[time]
-            dose_types.append(DoseType.tempbasal)
-            dose_values.append(temp_basal_event.value)
-            dose_start_times.append(time)
-            dose_end_times.append(temp_basal_event.get_end_time())
-            dose_delivered_units.append(temp_basal_event.delivered_units)  # fixme: put actual values here
-
-        return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
-
-
-class CarbTimeline(EventTimeline):
-
-    def __init__(self, datetimes=None, events=None):
-        super().__init__(datetimes, events)
-        self.event_type = Carb
-
-    def get_loop_inputs(self, time, num_hours_history=6):
-        """
-        Convert event timeline into format for input into Pyloopkit.
-
-        Returns
-        -------
-        (list, list, list, list)
-        """
-
-        carb_values = []
-        carb_start_times = []
-        carb_durations = []
-
-        recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
-        sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
-
-        for time in sorted_trecent_event_times:
-            carb_event = self.events[time]
-            carb_values.append(carb_event.value)
-            carb_start_times.append(time)
-            carb_durations.append(carb_event.duration_minutes)
-
-        return carb_values, carb_start_times, carb_durations
-
-
-# Moved to simulation because of import error, TODO: solve error?
-class VirtualPatientDeleteLoopData(Action):
-    def execute(self, virtual_patient):
-        virtual_patient.pump.bolus_event_timeline = BolusTimeline()
-        virtual_patient.pump.temp_basal_event_timeline = TempBasalTimeline()
-
-
-class ActionTimeline(EventTimeline):
-    def __init__(self, datetimes=None, events=None):
-        super().__init__(datetimes, events)
-        self.event_type = Action
-    # TODO: add once scenario is running
-    # def add_action(self, time, action):
-    #     actions = [action]
-    #     if time in self.events:
-    #         self.events[time] = self.events[time].append(action)
-    #     else:
-    #         self.add_event(time, actions)
-    #
-    # def get_actions(self, time):
-    #     return self.get_event(time)
