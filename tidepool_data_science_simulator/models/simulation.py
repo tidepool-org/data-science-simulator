@@ -10,7 +10,10 @@ import datetime
 import pandas as pd
 import numpy as np
 
+import pdb
+
 from tidepool_data_science_simulator.models.measures import Bolus, Carb, TempBasal
+from tidepool_data_science_simulator.models.events import Action
 
 from pyloopkit.dose import DoseType
 
@@ -129,13 +132,18 @@ class Simulation(multiprocessing.Process):
         self.time = next_time
         self.update(next_time)
 
-    def run(self):
+    def run(self, early_stop_datetime=None):
         """
         Run the simulation until it's finished.
+
+        Parameters
+        ----------
+        early_stop_datetime: datetime
+            Optional stop time for the simulation.
         """
         np.random.seed(self.seed)
 
-        while not self.is_finished():
+        while not (self.is_finished() or early_stop_datetime == self.time):
             self.step()
             self.store_state()
 
@@ -402,6 +410,18 @@ class EventTimeline(object):
             for dt, event in zip(datetimes, events):
                 self.events[dt] = event
 
+    def is_empty_timeline(self):
+        """
+        Determine if there are events in the timeline.
+
+        Returns
+        -------
+        bool:
+            True if no events
+        """
+
+        return len(self.events) == 0
+
     def add_event(self, time, event):
 
         # FIXME: Uncomment these when scenario file is decoupled from patient model.
@@ -568,3 +588,24 @@ class CarbTimeline(EventTimeline):
         return carb_values, carb_start_times, carb_durations
 
 
+# Moved to simulation because of import error, TODO: solve error?
+class VirtualPatientDeleteLoopData(Action):
+    def execute(self, virtual_patient):
+        virtual_patient.pump.bolus_event_timeline = BolusTimeline()
+        virtual_patient.pump.temp_basal_event_timeline = TempBasalTimeline()
+
+
+class ActionTimeline(EventTimeline):
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = Action
+    # TODO: add once scenario is running
+    # def add_action(self, time, action):
+    #     actions = [action]
+    #     if time in self.events:
+    #         self.events[time] = self.events[time].append(action)
+    #     else:
+    #         self.add_event(time, actions)
+    #
+    # def get_actions(self, time):
+    #     return self.get_event(time)

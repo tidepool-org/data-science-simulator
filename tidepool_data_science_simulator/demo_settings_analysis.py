@@ -144,7 +144,7 @@ if __name__ == "__main__":
         "Scenario-0-simulation-template - inputs - SettingsDemo.tsv",
     )
 
-    # plot_auc_basal_isf()
+    #plot_auc_basal_isf()
 
     # Explore grid
     param_grid = [

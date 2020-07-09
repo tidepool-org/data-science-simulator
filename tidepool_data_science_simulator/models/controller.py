@@ -62,8 +62,9 @@ class LoopController(BaseControllerClass):
         self.bolus_event_timeline = controller_config.bolus_event_timeline
         self.temp_basal_event_timeline = controller_config.temp_basal_event_timeline
         self.carb_event_timeline = controller_config.carb_event_timeline
+        #TODO: Fix
 
-        self.num_hours_history = 8  # how many hours of recent events to pass to Loop
+        self.num_hours_history = 24  # how many hours of recent events to pass to Loop
 
         # self.ctr = -5  # TODO remove once we feel refactor is good
 
@@ -161,9 +162,12 @@ class LoopController(BaseControllerClass):
         virtual_patient = kwargs["virtual_patient"]
 
         # Loop knows about any events reported on pump.
+        # TODO: Change this so that if user history is cleared, only history after that clear is pulled
         self.bolus_event_timeline = virtual_patient.pump.bolus_event_timeline
         self.carb_event_timeline = virtual_patient.pump.carb_event_timeline
         self.temp_basal_event_timeline = virtual_patient.pump.temp_basal_event_timeline
+
+        #TODO: get actions and do something with them
 
         loop_inputs_dict = self.prepare_inputs(virtual_patient)
 

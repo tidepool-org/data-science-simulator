@@ -1,5 +1,6 @@
 __author__ = "Cameron Summers"
 
+import datetime
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ style.use("seaborn-poster")  # sets the size of the charts
 style.use("ggplot")
 
 
-def plot_sim_results(all_results):
+def plot_sim_results(all_results, save=False):
 
     # ==== TMP ====
     # TODO - This is a placeholder for dev. Replace with viz tools module.
@@ -68,6 +69,9 @@ def plot_sim_results(all_results):
         # ax[3].set_title("BG Distribution")
         # ax[3].set_xlabel("BG (mg/dL)")
         # ax[3].legend()
+
+    if save:
+        plt.savefig("data-science-simulator-image_{}.png".format(datetime.datetime.now().isoformat()))
 
     plt.show()
 

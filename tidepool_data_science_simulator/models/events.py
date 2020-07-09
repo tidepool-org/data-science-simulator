@@ -4,18 +4,35 @@ import datetime
 import numpy as np
 
 from tidepool_data_science_simulator.models.measures import Carb
+#from tidepool_data_science_simulator.models.simulation import CarbTimeline, BolusTimeline, TempBasalTimeline
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 
 
-class MealModel(object):
+class Action(object):
+    """
+    A class for user executed actions that are not inputs.
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def execute(self, **kwargs):
+        raise NotImplementedError
+
+
+class UserInput(object):
+    def __init__(self, name, time_start, time_end=None):
+        self.name = name
+        self.time_start = time_start
+        self.time_end = time_end
+
+
+class MealModel(UserInput):
     """
     A meal that says if it is time for the meal and probabilistically determines carbs.
     """
     def __init__(self, name, time_start, time_end, prob_of_eating):
 
-        self.name = name
-        self.time_start = time_start
-        self.time_end = time_end
+        super().__init__(name, time_start, time_end)
         self.prob_of_eating = prob_of_eating
 
         # Get number of simulation steps in meal time range

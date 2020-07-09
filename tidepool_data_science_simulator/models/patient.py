@@ -4,10 +4,10 @@ import copy
 import numpy as np
 import datetime
 
-from tidepool_data_science_simulator.models.simulation import SimulationComponent, EventTimeline
+from tidepool_data_science_simulator.models.simulation import SimulationComponent, ActionTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import PatientConfig
 from tidepool_data_science_simulator.models.measures import Carb, Bolus
-from tidepool_data_science_simulator.models.events import MealModel
+from tidepool_data_science_simulator.models.events import MealModel, Action
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 
 
@@ -30,7 +30,8 @@ class VirtualPatientState(object):
         isf,
         cir,
         bolus,
-        carb
+        carb,
+        actions=None
     ):
 
         self.bg = bg
@@ -45,6 +46,7 @@ class VirtualPatientState(object):
         self.cir = cir
         self.bolus = bolus
         self.carb = carb
+        self.actions = actions
 
 
 class VirtualPatient(SimulationComponent):
@@ -85,8 +87,11 @@ class VirtualPatient(SimulationComponent):
         self.iob_current = None
         self.sbr_iob = None
 
-        self.carb_event_timeline = self.patient_config.carb_event_timeline
-        self.bolus_event_timeline = self.patient_config.bolus_event_timeline
+        self.carb_event_timeline = patient_config.carb_event_timeline
+        self.bolus_event_timeline = patient_config.bolus_event_timeline
+        self.action_timeline = patient_config.action_timeline
+        if self.action_timeline is None:
+            self.action_timeline = ActionTimeline() # fixme: quick fix to allow Travis build to pass, fix later
 
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
@@ -149,17 +154,31 @@ class VirtualPatient(SimulationComponent):
             cir=self.patient_config.carb_ratio_schedule.get_state(),
             pump_state=self.pump.get_state(),
             bolus=self.bolus_event_timeline.get_event_value(self.time),
-            carb=self.carb_event_timeline.get_event_value(self.time)
+            carb=self.carb_event_timeline.get_event_value(self.time),
+            actions=self.action_timeline.get_event(self.time)
         )
 
         return patient_state
 
     def get_actions(self):
         """
-        Get events from configuration that influence the internal metabolism model.
+        Get actions that the user has performed which are not boluses or meals.
+        Possible actions: set change, battery change, user deletes all data, exercise.
 
         Returns
         -------
+        [Action]
+        """
+        actions = self.action_timeline.get_event(self.time)
+
+        return actions
+
+    def get_user_inputs(self):
+        """
+        Get user inputs (boluses, carbs) that directly affect Loop calculations.
+
+        Returns
+        _______
         (Insulin Event, Carb Event)
         """
         # Get boluses at time
@@ -186,6 +205,11 @@ class VirtualPatient(SimulationComponent):
         self.time = time
 
         self.pump.update(time)
+
+        # TODO: Adding in framework for actions other than boluses and carbs
+        user_action = self.get_actions()
+        if user_action is not None:
+            user_action.execute(self)
 
         self.predict()
         self.update_from_prediction(time)
@@ -250,7 +274,7 @@ class VirtualPatient(SimulationComponent):
         """
         abs_insulin_amount, rel_insulin_amount = self.get_basal_insulin_amount_since_update()
 
-        bolus, carb = self.get_actions()
+        bolus, carb = self.get_user_inputs()
 
         if bolus is not None:
             delivered_bolus = self.pump.deliver_bolus(bolus)
@@ -442,11 +466,13 @@ class VirtualPatientModel(VirtualPatient):
         # TODO: Actually need something more robust than this method to avoid duplicate meal
         #       events. Case example: user eats breakfast, skips lunch and dinner, then eats
         #       breakfast again, this will prevent that.
+        # Why is this not a plausible scenario?
         self.last_meal = None
+        self.patient_actions = Action()
 
-    def get_actions(self):
+    def get_events(self):
         """
-        Get carb and insulin actions.
+        Get carb and insulin inputs.
         """
         meal = self.get_meal()
 
@@ -656,6 +682,9 @@ class VirtualPatientModel(VirtualPatient):
             carb = None
 
         return carb
+
+    def delete_pump_event_history(self):
+        self.action_timeline.add_action(self.time, "delete_pump_event_history")
 
     def estimate_meal_carb(self, carb):
         """
