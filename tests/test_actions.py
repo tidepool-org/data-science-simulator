@@ -31,7 +31,7 @@ def test_virtual_patient_delete():
             controller=controller
     )
 
-    simulation.run_until(action_time=action_time)
+    simulation.run(early_stop_datetime=action_time)
 
     assert vp.pump.temp_basal_event_timeline.is_empty_timeline()
     assert vp.pump.bolus_event_timeline.is_empty_timeline()

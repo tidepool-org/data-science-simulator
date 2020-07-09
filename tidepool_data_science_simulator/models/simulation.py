@@ -10,10 +10,13 @@ import datetime
 import pandas as pd
 import numpy as np
 
+import pdb
+
 from tidepool_data_science_simulator.models.measures import Bolus, Carb, TempBasal
 from tidepool_data_science_simulator.models.events import Action
 
 from pyloopkit.dose import DoseType
+
 
 class SimulationComponent(object):
     """
@@ -129,13 +132,18 @@ class Simulation(multiprocessing.Process):
         self.time = next_time
         self.update(next_time)
 
-    def run(self):
+    def run(self, early_stop_datetime=None):
         """
         Run the simulation until it's finished.
+
+        Parameters
+        ----------
+        early_stop_datetime: datetime
+            Optional stop time for the simulation.
         """
         np.random.seed(self.seed)
 
-        while not self.is_finished():
+        while not (self.is_finished() or early_stop_datetime == self.time):
             self.step()
             self.store_state()
 
@@ -143,14 +151,6 @@ class Simulation(multiprocessing.Process):
             self.queue.put(self.get_results_df())
 
         return self.simulation_results
-
-    def run_until(self, action_time):
-
-        np.random.seed(self.seed)
-
-        while self.time != action_time:
-            self.step()
-            self.store_state()
 
     def store_state(self):
         """
@@ -411,10 +411,16 @@ class EventTimeline(object):
                 self.events[dt] = event
 
     def is_empty_timeline(self):
-        if not self.events:
-            return True
-        else:
-            return False
+        """
+        Determine if there are events in the timeline.
+
+        Returns
+        -------
+        bool:
+            True if no events
+        """
+
+        return len(self.events) == 0
 
     def add_event(self, time, event):
 
