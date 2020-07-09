@@ -1,5 +1,6 @@
 __author__ = "Cameron Summers"
 
+import datetime
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -69,11 +70,11 @@ def plot_sim_results(all_results, save=False):
         # ax[3].set_xlabel("BG (mg/dL)")
         # ax[3].legend()
 
-
     if save:
-        plt.savefig("data-science-simulator-image.png")
-    else:
-        plt.show()
+        plt.savefig("data-science-simulator-image_{}.png".format(datetime.datetime.now().isoformat()))
+
+    plt.show()
+
 
 def plot_sim_results_missing_insulin(all_results):
 
