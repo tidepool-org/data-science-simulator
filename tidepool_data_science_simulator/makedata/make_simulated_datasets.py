@@ -92,7 +92,7 @@ def save_dataset(save_dir, sims, all_results, dataset_seed):
             "total_daily_bolus": total_daily_bolus,
             "total_daily_basal": total_daily_basal,
             "total_daily_dose": total_daily_basal + total_daily_bolus,
-            "total_daily_carbs": round(np.sum(results_df["carb_value"]) / num_days, 1),
+            "total_daily_carbs": round(np.sum(results_df["carb"]) / num_days, 1),
             "bg_median": round(np.median(results_df["bg"]), 1),
             "bg_variance": round(np.var(results_df["bg"]), 1)
         }
