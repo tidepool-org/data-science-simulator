@@ -10,6 +10,9 @@ import numpy as np
 import pandas as pd
 
 from tidepool_data_science_simulator.makedata.make_simulation import get_canonical_simulation
+from tidepool_data_science_simulator.makedata.make_patient import (
+    get_canonical_risk_patient_config, get_canonical_risk_pump_config, get_canonical_risk_patient
+)
 from tidepool_data_science_simulator.models.patient import VirtualPatientModel
 
 from tidepool_data_science_simulator.models.simulation import BasalSchedule24hr, SingleSettingSchedule24Hr
@@ -35,14 +38,21 @@ def make_patient_datasets(save_dir, num_patients=100, num_days=10, dataset_seed=
     for i in range(num_patients):
         patient_seed = np.random.randint(1e8, 9e8)
 
+        t0, pump_config = get_canonical_risk_pump_config()
+        t0, patient_config = get_canonical_risk_patient_config()
+
+        t0, patient_config, pump_config = sample_settings(t0, patient_config, pump_config)
+
         t0, sim = get_canonical_simulation(
             patient_class=VirtualPatientModel,
+            patient_config=patient_config,
+            pump_config=pump_config,
             duration_hrs=24 * num_days,
             multiprocess=True
         )
+        sim.virtual_patient = sample_behavior_parameters(t0, sim.virtual_patient)
 
         sim.seed = patient_seed
-        sample_parameters(t0, sim)
 
         # If there are settings estimates, overwrite sampled distributions
         if estimated_settings is not None:
@@ -92,7 +102,7 @@ def save_dataset(save_dir, sims, all_results, dataset_seed):
             "total_daily_bolus": total_daily_bolus,
             "total_daily_basal": total_daily_basal,
             "total_daily_dose": total_daily_basal + total_daily_bolus,
-            "total_daily_carbs": round(np.sum(results_df["carb"]) / num_days, 1),
+            "total_daily_carbs": round(np.sum(results_df["carb_value"]) / num_days, 1),
             "bg_median": round(np.median(results_df["bg"]), 1),
             "bg_variance": round(np.var(results_df["bg"]), 1)
         }
@@ -118,7 +128,7 @@ def save_dataset(save_dir, sims, all_results, dataset_seed):
     print("Data saved to {}".format(save_dir))
 
 
-def sample_parameters(t0, sim):
+def sample_behavior_parameters(t0, virtual_patient):
 
     # Goal for below: Learn all parameterizations from Tidepool Data
 
@@ -131,38 +141,45 @@ def sample_parameters(t0, sim):
     correct_carb_delay_minutes = round(np.random.uniform(5, 20))
     carb_count_noise_percentage = round(np.random.uniform(0.05, 0.2), 2)
 
-    sim.virtual_patient.remember_meal_bolus_prob = remember_meal_bolus_prob
-    sim.virtual_patient.correct_bolus_bg_threshold = correct_bolus_bg_threshold
-    sim.virtual_patient.correct_bolus_delay_minutes = correct_bolus_delay_minutes
-    sim.virtual_patient.correct_carb_bg_threshold = correct_carb_bg_threshold
-    sim.virtual_patient.correct_carb_delay_minutes = correct_carb_delay_minutes
-    sim.virtual_patient.carb_count_noise_percentage = carb_count_noise_percentage
-    sim.virtual_patient.age = age
+    virtual_patient.remember_meal_bolus_prob = remember_meal_bolus_prob
+    virtual_patient.correct_bolus_bg_threshold = correct_bolus_bg_threshold
+    virtual_patient.correct_bolus_delay_minutes = correct_bolus_delay_minutes
+    virtual_patient.correct_carb_bg_threshold = correct_carb_bg_threshold
+    virtual_patient.correct_carb_delay_minutes = correct_carb_delay_minutes
+    virtual_patient.carb_count_noise_percentage = carb_count_noise_percentage
+    virtual_patient.age = age
+
+    return virtual_patient
+
+
+def sample_settings(t0, patient_config, pump_config):
 
     # ==== Pump and Patient Treatment Settings ====
     # Basal Rate
     pump_basal_rate = round(np.random.uniform(0.2, 0.8), 2)
     patient_basal_rate = round(np.random.normal(pump_basal_rate, 0.05), 2)
-    sim.virtual_patient.pump.pump_config.basal_schedule = \
+    pump_config.basal_schedule = \
         SingleSettingSchedule24Hr(t0, "Basal Rate",BasalRate(pump_basal_rate, "U/hr"))
-    sim.virtual_patient.patient_config.basal_schedule = \
+    patient_config.basal_schedule = \
         SingleSettingSchedule24Hr(t0, "Basal Rate", BasalRate(patient_basal_rate, "U/hr"))
 
     # ISF
     pump_isf = round(np.random.uniform(120, 200))
     patient_isf = round(np.random.normal(pump_isf, 10))
-    sim.virtual_patient.pump.pump_config.insulin_sensitivity_schedule = \
+    pump_config.insulin_sensitivity_schedule = \
         SingleSettingSchedule24Hr(t0, "ISF", InsulinSensitivityFactor(pump_isf, "mg/dL/U"))
-    sim.virtual_patient.patient_config.insulin_sensitivity_schedule = \
+    patient_config.insulin_sensitivity_schedule = \
         SingleSettingSchedule24Hr(t0, "ISF", InsulinSensitivityFactor(patient_isf, "mg/dL/U"))
 
     # Carb ratio
     pump_cir = round(np.random.uniform(10, 25), 1)
-    patient_cir = round(np.random.normal(pump_cir, 5), 1)
-    sim.virtual_patient.pump.pump_config.carb_ratio_schedule = \
+    patient_cir = round(np.random.normal(pump_cir, 2), 1)
+    pump_config.carb_ratio_schedule = \
         SingleSettingSchedule24Hr(t0, "CIR", CarbInsulinRatio(pump_cir, "g/U"))
-    sim.virtual_patient.patient_config.carb_ratio_schedule = \
+    patient_config.carb_ratio_schedule = \
         SingleSettingSchedule24Hr(t0, "CIR", CarbInsulinRatio(patient_cir, "g/U"))
+
+    return t0, patient_config, pump_config
 
 
 def apply_estimated_settings(t0, sim, estimated_settings):
