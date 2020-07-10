@@ -3,8 +3,9 @@ __author__ = "Cameron Summers"
 import datetime
 
 from tidepool_data_science_simulator.models.simulation import (
-    SettingSchedule24Hr, CarbTimeline, BolusTimeline, BasalSchedule24hr, TargetRangeSchedule24hr
+    SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr
 )
+from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, ActionTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import PumpConfig, PatientConfig, SensorConfig
 from tidepool_data_science_simulator.models.measures import (
     InsulinSensitivityFactor, CarbInsulinRatio, BasalRate, TargetRange, GlucoseTrace, Bolus, Carb
@@ -141,6 +142,7 @@ def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT):
         glucose_history=true_bg_history,
         carb_event_timeline=patient_carb_timeline,
         bolus_event_timeline=patient_bolus_timeline,
+        action_timeline=ActionTimeline(),
         recommendation_accept_prob=0.0  # Does not accept any recommendations
     )
 

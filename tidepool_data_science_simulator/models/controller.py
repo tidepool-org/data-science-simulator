@@ -5,7 +5,7 @@ import datetime
 import copy
 import numpy as np
 
-from tidepool_data_science_simulator.models.simulation import SimulationComponent, EventTimeline
+from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus, TempBasal
 
 from pyloopkit.loop_data_manager import update
@@ -66,8 +66,6 @@ class LoopController(BaseControllerClass):
 
         self.num_hours_history = 24  # how many hours of recent events to pass to Loop
 
-        # self.ctr = -5  # TODO remove once we feel refactor is good
-
     def get_state(self):
 
         # TODO: make this a class with convenience functions
@@ -88,14 +86,18 @@ class LoopController(BaseControllerClass):
         """
         glucose_dates, glucose_values = virtual_patient.sensor.get_loop_inputs()
 
+        # Loop data store for doses is synced with pump. TODO: Decouple?
+        pump_bolus_event_timeline, pump_carb_event_timeline, pump_temp_basal_event_timeline = \
+            virtual_patient.get_pump_events()
+
         bolus_dose_types, bolus_dose_values, bolus_start_times, bolus_end_times, bolus_delivered_units = \
-            self.bolus_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+            pump_bolus_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
         temp_basal_dose_types, temp_basal_dose_values, temp_basal_start_times, temp_basal_end_times, temp_basal_delivered_units = \
-            self.temp_basal_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+            pump_temp_basal_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
         carb_values, carb_start_times, carb_durations = \
-            self.carb_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+            pump_carb_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
         basal_rate_values, basal_rate_start_times, basal_rate_durations = \
             virtual_patient.pump.pump_config.basal_schedule.get_loop_inputs()
@@ -109,10 +111,9 @@ class LoopController(BaseControllerClass):
         tr_min_values, tr_max_values, tr_start_times, tr_end_times = \
             virtual_patient.pump.pump_config.target_range_schedule.get_loop_inputs()
 
+        last_temp_basal = None
         if len(temp_basal_dose_types) > 0:
             last_temp_basal = [temp_basal_dose_types[-1], temp_basal_start_times[-1], temp_basal_end_times[-1], temp_basal_dose_values[-1]]
-        else:
-            last_temp_basal = None
 
         loop_inputs_dict = {
             "time_to_calculate_at": self.time,
@@ -160,20 +161,11 @@ class LoopController(BaseControllerClass):
         self.time = time
 
         virtual_patient = kwargs["virtual_patient"]
+        if virtual_patient.pump is not None:
+            loop_inputs_dict = self.prepare_inputs(virtual_patient)
+            loop_algorithm_output = update(loop_inputs_dict)
 
-        # Loop knows about any events reported on pump.
-        # TODO: Change this so that if user history is cleared, only history after that clear is pulled
-        self.bolus_event_timeline = virtual_patient.pump.bolus_event_timeline
-        self.carb_event_timeline = virtual_patient.pump.carb_event_timeline
-        self.temp_basal_event_timeline = virtual_patient.pump.temp_basal_event_timeline
-
-        #TODO: get actions and do something with them
-
-        loop_inputs_dict = self.prepare_inputs(virtual_patient)
-
-        loop_algorithm_output = update(loop_inputs_dict)
-
-        self.apply_loop_recommendations(virtual_patient, loop_algorithm_output)
+            self.apply_loop_recommendations(virtual_patient, loop_algorithm_output)
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
         """

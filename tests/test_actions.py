@@ -2,12 +2,12 @@ __author__ = "Eden Grown-Haeberli"
 
 import datetime
 
-from tidepool_data_science_simulator.models.simulation import Simulation, ActionTimeline, \
-    VirtualPatientDeleteLoopData
+from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient
 from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
 from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
+from tidepool_data_science_simulator.models.events import ActionTimeline, VirtualPatientDeleteLoopData
 
 
 def test_virtual_patient_delete():

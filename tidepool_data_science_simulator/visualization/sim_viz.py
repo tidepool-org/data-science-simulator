@@ -40,7 +40,7 @@ def plot_sim_results(all_results, save=False):
         ax[1].set_ylim((0, 3))
         ax[1].legend()
 
-        ax[2].plot(ctrl_result_df["carb"], label="{} {}".format("carb", sim_id))
+        ax[2].plot(ctrl_result_df["carb_value"], label="{} {}".format("carb", sim_id))
         ax[2].set_title("Carb Events")
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")

@@ -11,8 +11,9 @@ import copy
 
 from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
 from tidepool_data_science_simulator.models.simulation import (
-    CarbTimeline, BolusTimeline, TempBasalTimeline, SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
+    SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
 )
+from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, TempBasalTimeline
 from tidepool_data_science_simulator.models.measures import (
     Carb,
     Bolus,
