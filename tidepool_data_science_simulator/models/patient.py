@@ -468,7 +468,6 @@ class VirtualPatientModel(VirtualPatient):
         #       breakfast again, this will prevent that.
         # Why is this not a plausible scenario?
         self.last_meal = None
-        self.patient_actions = Action()
 
     def get_events(self):
         """

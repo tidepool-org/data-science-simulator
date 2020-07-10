@@ -92,7 +92,7 @@ def save_dataset(save_dir, sims, all_results, dataset_seed):
             "total_daily_bolus": total_daily_bolus,
             "total_daily_basal": total_daily_basal,
             "total_daily_dose": total_daily_basal + total_daily_bolus,
-            "total_daily_carbs": round(np.sum(results_df["carb"]) / num_days, 1),
+            "total_daily_carbs": round(np.sum(results_df["carb_value"]) / num_days, 1),
             "bg_median": round(np.median(results_df["bg"]), 1),
             "bg_variance": round(np.var(results_df["bg"]), 1)
         }
@@ -242,12 +242,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-a", "--action", choices=["create", "eval"], default="create")
-    parser.add_argument("--save_dir", default="./")
-    parser.add_argument("-n", "--num_patients", default=3)
-    parser.add_argument("-d", "--num_days", default=10)
-    parser.add_argument("-s", "--seed", default=1234)
-    parser.add_argument("-e", "--estimated_settings_path")
-    parser.add_argument("--eval_dataset_path")
+    parser.add_argument("--save_dir", default="./", type=str)
+    parser.add_argument("-n", "--num_patients", default=3, type=int)
+    parser.add_argument("-d", "--num_days", default=10, type=int)
+    parser.add_argument("-s", "--seed", default=1234, type=int)
+    parser.add_argument("-e", "--estimated_settings_path", type=str)
+    parser.add_argument("--eval_dataset_path", type=str)
 
     args = parser.parse_args()
 
@@ -257,8 +257,9 @@ if __name__ == "__main__":
         num_patients = args.num_patients
         dataset_seed = args.seed
         num_days = args.num_days
+        save_dir = args.save_dir
 
-        save_dir = "../../data/raw/simulated_datasets/dataset_seed{}/".format(dataset_seed)
+        save_dir = os.path.join(save_dir, "dataset_seed{}".format(dataset_seed))
         make_patient_datasets(save_dir, num_patients, num_days=num_days, dataset_seed=dataset_seed)
 
     elif action == "eval":
