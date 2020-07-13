@@ -19,8 +19,8 @@ def test_patient():
 
     # Check state validity
     vp_state = vp.get_state()
-    assert vp.bg_current == vp_state.bg
+    assert vp.bg_current == 110
     assert vp_state.sbr == BasalRate(0.3, "mg/dL")
     assert vp_state.isf == InsulinSensitivityFactor(150.0, "mg/dL/U")
-    #assert vp_state.pump_state ==
+
     # TODO: Check patient updating
