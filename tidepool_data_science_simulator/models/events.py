@@ -61,7 +61,11 @@ class EventTimeline(object):
     """
     def __init__(self, datetimes=None, events=None):
 
-        self.events = dict()
+        self.events = dict()  # The event time, e.g. bolus at 1pm
+
+        # The user input times, e.g. input at 1:30pm a bolus that occurred at 1pm
+        # Used mainly for filtering information passed to Pyloopkit in a realistic way
+        self.events_input = dict()
 
         if datetimes is not None:
             for dt, event in zip(datetimes, events):
@@ -79,14 +83,29 @@ class EventTimeline(object):
 
         return len(self.events) == 0
 
-    def add_event(self, time, event):
+    def add_event(self, time, event, input_time=None):
+        """
+        Add an event to the timeline.
 
-        # FIXME: Uncomment these when scenario file is decoupled from patient model.
-        # if time in self.events:
-        #     raise Exception("Event timeline only allows one event at a time")
+        Parameters
+        ----------
+        time: datetime
+            The time of the event
+
+        event: Bolus, Carb, etc.
+            The event
+
+        input_time: datetime
+            The time the event was input into the system.
+        """
 
         self.is_event_valid(event)
+
         self.events[time] = event
+
+        if input_time is None:
+            input_time = time
+        self.events_input[event] = input_time
 
     def is_event_valid(self, event):
         return isinstance(event, self.event_type)
@@ -112,16 +131,6 @@ class EventTimeline(object):
 
         return event
 
-    def get_event_value(self, time, default=0):
-
-        try:
-            event = self.events[time]
-            event_value = event.value
-        except KeyError:
-            event_value = default
-
-        return event_value
-
     def get_recent_event_times(self, time=None, num_hours_history=6):
         """
         Get event times within the specified history window.
@@ -136,12 +145,11 @@ class EventTimeline(object):
         list
             Times of recent events
         """
-        # FIXME Soon: here is where we'll get most recent events
-        #  for Pyloopkit speedup. Logic not here yet.
         recent_event_times = []
         for event_time in self.events.keys():
             time_since_event_hrs = (time - event_time).total_seconds() / 3600
-            if time_since_event_hrs <= num_hours_history:
+            event_input_time = self.events_input.get(self.events[event_time], event_time)
+            if time_since_event_hrs <= num_hours_history and event_input_time <= time:
                 recent_event_times.append(event_time)
 
         return recent_event_times

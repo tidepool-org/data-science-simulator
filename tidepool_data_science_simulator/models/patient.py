@@ -499,6 +499,23 @@ class VirtualPatient(SimulationComponent):
         return "BG: {:.2f}. IOB: {:.2f}. BR {:.2f}".format(self.bg_current, self.iob_current, self.pump.get_basal_rate().value)
 
 
+class VirtualPatientCarbBolusAccept(VirtualPatient):
+    """
+    A vitual patient that does not accept small Loop bolus recommendations. This will encourage recommendations
+    that are related to Carb entries or other insulin-deficient scenarios.
+    """
+
+    def does_accept_bolus_recommendation(self, bolus):
+        does_accept = False
+        u = np.random.random()
+
+        min_bolus_rec_threshold = self.patient_config.min_bolus_rec_threshold
+        if u <= self.patient_config.recommendation_accept_prob and bolus.value >= min_bolus_rec_threshold:
+            does_accept = True
+
+        return does_accept
+
+
 class VirtualPatientModel(VirtualPatient):
     """
     A virtual patient that probabilistically eats meals and probabilistically gives

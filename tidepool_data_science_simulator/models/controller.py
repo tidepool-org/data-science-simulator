@@ -234,19 +234,21 @@ class LoopController(BaseControllerClass):
 
     def set_bolus_recommendation_event(self, virtual_patient, bolus):
         """
-        Add the accepted bolus event to the virtual patient's timeline.
+        Add the accepted bolus event to the virtual patient's timeline to
+        be applied at the next update.
 
         Parameters
         ----------
         virtual_patient
         bolus
         """
+        next_time = self.time + datetime.timedelta(minutes=5)
 
         # Add to patient timeline
-        virtual_patient.bolus_event_timeline.add_event(self.time, bolus)
+        virtual_patient.bolus_event_timeline.add_event(next_time, bolus)
 
         # Log in pump, which Loop will read at update
-        virtual_patient.pump.bolus_event_timeline.add_event(self.time, bolus)
+        virtual_patient.pump.bolus_event_timeline.add_event(next_time, bolus)
 
     def modulate_temp_basal(self, virtual_patient, temp_basal):
         """
