@@ -5,7 +5,6 @@ import numpy as np
 
 from tidepool_data_science_simulator.models.measures import Carb, Bolus, TempBasal
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
-
 from pyloopkit.dose import DoseType
 
 
@@ -153,6 +152,16 @@ class EventTimeline(object):
                 recent_event_times.append(event_time)
 
         return recent_event_times
+
+    def merge_timeline(self, event_timeline):
+        """
+        Merge events from another timeline.
+
+        Parameters
+        ----------
+        event_timeline: EventTimeline
+        """
+        self.events.update(event_timeline.events)
 
 
 class BolusTimeline(EventTimeline):

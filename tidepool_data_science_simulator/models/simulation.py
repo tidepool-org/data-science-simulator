@@ -202,17 +202,17 @@ class Simulation(multiprocessing.Process):
             delivered_basal_insulin = None
             undelivered_basal_insulin = None
             if pump_state is not None:
-                temp_basal_value = simulation_state.patient_state.pump_state.get_temp_basal_rate_value(
+                temp_basal_value = pump_state.get_temp_basal_rate_value(
                     default=None
                 )
-                temp_basal_time_remaining = simulation_state.patient_state.pump_state.get_temp_basal_minutes_left(
+                temp_basal_time_remaining = pump_state.get_temp_basal_minutes_left(
                     time
                 )
-                pump_sbr = simulation_state.patient_state.pump_state.scheduled_basal_rate
-                pump_isf = simulation_state.patient_state.pump_state.scheduled_insulin_sensitivity_factor
-                pump_cir = simulation_state.patient_state.pump_state.scheduled_carb_insulin_ratio
-                delivered_basal_insulin = simulation_state.patient_state.pump_state.delivered_basal_insulin
-                undelivered_basal_insulin = simulation_state.patient_state.pump_state.undelivered_basal_insulin
+                pump_sbr = pump_state.scheduled_basal_rate
+                pump_isf = pump_state.scheduled_insulin_sensitivity_factor
+                pump_cir = pump_state.scheduled_carb_insulin_ratio
+                delivered_basal_insulin = pump_state.delivered_basal_insulin
+                undelivered_basal_insulin = pump_state.undelivered_basal_insulin
 
                 reported_bolus = pump_state.bolus
                 if reported_bolus is None:
