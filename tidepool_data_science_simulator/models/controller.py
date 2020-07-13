@@ -62,14 +62,37 @@ class LoopController(BaseControllerClass):
         self.bolus_event_timeline = controller_config.bolus_event_timeline
         self.temp_basal_event_timeline = controller_config.temp_basal_event_timeline
         self.carb_event_timeline = controller_config.carb_event_timeline
-        #TODO: Fix
 
         self.num_hours_history = 24  # how many hours of recent events to pass to Loop
 
     def get_state(self):
 
-        # TODO: make this a class with convenience functions
-        return self.recommendations
+        return ControllerState(
+            pyloopkit_recommendations=self.recommendations
+        )
+
+    def get_dose_event_timelines(self, virtual_patient):
+        """
+        Retrieve dose data to pass to Pyloopkit.
+
+        Parameters
+        ----------
+        virtual_patient
+
+        Returns
+        -------
+        (BolusTimeline, CarbTimeline, TempBasalTimeline)
+        """
+        # Loop data store for doses is technically on pump in simulator.
+        bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = \
+            virtual_patient.get_pump_events()
+
+        # Merge Controller-specific data store, e.g. user inputs manual bolus while pump is inactive
+        bolus_event_timeline.merge_timeline(self.bolus_event_timeline)
+        carb_event_timeline.merge_timeline(self.carb_event_timeline)
+        temp_basal_event_timeline.merge_timeline(self.temp_basal_event_timeline)
+
+        return bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline
 
     def prepare_inputs(self, virtual_patient):
         """
@@ -86,18 +109,16 @@ class LoopController(BaseControllerClass):
         """
         glucose_dates, glucose_values = virtual_patient.sensor.get_loop_inputs()
 
-        # Loop data store for doses is synced with pump. TODO: Decouple?
-        pump_bolus_event_timeline, pump_carb_event_timeline, pump_temp_basal_event_timeline = \
-            virtual_patient.get_pump_events()
+        bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = self.get_dose_event_timelines(virtual_patient)
 
         bolus_dose_types, bolus_dose_values, bolus_start_times, bolus_end_times, bolus_delivered_units = \
-            pump_bolus_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+            bolus_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
         temp_basal_dose_types, temp_basal_dose_values, temp_basal_start_times, temp_basal_end_times, temp_basal_delivered_units = \
-            pump_temp_basal_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+            temp_basal_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
         carb_values, carb_start_times, carb_durations = \
-            pump_carb_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+            carb_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
         basal_rate_values, basal_rate_start_times, basal_rate_durations = \
             virtual_patient.pump.pump_config.basal_schedule.get_loop_inputs()
@@ -234,19 +255,23 @@ class LoopController(BaseControllerClass):
 
     def set_bolus_recommendation_event(self, virtual_patient, bolus):
         """
-        Add the accepted bolus event to the virtual patient's timeline.
+        Add the accepted bolus event to the virtual patient's timeline to
+        be applied at the next update.
 
         Parameters
         ----------
         virtual_patient
         bolus
         """
+        # Note: due to having the patient go "first" in the update loop we have
+        #       to set the bolus at the next update time.
+        next_time = self.time + datetime.timedelta(minutes=5)
 
         # Add to patient timeline
-        virtual_patient.bolus_event_timeline.add_event(self.time, bolus)
+        virtual_patient.bolus_event_timeline.add_event(next_time, bolus)
 
-        # Log in pump, which Loop will read at update
-        virtual_patient.pump.bolus_event_timeline.add_event(self.time, bolus)
+        # Log in pump
+        virtual_patient.pump.bolus_event_timeline.add_event(next_time, bolus)
 
     def modulate_temp_basal(self, virtual_patient, temp_basal):
         """
@@ -300,3 +325,11 @@ class LoopControllerDisconnector(LoopController):
         self.time = time
         if self.is_connected():
             super().update(time, **kwargs)
+
+
+class ControllerState(object):
+
+    def __init__(self,
+                 pyloopkit_recommendations
+                 ):
+        self.pyloopkit_recommendations = pyloopkit_recommendations

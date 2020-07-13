@@ -33,6 +33,9 @@ class Measure(object):
 
         return self.value == other.value and self.units == other.units
 
+    def __hash__(self):
+        return hash((self.value, self.units))
+
 
 class MeasureRange(object):
     """
@@ -101,6 +104,9 @@ class TempBasal(BasalRate):
                 self.value == other.value and \
                 self.units == other.units and \
                 self.scheduled_duration_minutes == other.scheduled_duration_minutes
+
+    def __hash__(self):
+        return hash((self.value, self.units, self.scheduled_duration_minutes))
 
     def get_end_time(self):
         """

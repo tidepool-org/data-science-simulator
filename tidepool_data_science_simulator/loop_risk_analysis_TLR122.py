@@ -14,6 +14,7 @@ from tidepool_data_science_simulator.models.measures import ManualBolus
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient_config, get_canonical_risk_pump_config
 from tidepool_data_science_simulator.makedata.make_simulation import get_canonical_simulation
+from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_simulator.utils import timing
 
@@ -33,19 +34,31 @@ def risk_analysis_tlr122_pump_session_gap():
         Path to the scenario file
     """
 
-    all_results = {}
+    param_grid = [
+        {
+            "pump_session_gap_hrs": pump_session_gap_hrs,
+            "do_report_manual_bolus": do_report_manual_bolus,
+            "manual_bolus_value": manual_bolus_value
+        }
+        for pump_session_gap_hrs in [6]
+        for do_report_manual_bolus in [True, False]
+        for manual_bolus_value in [1.0]
+    ]
 
-    pump_break_duration_hrs = [i for i in range(5, 7)]
+    sims = dict()
+    for pgrid in param_grid:
+        pump_session_gap_hrs = pgrid["pump_session_gap_hrs"]
+        do_report_manual_bolus = pgrid["do_report_manual_bolus"]
+        manual_bolus_value = pgrid["manual_bolus_value"]
 
-    for break_duration_hrs in pump_break_duration_hrs:
-
-        sim_id = "tlr122_duration_{}".format(break_duration_hrs)
+        sim_id = "tlr122_duration_{}_reported_{}".format(pump_session_gap_hrs, do_report_manual_bolus)
         print("Running: {}".format(sim_id))
 
         sim_num_hours = 24
 
         t0, patient_config = get_canonical_risk_patient_config()
         t0, pump_config = get_canonical_risk_pump_config()
+        t0, controller_config = get_canonical_controller_config()
 
         patient_config.recommendation_accept_prob = 0.0  # TODO: put in scenario file
 
@@ -55,26 +68,33 @@ def risk_analysis_tlr122_pump_session_gap():
         patient_config.action_timeline.add_event(remove_pump_time, user_remove_pump_action)
 
         # Add Pump Event
-        attach_pump_time = remove_pump_time + timedelta(hours=break_duration_hrs)
+        attach_pump_time = remove_pump_time + timedelta(hours=pump_session_gap_hrs)
         user_attach_pump_action = VirtualPatientAttachPump("Attach Pump", ContinuousInsulinPump, pump_config)
         patient_config.action_timeline.add_event(attach_pump_time, user_attach_pump_action)
 
         # Manual Bolus Event
-        bolus_time = remove_pump_time + timedelta(hours=break_duration_hrs / 2)
-        manual_bolus = ManualBolus(1.0, "U")
+        bolus_time = remove_pump_time + timedelta(hours=pump_session_gap_hrs / 2)
+        manual_bolus = ManualBolus(manual_bolus_value, "U")
         patient_config.bolus_event_timeline.add_event(bolus_time, manual_bolus)
+
+        # User reports manual bolus event
+        if do_report_manual_bolus:
+            controller_config.bolus_event_timeline.add_event(bolus_time, manual_bolus)
 
         t0, sim = get_canonical_simulation(
             t0=t0,
             patient_config=patient_config,
             controller_class=LoopController,
+            controller_config=controller_config,
             multiprocess=True,
             duration_hrs=sim_num_hours,
         )
 
-        sim.run()
-        results_df = sim.get_results_df()
-        all_results[sim_id] = results_df
+        sims[sim_id] = sim
+        sim.start()
+
+    all_results = {id: sim.queue.get() for id, sim in sims.items()}
+    [sim.join() for id, sim in sims.items()]
 
     plot_sim_results(all_results, save=False)
 

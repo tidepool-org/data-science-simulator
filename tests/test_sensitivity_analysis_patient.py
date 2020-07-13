@@ -54,13 +54,13 @@ def test_sensitivity_analysis_patient():
         results_df = simulation.get_results_df()
         all_results[analysis_type] = results_df
 
-    assert all_results['temp_basal_only'].carb_value.sum() == 0
-    assert all_results['correction_bolus'].carb_value.sum() == 0
-    assert all_results['meal_bolus'].carb_value[0] == 30
+    assert all_results['temp_basal_only'].true_carb_value.sum() == 0
+    assert all_results['correction_bolus'].true_carb_value.sum() == 0
+    assert all_results['meal_bolus'].true_carb_value[0] == 30
 
-    assert all_results['temp_basal_only'].bolus.sum() == 0
-    assert all_results['correction_bolus'].bolus[1:].sum() == 0
-    assert all_results['meal_bolus'].bolus[1:].sum() == 0
+    assert all_results['temp_basal_only'].true_bolus.sum() == 0
+    assert all_results['correction_bolus'].true_bolus[1:].sum() == 0
+    assert all_results['meal_bolus'].true_bolus[1:].sum() == 0
 
 
 
