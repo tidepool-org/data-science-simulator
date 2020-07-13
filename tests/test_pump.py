@@ -7,7 +7,7 @@ from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump, O
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient
 
 
-def test_continous_insulin_pump():
+def test_continuous_insulin_pump():
 
     t0, vp = get_canonical_risk_patient(pump_class=ContinuousInsulinPump)
     pump = vp.pump

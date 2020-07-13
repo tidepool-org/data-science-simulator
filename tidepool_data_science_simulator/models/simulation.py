@@ -182,13 +182,15 @@ class Simulation(multiprocessing.Process):
         """
         data = []
         for time, simulation_state in self.simulation_results.items():
-            bolus = simulation_state.patient_state.bolus
-            if bolus is None:
-                bolus = Bolus(0, "U")
 
-            carb = simulation_state.patient_state.carb
-            if carb is None:
-                carb = Carb(0, "g", 0)
+            # Patient stuff
+            true_bolus = simulation_state.patient_state.bolus
+            if true_bolus is None:
+                true_bolus = Bolus(0, "U")
+
+            true_carb = simulation_state.patient_state.carb
+            if true_carb is None:
+                true_carb = Carb(0, "g", 0)
 
             # Pump stuff
             pump_state = simulation_state.patient_state.pump_state
@@ -200,17 +202,25 @@ class Simulation(multiprocessing.Process):
             delivered_basal_insulin = None
             undelivered_basal_insulin = None
             if pump_state is not None:
-                temp_basal_value = simulation_state.patient_state.pump_state.get_temp_basal_rate_value(
+                temp_basal_value = pump_state.get_temp_basal_rate_value(
                     default=None
                 )
-                temp_basal_time_remaining = simulation_state.patient_state.pump_state.get_temp_basal_minutes_left(
+                temp_basal_time_remaining = pump_state.get_temp_basal_minutes_left(
                     time
                 )
-                pump_sbr = simulation_state.patient_state.pump_state.scheduled_basal_rate
-                pump_isf = simulation_state.patient_state.pump_state.scheduled_insulin_sensitivity_factor
-                pump_cir = simulation_state.patient_state.pump_state.scheduled_carb_insulin_ratio
-                delivered_basal_insulin = simulation_state.patient_state.pump_state.delivered_basal_insulin
-                undelivered_basal_insulin = simulation_state.patient_state.pump_state.undelivered_basal_insulin
+                pump_sbr = pump_state.scheduled_basal_rate
+                pump_isf = pump_state.scheduled_insulin_sensitivity_factor
+                pump_cir = pump_state.scheduled_carb_insulin_ratio
+                delivered_basal_insulin = pump_state.delivered_basal_insulin
+                undelivered_basal_insulin = pump_state.undelivered_basal_insulin
+
+                reported_bolus = pump_state.bolus
+                if reported_bolus is None:
+                    reported_bolus = Bolus(0, "U")
+
+                reported_carb = pump_state.carb
+                if reported_carb is None:
+                    reported_carb = Carb(0, "g", 0)
 
             row = {
                 "time": time,
@@ -225,9 +235,12 @@ class Simulation(multiprocessing.Process):
                 "pump_sbr": pump_sbr,
                 "pump_isf": pump_isf,
                 "pump_cir": pump_cir,
-                "bolus": bolus.value,
-                "carb_value": carb.value,
-                "carb_duration": carb.duration_minutes,
+                "true_bolus": true_bolus.value,
+                "true_carb_value": true_carb.value,
+                "true_carb_duration": true_carb.duration_minutes,
+                "reported_bolus": reported_bolus.value,
+                "reported_carb_value": reported_carb.value,
+                "reported_carb_duration": reported_carb.duration_minutes,
                 "delivered_basal_insulin": delivered_basal_insulin,
                 "undelivered_basal_insulin": undelivered_basal_insulin
             }

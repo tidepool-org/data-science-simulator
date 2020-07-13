@@ -1,6 +1,7 @@
 __author__ = "Cameron Summers"
 
 from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline
+from tidepool_data_science_simulator.models.controller import DoNothingController
 from tidepool_data_science_simulator.makedata.scenario_parser import ControllerConfig
 
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
@@ -34,7 +35,7 @@ def get_canonical_controller_config(t0=DATETIME_DEFAULT):
     return t0, controller_config
 
 
-def get_canonical_controller(t0, controller_class, controller_config=None):
+def get_canonical_controller(t0=DATETIME_DEFAULT, controller_class=DoNothingController, controller_config=None):
 
     if controller_config is None:
         t0, controller_config = get_canonical_controller_config(t0)
