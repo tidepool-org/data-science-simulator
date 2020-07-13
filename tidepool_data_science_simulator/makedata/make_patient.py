@@ -136,7 +136,7 @@ def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT):
             t0,
             "ISF",
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[InsulinSensitivityFactor(150.0, "md/dL / U")],
+            values=[InsulinSensitivityFactor(150.0, "mg/dL/U")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         glucose_history=true_bg_history,
