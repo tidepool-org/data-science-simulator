@@ -30,7 +30,7 @@ def risk_analysis_tlr342_bolus_report_time_difference():
         Path to the scenario file
     """
     carb_value_candidates = [20.0]
-    delay_time_minutes_candidates = [30, 60, 90]
+    delay_time_minutes_candidates = [30]#, 60, 90]
 
     param_grid = [
         {
@@ -51,10 +51,10 @@ def risk_analysis_tlr342_bolus_report_time_difference():
 
         sim_num_hours = 24
 
-        t0, patient_config = get_canonical_risk_patient_config()
+        t0, patient_config = get_canonical_risk_patient_config(accept_prob=1.0)
         t0, pump_config = get_canonical_risk_pump_config()
 
-        patient_config.recommendation_accept_prob = 1.0  # NOTE. Using Loop bolus recommendation
+        #patient_config.recommendation_accept_prob = 1.0  # NOTE. Using Loop bolus recommendation
         patient_config.min_bolus_rec_threshold = 0.5
 
         # User reports Carb

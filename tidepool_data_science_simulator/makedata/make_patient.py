@@ -96,7 +96,7 @@ def get_canonical_sensor_config(t0=DATETIME_DEFAULT):
     return t0, sensor_config
 
 
-def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT):
+def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT, accept_prob=0.0):
     """
     Get canonical patient config
 
@@ -143,7 +143,7 @@ def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT):
         carb_event_timeline=patient_carb_timeline,
         bolus_event_timeline=patient_bolus_timeline,
         action_timeline=ActionTimeline(),
-        recommendation_accept_prob=0.0  # Does not accept any recommendations
+        recommendation_accept_prob=accept_prob  # Does not accept any recommendations
     )
 
     return t0, patient_config

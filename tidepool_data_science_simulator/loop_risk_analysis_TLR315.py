@@ -81,11 +81,11 @@ def risk_analysis_tlr315_bolus_report_time_difference():
 
         sim_num_hours = 24
 
-        t0, patient_config = get_canonical_risk_patient_config()
+        t0, patient_config = get_canonical_risk_patient_config(accept_prob=1.0)
         t0, pump_config = get_canonical_risk_pump_config()
         t0, controller_config = get_canonical_controller_config()
 
-        patient_config.recommendation_accept_prob = 1.0  # Note: Important use here
+        #patient_config.recommendation_accept_prob = 1.0  # Note: Important use here
         patient_config.min_bolus_rec_threshold = 0.5
 
         carb = Carb(20, "g", 180)
