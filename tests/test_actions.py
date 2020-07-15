@@ -74,6 +74,7 @@ def test_remove_pump():
 def test_add_pump():
     pass
 
+
 def test_carb_delay():
     t0, patient_config = get_canonical_risk_patient_config(accept_prob=1.0)
     t0, pump_config = get_canonical_risk_pump_config()
@@ -85,7 +86,7 @@ def test_carb_delay():
     pump_config.carb_event_timeline.add_event(reported_carb_time, carb, input_time=reported_carb_time)
 
     # User eats Carb at a different time than was reported.
-    actual_carb_time = reported_carb_time + timedelta(minutes=delay_time_minutes)
+    actual_carb_time = reported_carb_time + timedelta(minutes=30)
     patient_config.carb_event_timeline.add_event(actual_carb_time, carb)
 
     t0, sim = get_canonical_simulation(
@@ -98,10 +99,11 @@ def test_carb_delay():
         duration_hrs=8,
     )
 
-    sim.run(early_stop_datetime=actual_carb_time)
-    assert sim.virtual_patient.pump
-    assert sim.virtual_patient.
-    assert sim.controller.
+    sim.run()
+
+    assert sim.virtual_patient.carb_event_timeline.get_event(actual_carb_time) == carb
+    assert sim.virtual_patient.pump.carb_event_timeline.get_event(reported_carb_time) == carb
+
 
 def test_bolus_delay():
     t0, patient_config = get_canonical_risk_patient_config(accept_prob=1.0)
@@ -135,4 +137,3 @@ def test_bolus_delay():
 
     assert sim.virtual_patient.bolus_event_timeline.get_event(bolus_time) == Bolus(0.95, "U")
     assert sim.virtual_patient.pump.bolus_event_timeline.get_event(carb_time+timedelta(minutes=5)) == Bolus(0.95, "U")
-    assert sim.controller.bolus_event_timeline.get_event(carb_time+timedelta(minutes=5)) == Bolus(0.95, "U")

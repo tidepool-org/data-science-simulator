@@ -10,6 +10,6 @@ def test_simulation():
     # Initialization checks
     assert sim.time == DATETIME_DEFAULT
     assert sim.duration_hrs == 8
-    #assert sim.simulation_results[t0]
+    assert len(sim.simulation_results) == 1
 
     # Run checks
