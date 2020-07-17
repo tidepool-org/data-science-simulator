@@ -7,15 +7,17 @@ from tidepool_data_science_simulator.makedata.make_patient import get_canonical_
     get_canonical_risk_patient_config, get_canonical_risk_pump_config
 from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
 from tidepool_data_science_simulator.makedata.make_simulation import get_canonical_simulation
-from tidepool_data_science_simulator.loop_risk_analysis_TLR315 import VirtualPatientCarbBolusAccept, LoopBolusRecMalfunctionDelay
+from tidepool_data_science_simulator.loop_risk_analysis_TLR315 import VirtualPatientCarbBolusAccept, \
+    LoopBolusRecMalfunctionDelay
 from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
-from tidepool_data_science_simulator.models.events import ActionTimeline, VirtualPatientDeleteLoopData, VirtualPatientRemovePump
+from tidepool_data_science_simulator.models.events import ActionTimeline, VirtualPatientDeleteLoopData, \
+    VirtualPatientRemovePump
 from tidepool_data_science_simulator.models.measures import Carb, Bolus
 
-#TODO: Make these rely on patient configs rather than patients?
-def test_virtual_patient_delete():
 
+# TODO: Make these rely on patient configs rather than patients?
+def test_virtual_patient_delete():
     t0, vp = get_canonical_risk_patient(pump_class=ContinuousInsulinPump)
     action_time = t0 + timedelta(minutes=30)
     vp.action_timeline = ActionTimeline()
@@ -29,10 +31,10 @@ def test_virtual_patient_delete():
     )
 
     simulation = Simulation(
-            time=t0,
-            duration_hrs=6.0,
-            virtual_patient=vp,
-            controller=controller
+        time=t0,
+        duration_hrs=6.0,
+        virtual_patient=vp,
+        controller=controller
     )
 
     simulation.run(early_stop_datetime=action_time)
@@ -42,7 +44,6 @@ def test_virtual_patient_delete():
 
 
 def test_remove_pump():
-
     t0, patient_config = get_canonical_risk_patient_config()
     t0, controller_config = get_canonical_controller_config()
 
@@ -136,4 +137,4 @@ def test_bolus_delay():
     sim.run(early_stop_datetime=bolus_time)
 
     assert sim.virtual_patient.bolus_event_timeline.get_event(bolus_time) == Bolus(0.95, "U")
-    assert sim.virtual_patient.pump.bolus_event_timeline.get_event(carb_time+timedelta(minutes=5)) == Bolus(0.95, "U")
+    assert sim.virtual_patient.pump.bolus_event_timeline.get_event(carb_time + timedelta(minutes=5)) == Bolus(0.95, "U")
