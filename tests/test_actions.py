@@ -15,6 +15,8 @@ from tidepool_data_science_simulator.models.events import ActionTimeline, Virtua
     VirtualPatientRemovePump
 from tidepool_data_science_simulator.models.measures import Carb, Bolus
 
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
+
 
 # TODO: Make these rely on patient configs rather than patients?
 def test_virtual_patient_delete():
@@ -77,64 +79,111 @@ def test_add_pump():
 
 
 def test_carb_delay():
-    t0, patient_config = get_canonical_risk_patient_config(accept_prob=1.0)
-    t0, pump_config = get_canonical_risk_pump_config()
-    t0, controller_config = get_canonical_controller_config()
-    patient_config.min_bolus_rec_threshold = 0.5
+    all_results = dict()
 
-    carb = Carb(20, "g", 180)
-    reported_carb_time = t0 + timedelta(minutes=30)
-    pump_config.carb_event_timeline.add_event(reported_carb_time, carb, input_time=reported_carb_time)
+    carb_delay_amounts = [0, 90]
+    param_grid = [
+        {
+            "carb_delay": carb_delay
+        }
+        for carb_delay in carb_delay_amounts
+    ]
 
-    # User eats Carb at a different time than was reported.
-    actual_carb_time = reported_carb_time + timedelta(minutes=30)
-    patient_config.carb_event_timeline.add_event(actual_carb_time, carb)
+    for params in param_grid:
+        carb_delay = params["carb_delay"]
 
-    t0, sim = get_canonical_simulation(
-        t0=t0,
-        patient_config=patient_config,
-        patient_class=VirtualPatientCarbBolusAccept,
-        pump_config=pump_config,
-        controller_class=LoopController,
-        multiprocess=True,
-        duration_hrs=8,
-    )
+        sim_id = "test_carb_delay_{}".format(carb_delay)
 
-    sim.run()
+        t0, pump_config = get_canonical_risk_pump_config()
+        t0, patient_config = get_canonical_risk_patient_config(accept_prob=1.0)
+        t0, controller_config = get_canonical_controller_config()
+        patient_config.min_bolus_rec_threshold = 0.5
 
-    assert sim.virtual_patient.carb_event_timeline.get_event(actual_carb_time) == carb
-    assert sim.virtual_patient.pump.carb_event_timeline.get_event(reported_carb_time) == carb
+        carb = Carb(20, "g", 180)
+        reported_carb_time = t0 + timedelta(minutes=30)
+        pump_config.carb_event_timeline.add_event(reported_carb_time, carb, input_time=reported_carb_time)
+
+        # User eats Carb at a different time than was reported.
+        actual_carb_time = reported_carb_time + timedelta(minutes=carb_delay)
+        # patient_config_with_delay.carb_event_timeline.add_event(actual_carb_time, carb)
+        # patient_config_without_delay.carb_event_timeline.add_event(reported_carb_time, carb)
+        patient_config.carb_event_timeline.add_event(actual_carb_time, carb)
+
+        t0, sim = get_canonical_simulation(
+            t0=t0,
+            patient_config=patient_config,
+            patient_class=VirtualPatientCarbBolusAccept,
+            pump_config=pump_config,
+            controller_class=LoopController,
+            multiprocess=False,
+            duration_hrs=8,
+        )
+
+        sim.run()
+        assert sim.virtual_patient.carb_event_timeline.get_event(actual_carb_time) == carb
+        assert sim.virtual_patient.pump.carb_event_timeline.get_event(reported_carb_time) == carb
+        results = sim.get_results_df()
+        all_results[sim_id] = results
+
+    for i in range(0, 35):
+        assert all_results['test_carb_delay_90'].at[i, "bg"] <= all_results['test_carb_delay_0'].at[i, "bg"]
+
+    plot_sim_results(all_results, save=False)
 
 
 def test_bolus_delay():
-    t0, patient_config = get_canonical_risk_patient_config(accept_prob=1.0)
-    t0, pump_config = get_canonical_risk_pump_config()
-    t0, controller_config = get_canonical_controller_config()
+    all_results = dict()
 
-    assert patient_config.recommendation_accept_prob == 1.0
-    patient_config.min_bolus_rec_threshold = 0.5
+    delay_time_minutes_candidates = [0, 30]
 
-    carb = Carb(20, "g", 180)
-    carb_time = t0
+    param_grid = [
+        {
+            "delay_time_minutes": delay_time_minutes
+        }
+        for delay_time_minutes in delay_time_minutes_candidates
+    ]
 
-    pump_config.carb_event_timeline.add_event(carb_time, carb)
-    patient_config.carb_event_timeline.add_event(carb_time, carb)
+    for params in param_grid:
+        delay_time_minutes = params["delay_time_minutes"]
+        sim_id = "test_bolus_delay_{}".format(delay_time_minutes)
 
-    controller_config.bolus_rec_delay_minutes = 30
+        t0, patient_config = get_canonical_risk_patient_config(accept_prob=1.0)
+        t0, pump_config = get_canonical_risk_pump_config()
+        t0, controller_config = get_canonical_controller_config()
 
-    t0, sim = get_canonical_simulation(
-        t0=t0,
-        patient_config=patient_config,
-        pump_config=pump_config,
-        patient_class=VirtualPatientCarbBolusAccept,
-        controller_class=LoopBolusRecMalfunctionDelay,
-        controller_config=controller_config,
-        multiprocess=True,
-        duration_hrs=8,
-    )
+        assert patient_config.recommendation_accept_prob == 1.0
+        patient_config.min_bolus_rec_threshold = 0.5
 
-    bolus_time = carb_time + timedelta(minutes=35)
-    sim.run(early_stop_datetime=bolus_time)
+        carb = Carb(20, "g", 180)
+        carb_time = t0
+        pump_config.carb_event_timeline.add_event(carb_time, carb)
+        patient_config.carb_event_timeline.add_event(carb_time, carb)
 
-    assert sim.virtual_patient.bolus_event_timeline.get_event(bolus_time) == Bolus(0.95, "U")
-    assert sim.virtual_patient.pump.bolus_event_timeline.get_event(carb_time + timedelta(minutes=5)) == Bolus(0.95, "U")
+        controller_config.bolus_rec_delay_minutes = delay_time_minutes
+
+        t0, sim_with_delay = get_canonical_simulation(
+            t0=t0,
+            patient_config=patient_config,
+            pump_config=pump_config,
+            patient_class=VirtualPatientCarbBolusAccept,
+            controller_class=LoopBolusRecMalfunctionDelay,
+            controller_config=controller_config,
+            multiprocess=False,
+            duration_hrs=8,
+        )
+
+        sim_with_delay.run()
+
+        bolus_time = carb_time + timedelta(minutes=delay_time_minutes) + timedelta(minutes=5)
+        assert sim_with_delay.virtual_patient.bolus_event_timeline.get_event(bolus_time) == Bolus(0.95, "U")
+        assert sim_with_delay.virtual_patient.pump.bolus_event_timeline.get_event(carb_time + timedelta(minutes=5)) == Bolus(
+            0.95, "U")
+
+        results = sim_with_delay.get_results_df()
+        all_results[sim_id] = results
+
+    for i in range(0, 35):
+        assert all_results["test_bolus_delay_30"].at[i, "bg"] >= all_results["test_bolus_delay_0"].at[i, "bg"]
+        if i > (delay_time_minutes_candidates[1]) / 5 :
+            assert all_results["test_bolus_delay_30"].at[i, "iob"] >= all_results["test_bolus_delay_0"].at[i, "iob"]
+    plot_sim_results(all_results, save=False)
