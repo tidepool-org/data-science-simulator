@@ -11,6 +11,7 @@ from tidepool_data_science_simulator.makedata.make_simulation import get_canonic
 from tidepool_data_science_simulator.models.measures import Bolus, TempBasal
 
 from pyloopkit.loop_data_manager import update
+from pyloopkit.dose import DoseType
 
 
 def test_do_nothing():
@@ -26,8 +27,6 @@ def test_loop_controller():
     patient.bolus_event_timeline.add_event(t0, Bolus(1.2, "U"))
 
     patient.init()
-    test_results = dict()
-
     assert controller.get_state().pyloopkit_recommendations is None
 
     controller.update(t0, virtual_patient=patient)
@@ -49,19 +48,12 @@ def test_loop_controller():
     carb_timeline = patient.pump.carb_event_timeline
     carb_timeline.merge_timeline(controller.carb_event_timeline)
 
-    bolus_dose_types, bolus_dose_values, bolus_start_times, bolus_end_times, bolus_delivered_units = \
-        bolus_timeline.get_loop_inputs(next_time, num_hours_history=controller.num_hours_history)
-
-    temp_basal_dose_types, temp_basal_dose_values, temp_basal_start_times, temp_basal_end_times, temp_basal_delivered_units = \
-        temp_basal_timeline.get_loop_inputs(next_time, num_hours_history=controller.num_hours_history)
-
-    carb_values, carb_start_times, carb_durations = \
-        carb_timeline.get_loop_inputs(next_time, num_hours_history=controller.num_hours_history)
-
-    assert loop_inputs_dict['dose_types'] == bolus_dose_types + temp_basal_dose_types
-    assert loop_inputs_dict['dose_values'] == bolus_dose_values + temp_basal_dose_values
-    assert loop_inputs_dict['dose_start_times'] == bolus_start_times + temp_basal_start_times
-    assert loop_inputs_dict['dose_end_times'] == bolus_end_times + temp_basal_end_times
+    for dose_type in loop_inputs_dict['dose_types']:
+        assert dose_type in DoseType.__members__.values()
+    assert len(loop_inputs_dict['dose_values']) \
+           == len(loop_inputs_dict['dose_types']) \
+           == len(loop_inputs_dict['dose_start_times']) \
+           == len(loop_inputs_dict['dose_end_times'])
     assert loop_inputs_dict['sensitivity_ratio_values'] == [150.0]
     assert loop_inputs_dict['target_range_minimum_values'] == [100]
     assert loop_inputs_dict['target_range_maximum_values'] == [120]
