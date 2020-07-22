@@ -184,13 +184,22 @@ class Simulation(multiprocessing.Process):
         for time, simulation_state in self.simulation_results.items():
 
             # Patient stuff
-            true_bolus = simulation_state.patient_state.bolus
-            if true_bolus is None:
-                true_bolus = Bolus(0, "U")
+            true_bolus_amount = 0
+            true_boluses = simulation_state.patient_state.boluses
+            for true_bolus in true_boluses:
+                true_bolus_amount += true_bolus.value
+            true_bolus = Bolus(true_bolus_amount, "U")
 
-            true_carb = simulation_state.patient_state.carb
-            if true_carb is None:
-                true_carb = Carb(0, "g", 0)
+            true_carb_values = []
+            true_carb_duration_minutes = []
+            total_carb_values = 0
+            true_carbs = simulation_state.patient_state.carbs
+            if len(true_carbs) == 0:
+                true_carbs.append(Carb(0, "U", 0))
+            for true_carb in true_carbs:
+                true_carb_values.append(true_carb.value)
+                total_carb_values += true_carb.value
+                true_carb_duration_minutes.append(true_carb.duration_minutes)
 
             # Pump stuff
             pump_state = simulation_state.patient_state.pump_state
@@ -214,13 +223,22 @@ class Simulation(multiprocessing.Process):
                 delivered_basal_insulin = pump_state.delivered_basal_insulin
                 undelivered_basal_insulin = pump_state.undelivered_basal_insulin
 
-                reported_bolus = pump_state.bolus
-                if reported_bolus is None:
-                    reported_bolus = Bolus(0, "U")
+                reported_bolus_amount = 0
+                reported_boluses = pump_state.boluses
+                for reported_bolus in reported_boluses:
+                    reported_bolus_amount += reported_bolus.value
+                reported_bolus = Bolus(true_bolus_amount, "U")
 
-                reported_carb = pump_state.carb
-                if reported_carb is None:
-                    reported_carb = Carb(0, "g", 0)
+                reported_carb_values = []
+                total_reported_carb_values = 0
+                reported_carb_duration_minutes = []
+                reported_carbs = pump_state.carb
+                if len(reported_carbs) == 0:
+                    reported_carbs.append(Carb(0, "U", 0))
+                for reported_carb in reported_carbs:
+                    reported_carb_values.append(reported_carb.value)
+                    total_reported_carb_values += reported_carb.value
+                    reported_carb_duration_minutes.append(reported_carb.duration_minutes)
 
             row = {
                 "time": time,
@@ -236,11 +254,11 @@ class Simulation(multiprocessing.Process):
                 "pump_isf": pump_isf,
                 "pump_cir": pump_cir,
                 "true_bolus": true_bolus.value,
-                "true_carb_value": true_carb.value,
-                "true_carb_duration": true_carb.duration_minutes,
+                "true_carb_values": total_carb_values,
+                "true_carb_durations": true_carb_duration_minutes,
                 "reported_bolus": reported_bolus.value,
-                "reported_carb_value": reported_carb.value,
-                "reported_carb_duration": reported_carb.duration_minutes,
+                "reported_carb_values": total_reported_carb_values, #.value,
+                "reported_carb_durations": reported_carb_duration_minutes, #.duration_minutes,
                 "delivered_basal_insulin": delivered_basal_insulin,
                 "undelivered_basal_insulin": undelivered_basal_insulin
             }

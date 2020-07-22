@@ -9,7 +9,7 @@ from tidepool_data_science_simulator.models.simulation import SimulationComponen
 from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus, TempBasal
 
 from pyloopkit.loop_data_manager import update
-
+from tidepool_data_science_simulator.visualization.sim_viz import plot_loop_inputs
 
 class BaseControllerClass(SimulationComponent):
 

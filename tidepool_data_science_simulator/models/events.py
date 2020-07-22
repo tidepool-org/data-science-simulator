@@ -73,7 +73,10 @@ class EventTimeline(object):
 
         if datetimes is not None:
             for dt, event in zip(datetimes, events):
-                self.events[dt] = event
+                if dt in self.events:
+                    self.events[dt] = self.events[dt].append(event)
+                else:
+                    self.events[dt] = [event]
 
     def __eq__(self, other):
         if len(self.events.items()) != len(other.events.items()):
@@ -119,7 +122,10 @@ class EventTimeline(object):
 
         self.is_event_valid(event)
 
-        self.events[time] = event
+        if time in self.events:
+            self.events[time] = self.events[time].append(event)
+        else:
+            self.events[time] = [event]
 
         if input_time is None:
             input_time = time
@@ -128,9 +134,9 @@ class EventTimeline(object):
     def is_event_valid(self, event):
         return isinstance(event, self.event_type)
 
-    def get_event(self, time):
+    def get_events(self, time):
         """
-        Get the event at the given time. If no event, returns None
+        Get the events at the given time. If no events, returns []
 
         Parameters
         ----------
@@ -143,11 +149,27 @@ class EventTimeline(object):
             The insulin/carb/etc. event or None
         """
         try:
-            event = self.events[time]
+            events = self.events[time]
         except KeyError:
-            event = None
+            events = []
 
-        return event
+        if events is None:
+            events = []
+
+        return events
+
+    def get_event_values(self, time, default=0):
+        event_values = []
+        try:
+            events = self.events[time]
+            for event in events:
+                event_values.append(event.value)
+        except KeyError:
+            event_values.append(default)
+        except:
+            pass
+
+        return event_values
 
     def get_recent_event_times(self, time=None, num_hours_history=6):
         """
@@ -166,9 +188,11 @@ class EventTimeline(object):
         recent_event_times = []
         for event_time in self.events.keys():
             time_since_event_hrs = (time - event_time).total_seconds() / 3600
-            event_input_time = self.events_input.get(self.events[event_time], event_time)
-            if time_since_event_hrs <= num_hours_history and event_input_time <= time:
-                recent_event_times.append(event_time)
+            for event in self.events[event_time]:
+                event_input_time = self.events_input.get(event, event_time)
+                if time_since_event_hrs <= num_hours_history and event_input_time <= time:
+                    recent_event_times.append(event_time)
+                    break
 
         return recent_event_times
 
@@ -206,11 +230,12 @@ class BolusTimeline(EventTimeline):
         recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
         sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
         for time in sorted_trecent_event_times:
-            dose_types.append(DoseType.bolus)
-            dose_values.append(self.events[time].value)
-            dose_start_times.append(time)
-            dose_end_times.append(time)
-            dose_delivered_units.append(self.events[time].value)  # fixme: shouldn't be same value
+            for bolus_value in self.get_event_values(time):
+                dose_types.append(DoseType.bolus)
+                dose_values.append(bolus_value)
+                dose_start_times.append(time)
+                dose_end_times.append(time)
+                dose_delivered_units.append(bolus_value)  # fixme: shouldn't be same value
 
         return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
 
@@ -239,12 +264,12 @@ class TempBasalTimeline(EventTimeline):
         recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
         sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
         for time in sorted_trecent_event_times:
-            temp_basal_event = self.events[time]
-            dose_types.append(DoseType.tempbasal)
-            dose_values.append(temp_basal_event.value)
-            dose_start_times.append(time)
-            dose_end_times.append(temp_basal_event.get_end_time())
-            dose_delivered_units.append(temp_basal_event.delivered_units)  # fixme: put actual values here
+            for temp_basal_event in self.get_events(time):
+                dose_types.append(DoseType.tempbasal)
+                dose_values.append(temp_basal_event.value)
+                dose_start_times.append(time)
+                dose_end_times.append(temp_basal_event.get_end_time())
+                dose_delivered_units.append(temp_basal_event.delivered_units)  # fixme: put actual values here
 
         return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
 
@@ -272,12 +297,39 @@ class CarbTimeline(EventTimeline):
         sorted_recent_event_times = sorted(recent_event_times)  # TODO: too slow?
 
         for time in sorted_recent_event_times:
-            carb_event = self.events[time]
-            carb_values.append(carb_event.value)
-            carb_start_times.append(time)
-            carb_durations.append(carb_event.duration_minutes)
+            for carb_event in self.get_events(time):
+                carb_values.append(carb_event.value)
+                carb_start_times.append(time)
+                carb_durations.append(carb_event.duration_minutes)
 
         return carb_values, carb_start_times, carb_durations
+
+    def add_event(self, time, event, input_time=None):
+        """
+        Add an event to the timeline.
+
+        Parameters
+        ----------
+        time: datetime
+            The time of the event
+
+        event: Bolus, Carb, etc.
+            The event
+
+        input_time: datetime
+            The time the event was input into the system.
+        """
+
+        self.is_event_valid(event)
+
+        if time in self.events:
+            self.events[time] = self.events[time].append(event)
+        else:
+            self.events[time] = [event]
+
+        if input_time is None:
+            input_time = time
+        self.events_input[event] = input_time
 
 
 class ActionTimeline(EventTimeline):

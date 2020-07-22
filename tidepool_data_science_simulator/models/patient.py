@@ -31,8 +31,8 @@ class VirtualPatientState(object):
         sbr,
         isf,
         cir,
-        bolus,
-        carb,
+        boluses,
+        carbs,
         actions=None
     ):
 
@@ -46,8 +46,8 @@ class VirtualPatientState(object):
         self.sbr = sbr
         self.isf = isf
         self.cir = cir
-        self.bolus = bolus
-        self.carb = carb
+        self.boluses = boluses
+        self.carbs = carbs
         self.actions = actions
 
 
@@ -158,9 +158,9 @@ class VirtualPatient(SimulationComponent):
             isf=self.patient_config.insulin_sensitivity_schedule.get_state(),
             cir=self.patient_config.carb_ratio_schedule.get_state(),
             pump_state=pump_state,
-            bolus=self.bolus_event_timeline.get_event(self.time),
-            carb=self.carb_event_timeline.get_event(self.time),
-            actions=self.action_timeline.get_event(self.time)
+            boluses=self.bolus_event_timeline.get_events(self.time),
+            carbs=self.carb_event_timeline.get_events(self.time),
+            actions=self.action_timeline.get_events(self.time)
         )
 
         return patient_state
@@ -174,7 +174,9 @@ class VirtualPatient(SimulationComponent):
         -------
         [Action]
         """
-        actions = self.action_timeline.get_event(self.time)
+        actions = self.action_timeline.get_events(self.time)
+        if actions is None:
+            actions = []
 
         return actions
 
@@ -187,12 +189,16 @@ class VirtualPatient(SimulationComponent):
         (Insulin Event, Carb Event)
         """
         # Get boluses at time
-        bolus = self.bolus_event_timeline.get_event(self.time)
+        boluses = self.bolus_event_timeline.get_events(self.time)
+        if boluses is None:
+            boluses = []
 
         # Get carbs at time
-        carb = self.carb_event_timeline.get_event(self.time)
+        carbs = self.carb_event_timeline.get_events(self.time)
+        if carbs is None:
+            carbs = []
 
-        return bolus, carb
+        return boluses, carbs
 
     def update(self, time, **kwargs):
         """
@@ -213,8 +219,9 @@ class VirtualPatient(SimulationComponent):
             self.pump.update(time)
 
         # TODO: Adding in framework for actions other than boluses and carbs
-        user_action = self.get_actions()
-        if user_action is not None:
+        user_actions = self.get_actions()
+
+        for user_action in user_actions:
             user_action.execute(self)
 
         self.predict()
@@ -282,16 +289,16 @@ class VirtualPatient(SimulationComponent):
         """
         abs_insulin_amount, rel_insulin_amount = self.get_basal_insulin_amount_since_update()
 
-        bolus, carb = self.get_user_inputs()
+        boluses, carbs = self.get_user_inputs()
 
-        if bolus is not None:
+        for bolus in boluses:
             delivered_bolus = self.deliver_bolus(bolus)
             rel_insulin_amount += delivered_bolus.value
             abs_insulin_amount += delivered_bolus.value
 
         carb_amount = 0
-        if carb is not None:
-            carb_amount = carb.value
+        for carb in carbs:
+            carb_amount += carb.value
 
         return abs_insulin_amount, rel_insulin_amount, carb_amount
 

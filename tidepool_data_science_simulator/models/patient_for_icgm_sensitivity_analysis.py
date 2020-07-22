@@ -31,8 +31,8 @@ class VirtualPatientISA(VirtualPatient):
         # Set a 30g carb entry at t0 for the meal_bolus analysis type
         if analysis_type == "meal_bolus":
             carb_entry = Carb(30, "g", 180)
-            self.carb_event_timeline.events.update({t0: carb_entry})
-            self.pump.carb_event_timeline.events.update({t0: carb_entry})
+            self.carb_event_timeline.add_event(t0, carb_entry)
+            self.pump.carb_event_timeline.add_event(t0, carb_entry)
 
     def does_accept_bolus_recommendation(self, bolus):
         """

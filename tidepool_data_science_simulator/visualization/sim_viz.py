@@ -43,8 +43,9 @@ def plot_sim_results(all_results, save=False):
         ax[1].set_ylim((0, 3))
         ax[1].legend()
 
-        ax[2].stem(ctrl_result_df["true_carb_value"], label="{} {}".format("true carb", sim_id))
-        ax[2].stem(ctrl_result_df["reported_carb_value"], linefmt='g--', markerfmt='X', label="{} {}".format("reported carb", sim_id))
+        ax[2].stem(ctrl_result_df["true_carb_values"], label="{} {}".format("true carb", sim_id))
+        ax[2].stem(ctrl_result_df["reported_carb_values"], linefmt='g--', markerfmt='X', label="{} {}".format(
+            "reported carb", sim_id))
         ax[2].set_title("Carb Events")
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")
@@ -79,6 +80,39 @@ def plot_sim_results(all_results, save=False):
 
     plt.show()
 
+
+def plot_loop_inputs(loop_inputs):
+    values_to_plot = ["counteraction_effect_", "predicted_glucose_", "insulin_effect_", "momentum_effect_",
+                      "carb_effect_", "restropective_effect_", "cob_timeline_"]
+
+    fig, ax = plt.subplots(values_to_plot.count(), 1, figsize=(16, 20))
+
+    for i in loop_inputs.count():
+        subplot_num = 0
+
+        if i == 0:
+            label = "before"
+        else:
+            label = "after"
+
+        for name in values_to_plot:
+            x = ""
+            if name == "counteraction_effect_":
+                x = name + "start_times"
+            else:
+                x = name + "dates"
+
+            y = name + "values"
+            ax[subplot_num].plot(loop_inputs[i][x], loop_inputs[i][y], label="{}".format(label))
+            ax[subplot_num].set_title(name)
+            ax[subplot_num].legend()
+            subplot_num += 1
+
+
+        plt.show()
+
+def plot_recommendations(recommendations):
+    return
 
 def plot_sim_results_missing_insulin(all_results):
 

@@ -160,8 +160,8 @@ class ContinuousInsulinPump(SimulationComponent):
             scheduled_cir=cir,
             schedule_isf=isf,
             temp_basal_rate=temp_basal_rate,
-            bolus=self.bolus_event_timeline.get_event(self.time),
-            carb=self.carb_event_timeline.get_event(self.time),
+            boluses=self.bolus_event_timeline.get_events(self.time),
+            carb=self.carb_event_timeline.get_events(self.time),
             delivered_basal_insulin=self.basal_insulin_delivered_last_update,
             undelivered_basal_insulin=self.basal_undelivered_insulin_since_last_update
         )
@@ -329,7 +329,7 @@ class PumpState(object):
             schedule_isf,
             temp_basal_rate,
             delivered_basal_insulin,
-            bolus,
+            boluses,
             carb,
             undelivered_basal_insulin=0,
     ):
@@ -340,7 +340,7 @@ class PumpState(object):
         self.temp_basal_rate = temp_basal_rate
         self.delivered_basal_insulin = delivered_basal_insulin
         self.undelivered_basal_insulin = undelivered_basal_insulin
-        self.bolus = bolus
+        self.boluses = boluses
         self.carb = carb
 
     def get_temp_basal_rate_value(self, default=None):

@@ -120,15 +120,15 @@ def test_carb_delay():
         )
 
         sim.run()
-        assert sim.virtual_patient.carb_event_timeline.get_event(actual_carb_time) == carb
-        assert sim.virtual_patient.pump.carb_event_timeline.get_event(reported_carb_time) == carb
+        assert sim.virtual_patient.carb_event_timeline.get_events(actual_carb_time) == [carb]
+        assert sim.virtual_patient.pump.carb_event_timeline.get_events(reported_carb_time) == [carb]
         results = sim.get_results_df()
         all_results[sim_id] = results
 
     for i in range(0, 35):
         assert all_results['test_carb_delay_90'].at[i, "bg"] <= all_results['test_carb_delay_0'].at[i, "bg"]
 
-    plot_sim_results(all_results, save=False)
+    #plot_sim_results(all_results, save=False)
 
 
 def test_bolus_delay():
@@ -175,9 +175,9 @@ def test_bolus_delay():
         sim_with_delay.run()
 
         bolus_time = carb_time + timedelta(minutes=delay_time_minutes) + timedelta(minutes=5)
-        assert sim_with_delay.virtual_patient.bolus_event_timeline.get_event(bolus_time) == Bolus(0.95, "U")
-        assert sim_with_delay.virtual_patient.pump.bolus_event_timeline.get_event(carb_time + timedelta(minutes=5)) == Bolus(
-            0.95, "U")
+        assert sim_with_delay.virtual_patient.bolus_event_timeline.get_events(bolus_time) == [Bolus(0.95, "U")]
+        assert sim_with_delay.virtual_patient.pump.bolus_event_timeline.get_events(carb_time + timedelta(minutes=5)) \
+               == [Bolus(0.95, "U")]
 
         results = sim_with_delay.get_results_df()
         all_results[sim_id] = results
@@ -186,4 +186,4 @@ def test_bolus_delay():
         assert all_results["test_bolus_delay_30"].at[i, "bg"] >= all_results["test_bolus_delay_0"].at[i, "bg"]
         if i > (delay_time_minutes_candidates[1]) / 5 :
             assert all_results["test_bolus_delay_30"].at[i, "iob"] >= all_results["test_bolus_delay_0"].at[i, "iob"]
-    plot_sim_results(all_results, save=False)
+    #plot_sim_results(all_results, save=False)
