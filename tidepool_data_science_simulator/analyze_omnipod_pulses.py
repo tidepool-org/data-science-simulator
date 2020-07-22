@@ -1,7 +1,5 @@
 __author__ = "Cameron Summers"
 
-__author__ = "Cameron Summers"
-
 import os
 import sys
 import datetime
