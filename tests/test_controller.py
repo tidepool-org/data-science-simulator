@@ -25,6 +25,7 @@ def test_loop_controller():
     t0, controller = get_canonical_controller(controller_class=LoopController)
     t0, patient = get_canonical_risk_patient()
     patient.bolus_event_timeline.add_event(t0, Bolus(1.2, "U"))
+    patient.pump.bolus_event_timeline.add_event(t0, Bolus(1.2, "U"))
 
     patient.init()
     assert controller.get_state().pyloopkit_recommendations is None
@@ -60,7 +61,7 @@ def test_loop_controller():
 
     loop_algorithm_output = update(loop_inputs_dict)
     controller.apply_loop_recommendations(patient, loop_algorithm_output)
-    assert patient.pump.has_active_temp_basal() is False
+    assert patient.pump.has_active_temp_basal() is True
 
     while next_time != t0 + timedelta(hours=8):
         next_time = next_time + timedelta(minutes=5)

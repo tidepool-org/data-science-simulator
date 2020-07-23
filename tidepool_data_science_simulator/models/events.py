@@ -123,7 +123,7 @@ class EventTimeline(object):
         self.is_event_valid(event)
 
         if time in self.events:
-            self.events[time] = self.events[time].append(event)
+            self.events[time].append(event)
         else:
             self.events[time] = [event]
 
@@ -322,8 +322,8 @@ class CarbTimeline(EventTimeline):
 
         self.is_event_valid(event)
 
-        if time in self.events:
-            self.events[time] = self.events[time].append(event)
+        if time in self.events.keys():
+            self.events[time].append(event)
         else:
             self.events[time] = [event]
 
