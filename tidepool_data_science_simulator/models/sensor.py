@@ -12,6 +12,35 @@ from tidepool_data_science_simulator.models.measures import GlucoseTrace
 from tidepool_data_science_models.models.icgm_sensor import iCGMSensor
 
 
+class RealSensor(SimulationComponent):
+
+    def __init__(self, time, sensor_config):
+
+        super().__init__()
+        self.time = time
+        self.sensor_bg_history = sensor_config.sensor_bg_history
+        self.sensor_config = sensor_config
+
+    def get_state(self):
+        return SensorState(
+            self.sensor_bg_history.get_bg_at_time(self.time),
+            None
+        )
+
+    def update(self, time, **kwargs):
+        """
+        Get the current sensed bg and store.
+
+        Parameters
+        ----------
+        time: datetime
+        """
+        self.time = time
+
+    def get_loop_inputs(self):
+        return self.sensor_config.sensor_bg_history.get_loop_inputs()
+
+
 class Sensor(SimulationComponent):
 
     def __init__(self, time, sensor_config):

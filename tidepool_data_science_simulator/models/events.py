@@ -69,6 +69,7 @@ class EventTimeline(object):
         if datetimes is not None:
             for dt, event in zip(datetimes, events):
                 self.events[dt] = event
+                self.events_input[event] = dt
 
     def is_empty_timeline(self):
         """
@@ -129,6 +130,25 @@ class EventTimeline(object):
             event = None
 
         return event
+
+    def get_event_near_time(self, time, time_delta_minutes=2.5):
+        """
+        Get an even if it is near a given time.
+
+        Parameters
+        ----------
+        time
+        time_delta_minutes
+
+        Returns
+        -------
+        object
+            The event
+        """
+
+        for event_time, event in self.events.items():
+            if abs((time - event_time).total_seconds()) / 60 <= time_delta_minutes:
+                return event
 
     def get_recent_event_times(self, time=None, num_hours_history=6):
         """

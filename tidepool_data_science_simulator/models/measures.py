@@ -6,6 +6,7 @@ Classes structures for various types of data used for simulation.
 
 import copy
 import datetime
+import numpy as np
 
 
 class Measure(object):
@@ -34,7 +35,7 @@ class Measure(object):
         return self.value == other.value and self.units == other.units
 
     def __hash__(self):
-        return hash((self.value, self.units))
+        return hash((self.value, self.units, np.random.randint(0, 1e6)))
 
 
 class MeasureRange(object):
@@ -76,7 +77,7 @@ class TempBasal(BasalRate):
     A basal rate that expires after a duration.
     """
 
-    def __init__(self, time, value, duration_minutes, units):
+    def __init__(self, time, value, duration_minutes, units, delivered_units=0):
         super().__init__(value, units)
 
         self.start_time = copy.deepcopy(time)
@@ -86,7 +87,7 @@ class TempBasal(BasalRate):
         self.actual_duration_minutes = 0
 
         self.active = True
-        self.delivered_units = 0
+        self.delivered_units = delivered_units
 
     def __str__(self):
         this_str = "None"
@@ -249,6 +250,15 @@ class GlucoseTrace(object):
         self.bg_values = []
         if values is not None:
             self.bg_values = values
+
+    def get_bg_at_time(self, time):
+        # FIXME: CS: hacky and not good, rework this class
+
+        for i in range(1, len(self.datetimes)):
+            end_datetime = self.datetimes[i]
+            start_datetime = self.datetimes[i-1]
+            if start_datetime <= time < end_datetime:
+                return self.bg_values[i]
 
     def get_last(self):
         """

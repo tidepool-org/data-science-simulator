@@ -38,16 +38,16 @@ def analyze_settings(scenario_csv_filepath, param_grid):
         isf = pgrid["isf"]
         target = 110  # shortcut, this is value in scenario
         starting_glucose = 250
-        sim_parser.tmp_dict["glucose_values"] = [starting_glucose] * len(
-            sim_parser.tmp_dict["glucose_values"]
+        sim_parser.loop_inputs_dict["glucose_values"] = [starting_glucose] * len(
+            sim_parser.loop_inputs_dict["glucose_values"]
         )
-        sim_parser.tmp_dict["actual_blood_glucose"] = [starting_glucose] * len(
-            sim_parser.tmp_dict["actual_blood_glucose"]
+        sim_parser.loop_inputs_dict["actual_blood_glucose"] = [starting_glucose] * len(
+            sim_parser.loop_inputs_dict["actual_blood_glucose"]
         )
-        sim_parser.tmp_dict["basal_rate_values"][0] = br
-        sim_parser.tmp_dict["sensitivity_ratio_values"][0] = isf
-        sim_parser.tmp_dict["dose_values"][0] = (starting_glucose - target) / isf
-        print("Correction Bolus: ", sim_parser.tmp_dict["dose_values"][0])
+        sim_parser.loop_inputs_dict["basal_rate_values"][0] = br
+        sim_parser.loop_inputs_dict["sensitivity_ratio_values"][0] = isf
+        sim_parser.loop_inputs_dict["dose_values"][0] = (starting_glucose - target) / isf
+        print("Correction Bolus: ", sim_parser.loop_inputs_dict["dose_values"][0])
 
         t0 = sim_parser.get_simulation_start_time()
 

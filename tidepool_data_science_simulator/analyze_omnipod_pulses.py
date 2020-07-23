@@ -23,7 +23,7 @@ from tidepool_data_science_simulator.models.simulation import (
     Simulation, SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr
 )
 from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController
-from tidepool_data_science_simulator.models.patient import VirtualPatient
+from tidepool_data_science_simulator.models.patient.virtual_patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses, Omnipod, ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV

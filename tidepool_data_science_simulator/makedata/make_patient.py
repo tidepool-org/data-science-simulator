@@ -5,13 +5,13 @@ import datetime
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr
 )
-from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, ActionTimeline
+from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, ActionTimeline, TempBasalTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import PumpConfig, PatientConfig, SensorConfig
 from tidepool_data_science_simulator.models.measures import (
     InsulinSensitivityFactor, CarbInsulinRatio, BasalRate, TargetRange, GlucoseTrace, Bolus, Carb
 )
 from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses, Omnipod, ContinuousInsulinPump
-from tidepool_data_science_simulator.models.patient import VirtualPatient, VirtualPatientModel
+from tidepool_data_science_simulator.models.patient.virtual_patient import VirtualPatient, VirtualPatientModel
 from tidepool_data_science_simulator.models.sensor import IdealSensor
 
 from tidepool_data_science_simulator.models.controller import LoopController
@@ -38,6 +38,7 @@ def get_canonical_risk_pump_config(t0=DATETIME_DEFAULT):
 
     pump_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
     pump_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
+    pump_temp_basal_timeline = TempBasalTimeline()
 
     pump_config = PumpConfig(
         basal_schedule=BasalSchedule24hr(
@@ -67,7 +68,8 @@ def get_canonical_risk_pump_config(t0=DATETIME_DEFAULT):
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         carb_event_timeline=pump_carb_timeline,
-        bolus_event_timeline=pump_bolus_timeline
+        bolus_event_timeline=pump_bolus_timeline,
+        temp_basal_event_timeline=pump_temp_basal_timeline
     )
 
     return t0, pump_config

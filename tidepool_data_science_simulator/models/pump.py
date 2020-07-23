@@ -9,6 +9,64 @@ from tidepool_data_science_simulator.models.simulation import SimulationComponen
 from tidepool_data_science_simulator.models.events import TempBasalTimeline
 
 
+class RealPump(SimulationComponent):
+    """
+    A pump class based on real data.
+    """
+    def __init__(self, time, pump_config):
+
+        self.time = time
+        self.pump_config = copy.deepcopy(pump_config)
+
+        self.bolus_event_timeline = self.pump_config.bolus_event_timeline
+        self.carb_event_timeline = self.pump_config.carb_event_timeline
+        self.temp_basal_event_timeline = self.pump_config.temp_basal_event_timeline
+
+        self.active_temp_basal = None
+        self.basal_insulin_delivered_last_update = 0
+        self.basal_undelivered_insulin_since_last_update = 0
+
+    def get_state(self):
+        """
+        Get the state of the scheduled and temporary basal rates. Temp basal should be None
+        if not active.
+
+        Returns
+        -------
+        PumpState
+            The pump state
+        """
+
+        scheduled_basal_rate = self.pump_config.basal_schedule.get_state()
+        isf = self.pump_config.insulin_sensitivity_schedule.get_state()
+        cir = self.pump_config.carb_ratio_schedule.get_state()
+
+        return PumpState(
+            scheduled_basal_rate=scheduled_basal_rate,
+            scheduled_cir=cir,
+            schedule_isf=isf,
+            temp_basal_rate=self.temp_basal_event_timeline.get_event_near_time(self.time),
+            bolus=self.bolus_event_timeline.get_event_near_time(self.time),
+            carb=self.carb_event_timeline.get_event_near_time(self.time),
+            delivered_basal_insulin=None,
+            undelivered_basal_insulin=None
+        )
+
+    def set_temp_basal(self, temp_basal):
+        pass
+
+    def update(self, time, **kwargs):
+        """
+        Update the state of the pump for the time.
+
+        Parameters
+        ----------
+        time: datetime
+            The current time
+        """
+        self.time = time
+
+
 class ContinuousInsulinPump(SimulationComponent):
     """
     A theoretical pump that operates with continuous insulin delivery. This is
@@ -203,6 +261,11 @@ class ContinuousInsulinPump(SimulationComponent):
 
             if not self.active_temp_basal.is_active(self.time):  # Remove if inactive
                 self.deactivate_temp_basal()
+
+        self.pump_config.basal_schedule.update(time)
+        self.pump_config.carb_ratio_schedule.update(time)
+        self.pump_config.insulin_sensitivity_schedule.update(time)
+        self.pump_config.target_range_schedule.update(time)
 
     def deactivate_temp_basal(self):
         """

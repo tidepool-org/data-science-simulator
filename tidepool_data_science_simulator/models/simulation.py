@@ -180,17 +180,35 @@ class Simulation(multiprocessing.Process):
         pd.DataFrame
             The time series result of the simulation
         """
+        #TODO: Ugh, clean up this mess
+
         data = []
         for time, simulation_state in self.simulation_results.items():
 
             # Patient stuff
-            true_bolus = simulation_state.patient_state.bolus
-            if true_bolus is None:
-                true_bolus = Bolus(0, "U")
+            patient_state = simulation_state.patient_state
+            patient_sbr = None
+            patient_cir = None
+            patient_isf = None
+            true_bolus = None
+            true_carb = None
+            if patient_state is not None:
+                true_bolus = simulation_state.patient_state.bolus
+                if true_bolus is None:
+                    true_bolus = Bolus(0, "U")
 
-            true_carb = simulation_state.patient_state.carb
-            if true_carb is None:
-                true_carb = Carb(0, "g", 0)
+                true_carb = simulation_state.patient_state.carb
+                if true_carb is None:
+                    true_carb = Carb(0, "g", 0)
+
+                if patient_state.sbr is not None:
+                    patient_sbr = patient_state.sbr.value
+
+                if patient_state.sbr is not None:
+                    patient_cir = patient_state.cir.value
+
+                if patient_state.sbr is not None:
+                    patient_isf = patient_state.isf.value
 
             # Pump stuff
             pump_state = simulation_state.patient_state.pump_state
@@ -201,6 +219,9 @@ class Simulation(multiprocessing.Process):
             pump_cir = None
             delivered_basal_insulin = None
             undelivered_basal_insulin = None
+            reported_bolus = Bolus(0, "U")
+            reported_carb = Carb(0, "g", 0)
+
             if pump_state is not None:
                 temp_basal_value = pump_state.get_temp_basal_rate_value(
                     default=None
@@ -229,9 +250,9 @@ class Simulation(multiprocessing.Process):
                 "iob": simulation_state.patient_state.iob,
                 "temp_basal": temp_basal_value,
                 "temp_basal_time_remaining": temp_basal_time_remaining,
-                "sbr": simulation_state.patient_state.sbr.value,
-                "cir": simulation_state.patient_state.cir.value,
-                "isf": simulation_state.patient_state.isf.value,
+                "sbr": patient_sbr,
+                "cir": patient_cir,
+                "isf": patient_isf,
                 "pump_sbr": pump_sbr,
                 "pump_isf": pump_isf,
                 "pump_cir": pump_cir,

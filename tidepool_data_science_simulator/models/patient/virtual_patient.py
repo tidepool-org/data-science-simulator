@@ -494,6 +494,18 @@ class VirtualPatient(SimulationComponent):
 
         self.pump = pump_class(time=self.time, pump_config=pump_config)
 
+    def add_event(self, time_of_event, event):
+
+        # Add event to patient and pump timeline
+        if isinstance(event, Bolus):
+            self.bolus_event_timeline.add_event(time_of_event, event)
+            self.pump.bolus_event_timeline.add_event(time_of_event, event)
+        elif isinstance(event, Carb):
+            self.bolus_event_timeline.add_event(time_of_event, event)
+            self.pump.bolus_event_timeline.add_event(time_of_event, event)
+        else:
+            raise Exception("Unsupported event to add.")
+
     def __repr__(self):
 
         return "BG: {:.2f}. IOB: {:.2f}. BR {:.2f}".format(self.bg_current, self.iob_current, self.pump.get_basal_rate().value)
@@ -590,17 +602,19 @@ class VirtualPatientModel(VirtualPatient):
         correction_carb = self.get_correction_carb()
         total_carb = self.combine_carbs(meal_carb, correction_carb)
 
-        meal_bolus = self.get_meal_bolus(meal_carb)
-        correction_bolus = self.get_correction_bolus()
-        total_bolus = self.combine_boluses(meal_bolus, correction_bolus)
+        total_bolus = self.bolus_event_timeline.get_event(self.time)
+
+        # meal_bolus = self.get_meal_bolus(meal_carb)
+        # correction_bolus = self.get_correction_bolus()
+        # total_bolus = self.combine_boluses(meal_bolus, correction_bolus)
 
         if total_carb is not None:
             self.carb_event_timeline.add_event(self.time, total_carb)
             self.report_carb(total_carb)
 
-        if total_bolus is not None:
-            self.bolus_event_timeline.add_event(self.time, total_bolus)
-            self.report_bolus(total_bolus)
+        # if total_bolus is not None:
+        #     self.bolus_event_timeline.add_event(self.time, total_bolus)
+        #     self.report_bolus(total_bolus)
 
         return total_bolus, total_carb
 
@@ -614,7 +628,8 @@ class VirtualPatientModel(VirtualPatient):
         """
         u = np.random.random()
         if u <= self.report_carb_probability:
-            self.pump.carb_event_timeline.add_event(self.time, carb)
+            estimated_carb = self.estimate_meal_carb(carb)
+            self.pump.carb_event_timeline.add_event(self.time, estimated_carb)
 
     def report_bolus(self, bolus):
         """
@@ -666,7 +681,7 @@ class VirtualPatientModel(VirtualPatient):
             self.bg_current <= self.correct_carb_bg_threshold
             and u <= self.correct_carb_step_prob
         ):
-            carb = Carb(value=10, units="g", duration_minutes=3 * 60)
+            carb = Carb(value=np.random.normal(10, 3), units="g", duration_minutes=3 * 60)
 
         return carb
 
@@ -806,14 +821,31 @@ class VirtualPatientModel(VirtualPatient):
         Carb
             The estimated carb for the meal
         """
-
         estimated_carb = Carb(
-            value=int(
+            value=max(0.0, int(
                 np.random.normal(
                     carb.value, carb.value * self.carb_count_noise_percentage
-                )
+                ))
             ),
             units="g",
-            duration_minutes=carb.duration_minutes,
+            duration_minutes=np.random.choice([3 * 60, 4 * 60, 5 * 60]),
         )
+        # print(carb, estimated_carb)
         return estimated_carb
+
+
+class VirtualPatientModelCarbBolusAccept(VirtualPatientModel):
+    """
+    A vitual patient that does not accept small Loop bolus recommendations. This will encourage recommendations
+    that are related to Carb entries or other insulin-deficient scenarios.
+    """
+
+    def does_accept_bolus_recommendation(self, bolus):
+        does_accept = False
+        u = np.random.random()
+
+        min_bolus_rec_threshold = self.patient_config.min_bolus_rec_threshold
+        if u <= self.patient_config.recommendation_accept_prob and bolus.value >= min_bolus_rec_threshold:
+            does_accept = True
+
+        return does_accept

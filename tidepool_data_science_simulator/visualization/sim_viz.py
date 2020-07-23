@@ -40,7 +40,7 @@ def plot_sim_results(all_results, save=False):
         ax[1].stem(ctrl_result_df["true_bolus"], label="{} {}".format("true bolus", sim_id))
         ax[1].stem(ctrl_result_df["reported_bolus"], linefmt='g--', markerfmt='X', label="{} {}".format("reported bolus", sim_id))
         ax[1].plot(ctrl_result_df["iob"], label="{} {}".format("iob", sim_id))
-        ax[1].set_ylim((0, 3))
+        # ax[1].set_ylim((0, 3))
         ax[1].legend()
 
         ax[2].stem(ctrl_result_df["true_carb_value"], label="{} {}".format("true carb", sim_id))
@@ -48,7 +48,7 @@ def plot_sim_results(all_results, save=False):
         ax[2].set_title("Carb Events")
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")
-        ax[2].set_ylim((0, 40))
+        # ax[2].set_ylim((0, 40))
         ax[2].legend()
 
         print(
@@ -57,9 +57,9 @@ def plot_sim_results(all_results, save=False):
             )
         )
 
-        log_bg = np.log(ctrl_result_df["bg"])
-        geo_mean = np.mean(log_bg)
-        geo_var = np.var(log_bg)
+        # log_bg = np.log(ctrl_result_df["bg"])
+        # geo_mean = np.mean(log_bg)
+        # geo_var = np.var(log_bg)
 
         # counts, bins, patches = ax[2].hist(log_bg, bins=50, label="{} {} {}".format("bg", vp_name, ctr_name), alpha=0.1)
         # # ax[2].set_xscale("log")
