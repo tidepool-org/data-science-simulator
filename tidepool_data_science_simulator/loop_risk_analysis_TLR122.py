@@ -17,6 +17,8 @@ from tidepool_data_science_simulator.makedata.make_simulation import get_canonic
 from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_simulator.utils import timing
+from tidepool_data_science_metrics.insulin.insulin import dka_index
+from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
 
 from tidepool_data_science_simulator.models.events import VirtualPatientAttachPump, VirtualPatientRemovePump
 
@@ -95,6 +97,13 @@ def risk_analysis_tlr122_pump_session_gap():
 
     all_results = {id: sim.queue.get() for id, sim in sims.items()}
     [sim.join() for id, sim in sims.items()]
+
+    dkais = {}
+    lgbis = {}
+    for sim_id, results_df in all_results.items():
+        dkais[sim_id] = dka_index(results_df['iob'], results_df['sbr'])
+        lbgi, _, _ = blood_glucose_risk_index(results_df['bg'])
+        lgbis[sim_id] = lbgi
 
     plot_sim_results(all_results, save=False)
 
