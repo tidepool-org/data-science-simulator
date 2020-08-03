@@ -1,6 +1,6 @@
 __author__ = "Jason Meno"
 
-from tidepool_data_science_simulator.models.patient import VirtualPatient
+from tidepool_data_science_simulator.models.patient.virtual_patient import VirtualPatient
 from tidepool_data_science_simulator.models.measures import Carb
 
 

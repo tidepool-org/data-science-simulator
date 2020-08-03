@@ -4,7 +4,7 @@ import os
 import datetime
 
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
-from tidepool_data_science_simulator.models.patient import VirtualPatient
+from tidepool_data_science_simulator.models.patient.virtual_patient import VirtualPatient
 from tidepool_data_science_models.models.icgm_sensor_generator import iCGMSensorGenerator, sf
 from tidepool_data_science_simulator.models.pump import Omnipod, ContinuousInsulinPump
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel

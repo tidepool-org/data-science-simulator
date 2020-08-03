@@ -9,7 +9,7 @@ from tidepool_data_science_models.models.simple_metabolism_model import SimpleMe
 
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController
-from tidepool_data_science_simulator.models.patient import VirtualPatient
+from tidepool_data_science_simulator.models.patient.virtual_patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV

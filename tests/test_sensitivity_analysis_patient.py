@@ -1,6 +1,6 @@
 __author__ = "Jason Meno"
 
-from tidepool_data_science_simulator.models.patient_for_icgm_sensitivity_analysis import VirtualPatientISA
+from tidepool_data_science_simulator.models.patient.patient_for_icgm_sensitivity_analysis import VirtualPatientISA
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.models.pump import Omnipod
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
