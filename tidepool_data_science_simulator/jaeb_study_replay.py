@@ -57,12 +57,15 @@ if __name__ == "__main__":
     parsed_data_folder = "../PHI-Jaeb-Data/"
     parsed_data_files = os.listdir(parsed_data_folder)
 
-    time_series_files = ""
+    time_series_files = []
+    time_series_folder = ""
     for filename in parsed_data_files:
         if "data-summary" in filename:
             issue_report_settings_path = os.path.join(parsed_data_folder, filename)
-        else:
+        elif "time-series" in filename:
             time_series_files = os.listdir(parsed_data_folder + filename)
-            
+            time_series_folder = filename
 
-    run_replay(path_to_settings=issue_report_settings_path, path_to_time_series_data=time_series_path)
+    for filename in time_series_files[:1]:
+        time_series_path = parsed_data_folder + time_series_folder + "/" + filename
+        run_replay(path_to_settings=issue_report_settings_path, path_to_time_series_data=time_series_path)

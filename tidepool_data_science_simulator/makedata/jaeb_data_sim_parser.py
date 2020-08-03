@@ -27,6 +27,7 @@ from tidepool_data_science_simulator.models.measures import (
     GlucoseTrace,
 )
 
+
 class JaebDataSimParser(ScenarioParserCSV):
 
     def __init__(self, path_to_settings, path_to_time_series_data, t0=None):
@@ -35,17 +36,19 @@ class JaebDataSimParser(ScenarioParserCSV):
         # TODO: Parse path_to_time_series to choose appropriate settings row
         file_name = path_to_time_series_data.split(sep="/")[-1]
         user_numbers = "LOOP-" + file_name.split(sep="-")[1]
-        report_num = int(file_name.split(sep="-")[3])
+        report_num = int(file_name.split(sep="/")[-1].split(sep="-")[3])
         settings_data = (issue_report_settings.loc[
                         issue_report_settings['loop_id'] == user_numbers])
         settings_data = settings_data.loc[settings_data['report_num'] == report_num]
+
+        # TODO: Does this take up unnecessary runtime?
         carb_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time', 'carbs'])
         target_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time',
                                                                               'bg_target_lower', 'bg_target_upper'])
-
+        cgm_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time', 'cgm'])
         self.parse_settings_and_carbs(settings_df=settings_data, carb_df=carb_data, target_df=target_data)
+        self.parse_cgm(cgm_data)
 
-        # TODO: load settings
         if t0 is not None:
             time = t0
         else:
@@ -55,6 +58,7 @@ class JaebDataSimParser(ScenarioParserCSV):
         self.transform_patient(time)
         self.transform_sensor()
 
+    # Note: rename this and parse_settings to more appropriate names, refactor
     def parse_settings_and_carbs(self, settings_df, carb_df, target_df):
         jaeb_inputs = parse_settings(settings_df=settings_df)
 
@@ -79,6 +83,12 @@ class JaebDataSimParser(ScenarioParserCSV):
        # fixme: in the future, pull duration values from the data
 
         self.loop_inputs_dict = jaeb_inputs
+
+    def parse_cgm(self, cgm_df):
+        cgm_data = cgm_df.dropna()
+        self.loop_inputs_dict["cgm_glucose_values"] = cgm_data['cgm'].values
+        self.loop_inputs_dict["cgm_glucose_dates"] = cgm_data['rounded_local_time'].map(
+            lambda date: datetime.datetime.fromisoformat(date)).values
 
     def transform_pump(self, time):
 
@@ -159,35 +169,7 @@ class JaebDataSimParser(ScenarioParserCSV):
             ],
         )
 
-        # Import bolus and basal data
-        # Separate bolus and temp basal events
-        # bolus_start_times, bolus_values, bolus_units, bolus_dose_types, bolus_delivered_units = ([], [], [], [], [])
-        # temp_basal_start_times, temp_basal_duration_minutes, temp_basal_values, \
-        #     temp_basal_units, temp_basal_dose_types, temp_basal_delivered_units = ([], [], [], [], [], [])
-        # for start_time, end_time, value, units, dose_type, delivered_units in zip(
-        #         self.loop_inputs_dict["dose_start_times"],
-        #         self.loop_inputs_dict["dose_end_times"],
-        #         self.loop_inputs_dict["dose_values"],
-        #         self.loop_inputs_dict["dose_value_units"],
-        #         self.loop_inputs_dict["dose_types"],
-        #         self.loop_inputs_dict.get("delivered_units", [None]*len(self.loop_inputs_dict["dose_start_times"]))
-        # ):
-        #     if dose_type == DoseType.bolus:
-        #         bolus_start_times.append(start_time)
-        #         bolus_values.append(value)
-        #         bolus_units.append(units)
-        #         bolus_dose_types.append(dose_type)
-        #         bolus_delivered_units.append(delivered_units)
-        #     elif dose_type == DoseType.tempbasal or dose_type == DoseType.basal:
-        #         duration_minutes = (end_time - start_time).total_seconds() / 60
-        #         temp_basal_start_times.append(start_time)
-        #         temp_basal_duration_minutes.append(duration_minutes)
-        #         temp_basal_values.append(value)
-        #         temp_basal_units.append(units)
-        #         temp_basal_dose_types.append(dose_type)
-        #         temp_basal_delivered_units.append(delivered_units)
-        #     else:
-        #         raise Exception("Unknown dose type")
+        # TODO: Import bolus and basal data
 
         self.pump_bolus_events = BolusTimeline(
             datetimes=[],
@@ -200,7 +182,11 @@ class JaebDataSimParser(ScenarioParserCSV):
         )
 
     def transform_patient(self, time):
+        """
+        Loop issue report gives no true patient information.
 
+        What do we want to do here for replay?
+        """
         self.patient_basal_schedule = BasalSchedule24hr(
             time,
             start_times=self.loop_inputs_dict.get("basal_rate_start_times"),
@@ -211,8 +197,9 @@ class JaebDataSimParser(ScenarioParserCSV):
                     self.loop_inputs_dict.get("basal_rate_units"),
                 )
             ],
-            duration_minutes=self.loop_inputs_dict.get("basal_rate_minutes", start_times_to_minutes_durations(
-                self.loop_inputs_dict["basal_rate_start_times"])),
+            duration_minutes=self.loop_inputs_dict.get(
+                "basal_rate_minutes", start_times_to_minutes_durations(self.loop_inputs_dict["basal_rate_start_times"])
+            )
         )
 
         self.patient_carb_ratio_schedule = SettingSchedule24Hr(
@@ -277,26 +264,28 @@ class JaebDataSimParser(ScenarioParserCSV):
 
         self.patient_bolus_events = BolusTimeline(
             datetimes=[],
-            events=[],
+            events=[]
         )
 
         self.patient_glucose_history = GlucoseTrace(
-            datetimes=[],
-            values=[],
+            datetimes=self.loop_inputs_dict["cgm_glucose_dates"],
+            values=self.loop_inputs_dict["cgm_glucose_values"],
         )
 
     def transform_sensor(self):
 
         self.sensor_glucose_history = GlucoseTrace(
-            datetimes=[],
-            values=[],
+            datetimes=self.loop_inputs_dict["cgm_glucose_dates"],
+            values=self.loop_inputs_dict["cgm_glucose_values"],
         )
 
 
 def parse_settings(settings_df):
     dict_ = dict()
+    dict_["settings_dictionary"] = dict()
     for col, val in settings_df.iteritems():
         if col == "insulin_model":
+            # todo: add model
             pass
         elif "report_timestamp" in col:
             dict_["time_to_calculate_at"] = datetime.datetime.fromisoformat(
@@ -306,11 +295,9 @@ def parse_settings(settings_df):
             dict_["carb_value_units"] = val.values[0]
         elif "maximum_" in col:
             col = col.replace("maximum", "max")
-            dict_[col] = val.values[0]
-        elif "suspend_threshold" == col:
-            dict_[col] = val.values[0]
-        elif "retrospective_correction_enabled" == col:
-            dict_[col] = val.values[0]
+            dict_["settings_dictionary"][col] = val.values[0]
+        elif "suspend_threshold" == col or "retrospective_correction_enabled" == col:
+            dict_["settings_dictionary"][col] = val.values[0]
         elif "carb_default_absorption" in col:
             if "carb_absorption_times" not in dict_:
                 dict_["carb_absorption_times"] = [0, 0, 0]
@@ -327,6 +314,8 @@ def parse_settings(settings_df):
             if "sensitivity" in col:
                 schedule_type = "sensitivity_ratio_"
             values = val.values[0]
+            values = values.replace("'", "")
+            values = (values.replace("[", "")).replace("]", "")
 
             if "}, {" in values:
                 events = values.split("}, {")
@@ -334,12 +323,15 @@ def parse_settings(settings_df):
                 events = [values]
 
             for event in events: # parse strings
-                event = event.replace("'", "")
                 event = (event.replace("{", "")).replace("}", "")
-                event = (event.replace("[", "")).replace("]", "")
                 event_descriptors = event.split(", ")
-                start_time = event_descriptors[0]
-                value = event_descriptors[1]
+                start_time = ""
+                value = ""
+                for descriptor in event_descriptors:
+                    if 'start' in descriptor:
+                        start_time = descriptor
+                    elif 'value' in descriptor:
+                        value = descriptor
 
                 time_in_hours = int(int(eval(start_time.split(": ")[1])) / 3600)
                 minutes = int((int(eval(start_time.split(": ")[1]) % 3600) / 3600) * 60)
