@@ -20,6 +20,8 @@ def run_replay(path_to_settings, path_to_time_series_data, t0=None):
 
     t0 = jaeb_parser.get_simulation_start_time()
 
+    all_results = {}
+
     pump = ContinuousInsulinPump(
         time=t0,
         pump_config=jaeb_parser.get_pump_config()
@@ -50,7 +52,8 @@ def run_replay(path_to_settings, path_to_time_series_data, t0=None):
 
     sim.run()
     results_df = sim.get_results_df()
-    plot_sim_results(results_df)
+    all_results["Jaeb Replay"] = results_df
+    plot_sim_results(all_results)
 
 
 if __name__ == "__main__":

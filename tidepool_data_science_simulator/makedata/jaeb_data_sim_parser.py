@@ -1,16 +1,12 @@
 __author__ = "Eden Grown-Haeberli"
 
-import json
-import os
-
-from pyloopkit import pyloop_parser
 import pandas as pd
+import numpy as np
 import datetime
-from math import isnan
-from pyloopkit.dose import DoseType
+import copy
+from tidepool_data_science_simulator.makedata.scenario_parser import SensorConfig
 
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
-from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
 )
@@ -18,9 +14,7 @@ from tidepool_data_science_simulator.makedata.scenario_parser import start_times
 from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, TempBasalTimeline
 from tidepool_data_science_simulator.models.measures import (
     Carb,
-    Bolus,
     BasalRate,
-    TempBasal,
     CarbInsulinRatio,
     InsulinSensitivityFactor,
     TargetRange,
@@ -46,7 +40,9 @@ class JaebDataSimParser(ScenarioParserCSV):
         target_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time',
                                                                               'bg_target_lower', 'bg_target_upper'])
         cgm_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time', 'cgm'])
-        self.parse_settings_and_carbs(settings_df=settings_data, carb_df=carb_data, target_df=target_data)
+        self.parse_settings(settings_df=settings_data, target_df=target_data)
+        self.parse_carbs(carb_df=carb_data)
+
         self.parse_cgm(cgm_data)
 
         if t0 is not None:
@@ -59,18 +55,26 @@ class JaebDataSimParser(ScenarioParserCSV):
         self.transform_sensor()
 
     # Note: rename this and parse_settings to more appropriate names, refactor
-    def parse_settings_and_carbs(self, settings_df, carb_df, target_df):
+    def parse_settings(self, settings_df, target_df, start_time=None):
         jaeb_inputs = parse_settings(settings_df=settings_df)
 
+        if start_time is not None:
+            jaeb_inputs['time_to_calculate_at'] = start_time
+        else:
+            issue_report_start = datetime.datetime.fromisoformat(
+                pd.to_datetime(target_df['rounded_local_time'].values[0]).isoformat())
+            rounded_start_time = issue_report_start + datetime.timedelta(days=1)
+            rounded_start_time += datetime.timedelta(minutes=2, seconds=30)
+            rounded_start_time -= datetime.timedelta(minutes=rounded_start_time.minute % 5,
+                                                     seconds=rounded_start_time.second,
+                                                     microseconds=rounded_start_time.microsecond)
+
+            jaeb_inputs['time_to_calculate_at'] = rounded_start_time
+
         target_data = target_df.dropna()
-        carb_data = carb_df.dropna()
-        jaeb_inputs['target_range_minimum_values'] = target_data['bg_target_lower'].drop_duplicates().values
-        jaeb_inputs['target_range_maximum_values'] = target_data['bg_target_upper'].drop_duplicates().values
+        jaeb_inputs['target_range_minimum_values'] = list(target_data['bg_target_lower'].drop_duplicates().values)
+        jaeb_inputs['target_range_maximum_values'] = list(target_data['bg_target_upper'].drop_duplicates().values)
         jaeb_inputs['target_range_start_times'] = [datetime.time(0, 0, 0)]
-        jaeb_inputs['carb_values'] = carb_data['carbs'].values
-        jaeb_inputs['carb_dates'] = carb_data['rounded_local_time'].map(
-            lambda time: datetime.datetime.fromisoformat(time)
-        ).values
 
         # add any other important values
         # TODO: Make this flexible
@@ -79,16 +83,58 @@ class JaebDataSimParser(ScenarioParserCSV):
             "carb_ratio_values"]]
         jaeb_inputs["target_range_value_units"] = ["mg/dL" for _ in jaeb_inputs["target_range_minimum_values"]]
         jaeb_inputs["sensitivity_ratio_value_units"] = ["mg/dL/U" for _ in jaeb_inputs["sensitivity_ratio_values"]]
-        jaeb_inputs["carb_value_units"] = [jaeb_inputs["carb_value_units"] for _ in jaeb_inputs['carb_values']]
        # fixme: in the future, pull duration values from the data
 
         self.loop_inputs_dict = jaeb_inputs
 
+    def parse_carbs(self, carb_df):
+        carb_data = carb_df.dropna()
+        for col, _ in carb_df.items():
+            temp_df = carb_data[col]
+            temp_array = []
+            if col == 'rounded_local_time':
+                for v in temp_df.values:
+                    if ":" in v:
+                        if len(v) == 7:
+                            obj = datetime.time.fromisoformat(
+                                pd.to_datetime(v).strftime("%H:%M:%S")
+                            )
+                        elif len(v) == 8:
+                            obj = datetime.time.fromisoformat(v)
+                        elif len(v) > 8:
+                            obj = datetime.datetime.fromisoformat(
+                                pd.to_datetime(v).isoformat()
+                            )
+                        else:
+                            obj = np.safe_eval(v)
+                    else:
+                        obj = np.safe_eval(v)
+
+                    temp_array = np.append(temp_array, obj)
+
+                self.loop_inputs_dict['carb_dates'] = list(temp_array)
+            elif col == 'carbs':
+                self.loop_inputs_dict['carb_values'] = list(temp_df.values)
+
+        self.loop_inputs_dict["carb_value_units"] = [self.loop_inputs_dict["carb_value_units"] for _ in self.loop_inputs_dict[
+            'carb_values']]
+        self.loop_inputs_dict["carb_absorption_times"] = [self.loop_inputs_dict["settings_dictionary"][
+                                                              "default_absorption_times"][1] for _ in self.loop_inputs_dict[
+            'carb_values']]
+
     def parse_cgm(self, cgm_df):
         cgm_data = cgm_df.dropna()
-        self.loop_inputs_dict["cgm_glucose_values"] = cgm_data['cgm'].values
-        self.loop_inputs_dict["cgm_glucose_dates"] = cgm_data['rounded_local_time'].map(
-            lambda date: datetime.datetime.fromisoformat(date)).values
+        history_end_time = self.get_simulation_start_time()
+
+        bg_dates = [datetime.datetime.fromisoformat(
+            pd.to_datetime(date).isoformat()) for date in cgm_data["rounded_local_time"].values if
+            datetime.datetime.fromisoformat(date) <= history_end_time]
+        glucose_values = [cgm_data["cgm"].values[i] for i in range(
+            len(cgm_data["cgm"].values)) if datetime.datetime.fromisoformat(cgm_data["rounded_local_time"].values[i]) <=
+            history_end_time]
+
+        self.loop_inputs_dict["cgm_glucose_values"] = glucose_values
+        self.loop_inputs_dict["cgm_glucose_dates"] = bg_dates
 
     def transform_pump(self, time):
 
@@ -285,12 +331,16 @@ def parse_settings(settings_df):
     dict_["settings_dictionary"] = dict()
     for col, val in settings_df.iteritems():
         if col == "insulin_model":
-            # todo: add model
-            pass
-        elif "report_timestamp" in col:
-            dict_["time_to_calculate_at"] = datetime.datetime.fromisoformat(
-                pd.to_datetime(settings_df[col].values[0]).isoformat()
-            )
+            model = val.values[0]
+            obj = []
+            if model == "fiasp":
+                obj = [360, 55]
+            elif "humalog" in model:
+                if "child" in model:
+                    obj = [360, 65]
+                elif "adult" in model:
+                    obj = [360, 75]
+            dict_["settings_dictionary"]["model"] = obj
         elif col == "carb_ratio_unit":
             dict_["carb_value_units"] = val.values[0]
         elif "maximum_" in col:
@@ -299,16 +349,15 @@ def parse_settings(settings_df):
         elif "suspend_threshold" == col or "retrospective_correction_enabled" == col:
             dict_["settings_dictionary"][col] = val.values[0]
         elif "carb_default_absorption" in col:
-            if "carb_absorption_times" not in dict_:
-                dict_["carb_absorption_times"] = [0, 0, 0]
+            if "default_absorption_times" not in dict_["settings_dictionary"]:
+                dict_["settings_dictionary"]["default_absorption_times"] = [0, 0, 0]
             value = float(val.values[0])
-            length = values.split("_")[-1]
-            if length == "slow":
-                dict_["carb_absorption_times"][2] = value
-            elif length == "medium":
-                dict_["carb_absorption_times"][1] = value
-            elif length == "fast":
-                dict_["carb_absorption_times"][0] = value
+            if "slow" in col:
+                dict_["settings_dictionary"]["default_absorption_times"][2] = value / 60 # convert to minutes
+            elif "medium" in col:
+                dict_["settings_dictionary"]["default_absorption_times"][1] = value / 60
+            elif "fast" in col:
+                dict_["settings_dictionary"]["default_absorption_times"][0] = value / 60
         elif col.endswith("_schedule"):
             schedule_type = col.replace("schedule", "")
             if "sensitivity" in col:
