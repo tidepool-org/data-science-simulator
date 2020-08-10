@@ -19,6 +19,17 @@ class Action(object):
         raise NotImplementedError
 
 
+class ChangeTargetRange(Action):
+
+    def __init__(self, name, new_schedule):
+        super().__init__(name)
+        self.new_schedule = new_schedule
+
+    def execute(self, virtual_patient):
+        virtual_patient.pump.pump_config.target_range_schedule = self.new_schedule
+        virtual_patient.patient_config.target_range_schedule = self.new_schedule
+
+
 class VirtualPatientDeleteLoopData(Action):
     """
     User deletes their pump bolus and basal data.

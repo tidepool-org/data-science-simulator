@@ -26,16 +26,19 @@ def run_replay(path_to_settings, path_to_time_series_data, t0=None):
         time=t0,
         pump_config=jaeb_parser.get_pump_config()
     )
+
     sensor = IdealSensor(
         time=t0,
         sensor_config=jaeb_parser.get_sensor_config()
     )
 
+    patient_config = jaeb_parser.get_patient_config()
     patient = VirtualPatient(
-        time=t0, pump=pump,
+        time=t0,
+        pump=pump,
         sensor=sensor,
         metabolism_model=SimpleMetabolismModel,
-        patient_config=jaeb_parser.get_patient_config()
+        patient_config=patient_config
     )
 
     controller = LoopController(
@@ -52,7 +55,8 @@ def run_replay(path_to_settings, path_to_time_series_data, t0=None):
 
     sim.run()
     results_df = sim.get_results_df()
-    all_results["Jaeb Replay"] = results_df
+    sim_id = jaeb_parser.patient_id + "-" + str(jaeb_parser.report_num)
+    all_results[sim_id] = results_df
     plot_sim_results(all_results)
 
 
@@ -69,6 +73,7 @@ if __name__ == "__main__":
             time_series_files = os.listdir(parsed_data_folder + filename)
             time_series_folder = filename
 
-    for filename in time_series_files[:1]:
-        time_series_path = parsed_data_folder + time_series_folder + "/" + filename
-        run_replay(path_to_settings=issue_report_settings_path, path_to_time_series_data=time_series_path)
+    for filename in time_series_files:
+        if "1033" in filename and "4" in filename:
+            time_series_path = parsed_data_folder + time_series_folder + "/" + filename
+            run_replay(path_to_settings=issue_report_settings_path, path_to_time_series_data=time_series_path)

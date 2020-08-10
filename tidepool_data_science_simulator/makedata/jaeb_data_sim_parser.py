@@ -4,14 +4,19 @@ import pandas as pd
 import numpy as np
 import datetime
 import copy
-from tidepool_data_science_simulator.makedata.scenario_parser import SensorConfig
 
-from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
+from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV, PatientConfig
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
 )
 from tidepool_data_science_simulator.makedata.scenario_parser import start_times_to_minutes_durations
-from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, TempBasalTimeline
+from tidepool_data_science_simulator.models.events import (
+    CarbTimeline,
+    BolusTimeline,
+    TempBasalTimeline,
+    ActionTimeline,
+    ChangeTargetRange
+)
 from tidepool_data_science_simulator.models.measures import (
     Carb,
     BasalRate,
@@ -54,9 +59,28 @@ class JaebDataSimParser(ScenarioParserCSV):
         self.transform_patient(time)
         self.transform_sensor()
 
+        #TODO: Integrate into patient
+        self.patient_id = user_numbers
+        self.report_num = report_num
+
     # Note: rename this and parse_settings to more appropriate names, refactor
     def parse_settings(self, settings_df, target_df, start_time=None):
         jaeb_inputs = parse_settings(settings_df=settings_df)
+
+        tr_sched = parse_tr_schedule_from_time_series(target_df)
+        tr_sched_normal = tr_sched[list(tr_sched.keys())[0]]
+        jaeb_inputs['target_range_start_times'] = tr_sched_normal[0]
+        jaeb_inputs['target_range_minimum_values'] = tr_sched_normal[1]
+        jaeb_inputs['target_range_maximum_values'] = tr_sched_normal[2]
+
+        previous = []
+        target_range_changes = {}
+        for day in tr_sched:
+            if previous and previous != tr_sched[day]:
+                target_range_changes[day] = tr_sched[day]
+            previous = tr_sched[day]
+
+        jaeb_inputs['target_range_changes'] = target_range_changes
 
         if start_time is not None:
             jaeb_inputs['time_to_calculate_at'] = start_time
@@ -70,11 +94,6 @@ class JaebDataSimParser(ScenarioParserCSV):
                                                      microseconds=rounded_start_time.microsecond)
 
             jaeb_inputs['time_to_calculate_at'] = rounded_start_time
-
-        target_data = target_df.dropna()
-        jaeb_inputs['target_range_minimum_values'] = list(target_data['bg_target_lower'].drop_duplicates().values)
-        jaeb_inputs['target_range_maximum_values'] = list(target_data['bg_target_upper'].drop_duplicates().values)
-        jaeb_inputs['target_range_start_times'] = [datetime.time(0, 0, 0)]
 
         # add any other important values
         # TODO: Make this flexible
@@ -318,12 +337,76 @@ class JaebDataSimParser(ScenarioParserCSV):
             values=self.loop_inputs_dict["cgm_glucose_values"],
         )
 
+        self.patient_actions = self.get_action_timeline()
+
+    def get_action_timeline(self):
+        datetimes = []
+        events = []
+
+        for date, target_range_change in self.loop_inputs_dict['target_range_changes'].items():
+            datetimes.append(
+                datetime.datetime(
+                    year=date.year,
+                    month=date.month,
+                    day=date.day,
+                    hour=0,
+                    minute=0,
+                    second=0
+                )
+            )
+            events.append(
+                ChangeTargetRange(
+                    name="User Changes Target Range",
+                    new_schedule=TargetRangeSchedule24hr(
+                        date,
+                        start_times=target_range_change[0],
+                        values=[
+                            TargetRange(min_value, max_value, units)
+                            for min_value, max_value, units in zip(
+                                target_range_change[1],
+                                target_range_change[2],
+                                [self.loop_inputs_dict.get("target_range_value_units")[0] for _ in
+                                 target_range_change[1]],
+                            )
+                        ],
+                        duration_minutes=self.loop_inputs_dict.get(
+                            "target_range_minutes", start_times_to_minutes_durations(target_range_change[0])
+                        ),
+                    )
+                )
+            )
+
+        timeline = ActionTimeline(datetimes=datetimes, events=events)
+        return timeline
+
     def transform_sensor(self):
 
         self.sensor_glucose_history = GlucoseTrace(
             datetimes=self.loop_inputs_dict["cgm_glucose_dates"],
             values=self.loop_inputs_dict["cgm_glucose_values"],
         )
+
+    def get_patient_config(self):
+        """
+        Get a config object with relevant patient information. Patient takes settings
+        from scenario that are "actual" settings.
+
+        Returns
+        -------
+        PatientConfig
+        """
+
+        patient_config = PatientConfig(
+            basal_schedule=self.patient_basal_schedule,
+            carb_ratio_schedule=self.patient_carb_ratio_schedule,
+            insulin_sensitivity_schedule=self.patient_insulin_sensitivity_schedule,
+            carb_event_timeline=self.patient_carb_events,
+            bolus_event_timeline=self.patient_bolus_events,
+            glucose_history=copy.deepcopy(self.patient_glucose_history),
+            action_timeline=self.patient_actions
+        )
+
+        return patient_config
 
 
 def parse_settings(settings_df):
@@ -336,9 +419,9 @@ def parse_settings(settings_df):
             if model == "fiasp":
                 obj = [360, 55]
             elif "humalog" in model:
-                if "child" in model:
+                if "Child" in model:
                     obj = [360, 65]
-                elif "adult" in model:
+                elif "Adult" in model:
                     obj = [360, 75]
             dict_["settings_dictionary"]["model"] = obj
         elif col == "carb_ratio_unit":
@@ -362,6 +445,8 @@ def parse_settings(settings_df):
             schedule_type = col.replace("schedule", "")
             if "sensitivity" in col:
                 schedule_type = "sensitivity_ratio_"
+            elif "correction" in col:
+                continue
             values = val.values[0]
             values = values.replace("'", "")
             values = (values.replace("[", "")).replace("]", "")
@@ -392,3 +477,29 @@ def parse_settings(settings_df):
                     dict_[schedule_type + "values"] = [float(value.split(": ")[1])]
 
     return dict_
+
+
+def parse_tr_schedule_from_time_series(schedule_df):
+    target_range_schedule = {}
+
+    schedule_df = schedule_df.drop_duplicates()
+    for i in schedule_df.index:
+        date_and_time = datetime.datetime.fromisoformat(schedule_df['rounded_local_time'][i])
+        date = date_and_time.date()
+        if date in target_range_schedule:
+            if target_range_schedule[date][1][-1] != schedule_df['bg_target_lower'][i] or \
+                    target_range_schedule[date][2][-1] != schedule_df['bg_target_upper'][i]:
+                date_and_time = datetime.datetime.fromisoformat(schedule_df['rounded_local_time'][i])
+                time = date_and_time.time()
+                target_range_schedule[date][0].append(time)
+                target_range_schedule[date][1].append(schedule_df['bg_target_lower'][i])
+                target_range_schedule[date][2].append(schedule_df['bg_target_upper'][i])
+        else:
+            time = date_and_time.time()
+            if time == datetime.time(0, 0, 0):
+                target_range_schedule[date] = [
+                    [time],
+                    [schedule_df['bg_target_lower'][i]],
+                    [schedule_df['bg_target_upper'][i]]]
+
+    return target_range_schedule

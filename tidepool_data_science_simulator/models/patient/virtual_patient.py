@@ -8,7 +8,7 @@ from tidepool_data_science_simulator.models.simulation import SimulationComponen
 from tidepool_data_science_simulator.makedata.scenario_parser import PatientConfig
 from tidepool_data_science_simulator.models.measures import Carb, Bolus, ManualBolus
 from tidepool_data_science_simulator.models.events import (
-    MealModel, Action, ActionTimeline, BolusTimeline, CarbTimeline, TempBasalTimeline
+    MealModel, ActionTimeline, BolusTimeline, CarbTimeline, TempBasalTimeline
 )
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 
