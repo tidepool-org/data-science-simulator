@@ -60,7 +60,8 @@ def test_sensitivity_analysis_patient():
 
     assert all_results['temp_basal_only'].true_bolus.sum() == 0
     assert all_results['correction_bolus'].true_bolus[1:].sum() == 0
-    assert all_results['meal_bolus'].true_bolus[1:].sum() == 0
+    # CAS - Fix/update 2020-08-12 - Bolus recs come in on next patient time
+    assert all_results['meal_bolus'].true_bolus[2:].sum() == 0
 
 
 
