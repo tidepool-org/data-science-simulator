@@ -8,6 +8,9 @@ import multiprocessing
 import copy
 import datetime
 import pandas as pd
+import numpy as np
+
+from tidepool_data_science_simulator.models.measures import Bolus, Carb
 
 
 class SimulationComponent(object):
@@ -23,7 +26,7 @@ class SimulationComponent(object):
 
     def get_time_delta_minutes(self, end_time):
         tdelta = end_time - self.time
-        return tdelta.minutes
+        return tdelta.total_seconds() / 60
 
 
 class SimulationState(object):
@@ -63,18 +66,17 @@ class Simulation(multiprocessing.Process):
         self,
         time,
         duration_hrs,
-        simulation_config,
         virtual_patient,
         controller,
         multiprocess=False,
+        seed=1234
     ):
 
         # To enable multiprocessing
         super().__init__()
         self.queue = multiprocessing.Queue()
         self.multiprocess = multiprocess
-
-        self.simulation_config = simulation_config
+        self.seed = seed
 
         self.start_time = copy.deepcopy(time)
         self.time = time
@@ -92,15 +94,11 @@ class Simulation(multiprocessing.Process):
         """
         Initialize the simulation
         """
-
-        # Set any temp basals at t=0
-        self.controller.update(self.time, virtual_patient=self.virtual_patient)
-
         # Setup steady state basal and t0 glucose
         self.virtual_patient.init()
 
-        # Establish prediction based on events at t0 and init above
-        self.virtual_patient.predict()
+        # Set any temp basals at t=0
+        self.controller.update(self.time, virtual_patient=self.virtual_patient)
 
         # Store info at t=0
         self.store_state()
@@ -114,14 +112,11 @@ class Simulation(multiprocessing.Process):
         time: datetime
         """
         # Set patient state at time from prediction at time - 1
-        self.virtual_patient.update_from_prediction(time)
+        self.virtual_patient.update(time)
 
         # Get and set on patient the next action from controller,
         #   e.g. temp basal, at time
         self.controller.update(time, virtual_patient=self.virtual_patient)
-
-        # Update patient prediction and member states
-        self.virtual_patient.update(time)
 
     def step(self):
         """
@@ -132,11 +127,18 @@ class Simulation(multiprocessing.Process):
         self.time = next_time
         self.update(next_time)
 
-    def run(self):
+    def run(self, early_stop_datetime=None):
         """
         Run the simulation until it's finished.
+
+        Parameters
+        ----------
+        early_stop_datetime: datetime
+            Optional stop time for the simulation.
         """
-        while not self.is_finished():
+        np.random.seed(self.seed)
+
+        while not (self.is_finished() or early_stop_datetime == self.time):
             self.step()
             self.store_state()
 
@@ -178,25 +180,71 @@ class Simulation(multiprocessing.Process):
         pd.DataFrame
             The time series result of the simulation
         """
+        data = []
+        for time, simulation_state in self.simulation_results.items():
 
-        data = [
-            {
+            # Patient stuff
+            true_bolus = simulation_state.patient_state.bolus
+            if true_bolus is None:
+                true_bolus = Bolus(0, "U")
+
+            true_carb = simulation_state.patient_state.carb
+            if true_carb is None:
+                true_carb = Carb(0, "g", 0)
+
+            # Pump stuff
+            pump_state = simulation_state.patient_state.pump_state
+            temp_basal_value = None
+            temp_basal_time_remaining = None
+            pump_sbr = None
+            pump_isf = None
+            pump_cir = None
+            delivered_basal_insulin = None
+            undelivered_basal_insulin = None
+            if pump_state is not None:
+                temp_basal_value = pump_state.get_temp_basal_rate_value(
+                    default=None
+                )
+                temp_basal_time_remaining = pump_state.get_temp_basal_minutes_left(
+                    time
+                )
+                pump_sbr = pump_state.scheduled_basal_rate
+                pump_isf = pump_state.scheduled_insulin_sensitivity_factor
+                pump_cir = pump_state.scheduled_carb_insulin_ratio
+                delivered_basal_insulin = pump_state.delivered_basal_insulin
+                undelivered_basal_insulin = pump_state.undelivered_basal_insulin
+
+                reported_bolus = pump_state.bolus
+                if reported_bolus is None:
+                    reported_bolus = Bolus(0, "U")
+
+                reported_carb = pump_state.carb
+                if reported_carb is None:
+                    reported_carb = Carb(0, "g", 0)
+
+            row = {
                 "time": time,
                 "bg": simulation_state.patient_state.bg,
                 "bg_sensor": simulation_state.patient_state.sensor_bg,
                 "iob": simulation_state.patient_state.iob,
-                "temp_basal": simulation_state.patient_state.pump_state.get_temp_basal_rate_value(
-                    default=None
-                ),
-                "temp_basal_zeros": simulation_state.patient_state.pump_state.get_temp_basal_rate_value(
-                    default=0
-                ),
-                "sbr": simulation_state.patient_state.pump_state.scheduled_basal_rate.value,
-                "cir": simulation_state.patient_state.cir,
-                "isf": simulation_state.patient_state.isf,
+                "temp_basal": temp_basal_value,
+                "temp_basal_time_remaining": temp_basal_time_remaining,
+                "sbr": simulation_state.patient_state.sbr.value,
+                "cir": simulation_state.patient_state.cir.value,
+                "isf": simulation_state.patient_state.isf.value,
+                "pump_sbr": pump_sbr,
+                "pump_isf": pump_isf,
+                "pump_cir": pump_cir,
+                "true_bolus": true_bolus.value,
+                "true_carb_value": true_carb.value,
+                "true_carb_duration": true_carb.duration_minutes,
+                "reported_bolus": reported_bolus.value,
+                "reported_carb_value": reported_carb.value,
+                "reported_carb_duration": reported_carb.duration_minutes,
+                "delivered_basal_insulin": delivered_basal_insulin,
+                "undelivered_basal_insulin": undelivered_basal_insulin
             }
-            for time, simulation_state in self.simulation_results.items()
-        ]
+            data.append(row)
 
         df = pd.DataFrame(data)
         df.set_index("time")
@@ -207,8 +255,7 @@ class SettingSchedule24Hr(SimulationComponent):
     """
     A class for settings schedules on a 24 hour cycle.
     """
-
-    def __init__(self, time, name, start_times, values, duration_minutes):
+    def __init__(self, time, name, start_times=None, values=None, duration_minutes=None):
         """
         Parameters
         ----------
@@ -227,9 +274,10 @@ class SettingSchedule24Hr(SimulationComponent):
         duration_minutes: list
             List of ints
         """
-
         self.time = time
         self.name = name
+        self.schedule_durations = {}
+        self.schedule = {}
 
         # All the same length
         assert (
@@ -237,7 +285,6 @@ class SettingSchedule24Hr(SimulationComponent):
             == len(start_times) * 3
         )
 
-        self.schedule = {}
         for start_time, value, duration_minutes in zip(
             start_times, values, duration_minutes
         ):
@@ -252,6 +299,7 @@ class SettingSchedule24Hr(SimulationComponent):
             )
             end_time = end_datetime.time()
             self.schedule[(start_time, end_time)] = value
+            self.schedule_durations[(start_time, end_time)] = duration_minutes
 
     def get_state(self):
         """
@@ -289,34 +337,86 @@ class SettingSchedule24Hr(SimulationComponent):
 
         self.time = time
 
+    def get_loop_inputs(self):
 
-class EventTimeline(object):
+        values = []
+        start_times = []
+        end_times = []
+        for (start_time, end_time), setting in self.schedule.items():
+            values.append(setting.value)
+            start_times.append(start_time)
+            end_times.append(end_time)
+
+        return values, start_times, end_times
+
+
+class BasalSchedule24hr(SettingSchedule24Hr):
+
+    def __init__(self, time, start_times, values, duration_minutes):
+        super().__init__(time, "Basal Rate Schedule", start_times, values, duration_minutes)
+
+    def get_loop_inputs(self):
+
+        values = []
+        start_times = []
+        durations = []
+        for (start_time, end_time), setting in self.schedule.items():
+            values.append(setting.value)
+            start_times.append(start_time)
+            durations.append(self.schedule_durations[(start_time, end_time)])
+
+        return values, start_times, durations
+
+
+class TargetRangeSchedule24hr(SettingSchedule24Hr):
+
+    def __init__(self, time, start_times, values, duration_minutes):
+        super().__init__(time, "Target Range Schedule", start_times, values, duration_minutes)
+
+    def get_loop_inputs(self):
+
+        min_values = []
+        max_values = []
+        start_times = []
+        end_times = []
+        for (start_time, end_time), target_range in self.schedule.items():
+            min_values.append(target_range.min_value)
+            max_values.append(target_range.max_value)
+            start_times.append(start_time)
+            end_times.append(end_time)
+
+        return min_values, max_values, start_times, end_times
+
+
+class SingleSettingSchedule24Hr(SimulationComponent):
     """
-    A class for insulin/carb/etc. events
+    Convenience class for creating single value setting schedules.
     """
+    def __init__(self, time, name, setting):
 
-    def __init__(self, datetimes, events):
+        self.time = time
+        self.name = name
+        self.setting = setting
 
-        self.events = pd.DataFrame({"date": datetimes, "event": events})
+    def get_state(self):
 
-    def get_event(self, time):
-        """
-        Get the event at the given time. If no event, returns None
+        return self.setting
 
-        Parameters
-        ----------
-        time: datetime
-            Time to check for event
+    def update(self, time, **kwargs):
 
-        Returns
-        -------
-        object
-            The insulin/carb/etc. event or None
-        """
-        event = None
+        pass  # stateless
 
-        event_mask = self.events["date"] == time
-        if event_mask.any():
-            event = self.events[event_mask]["event"].values[0]
+    def get_loop_inputs(self, use_durations):
 
-        return event
+        values = [self.setting.value]
+        start_times = [datetime.time(0, 0, 0)]
+
+        end_times = [datetime.time(23, 59, 59)]
+        durations = [1440]
+
+        if use_durations:
+            end = durations
+        else:
+            end = end_times
+
+        return values, start_times, end

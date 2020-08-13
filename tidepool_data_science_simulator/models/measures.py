@@ -5,6 +5,7 @@ Classes structures for various types of data used for simulation.
 """
 
 import copy
+import datetime
 
 
 class Measure(object):
@@ -27,6 +28,13 @@ class Measure(object):
             return Measure(self.value + other.value, self.units)
         else:
             raise ValueError("Cannot add measures of different units.")
+
+    def __eq__(self, other):
+
+        return self.value == other.value and self.units == other.units
+
+    def __hash__(self):
+        return hash((self.value, self.units))
 
 
 class MeasureRange(object):
@@ -72,18 +80,55 @@ class TempBasal(BasalRate):
         super().__init__(value, units)
 
         self.start_time = copy.deepcopy(time)
-        self.duration_minutes = duration_minutes
+        self.scheduled_duration_minutes = duration_minutes
+        self.scheduled_end_time = self.start_time + datetime.timedelta(minutes=duration_minutes)
+        self.actual_end_time = None
+        self.actual_duration_minutes = 0
+
         self.active = True
+        self.delivered_units = 0
 
     def __str__(self):
         this_str = "None"
         if self.active:
-            this_str = "{} {}".format(self.value, self.duration_minutes)
+            this_str = "{} {}".format(self.value, self.scheduled_duration_minutes)
 
         return this_str
 
     def __repr__(self):
-        return "{} {}min".format(super().__repr__(), self.duration_minutes)
+        return "{} {}min".format(super().__repr__(), self.scheduled_duration_minutes)
+
+    def __eq__(self, other):
+
+        return  self.start_time == other.start_time and \
+                self.value == other.value and \
+                self.units == other.units and \
+                self.scheduled_duration_minutes == other.scheduled_duration_minutes
+
+    def __hash__(self):
+        return hash((self.value, self.units, self.scheduled_duration_minutes))
+
+    def get_end_time(self):
+        """
+        Return the expected end time unless the temp basal was cut short, then
+        return the actual end time.
+
+        Returns
+        -------
+        datetime.datetime
+        """
+
+        end_time = self.scheduled_end_time
+        if self.actual_end_time is not None:
+            end_time = self.actual_end_time
+
+        return end_time
+
+    def get_minutes_remaining(self, time):
+        time_elapsed = time - self.start_time
+        minutes_elapsed = time_elapsed.total_seconds() / 60.0
+        minutes_remaining = self.scheduled_duration_minutes - minutes_elapsed
+        return minutes_remaining
 
     def is_active(self, time):
         """
@@ -101,7 +146,7 @@ class TempBasal(BasalRate):
         """
         minutes_passed = (time - self.start_time).total_seconds() / 60.0
 
-        if minutes_passed >= self.duration_minutes:
+        if minutes_passed >= self.scheduled_duration_minutes:
             self.active = False
 
         return self.active
@@ -109,9 +154,16 @@ class TempBasal(BasalRate):
 
 class Bolus(Measure):
     """
-    A bolus
+    A bolus delivered by a pump
     """
+    def __init__(self, value, units):
+        super().__init__(value, units)
 
+
+class ManualBolus(Bolus):
+    """
+    A Bolus that is delivered manually, e.g. via injection
+    """
     def __init__(self, value, units):
         super().__init__(value, units)
 
@@ -124,7 +176,7 @@ class Carb(Measure):
     def __init__(self, value, units, duration_minutes):
         super().__init__(value, units)
 
-        self.duration_minutes = duration_minutes
+        self.duration_minutes = int(duration_minutes)
 
 
 class CarbInsulinRatio(Measure):
@@ -226,9 +278,9 @@ class GlucoseTrace(object):
         self.datetimes.append(date)
         self.bg_values.append(bg)
 
-    def get_loop_format(self):
+    def get_loop_inputs(self):
         """
         Get two numpy arrays for dates and values, used for Loop input
         """
-        loop_bg_values = [max(40, min(400, round(bg))) for bg in self.bg_values]
+        loop_bg_values = [max(40, min(400, float(round(bg)))) for bg in self.bg_values]
         return self.datetimes, loop_bg_values

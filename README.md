@@ -58,7 +58,7 @@ that was created from the environmental.yml file (hint: environment name is at t
 
 ## Getting Started with this project
 1. Current FDA scenarios are being kept `/data/raw/fda_risk_scenarios` within this repo.
-2. Current demo use cases are the `/src`.
+2. Current demo use cases are the folder `tidepool_data_science_simulator/`.
 
 ## Contributing Guide
 1. All are welcome to contribute to this project.
@@ -80,11 +80,11 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 
 * Integrate iCGM sensor and analysis scenarios (size: medium)
 * Testing and cleanup (size: medium to large)
-* Decouple input scenario format from Loop (size: medium)
 * Integrate visuals and metrics repos (size: small)
 * Surface all parameters for configuration (size: small)
 * Control randomness via config seed(s) (size: small)
-* Speed up Pyloopkit, possible in this code base (size: medium to large)
+* ~~Decouple input scenario format from Loop (size: medium)~~
+* ~~Speed up Pyloopkit, possible in this code base (size: medium to large)~~
 
 ## Tidepool Data Science Team
 |Name (with github link)    |  [Tidepool Slack](https://tidepoolorg.slack.com/)   |  
