@@ -368,8 +368,10 @@ class ScenarioParserCSV(SimulationParser):
         controller_settings = self.loop_inputs_dict["settings_dictionary"]
 
         controller_config = ControllerConfig(
-            bolus_event_timeline=self.pump_bolus_events,
-            carb_event_timeline=self.pump_carb_events,
+            bolus_event_timeline=BolusTimeline(),
+            carb_event_timeline=CarbTimeline(),
+            # bolus_event_timeline=self.pump_bolus_events,
+            # carb_event_timeline=self.pump_carb_events,
             controller_settings=controller_settings
         )
 
