@@ -81,7 +81,10 @@ class ContinuousInsulinPump(SimulationComponent):
 
         self.bolus_event_timeline = self.pump_config.bolus_event_timeline
         self.carb_event_timeline = self.pump_config.carb_event_timeline
-        self.temp_basal_event_timeline = TempBasalTimeline()  # Not currently in scenario files
+        if self.pump_config.temp_basal_event_timeline is not None:
+            self.temp_basal_event_timeline = self.pump_config.temp_basal_event_timeline # Not currently in scenario files
+        else:
+            self.temp_basal_event_timeline = TempBasalTimeline()
 
         self.active_temp_basal = None
         self.basal_insulin_delivered_last_update = 0

@@ -5,7 +5,8 @@ import numpy as np
 import datetime
 import copy
 
-from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV, PatientConfig
+from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV, PatientConfig, ControllerConfig
+from pyloopkit.dose import DoseType
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
 )
@@ -20,6 +21,8 @@ from tidepool_data_science_simulator.models.events import (
 from tidepool_data_science_simulator.models.measures import (
     Carb,
     BasalRate,
+    Bolus,
+    TempBasal,
     CarbInsulinRatio,
     InsulinSensitivityFactor,
     TargetRange,
@@ -44,10 +47,12 @@ class JaebDataSimParser(ScenarioParserCSV):
         carb_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time', 'carbs'])
         target_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time',
                                                                               'bg_target_lower', 'bg_target_upper'])
+        insulin_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time',
+                                                                              'bolus', 'set_basal_rate'])
         cgm_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time', 'cgm'])
         self.parse_settings(settings_df=settings_data, target_df=target_data)
         self.parse_carbs(carb_df=carb_data)
-
+        self.parse_insulin(insulin_df=insulin_data)
         self.parse_cgm(cgm_data)
 
         if t0 is not None:
@@ -145,15 +150,73 @@ class JaebDataSimParser(ScenarioParserCSV):
         cgm_data = cgm_df.dropna()
         history_end_time = self.get_simulation_start_time()
 
-        bg_dates = [datetime.datetime.fromisoformat(
-            pd.to_datetime(date).isoformat()) for date in cgm_data["rounded_local_time"].values if
-            datetime.datetime.fromisoformat(date) <= history_end_time]
-        glucose_values = [cgm_data["cgm"].values[i] for i in range(
+        self.loop_inputs_dict["cgm_glucose_values"] = [cgm_data["cgm"].values[i] for i in range(
             len(cgm_data["cgm"].values)) if datetime.datetime.fromisoformat(cgm_data["rounded_local_time"].values[i]) <=
             history_end_time]
+        self.loop_inputs_dict["cgm_glucose_dates"] = [datetime.datetime.fromisoformat(
+            pd.to_datetime(date).isoformat()) for date in cgm_data["rounded_local_time"].values if
+            datetime.datetime.fromisoformat(date) <= history_end_time]
 
-        self.loop_inputs_dict["cgm_glucose_values"] = glucose_values
-        self.loop_inputs_dict["cgm_glucose_dates"] = bg_dates
+        self.loop_inputs_dict["actual_glucose_values"] = [val for val in cgm_data["cgm"].values]
+        self.loop_inputs_dict["actual_glucose_dates"] = [datetime.datetime.fromisoformat(
+            pd.to_datetime(date).isoformat()) for date in cgm_data["rounded_local_time"].values]
+
+    def parse_insulin(self, insulin_df):
+        insulin_df = insulin_df.set_index('rounded_local_time')
+        temp_basal = insulin_df['set_basal_rate'].dropna()
+        bolus = insulin_df['bolus'].dropna()
+
+
+        bolus_start_times, bolus_values, bolus_units, bolus_dose_types, bolus_delivered_units = ([], [], [], [], [])
+        temp_basal_start_times, temp_basal_duration_minutes, temp_basal_values, \
+        temp_basal_units, temp_basal_dose_types, temp_basal_delivered_units = ([], [], [], [], [], [])
+        for date, dose in bolus.items():
+            bolus_date = datetime.datetime.fromisoformat(pd.to_datetime(date).isoformat())
+            if bolus_date > self.get_simulation_start_time():
+                break
+            bolus_start_times.append(bolus_date)
+            bolus_values.append(dose)
+            bolus_dose_types.append(DoseType.bolus)
+            bolus_units.append("U")
+            #bolus_delivered_units.append()
+
+        previous = None
+        for date, dose in temp_basal.items():
+            date_as_date = datetime.datetime.fromisoformat(pd.to_datetime(date).isoformat())
+            if date_as_date > self.get_simulation_start_time():
+                break
+            temp_basal_start_times.append(date_as_date)
+
+            if not previous:
+                temp_basal_values.append(dose)
+                temp_basal_units.append("U/hr")
+                #temp_basal_delivered_units.append()
+                temp_basal_dose_types.append(DoseType.tempbasal)
+                temp_basal_duration_minutes.append(5)
+            else:
+                if (previous[1] == dose) and (date_as_date - previous[0] == datetime.timedelta(minutes=5)):
+                    temp_basal_duration_minutes[-1] = temp_basal_duration_minutes[-1] + 5
+                else:
+                    temp_basal_values.append(dose)
+                    temp_basal_units.append("U/hr")
+                    # temp_basal_delivered_units.append()
+                    temp_basal_dose_types.append(DoseType.tempbasal)
+                    temp_basal_duration_minutes.append(5)
+
+            previous = date_as_date, dose
+
+        self.loop_inputs_dict['bolus_start_times'] = bolus_start_times
+        self.loop_inputs_dict['bolus_values'] = bolus_values
+        self.loop_inputs_dict['bolus_units'] = bolus_units
+        self.loop_inputs_dict['bolus_delivered_units'] = bolus_delivered_units
+        self.loop_inputs_dict['bolus_dose_types'] = bolus_dose_types
+        self.loop_inputs_dict['temp_basal_start_times'] = temp_basal_start_times
+        self.loop_inputs_dict['temp_basal_values'] = temp_basal_values
+        self.loop_inputs_dict['temp_basal_duration_minutes'] = temp_basal_duration_minutes
+        self.loop_inputs_dict['temp_basal_dose_types'] = temp_basal_dose_types
+        self.loop_inputs_dict['temp_basal_units'] = temp_basal_units
+        self.loop_inputs_dict['temp_basal_delivered_units'] = temp_basal_delivered_units
+
 
     def transform_pump(self, time):
 
@@ -237,13 +300,28 @@ class JaebDataSimParser(ScenarioParserCSV):
         # TODO: Import bolus and basal data
 
         self.pump_bolus_events = BolusTimeline(
-            datetimes=[],
-            events=[]
+            datetimes=self.loop_inputs_dict["bolus_start_times"],
+            events=[
+                Bolus(value, units)
+                for value, units, dose_type in zip(
+                    self.loop_inputs_dict["bolus_values"],
+                    self.loop_inputs_dict["bolus_units"],
+                    self.loop_inputs_dict["bolus_dose_types"]
+                )
+            ],
         )
 
         self.pump_temp_basal_events = TempBasalTimeline(
-            datetimes=[],
-            events=[]
+            datetimes=self.loop_inputs_dict["temp_basal_start_times"],
+            events=[
+                TempBasal(start_time, value, duration_minutes, units, delivered_units=value)
+                for start_time, value, units, duration_minutes in zip(
+                    self.loop_inputs_dict["temp_basal_start_times"],
+                    self.loop_inputs_dict["temp_basal_values"],
+                    self.loop_inputs_dict["temp_basal_units"],
+                    self.loop_inputs_dict["temp_basal_duration_minutes"]
+                )
+            ],
         )
 
     def transform_patient(self, time):
@@ -328,13 +406,25 @@ class JaebDataSimParser(ScenarioParserCSV):
         )
 
         self.patient_bolus_events = BolusTimeline(
-            datetimes=[],
-            events=[]
+            datetimes=self.loop_inputs_dict["bolus_start_times"],
+            events=[
+                Bolus(value, units)
+                for value, units, dose_type in zip(
+                    self.loop_inputs_dict["bolus_values"],
+                    self.loop_inputs_dict["bolus_units"],
+                    self.loop_inputs_dict["bolus_dose_types"]
+                )
+            ],
         )
 
         self.patient_glucose_history = GlucoseTrace(
             datetimes=self.loop_inputs_dict["cgm_glucose_dates"],
             values=self.loop_inputs_dict["cgm_glucose_values"],
+        )
+
+        self.patient_actual_glucose_values = GlucoseTrace(
+            datetimes=self.loop_inputs_dict["actual_glucose_dates"],
+            values=self.loop_inputs_dict["actual_glucose_values"]
         )
 
         self.patient_actions = self.get_action_timeline()
@@ -403,10 +493,31 @@ class JaebDataSimParser(ScenarioParserCSV):
             carb_event_timeline=self.patient_carb_events,
             bolus_event_timeline=self.patient_bolus_events,
             glucose_history=copy.deepcopy(self.patient_glucose_history),
+            real_glucose=self.patient_actual_glucose_values,
             action_timeline=self.patient_actions
         )
 
         return patient_config
+
+    def get_controller_config(self):
+        """
+        Get the Loop controller configuration.
+
+        Returns
+        -------
+        dict
+            The settings dictionary
+        """
+        controller_settings = self.loop_inputs_dict["settings_dictionary"]
+
+        controller_config = ControllerConfig(
+            bolus_event_timeline=self.pump_bolus_events,
+            carb_event_timeline=self.pump_carb_events,
+            temp_basal_timeline=self.pump_temp_basal_events,
+            controller_settings=controller_settings
+        )
+
+        return controller_config
 
 
 def parse_settings(settings_df):

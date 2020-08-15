@@ -438,11 +438,12 @@ class ControllerConfig(object):
         self,
         bolus_event_timeline,
         carb_event_timeline,
-        controller_settings
+        controller_settings,
+        temp_basal_timeline=TempBasalTimeline()
      ):
         self.bolus_event_timeline = bolus_event_timeline
         self.carb_event_timeline = carb_event_timeline
-        self.temp_basal_event_timeline = TempBasalTimeline()  # No existing scenario specifies temp basal events
+        self.temp_basal_event_timeline = temp_basal_timeline  # No existing scenario specifies temp basal events
         self.controller_settings = controller_settings
 
 
@@ -455,6 +456,7 @@ class PatientConfig(object):
         glucose_history,
         carb_event_timeline,
         bolus_event_timeline,
+        real_glucose=None,
         action_timeline=None,
         recommendation_accept_prob=1.0,
     ):
@@ -494,6 +496,7 @@ class PatientConfig(object):
         self.action_timeline = action_timeline
 
         self.glucose_history = glucose_history
+        self.real_glucose = real_glucose
 
         self.recommendation_accept_prob = recommendation_accept_prob
 

@@ -14,10 +14,34 @@ from tidepool_data_science_models.models.simple_metabolism_model import SimpleMe
 
 
 def run_replay(path_to_settings, path_to_time_series_data, t0=None):
-
     jaeb_parser = JaebDataSimParser(
         path_to_settings=path_to_settings,
         path_to_time_series_data=path_to_time_series_data
+    )
+    assert 'settings_dictionary' in jaeb_parser.loop_inputs_dict
+    assert 'model' in jaeb_parser.loop_inputs_dict['settings_dictionary']
+    assert 'max_basal_rate' in jaeb_parser.loop_inputs_dict['settings_dictionary']
+    assert 'max_bolus' in jaeb_parser.loop_inputs_dict['settings_dictionary']
+    assert 'default_absorption_times' in jaeb_parser.loop_inputs_dict['settings_dictionary']
+    assert len(jaeb_parser.loop_inputs_dict['settings_dictionary']['default_absorption_times']) == 3
+    assert len(jaeb_parser.loop_inputs_dict['sensitivity_ratio_start_times']) == len(jaeb_parser.loop_inputs_dict[
+                                                                                         'sensitivity_ratio_values'])
+    assert len(jaeb_parser.loop_inputs_dict['carb_ratio_start_times']) == len(jaeb_parser.loop_inputs_dict[
+                                                                                         'carb_ratio_values'])
+    assert len(jaeb_parser.loop_inputs_dict['basal_rate_start_times']) == len(jaeb_parser.loop_inputs_dict[
+                                                                                         'basal_rate_values'])
+    assert len(jaeb_parser.loop_inputs_dict['target_range_start_times']) == \
+           len(jaeb_parser.loop_inputs_dict['target_range_minimum_values']) == len(jaeb_parser.loop_inputs_dict[
+                                                                                         'target_range_maximum_values'])
+
+    assert jaeb_parser.get_simulation_start_time() != datetime.datetime.now()
+    assert jaeb_parser.get_simulation_start_time() == datetime.datetime(
+        year=2020,
+        month=1,
+        day=2,
+        hour=0,
+        minute=0,
+        second=0
     )
 
     t0 = jaeb_parser.get_simulation_start_time()
@@ -35,7 +59,6 @@ def run_replay(path_to_settings, path_to_time_series_data, t0=None):
     )
 
     patient_config = jaeb_parser.get_patient_config()
-    patient_config.recommendation_accept_prob = 1.0
     patient = VirtualPatient(
         time=t0,
         pump=pump,
@@ -71,19 +94,7 @@ def run_replay(path_to_settings, path_to_time_series_data, t0=None):
     plot_sim_results(all_results)
 
 
-if __name__ == "__main__":
-    parsed_data_folder = "../PHI-Jaeb-Data/"
-    parsed_data_files = os.listdir(parsed_data_folder)
-
-    time_series_files = []
-    time_series_folder = ""
-    for filename in parsed_data_files:
-        if "data-summary" in filename:
-            issue_report_settings_path = os.path.join(parsed_data_folder, filename)
-        elif "time-series" in filename:
-            time_series_files = os.listdir(parsed_data_folder + filename)
-            time_series_folder = filename
-
-    for filename in time_series_files[:1]:
-        time_series_path = parsed_data_folder + time_series_folder + "/" + filename
-        run_replay(path_to_settings=issue_report_settings_path, path_to_time_series_data=time_series_path)
+def test_jaeb_parser():
+    issue_report_settings_path = "../tests/data/test-jaeb-settings-data.csv"
+    time_series_path = "data/LOOP-0-test-0-jaeb-time-series-data.csv"
+    run_replay(path_to_settings=issue_report_settings_path, path_to_time_series_data=time_series_path)
