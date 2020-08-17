@@ -78,78 +78,7 @@ class ScenarioParserCSV(SimulationParser):
     def transform_pump(self, time):
 
         # ========== Pump =============
-        self.pump_basal_schedule = BasalSchedule24hr(
-            time,
-            start_times=self.loop_inputs_dict.get("basal_rate_start_times"),
-            values=[
-                BasalRate(rate, units)
-                for rate, units in zip(
-                    self.loop_inputs_dict.get("basal_rate_values"),
-                    self.loop_inputs_dict.get("basal_rate_units"),
-                )
-            ],
-            duration_minutes=self.loop_inputs_dict.get("basal_rate_minutes"),
-        )
-
-        self.pump_carb_ratio_schedule = SettingSchedule24Hr(
-            time,
-            "Carb Insulin Ratio",
-            start_times=self.loop_inputs_dict.get("carb_ratio_start_times"),
-            values=[
-                CarbInsulinRatio(value, units)
-                for value, units in zip(
-                    self.loop_inputs_dict.get("carb_ratio_values"),
-                    self.loop_inputs_dict.get("carb_ratio_value_units"),
-                )
-            ],
-            duration_minutes=self.loop_inputs_dict.get(
-                "carb_ratio_minutes", start_times_to_minutes_durations(self.loop_inputs_dict["carb_ratio_start_times"])
-            ),
-        )
-
-        self.pump_insulin_sensitivity_schedule = SettingSchedule24Hr(
-            time,
-            "Insulin Sensitivity",
-            start_times=self.loop_inputs_dict.get("sensitivity_ratio_start_times"),
-            values=[
-                InsulinSensitivityFactor(value, units)
-                for value, units in zip(
-                    self.loop_inputs_dict.get("sensitivity_ratio_values"),
-                    self.loop_inputs_dict.get("sensitivity_ratio_value_units"),
-                )
-            ],
-            duration_minutes=self.loop_inputs_dict.get(
-                "sensitivity_ratio_minutes", start_times_to_minutes_durations(self.loop_inputs_dict["sensitivity_ratio_start_times"])
-            ),
-        )
-
-        self.pump_target_range_schedule = TargetRangeSchedule24hr(
-            time,
-            start_times=self.loop_inputs_dict.get("target_range_start_times"),
-            values=[
-                TargetRange(min_value, max_value, units)
-                for min_value, max_value, units in zip(
-                    self.loop_inputs_dict.get("target_range_minimum_values"),
-                    self.loop_inputs_dict.get("target_range_maximum_values"),
-                    self.loop_inputs_dict.get("target_range_value_units"),
-                )
-            ],
-            duration_minutes=self.loop_inputs_dict.get(
-                "target_range_minutes", start_times_to_minutes_durations(self.loop_inputs_dict["target_range_start_times"])
-            ),
-        )
-
-        self.pump_carb_events = CarbTimeline(
-            datetimes=self.loop_inputs_dict["carb_dates"],
-            events=[
-                Carb(value, units, duration)
-                for value, units, duration in zip(
-                    self.loop_inputs_dict["carb_values"],
-                    self.loop_inputs_dict["carb_value_units"],
-                    self.loop_inputs_dict["carb_absorption_times"],
-                )
-            ],
-        )
+        self.transform_pump_settings(time)
 
         # Separate bolus and temp basal events
         bolus_start_times, bolus_values, bolus_units, bolus_dose_types, bolus_delivered_units = ([], [], [], [], [])
@@ -202,6 +131,84 @@ class ScenarioParserCSV(SimulationParser):
                     temp_basal_units,
                     temp_basal_duration_minutes,
                     temp_basal_delivered_units
+                )
+            ],
+        )
+
+    def transform_pump_settings(self, time):
+        self.pump_basal_schedule = BasalSchedule24hr(
+            time,
+            start_times=self.loop_inputs_dict.get("basal_rate_start_times"),
+            values=[
+                BasalRate(rate, units)
+                for rate, units in zip(
+                    self.loop_inputs_dict.get("basal_rate_values"),
+                    self.loop_inputs_dict.get("basal_rate_units"),
+                )
+            ],
+            duration_minutes=self.loop_inputs_dict.get(
+                "basal_rate_minutes", start_times_to_minutes_durations(self.loop_inputs_dict["basal_rate_start_times"])
+            )
+        )
+
+        self.pump_carb_ratio_schedule = SettingSchedule24Hr(
+            time,
+            "Carb Insulin Ratio",
+            start_times=self.loop_inputs_dict.get("carb_ratio_start_times"),
+            values=[
+                CarbInsulinRatio(value, units)
+                for value, units in zip(
+                    self.loop_inputs_dict.get("carb_ratio_values"),
+                    self.loop_inputs_dict.get("carb_ratio_value_units"),
+                )
+            ],
+            duration_minutes=self.loop_inputs_dict.get(
+                "carb_ratio_minutes", start_times_to_minutes_durations(self.loop_inputs_dict["carb_ratio_start_times"])
+            ),
+        )
+
+        self.pump_insulin_sensitivity_schedule = SettingSchedule24Hr(
+            time,
+            "Insulin Sensitivity",
+            start_times=self.loop_inputs_dict.get("sensitivity_ratio_start_times"),
+            values=[
+                InsulinSensitivityFactor(value, units)
+                for value, units in zip(
+                    self.loop_inputs_dict.get("sensitivity_ratio_values"),
+                    self.loop_inputs_dict.get("sensitivity_ratio_value_units"),
+                )
+            ],
+            duration_minutes=self.loop_inputs_dict.get(
+                "sensitivity_ratio_minutes",
+                start_times_to_minutes_durations(self.loop_inputs_dict["sensitivity_ratio_start_times"])
+            ),
+        )
+
+        self.pump_target_range_schedule = TargetRangeSchedule24hr(
+            time,
+            start_times=self.loop_inputs_dict.get("target_range_start_times"),
+            values=[
+                TargetRange(min_value, max_value, units)
+                for min_value, max_value, units in zip(
+                    self.loop_inputs_dict.get("target_range_minimum_values"),
+                    self.loop_inputs_dict.get("target_range_maximum_values"),
+                    self.loop_inputs_dict.get("target_range_value_units"),
+                )
+            ],
+            duration_minutes=self.loop_inputs_dict.get(
+                "target_range_minutes",
+                start_times_to_minutes_durations(self.loop_inputs_dict["target_range_start_times"])
+            ),
+        )
+
+        self.pump_carb_events = CarbTimeline(
+            datetimes=self.loop_inputs_dict["carb_dates"],
+            events=[
+                Carb(value, units, duration)
+                for value, units, duration in zip(
+                    self.loop_inputs_dict["carb_values"],
+                    self.loop_inputs_dict["carb_value_units"],
+                    self.loop_inputs_dict["carb_absorption_times"],
                 )
             ],
         )
