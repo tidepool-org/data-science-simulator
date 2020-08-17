@@ -9,7 +9,7 @@ from tidepool_data_science_simulator.models.sensor import IdealSensor
 from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
-from tidepool_data_science_simulator.models.measures import Bolus
+from tidepool_data_science_simulator.models.measures import Bolus, Carb, BasalRate, InsulinSensitivityFactor
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
@@ -54,13 +54,19 @@ def run_replay(path_to_settings, path_to_time_series_data, t0=None):
         pump_config=jaeb_parser.get_pump_config()
     )
 
-    assert list(pump.bolus_event_timeline.events.values())[0] == Bolus(4.0, "U")
-
     assert list(pump.pump_config.basal_schedule.schedule.keys())[0] == (datetime.time(0, 0), datetime.time(23, 59, 59))
+    assert list(pump.pump_config.insulin_sensitivity_schedule.schedule.keys())[0] == (datetime.time(0, 0), datetime.time(23, 59, 59))
+    assert list(pump.pump_config.basal_schedule.schedule.values())[0] == BasalRate(0.5, "U")
+    assert list(pump.pump_config.insulin_sensitivity_schedule.schedule.values())[0] == InsulinSensitivityFactor(50.0,
+                                                                                                                "mg/dL/U")
     assert pump.pump_config.max_bolus != float('inf')
     assert pump.pump_config.max_temp_basal != float('inf')
     assert pump.pump_config.max_bolus == 7.0
     assert pump.pump_config.max_temp_basal == 4.0
+
+    assert list(pump.bolus_event_timeline.events.values())[0] == Bolus(4.0, "U")
+    assert list(pump.carb_event_timeline.events.values())[0] == Carb(36.0, "g", 180)
+    assert len(list(pump.temp_basal_event_timeline.events.items())) == 0
 
     sensor = IdealSensor(
         time=t0,
@@ -104,6 +110,6 @@ def run_replay(path_to_settings, path_to_time_series_data, t0=None):
 
 
 def test_jaeb_parser():
-    issue_report_settings_path = "tests/data/test-jaeb-settings-data.csv"
-    time_series_path = "tests/data/LOOP-0-test-0-jaeb-time-series-data.csv"
+    issue_report_settings_path = "data/test-jaeb-settings-data.csv"
+    time_series_path = "data/LOOP-0-test-0-jaeb-time-series-data.csv"
     run_replay(path_to_settings=issue_report_settings_path, path_to_time_series_data=time_series_path)
