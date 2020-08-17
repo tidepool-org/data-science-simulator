@@ -499,26 +499,6 @@ class JaebDataSimParser(ScenarioParserCSV):
 
         return patient_config
 
-    def get_controller_config(self):
-        """
-        Get the Loop controller configuration.
-
-        Returns
-        -------
-        dict
-            The settings dictionary
-        """
-        controller_settings = self.loop_inputs_dict["settings_dictionary"]
-
-        controller_config = ControllerConfig(
-            bolus_event_timeline=self.pump_bolus_events,
-            carb_event_timeline=self.pump_carb_events,
-            temp_basal_timeline=self.pump_temp_basal_events,
-            controller_settings=controller_settings
-        )
-
-        return controller_config
-
 
 def parse_settings(settings_df):
     dict_ = dict()

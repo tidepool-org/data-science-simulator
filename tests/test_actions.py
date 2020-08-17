@@ -10,7 +10,7 @@ from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.events import ActionTimeline, VirtualPatientDeleteLoopData
 
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
-from tidepool_data_science_simulator.models.patient import VirtualPatient
+from tidepool_data_science_simulator.models.patient.virtual_patient import VirtualPatient
 from tidepool_data_science_simulator.models.sensor import IdealSensor
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
@@ -45,7 +45,7 @@ def test_virtual_patient_delete():
 
 def test_virtual_patient_delete_with_scenario_file():
 
-    scenario_csv_filepath = "tests/data/Scenario-0-simulation-template - inputs.tsv"
+    scenario_csv_filepath = "data/Scenario-0-simulation-template - inputs.tsv"
     sim_parser = ScenarioParserCSV(scenario_csv_filepath)
     t0 = sim_parser.get_simulation_start_time()
 

@@ -510,7 +510,9 @@ class PumpConfig(object):
         target_range_schedule,
         carb_event_timeline,
         bolus_event_timeline,
-        temp_basal_event_timeline
+        temp_basal_event_timeline,
+        max_temp_basal=np.inf,
+        max_bolus=np.inf
     ):
         """
         Configuration for pump
@@ -546,8 +548,8 @@ class PumpConfig(object):
         self.temp_basal_event_timeline = temp_basal_event_timeline
 
         # FIXME - these should be explicit somewhere
-        self.max_temp_basal = np.inf
-        self.max_bolus = np.inf
+        self.max_temp_basal = max_temp_basal
+        self.max_bolus = max_bolus
 
 
 class SensorConfig(object):
