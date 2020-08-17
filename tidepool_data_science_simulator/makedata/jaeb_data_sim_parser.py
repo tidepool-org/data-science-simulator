@@ -5,7 +5,7 @@ import numpy as np
 import datetime
 import copy
 
-from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV, PatientConfig, ControllerConfig
+from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV, PatientConfig, PumpConfig
 from pyloopkit.dose import DoseType
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
@@ -70,7 +70,7 @@ class JaebDataSimParser(ScenarioParserCSV):
 
     # Note: rename this and parse_settings to more appropriate names, refactor
     def parse_settings(self, settings_df, target_df, start_time=None):
-        jaeb_inputs = parse_settings(settings_df=settings_df)
+        jaeb_inputs = input_settings_from_df(settings_df=settings_df)
 
         tr_sched = parse_tr_schedule_from_time_series(target_df)
         tr_sched_normal = tr_sched[list(tr_sched.keys())[0]]
@@ -150,10 +150,10 @@ class JaebDataSimParser(ScenarioParserCSV):
         cgm_data = cgm_df.dropna()
         history_end_time = self.get_simulation_start_time()
 
-        self.loop_inputs_dict["cgm_glucose_values"] = [cgm_data["cgm"].values[i] for i in range(
+        self.loop_inputs_dict["glucose_values"] = [cgm_data["cgm"].values[i] for i in range(
             len(cgm_data["cgm"].values)) if datetime.datetime.fromisoformat(cgm_data["rounded_local_time"].values[i]) <=
             history_end_time]
-        self.loop_inputs_dict["cgm_glucose_dates"] = [datetime.datetime.fromisoformat(
+        self.loop_inputs_dict["glucose_dates"] = [datetime.datetime.fromisoformat(
             pd.to_datetime(date).isoformat()) for date in cgm_data["rounded_local_time"].values if
             datetime.datetime.fromisoformat(date) <= history_end_time]
 
@@ -172,8 +172,6 @@ class JaebDataSimParser(ScenarioParserCSV):
         temp_basal_units, temp_basal_dose_types, temp_basal_delivered_units = ([], [], [], [], [], [])
         for date, dose in bolus.items():
             bolus_date = datetime.datetime.fromisoformat(pd.to_datetime(date).isoformat())
-            if bolus_date > self.get_simulation_start_time():
-                break
             bolus_start_times.append(bolus_date)
             bolus_values.append(dose)
             bolus_dose_types.append(DoseType.bolus)
@@ -247,6 +245,10 @@ class JaebDataSimParser(ScenarioParserCSV):
                 )
             ],
         )
+
+        self.pump_max_basal_rate = self.loop_inputs_dict['settings_dictionary']['max_basal_rate']
+
+        self.pump_max_bolus = self.loop_inputs_dict['settings_dictionary']['max_bolus']
 
     def transform_patient(self, time):
         """
@@ -342,8 +344,8 @@ class JaebDataSimParser(ScenarioParserCSV):
         )
 
         self.patient_glucose_history = GlucoseTrace(
-            datetimes=self.loop_inputs_dict["cgm_glucose_dates"],
-            values=self.loop_inputs_dict["cgm_glucose_values"],
+            datetimes=self.loop_inputs_dict["glucose_dates"],
+            values=self.loop_inputs_dict["glucose_values"],
         )
 
         self.patient_actual_glucose_values = GlucoseTrace(
@@ -393,12 +395,29 @@ class JaebDataSimParser(ScenarioParserCSV):
         timeline = ActionTimeline(datetimes=datetimes, events=events)
         return timeline
 
-    def transform_sensor(self):
+    def get_pump_config(self):
+        """
+        Get a config object with relevant pump information. Pump takes settings
+        from scenario that are programmed and may differ from the patient or "actual" settings.
 
-        self.sensor_glucose_history = GlucoseTrace(
-            datetimes=self.loop_inputs_dict["cgm_glucose_dates"],
-            values=self.loop_inputs_dict["cgm_glucose_values"],
+        Returns
+        -------
+        PumpConfig
+        """
+
+        pump_config = PumpConfig(
+            basal_schedule=self.pump_basal_schedule,
+            carb_ratio_schedule=self.pump_carb_ratio_schedule,
+            insulin_sensitivity_schedule=self.pump_insulin_sensitivity_schedule,
+            target_range_schedule=self.pump_target_range_schedule,
+            carb_event_timeline=self.pump_carb_events,
+            bolus_event_timeline=self.pump_bolus_events,
+            temp_basal_event_timeline=self.pump_temp_basal_events,
+            max_temp_basal=self.pump_max_basal_rate,
+            max_bolus=self.pump_max_bolus
         )
+
+        return pump_config
 
     def get_patient_config(self):
         """
@@ -424,7 +443,7 @@ class JaebDataSimParser(ScenarioParserCSV):
         return patient_config
 
 
-def parse_settings(settings_df):
+def input_settings_from_df(settings_df):
     dict_ = dict()
     dict_["settings_dictionary"] = dict()
     for col, val in settings_df.iteritems():
