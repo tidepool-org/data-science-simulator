@@ -56,3 +56,13 @@ class RealPatient(VirtualPatient):
 
     def add_event(self, time_of_event, event):
         pass
+
+
+class RealPatientReplay(RealPatient):
+    def update(self, time, **kwargs):
+        self.time = time
+
+        if self.pump is not None:
+            self.pump.update(time)
+
+        self.sensor.update(time)

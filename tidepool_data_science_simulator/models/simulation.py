@@ -12,7 +12,6 @@ import numpy as np
 
 from tidepool_data_science_simulator.models.measures import Bolus, Carb
 
-
 class SimulationComponent(object):
     """
     A class with abstract and convenience methods for use in the simulation.
@@ -262,6 +261,89 @@ class Simulation(multiprocessing.Process):
                 "reported_bolus": reported_bolus.value,
                 "reported_carb_value": reported_carb.value,
                 "reported_carb_duration": reported_carb.duration_minutes,
+                "delivered_basal_insulin": delivered_basal_insulin,
+                "undelivered_basal_insulin": undelivered_basal_insulin
+            }
+            data.append(row)
+
+        df = pd.DataFrame(data)
+        df.set_index("time")
+        return df
+
+
+class ReplaySimulation(Simulation):
+    def get_results_df(self):
+        """
+        Get results as a dataframe object.
+
+        Returns
+        -------
+        pd.DataFrame
+            The time series result of the simulation
+        """
+        #TODO: Ugh, clean up this mess
+
+        data = []
+        for time, simulation_state in self.simulation_results.items():
+
+            # Pump stuff
+            pump_state = simulation_state.patient_state.pump_state
+            temp_basal_value = None
+            temp_basal_time_remaining = None
+            pump_sbr = None
+            pump_isf = None
+            pump_cir = None
+            delivered_basal_insulin = None
+            undelivered_basal_insulin = None
+            reported_bolus = Bolus(0, "U")
+            reported_carb = Carb(0, "g", 0)
+
+            temp_basal = self.virtual_patient.pump.temp_basal_event_timeline.get_event(time)
+            if temp_basal is not None:
+                temp_basal_value = temp_basal.value
+
+                temp_basal_time_remaining = pump_state.get_temp_basal_minutes_left(
+                    time
+                )
+
+            bolus = self.virtual_patient.pump.bolus_event_timeline.get_event(time)
+            if bolus is not None:
+                reported_bolus = bolus
+
+            if pump_state is not None:
+                pump_sbr = pump_state.scheduled_basal_rate
+                pump_isf = pump_state.scheduled_insulin_sensitivity_factor
+                pump_cir = pump_state.scheduled_carb_insulin_ratio
+                delivered_basal_insulin = pump_state.delivered_basal_insulin
+                undelivered_basal_insulin = pump_state.undelivered_basal_insulin
+
+            carbs = self.virtual_patient.pump.carb_event_timeline.get_event(time)
+            if carbs is not None:
+                reported_carb = carbs
+
+            #Controller stuff
+            recommendations = simulation_state.controller_state.pyloopkit_recommendations
+            suggested_temp_basal_value = None
+            suggested_bolus = Bolus(recommendations['recommended_bolus'][0], "U")
+
+            if recommendations['recommended_temp_basal'] is not None:
+                suggested_temp_basal_value = recommendations['recommended_temp_basal'][0]
+
+            row = {
+                "time": time,
+                "bg": simulation_state.patient_state.bg,
+                "bg_sensor": simulation_state.patient_state.sensor_bg,
+                "iob": simulation_state.patient_state.iob,
+                "temp_basal": temp_basal_value,
+                "temp_basal_time_remaining": temp_basal_time_remaining,
+                "sbr": pump_sbr.value,
+                "isf": pump_isf,
+                "pump_cir": pump_cir,
+                "reported_bolus": reported_bolus.value,
+                "reported_carb_value": reported_carb.value,
+                "reported_carb_duration": reported_carb.duration_minutes,
+                "suggested_bolus": suggested_bolus.value,
+                "suggested_temp_basal_value": suggested_temp_basal_value,
                 "delivered_basal_insulin": delivered_basal_insulin,
                 "undelivered_basal_insulin": undelivered_basal_insulin
             }

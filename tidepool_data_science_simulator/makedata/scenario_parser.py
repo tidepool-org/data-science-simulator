@@ -463,7 +463,7 @@ class PatientConfig(object):
         glucose_history,
         carb_event_timeline,
         bolus_event_timeline,
-        real_glucose=None,
+        full_glucose=None,
         action_timeline=None,
         recommendation_accept_prob=1.0,
     ):
@@ -503,7 +503,7 @@ class PatientConfig(object):
         self.action_timeline = action_timeline
 
         self.glucose_history = glucose_history
-        self.real_glucose = real_glucose
+        self.real_glucose = full_glucose
 
         self.recommendation_accept_prob = recommendation_accept_prob
 

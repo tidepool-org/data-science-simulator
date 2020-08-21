@@ -4,6 +4,7 @@ import pickle as pk
 import datetime
 import copy
 import numpy as np
+import pandas as pd
 
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus, TempBasal
@@ -323,8 +324,83 @@ class LoopControllerDisconnector(LoopController):
             super().update(time, **kwargs)
 
 
-class ControllerState(object):
+class LoopReplay(LoopController):
 
+    def __init__(self, time, controller_config):
+        super().__init__(time, controller_config)
+
+        self.name = "Jaeb Replay in PyLoopkit v0.1"
+        self.active_temp_basal = None
+
+
+    def get_dose_event_timelines(self, virtual_patient):
+        """
+        Retrieve dose data to pass to Pyloopkit without merging in controller timelines.
+
+        Parameters
+        ----------
+        virtual_patient
+
+        Returns
+        -------
+        (BolusTimeline, CarbTimeline, TempBasalTimeline)
+        """
+        # Loop data store for doses is technically on pump in simulator.
+        bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = \
+            virtual_patient.get_pump_events()
+
+        return bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline
+
+    def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
+        """
+        Instead of applying loop recommendations, save them to the controller timelines.
+
+        Parameters
+        __________
+        virtual_patient
+        loop_algorithm_output
+
+        """
+        bolus_value = None
+        temp_basal_value = None
+        bolus_rec = self.get_recommended_bolus(loop_algorithm_output)
+        temp_basal_rec = self.get_recommended_temp_basal(loop_algorithm_output)
+
+        if bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation(bolus_rec):
+            self.bolus_event_timeline.add_event(self.time, bolus_rec)
+        elif temp_basal_rec is not None:
+            if temp_basal_rec.scheduled_duration_minutes == 0 and temp_basal_rec.value == 0:
+                # In pyloopkit this is a "cancel"
+                self.deactivate_recorded_temp_basal()
+            else:
+                self.record_temp_basal(virtual_patient, temp_basal_rec)
+        else:
+            pass  # no recommendations
+
+        self.recommendations = loop_algorithm_output
+
+    def deactivate_recorded_temp_basal(self):
+        self.active_temp_basal.actual_end_time = self.time
+        self.active_temp_basal.actual_duration_minutes = (self.time -
+                                                          self.active_temp_basal.start_time).total_seconds() / 60
+        self.active_temp_basal.active = False
+        self.active_temp_basal = None
+
+    def record_temp_basal(self, virtual_patient, temp_basal_rec):
+        is_valid, message = virtual_patient.pump.is_valid_temp_basal(temp_basal_rec)
+
+        if is_valid:
+            if self.active_temp_basal is not None:
+                self.deactivate_recorded_temp_basal()
+
+            self.active_temp_basal = temp_basal_rec
+            self.temp_basal_event_timeline.add_event(self.time, temp_basal_rec)
+
+        else:
+            raise ValueError("Temp basal request is invalid. {}".format(message))
+
+
+class ControllerState(object):
     def __init__(self,
                  pyloopkit_recommendations
                  ):

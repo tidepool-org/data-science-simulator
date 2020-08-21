@@ -14,7 +14,7 @@ def plot_sim_results(all_results, save=False):
 
     # ==== TMP ====
     # TODO - This is a placeholder for dev. Replace with viz tools module.
-    fig, ax = plt.subplots(3, 1, figsize=(16, 20))
+    fig, ax = plt.subplots(4, 1, figsize=(16, 20))
     for sim_id, ctrl_result_df in all_results.items():
 
         ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple")
@@ -37,19 +37,31 @@ def plot_sim_results(all_results, save=False):
         ax[1].set_xlabel("Time (5 mins)")
         ax[1].plot(ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id), linestyle="--")
         ax[1].plot(ctrl_result_df["temp_basal"], label="{} {}".format("tmp_br", sim_id))
-        ax[1].stem(ctrl_result_df["true_bolus"], label="{} {}".format("true bolus", sim_id))
+        #ax[1].stem(ctrl_result_df["true_bolus"], label="{} {}".format("true bolus", sim_id))
         ax[1].stem(ctrl_result_df["reported_bolus"], linefmt='g--', markerfmt='X', label="{} {}".format("reported bolus", sim_id))
         ax[1].plot(ctrl_result_df["iob"], label="{} {}".format("iob", sim_id))
         # ax[1].set_ylim((0, 3))
         ax[1].legend()
 
-        ax[2].stem(ctrl_result_df["true_carb_value"], label="{} {}".format("true carb", sim_id))
-        ax[2].stem(ctrl_result_df["reported_carb_value"], linefmt='g--', markerfmt='X', label="{} {}".format("reported carb", sim_id))
-        ax[2].set_title("Carb Events")
-        ax[2].set_ylabel("Carbs (g)")
+        ax[2].set_title("Suggested Insulin")
+        ax[2].set_ylabel("Insulin (U or U/hr)")
         ax[2].set_xlabel("Time (5 mins)")
-        # ax[2].set_ylim((0, 40))
+        ax[2].plot(ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id), linestyle="--")
+        if "suggested_bolus" in ctrl_result_df:
+            ax[2].stem(ctrl_result_df["suggested_bolus"], label="{} {}".format("sug_bolus", sim_id))
+        if "suggested_temp_basal_value" in ctrl_result_df:
+            ax[2].plot(ctrl_result_df["suggested_temp_basal_value"], label="{} {}".format("sug_tbr", sim_id),
+                       linestyle="--")
         ax[2].legend()
+
+        #ax[2].stem(ctrl_result_df["true_carb_value"], label="{} {}".format("true carb", sim_id))
+        ax[3].stem(ctrl_result_df["reported_carb_value"], linefmt='g--', markerfmt='X', label="{} {}".format(
+            "reported carb", sim_id))
+        ax[3].set_title("Carb Events")
+        ax[3].set_ylabel("Carbs (g)")
+        ax[3].set_xlabel("Time (5 mins)")
+        # ax[2].set_ylim((0, 40))
+        ax[3].legend()
 
         print(
             "Patient Bg min {} max {}".format(

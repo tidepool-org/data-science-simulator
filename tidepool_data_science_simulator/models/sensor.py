@@ -38,7 +38,7 @@ class RealSensor(SimulationComponent):
         self.time = time
 
     def get_loop_inputs(self):
-        return self.sensor_config.sensor_bg_history.get_loop_inputs()
+        return self.sensor_config.sensor_bg_history.get_loop_inputs(self.time)
 
 
 class Sensor(SimulationComponent):

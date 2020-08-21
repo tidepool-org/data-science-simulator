@@ -110,6 +110,6 @@ def run_replay(path_to_settings, path_to_time_series_data, t0=None):
 
 
 def test_jaeb_parser():
-    issue_report_settings_path = "data/test-jaeb-settings-data.csv"
-    time_series_path = "data/LOOP-0-test-0-jaeb-time-series-data.csv"
+    issue_report_settings_path = "tests/data/test-jaeb-settings-data.csv"
+    time_series_path = "tests/data/LOOP-0-test-0-jaeb-time-series-data.csv"
     run_replay(path_to_settings=issue_report_settings_path, path_to_time_series_data=time_series_path)

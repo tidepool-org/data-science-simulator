@@ -157,8 +157,8 @@ class JaebDataSimParser(ScenarioParserCSV):
             pd.to_datetime(date).isoformat()) for date in cgm_data["rounded_local_time"].values if
             datetime.datetime.fromisoformat(date) <= history_end_time]
 
-        self.loop_inputs_dict["actual_glucose_values"] = [val for val in cgm_data["cgm"].values]
-        self.loop_inputs_dict["actual_glucose_dates"] = [datetime.datetime.fromisoformat(
+        self.loop_inputs_dict["full_glucose_values"] = [val for val in cgm_data["cgm"].values]
+        self.loop_inputs_dict["full_glucose_dates"] = [datetime.datetime.fromisoformat(
             pd.to_datetime(date).isoformat()) for date in cgm_data["rounded_local_time"].values]
 
     def parse_insulin(self, insulin_df):
@@ -254,7 +254,6 @@ class JaebDataSimParser(ScenarioParserCSV):
         """
         Loop issue report gives no true patient information.
 
-        What do we want to do here for replay?
         """
         self.patient_basal_schedule = BasalSchedule24hr(
             time,
@@ -348,12 +347,13 @@ class JaebDataSimParser(ScenarioParserCSV):
             values=self.loop_inputs_dict["glucose_values"],
         )
 
-        self.patient_actual_glucose_values = GlucoseTrace(
-            datetimes=self.loop_inputs_dict["actual_glucose_dates"],
-            values=self.loop_inputs_dict["actual_glucose_values"]
+        self.patient_full_glucose_values = GlucoseTrace(
+            datetimes=self.loop_inputs_dict["full_glucose_dates"],
+            values=self.loop_inputs_dict["full_glucose_values"]
         )
 
         self.patient_actions = self.get_action_timeline()
+
 
     def get_action_timeline(self):
         datetimes = []
@@ -436,7 +436,7 @@ class JaebDataSimParser(ScenarioParserCSV):
             carb_event_timeline=self.patient_carb_events,
             bolus_event_timeline=self.patient_bolus_events,
             glucose_history=copy.deepcopy(self.patient_glucose_history),
-            real_glucose=self.patient_actual_glucose_values,
+            full_glucose=self.patient_full_glucose_values,
             action_timeline=self.patient_actions
         )
 
@@ -537,3 +537,82 @@ def parse_tr_schedule_from_time_series(schedule_df):
                     [schedule_df['bg_target_upper'][i]]]
 
     return target_range_schedule
+
+
+class JaebReplayParser(JaebDataSimParser):
+    def transform_patient(self, time):
+        """
+        Loop issue report gives no true patient information.
+
+        """
+        self.patient_basal_schedule = None
+        self.patient_carb_ratio_schedule = None
+        self.patient_insulin_sensitivity_schedule = None
+        self.patient_target_range_schedule = None
+
+        self.patient_carb_events = None
+        self.patient_bolus_events = None
+        self.patient_glucose_history = None
+
+        self.patient_full_glucose_values = None
+        self.patient_actions = None
+
+    def transform_sensor(self):
+
+        self.sensor_glucose_history = GlucoseTrace(
+            datetimes=self.loop_inputs_dict["full_glucose_dates"],
+            values=self.loop_inputs_dict["full_glucose_values"],
+        )
+
+    def parse_insulin(self, insulin_df):
+        insulin_df = insulin_df.set_index('rounded_local_time')
+        temp_basal = insulin_df['set_basal_rate'].dropna()
+        bolus = insulin_df['bolus'].dropna()
+
+
+        bolus_start_times, bolus_values, bolus_units, bolus_dose_types, bolus_delivered_units = ([], [], [], [], [])
+        temp_basal_start_times, temp_basal_duration_minutes, temp_basal_values, \
+        temp_basal_units, temp_basal_dose_types, temp_basal_delivered_units = ([], [], [], [], [], [])
+        for date, dose in bolus.items():
+            bolus_date = datetime.datetime.fromisoformat(pd.to_datetime(date).isoformat())
+            bolus_start_times.append(bolus_date)
+            bolus_values.append(dose)
+            bolus_dose_types.append(DoseType.bolus)
+            bolus_units.append("U")
+            #bolus_delivered_units.append()
+
+        previous = None
+        for date, dose in temp_basal.items():
+            date_as_date = datetime.datetime.fromisoformat(pd.to_datetime(date).isoformat())
+
+            if not previous:
+                temp_basal_start_times.append(date_as_date)
+                temp_basal_values.append(dose)
+                temp_basal_units.append("U/hr")
+                #temp_basal_delivered_units.append()
+                temp_basal_dose_types.append(DoseType.tempbasal)
+                temp_basal_duration_minutes.append(5)
+            else:
+                if (previous[1] == dose) and (date_as_date - previous[0] == datetime.timedelta(minutes=5)):
+                    temp_basal_duration_minutes[-1] = temp_basal_duration_minutes[-1] + 5
+                else:
+                    temp_basal_start_times.append(date_as_date)
+                    temp_basal_values.append(dose)
+                    temp_basal_units.append("U/hr")
+                    # temp_basal_delivered_units.append()
+                    temp_basal_dose_types.append(DoseType.tempbasal)
+                    temp_basal_duration_minutes.append(5)
+
+            previous = date_as_date, dose
+
+        self.loop_inputs_dict['bolus_start_times'] = bolus_start_times
+        self.loop_inputs_dict['bolus_values'] = bolus_values
+        self.loop_inputs_dict['bolus_units'] = bolus_units
+        self.loop_inputs_dict['bolus_delivered_units'] = bolus_delivered_units
+        self.loop_inputs_dict['bolus_dose_types'] = bolus_dose_types
+        self.loop_inputs_dict['temp_basal_start_times'] = temp_basal_start_times
+        self.loop_inputs_dict['temp_basal_values'] = temp_basal_values
+        self.loop_inputs_dict['temp_basal_duration_minutes'] = temp_basal_duration_minutes
+        self.loop_inputs_dict['temp_basal_dose_types'] = temp_basal_dose_types
+        self.loop_inputs_dict['temp_basal_units'] = temp_basal_units
+        self.loop_inputs_dict['temp_basal_delivered_units'] = temp_basal_delivered_units
