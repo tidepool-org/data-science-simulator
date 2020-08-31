@@ -48,9 +48,11 @@ class JaebDataSimParser(ScenarioParserCSV):
         target_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time',
                                                                               'bg_target_lower', 'bg_target_upper'])
         insulin_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time',
-                                                                              'bolus', 'set_basal_rate'])
+                                                                              'bolus', 'set_basal_rate',
+                                                                               'total_insulin_delivered',
+                                                                               'basal_pulse_delivered'])
         cgm_data = pd.read_csv(path_to_time_series_data, sep=",", usecols=['rounded_local_time', 'cgm'])
-        self.parse_settings(settings_df=settings_data, target_df=target_data)
+        self.parse_settings(settings_df=settings_data, target_df=target_data, start_time=t0)
         self.parse_carbs(carb_df=carb_data)
         self.parse_insulin(insulin_df=insulin_data)
         self.parse_cgm(cgm_data)
@@ -92,7 +94,7 @@ class JaebDataSimParser(ScenarioParserCSV):
         else:
             issue_report_start = datetime.datetime.fromisoformat(
                 pd.to_datetime(target_df['rounded_local_time'].values[0]).isoformat())
-            rounded_start_time = issue_report_start + datetime.timedelta(days=1)
+            rounded_start_time = issue_report_start + datetime.timedelta(days=7)
             rounded_start_time += datetime.timedelta(minutes=2, seconds=30)
             rounded_start_time -= datetime.timedelta(minutes=rounded_start_time.minute % 5,
                                                      seconds=rounded_start_time.second,
@@ -108,6 +110,7 @@ class JaebDataSimParser(ScenarioParserCSV):
         jaeb_inputs["target_range_value_units"] = ["mg/dL" for _ in jaeb_inputs["target_range_minimum_values"]]
         jaeb_inputs["sensitivity_ratio_value_units"] = ["mg/dL/U" for _ in jaeb_inputs["sensitivity_ratio_values"]]
        # fixme: in the future, pull duration values from the data
+        jaeb_inputs["settings_dictionary"]["dynamic_carb_absorption_enabled"] = True
 
         self.loop_inputs_dict = jaeb_inputs
 
@@ -176,7 +179,8 @@ class JaebDataSimParser(ScenarioParserCSV):
             bolus_values.append(dose)
             bolus_dose_types.append(DoseType.bolus)
             bolus_units.append("U")
-            #bolus_delivered_units.append()
+            bolus_delivered_units.append(insulin_df[date]['total_insulin_delivered']-insulin_df[date][
+                'basal_pulse_delivered'])
 
         previous = None
         for date, dose in temp_basal.items():
@@ -188,16 +192,17 @@ class JaebDataSimParser(ScenarioParserCSV):
             if not previous:
                 temp_basal_values.append(dose)
                 temp_basal_units.append("U/hr")
-                #temp_basal_delivered_units.append()
+                temp_basal_delivered_units.append(insulin_df[date]['basal_pulse_delivered'])
                 temp_basal_dose_types.append(DoseType.tempbasal)
                 temp_basal_duration_minutes.append(5)
             else:
                 if (previous[1] == dose) and (date_as_date - previous[0] == datetime.timedelta(minutes=5)):
                     temp_basal_duration_minutes[-1] = temp_basal_duration_minutes[-1] + 5
+                    temp_basal_delivered_units[-1] = temp_basal_delivered_units + (insulin_df[date]['basal_pulse_delivered'])
                 else:
                     temp_basal_values.append(dose)
                     temp_basal_units.append("U/hr")
-                    # temp_basal_delivered_units.append()
+                    temp_basal_delivered_units.append(insulin_df[date]['basal_pulse_delivered'])
                     temp_basal_dose_types.append(DoseType.tempbasal)
                     temp_basal_duration_minutes.append(5)
 
@@ -236,12 +241,13 @@ class JaebDataSimParser(ScenarioParserCSV):
         self.pump_temp_basal_events = TempBasalTimeline(
             datetimes=self.loop_inputs_dict["temp_basal_start_times"],
             events=[
-                TempBasal(start_time, value, duration_minutes, units, delivered_units=value)
-                for start_time, value, units, duration_minutes in zip(
+                TempBasal(start_time, value, duration_minutes, units, delivered_units)
+                for start_time, value, units, duration_minutes, delivered_units in zip(
                     self.loop_inputs_dict["temp_basal_start_times"],
                     self.loop_inputs_dict["temp_basal_values"],
                     self.loop_inputs_dict["temp_basal_units"],
-                    self.loop_inputs_dict["temp_basal_duration_minutes"]
+                    self.loop_inputs_dict["temp_basal_duration_minutes"],
+                    self.loop_inputs_dict["temp_basal_delivered_units"]
                 )
             ],
         )
@@ -565,10 +571,13 @@ class JaebReplayParser(JaebDataSimParser):
         )
 
     def parse_insulin(self, insulin_df):
+        insulin_df['basal_end_dates'] = insulin_df['rounded_local_time'].apply(
+            lambda x: (datetime.datetime.fromisoformat(pd.to_datetime(x).isoformat()) + datetime.timedelta(
+                minutes=5)).isoformat()
+        )
         insulin_df = insulin_df.set_index('rounded_local_time')
-        temp_basal = insulin_df['set_basal_rate'].dropna()
+        temp_basal = insulin_df[['set_basal_rate', 'basal_pulse_delivered', 'basal_end_dates']].dropna()
         bolus = insulin_df['bolus'].dropna()
-
 
         bolus_start_times, bolus_values, bolus_units, bolus_dose_types, bolus_delivered_units = ([], [], [], [], [])
         temp_basal_start_times, temp_basal_duration_minutes, temp_basal_values, \
@@ -579,27 +588,30 @@ class JaebReplayParser(JaebDataSimParser):
             bolus_values.append(dose)
             bolus_dose_types.append(DoseType.bolus)
             bolus_units.append("U")
-            #bolus_delivered_units.append()
+            bolus_delivered_units.append(insulin_df.at[date, 'total_insulin_delivered'] - insulin_df.at[date,
+                'basal_pulse_delivered'])
 
         previous = None
-        for date, dose in temp_basal.items():
+        for date, dose in temp_basal.iterrows():
             date_as_date = datetime.datetime.fromisoformat(pd.to_datetime(date).isoformat())
-
             if not previous:
                 temp_basal_start_times.append(date_as_date)
-                temp_basal_values.append(dose)
+                temp_basal_values.append(dose['set_basal_rate'])
                 temp_basal_units.append("U/hr")
-                #temp_basal_delivered_units.append()
+                temp_basal_delivered_units.append(dose['basal_pulse_delivered'])
                 temp_basal_dose_types.append(DoseType.tempbasal)
                 temp_basal_duration_minutes.append(5)
             else:
-                if (previous[1] == dose) and (date_as_date - previous[0] == datetime.timedelta(minutes=5)):
+                if (previous[1]['set_basal_rate'] == dose['set_basal_rate']) and (date_as_date - previous[0] ==
+                                                                        datetime.timedelta(
+                        minutes=5)):
                     temp_basal_duration_minutes[-1] = temp_basal_duration_minutes[-1] + 5
+                    temp_basal_delivered_units[-1] = temp_basal_delivered_units[-1] + dose['basal_pulse_delivered']
                 else:
-                    temp_basal_start_times.append(date_as_date)
-                    temp_basal_values.append(dose)
+                    temp_basal_values.append(dose['set_basal_rate'])
                     temp_basal_units.append("U/hr")
-                    # temp_basal_delivered_units.append()
+                    temp_basal_start_times.append(date_as_date)
+                    temp_basal_delivered_units.append(dose['basal_pulse_delivered'])
                     temp_basal_dose_types.append(DoseType.tempbasal)
                     temp_basal_duration_minutes.append(5)
 

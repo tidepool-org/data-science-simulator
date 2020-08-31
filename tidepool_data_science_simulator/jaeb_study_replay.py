@@ -11,10 +11,10 @@ from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_resul
 
 
 def run_replay(path_to_settings, path_to_time_series_data, t0=None):
-
     jaeb_parser = JaebReplayParser(
         path_to_settings=path_to_settings,
-        path_to_time_series_data=path_to_time_series_data
+        path_to_time_series_data=path_to_time_series_data,
+        t0=t0
     )
 
     t0 = jaeb_parser.get_simulation_start_time()
@@ -73,5 +73,8 @@ if __name__ == "__main__":
             time_series_folder = filename
 
     for filename in time_series_files[:1]:
-        time_series_path = parsed_data_folder + time_series_folder + "/" + filename
-        run_replay(path_to_settings=issue_report_settings_path, path_to_time_series_data=time_series_path)
+        try:
+            time_series_path = parsed_data_folder + time_series_folder + "/" + filename
+            run_replay(path_to_settings=issue_report_settings_path, path_to_time_series_data=time_series_path)
+        except:
+            print("Missing information")

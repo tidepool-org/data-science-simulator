@@ -201,6 +201,29 @@ class BolusTimeline(EventTimeline):
         super().__init__(datetimes, events)
         self.event_type = Bolus
 
+    def get_recent_event_times(self, time=None, num_hours_history=6):
+        """
+        Get event times within the specified history window.
+
+        Parameters
+        ----------
+        time
+        num_hours_history
+
+        Returns
+        -------
+        list
+            Times of recent events
+        """
+        recent_event_times = []
+        for event_time in self.events.keys():
+            time_since_event_hrs = (time - event_time).total_seconds() / 3600
+            event_input_time = self.events_input.get(self.events[event_time], event_time)
+            if time_since_event_hrs <= num_hours_history and event_input_time < time:
+                recent_event_times.append(event_time)
+
+        return recent_event_times
+
     def get_loop_inputs(self, time, num_hours_history=6):
         """
         Convert event timeline into format for input into Pyloopkit.
@@ -233,6 +256,30 @@ class TempBasalTimeline(EventTimeline):
     def __init__(self, datetimes=None, events=None):
         super().__init__(datetimes, events)
         self.event_type = TempBasal
+
+    def get_recent_event_times(self, time=None, num_hours_history=6):
+        """
+        Get event times within the specified history window.
+
+        Parameters
+        ----------
+        time
+        num_hours_history
+
+        Returns
+        -------
+        list
+            Times of recent events
+        """
+        recent_event_times = []
+        for event_time in self.events.keys():
+            time_since_event_hrs = (time - event_time).total_seconds() / 3600
+            event_input_time = self.events_input.get(self.events[event_time], event_time)
+            if time_since_event_hrs <= num_hours_history and event_input_time < time:
+                recent_event_times.append(event_time)
+
+        return recent_event_times
+
 
     def get_loop_inputs(self, time, num_hours_history=6):
         """
@@ -267,6 +314,29 @@ class CarbTimeline(EventTimeline):
     def __init__(self, datetimes=None, events=None):
         super().__init__(datetimes, events)
         self.event_type = Carb
+
+    def get_recent_event_times(self, time=None, num_hours_history=6):
+        """
+        Get event times within the specified history window.
+
+        Parameters
+        ----------
+        time
+        num_hours_history
+
+        Returns
+        -------
+        list
+            Times of recent events
+        """
+        recent_event_times = []
+        for event_time in self.events.keys():
+            time_since_event_hrs = (time - event_time).total_seconds() / 3600
+            event_input_time = self.events_input.get(self.events[event_time], event_time)
+            if time_since_event_hrs <= num_hours_history and event_input_time < time:
+                recent_event_times.append(event_time)
+
+        return recent_event_times
 
     def get_loop_inputs(self, time, num_hours_history=6):
         """

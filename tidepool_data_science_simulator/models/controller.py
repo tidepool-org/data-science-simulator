@@ -351,6 +351,94 @@ class LoopReplay(LoopController):
 
         return bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline
 
+    def prepare_inputs(self, virtual_patient):
+        """
+        Collect inputs to the loop update call for the current time.
+
+        Parameters
+        ----------
+        virtual_patient:
+
+        Returns
+        -------
+        dict
+            Inputs for Pyloopkit algo
+        """
+        glucose_dates, glucose_values = virtual_patient.sensor.get_loop_inputs()
+
+        bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = self.get_dose_event_timelines(virtual_patient)
+
+        bolus_dose_types, bolus_dose_values, bolus_start_times, bolus_end_times, bolus_delivered_units = \
+            bolus_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+
+        temp_basal_dose_types, temp_basal_dose_values, temp_basal_start_times, temp_basal_end_times, temp_basal_delivered_units = \
+            temp_basal_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+
+        if ((temp_basal_end_times[-1] - temp_basal_start_times[-1]).total_seconds() / 60) % 30 != 0 and \
+                temp_basal_end_times[
+            -1] == self.time:
+            temp_basal_end_times[-1] = temp_basal_start_times[-1] + \
+                                       datetime.timedelta(
+                                           minutes=(((temp_basal_end_times[-1] - temp_basal_start_times[
+                                               -1]).total_seconds() / 1800) + 1) * 30)
+
+        carb_values, carb_start_times, carb_durations = \
+            carb_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+
+        basal_rate_values, basal_rate_start_times, basal_rate_durations = \
+            virtual_patient.pump.pump_config.basal_schedule.get_loop_inputs()
+
+        isf_values, isf_start_times, isf_end_times = \
+            virtual_patient.pump.pump_config.insulin_sensitivity_schedule.get_loop_inputs()
+
+        cir_values, cir_start_times, cir_durations = \
+            virtual_patient.pump.pump_config.carb_ratio_schedule.get_loop_inputs()
+
+        tr_min_values, tr_max_values, tr_start_times, tr_end_times = \
+            virtual_patient.pump.pump_config.target_range_schedule.get_loop_inputs()
+
+        last_temp_basal = None
+        if len(temp_basal_dose_types) > 0:
+            last_temp_basal = [temp_basal_dose_types[-1], temp_basal_start_times[-1], temp_basal_end_times[-1], temp_basal_dose_values[-1]]
+
+        loop_inputs_dict = {
+            "time_to_calculate_at": self.time,
+            "glucose_dates": glucose_dates,
+            "glucose_values": glucose_values,
+
+            "dose_types": bolus_dose_types + temp_basal_dose_types,
+            "dose_values": bolus_dose_values + temp_basal_dose_values,
+            "dose_start_times": bolus_start_times + temp_basal_start_times,
+            "dose_end_times": bolus_end_times + temp_basal_end_times,
+            "dose_delivered_units": bolus_delivered_units + temp_basal_delivered_units,
+
+            "carb_dates": carb_start_times,
+            "carb_values": carb_values,
+            "carb_absorption_times": carb_durations,
+
+            "basal_rate_values": basal_rate_values,
+            "basal_rate_minutes": basal_rate_durations,
+            "basal_rate_start_times": basal_rate_start_times,
+
+            "carb_ratio_values": cir_values,
+            "carb_ratio_start_times": cir_start_times,
+
+            "sensitivity_ratio_values": isf_values,
+            "sensitivity_ratio_start_times": isf_start_times,
+            "sensitivity_ratio_end_times": isf_end_times,
+
+            "target_range_minimum_values": tr_min_values,
+            "target_range_maximum_values": tr_max_values,
+            "target_range_start_times": tr_start_times,
+            "target_range_end_times": tr_end_times,
+
+            "last_temporary_basal": last_temp_basal,
+
+            "settings_dictionary": self.controller_config.controller_settings
+        }
+
+        return loop_inputs_dict
+
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
         """
         Instead of applying loop recommendations, save them to the controller timelines.
