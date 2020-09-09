@@ -2,6 +2,7 @@ __author__ = "Cameron Summers"
 
 import datetime
 import numpy as np
+import itertools
 
 import matplotlib.pyplot as plt
 import matplotlib.style as style
@@ -15,9 +16,10 @@ def plot_sim_results(all_results, save=False):
     # ==== TMP ====
     # TODO - This is a placeholder for dev. Replace with viz tools module.
     fig, ax = plt.subplots(3, 1, figsize=(16, 20))
+    linestyle = itertools.cycle(('-', '--', '-.'))
     for sim_id, ctrl_result_df in all_results.items():
 
-        ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple")
+        ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple", linestyle=next(linestyle))
         ax[0].scatter(range(len(ctrl_result_df)), ctrl_result_df["bg_sensor"], 4,
                       label="{} {}".format("bg_sensor", sim_id),
                       color="green")
@@ -37,14 +39,14 @@ def plot_sim_results(all_results, save=False):
         ax[1].set_xlabel("Time (5 mins)")
         ax[1].plot(ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id), linestyle="--")
         ax[1].plot(ctrl_result_df["temp_basal"], label="{} {}".format("tmp_br", sim_id))
-        ax[1].stem(ctrl_result_df["true_bolus"], label="{} {}".format("true bolus", sim_id))
-        ax[1].stem(ctrl_result_df["reported_bolus"], linefmt='g--', markerfmt='X', label="{} {}".format("reported bolus", sim_id))
+        ax[1].stem(ctrl_result_df["true_bolus"], label="{} {}".format("true bolus", sim_id), use_line_collection=True)
+        ax[1].stem(ctrl_result_df["reported_bolus"], linefmt='g--', markerfmt='X', label="{} {}".format("reported bolus", sim_id), use_line_collection=True)
         ax[1].plot(ctrl_result_df["iob"], label="{} {}".format("iob", sim_id))
         ax[1].set_ylim((0, 3))
         ax[1].legend()
 
-        ax[2].stem(ctrl_result_df["true_carb_value"], label="{} {}".format("true carb", sim_id))
-        ax[2].stem(ctrl_result_df["reported_carb_value"], linefmt='g--', markerfmt='X', label="{} {}".format("reported carb", sim_id))
+        ax[2].stem(ctrl_result_df["true_carb_value"], label="{} {}".format("true carb", sim_id), use_line_collection=True)
+        ax[2].stem(ctrl_result_df["reported_carb_value"], linefmt='g--', markerfmt='X', label="{} {}".format("reported carb", sim_id), use_line_collection=True)
         ax[2].set_title("Carb Events")
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")

@@ -1,6 +1,7 @@
 __author__ = "Cameron Summers"
 
 import datetime
+import numpy as np
 
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr
@@ -196,3 +197,116 @@ def get_canonical_risk_patient(t0=DATETIME_DEFAULT,
 
     return t0, virtual_patient
 
+
+def get_variable_risk_patient_config(t0=DATETIME_DEFAULT, random_seed=1234):
+    """
+    Get canonical patient config
+
+    Parameters
+    ----------
+    t0
+
+    Returns
+    -------
+    PatientConfig
+    """
+    np.random.seed(random_seed)
+
+    patient_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
+    patient_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
+
+    num_glucose_values = 137
+    true_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_glucose_values)]
+    true_bg_dates.reverse()
+    true_bg_values = [110.0] * num_glucose_values
+    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values)
+
+    total_hours_in_day = 24
+    hours_in_day = range(total_hours_in_day)
+    carb_gain = np.random.uniform(5, 15)
+    basal_rates = [np.random.uniform(0.2, 0.4) for _ in hours_in_day]
+    carb_ratios = [np.random.uniform(18, 22) for _ in hours_in_day]
+    isfs = [carb_gain * carb_ratio for carb_ratio in carb_ratios]
+
+    start_times_hourly = [datetime.time(hour=i, minute=0, second=0) for i in hours_in_day]
+    durations_min_per_hour = [SINGLE_SETTING_DURATION / total_hours_in_day for _ in hours_in_day]
+
+    patient_config = PatientConfig(
+        basal_schedule=BasalSchedule24hr(
+            t0,
+            start_times=start_times_hourly,
+            values=[BasalRate(rate, "mg/dL") for rate in basal_rates],
+            duration_minutes=durations_min_per_hour
+        ),
+        carb_ratio_schedule=SettingSchedule24Hr(
+            t0,
+            "CIR",
+            start_times=start_times_hourly,
+            values=[CarbInsulinRatio(carb_ratio, "g/U") for carb_ratio in carb_ratios],
+            duration_minutes=durations_min_per_hour
+        ),
+        insulin_sensitivity_schedule=SettingSchedule24Hr(
+            t0,
+            "ISF",
+            start_times=start_times_hourly,
+            values=[InsulinSensitivityFactor(isf, "md/dL / U") for isf in isfs],
+            duration_minutes=durations_min_per_hour
+        ),
+        glucose_history=true_bg_history,
+        carb_event_timeline=patient_carb_timeline,
+        bolus_event_timeline=patient_bolus_timeline,
+        action_timeline=ActionTimeline(),
+        recommendation_accept_prob=0.0  # Does not accept any recommendations
+    )
+
+    return t0, patient_config
+
+
+def get_pump_config(patient_config, t0=DATETIME_DEFAULT, risk_profile=1):
+    """
+    Get canonical pump config
+
+    Parameters
+    ----------
+    t0
+
+    Returns
+    -------
+    PumpConfig
+    """
+
+    pump_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
+    pump_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
+
+    pump_config = PumpConfig(
+        basal_schedule=BasalSchedule24hr(
+            t0,
+            start_times=[SINGLE_SETTING_START_TIME],
+            values=[BasalRate(np.random.normal(0.3, 0.03), "U/hr")],
+            duration_minutes=[SINGLE_SETTING_DURATION]
+        ),
+        carb_ratio_schedule=SettingSchedule24Hr(
+            t0,
+            "CIR",
+            start_times=[SINGLE_SETTING_START_TIME],
+            values=[CarbInsulinRatio(np.random.normal(20, 2), "g/U")],
+            duration_minutes=[SINGLE_SETTING_DURATION]
+        ),
+        insulin_sensitivity_schedule=SettingSchedule24Hr(
+            t0,
+            "ISF",
+            start_times=[SINGLE_SETTING_START_TIME],
+            values=[InsulinSensitivityFactor(np.random.normal(150, 15), "mg/dL/U")],
+            duration_minutes=[SINGLE_SETTING_DURATION]
+        ),
+        target_range_schedule=TargetRangeSchedule24hr(
+            t0,
+            start_times=[SINGLE_SETTING_START_TIME],
+            values=[TargetRange(100, 120, "mg/dL")],
+            duration_minutes=[SINGLE_SETTING_DURATION]
+        ),
+        carb_event_timeline=pump_carb_timeline,
+        bolus_event_timeline=pump_bolus_timeline
+    )
+
+    return t0, pump_config

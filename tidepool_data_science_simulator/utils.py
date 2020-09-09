@@ -1,5 +1,7 @@
 __author__ = "Cameron Summers"
 
+import os
+import datetime as dt
 import time
 import numpy as np
 
@@ -107,3 +109,21 @@ def timing(f):
         return ret
 
     return wrap
+
+
+def save_df(df_results, analysis_name, save_dir, save_type="tsv"):
+    utc_string = dt.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S")
+    filename = "{}-created_{}".format(analysis_name, utc_string)
+    path = os.path.join(save_dir, filename)
+    if "tsv" in save_type:
+        df_results.to_csv("{}.tsv".format(path), sep="\t")
+    else:
+        df_results.to_csv("{}.csv".format(path))
+
+
+def get_sim_results_save_dir():
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    utc_string = dt.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S")
+    results_dir = "../data/results/simulations/{}".format(utc_string)
+    os.makedirs(os.path.join(this_dir, results_dir))
+    return results_dir

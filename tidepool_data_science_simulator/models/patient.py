@@ -209,6 +209,10 @@ class VirtualPatient(SimulationComponent):
         """
         self.time = time
 
+        self.patient_config.basal_schedule.update(time)
+        self.patient_config.insulin_sensitivity_schedule.update(time)
+        self.patient_config.carb_ratio_schedule.update(time)
+
         if self.pump is not None:
             self.pump.update(time)
 
@@ -351,6 +355,18 @@ class VirtualPatient(SimulationComponent):
             pump_temp_basal_event_timeline = self.pump.temp_basal_event_timeline
 
         return pump_bolus_event_timeline, pump_carb_event_timeline, pump_temp_basal_event_timeline
+
+    def add_event(self, time_of_event, event):
+
+        # Add event to patient and pump timeline
+        if isinstance(event, Bolus):
+            self.bolus_event_timeline.add_event(time_of_event, event)
+            self.pump.bolus_event_timeline.add_event(time_of_event, event)
+        elif isinstance(event, Carb):
+            self.bolus_event_timeline.add_event(time_of_event, event)
+            self.pump.bolus_event_timeline.add_event(time_of_event, event)
+        else:
+            raise Exception("Unsupported event to add.")
 
     def predict(self):
         """
@@ -546,7 +562,9 @@ class VirtualPatientModel(VirtualPatient):
 
         self.meal_model = [
             MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98),
+            MealModel("Snack", datetime.time(hour=10), datetime.time(hour=11), 0.2, carb_range=(5, 15)),
             MealModel("Lunch", datetime.time(hour=11), datetime.time(hour=13), 0.98),
+            MealModel("Snack", datetime.time(hour=14), datetime.time(hour=16), 0.2, carb_range=(5, 15)),
             MealModel("Dinner", datetime.time(hour=17), datetime.time(hour=21), 0.999),
         ]
 
@@ -569,11 +587,10 @@ class VirtualPatientModel(VirtualPatient):
 
         self.carb_count_noise_percentage = carb_count_noise_percentage
 
-        # TODO: Actually need something more robust than this method to avoid duplicate meal
-        #       events. Case example: user eats breakfast, skips lunch and dinner, then eats
-        #       breakfast again, this will prevent that.
-        # Why is this not a plausible scenario?
-        self.last_meal = None
+        self.correct_carb_wait_time_min = 30
+        self.correct_carb_wait_minutes = 0
+
+        self.meal_wait_minutes = 0
 
     def get_user_inputs(self):
         """
@@ -589,18 +606,19 @@ class VirtualPatientModel(VirtualPatient):
         #   instead let predict() run on multiple carbs at a time.
         correction_carb = self.get_correction_carb()
         total_carb = self.combine_carbs(meal_carb, correction_carb)
+        total_bolus = self.bolus_event_timeline.get_event(self.time)
 
-        meal_bolus = self.get_meal_bolus(meal_carb)
-        correction_bolus = self.get_correction_bolus()
-        total_bolus = self.combine_boluses(meal_bolus, correction_bolus)
+        # meal_bolus = self.get_meal_bolus(meal_carb)
+        # correction_bolus = self.get_correction_bolus()
+        # total_bolus = self.combine_boluses(meal_bolus, correction_bolus)
 
         if total_carb is not None:
             self.carb_event_timeline.add_event(self.time, total_carb)
             self.report_carb(total_carb)
 
-        if total_bolus is not None:
-            self.bolus_event_timeline.add_event(self.time, total_bolus)
-            self.report_bolus(total_bolus)
+        # if total_bolus is not None:
+        #     self.bolus_event_timeline.add_event(self.time, total_bolus)
+        #     self.report_bolus(total_bolus)
 
         return total_bolus, total_carb
 
@@ -614,7 +632,8 @@ class VirtualPatientModel(VirtualPatient):
         """
         u = np.random.random()
         if u <= self.report_carb_probability:
-            self.pump.carb_event_timeline.add_event(self.time, carb)
+            estimated_carb = self.estimate_meal_carb(carb)
+            self.pump.carb_event_timeline.add_event(self.time, estimated_carb)
 
     def report_bolus(self, bolus):
         """
@@ -641,12 +660,10 @@ class VirtualPatientModel(VirtualPatient):
         u = np.random.uniform()
 
         for meal_model in self.meal_model:
-            if meal_model.is_meal_time(self.time) and u < meal_model.step_prob:
-
-                if self.last_meal != meal_model:
-                    meal = meal_model
-                    self.last_meal = meal
-                    break
+            if self.meal_wait_minutes == 0 and meal_model.is_meal_time(self.time) and u < meal_model.step_prob:
+                meal = meal_model
+                self.meal_wait_minutes = (datetime.datetime.combine(self.time.date(), meal_model.time_end) - self.time).total_seconds() / 60
+                break
 
         return meal
 
@@ -665,8 +682,10 @@ class VirtualPatientModel(VirtualPatient):
         if (
             self.bg_current <= self.correct_carb_bg_threshold
             and u <= self.correct_carb_step_prob
+            and self.correct_carb_wait_minutes == 0
         ):
-            carb = Carb(value=10, units="g", duration_minutes=3 * 60)
+            carb = Carb(value=np.random.uniform(5, 15), units="g", duration_minutes=3 * 60)
+            self.correct_carb_wait_minutes = self.correct_carb_wait_time_min
 
         return carb
 
@@ -808,12 +827,34 @@ class VirtualPatientModel(VirtualPatient):
         """
 
         estimated_carb = Carb(
-            value=int(
+            value=max(0.0, int(
                 np.random.normal(
                     carb.value, carb.value * self.carb_count_noise_percentage
                 )
-            ),
+            )),
             units="g",
-            duration_minutes=carb.duration_minutes,
+            duration_minutes=np.random.choice([3 * 60, 4 * 60, 5 * 60]),
         )
         return estimated_carb
+
+    def update(self, time, **kwargs):
+        super().update(time, **kwargs)
+        self.correct_carb_wait_minutes = max(0, self.correct_carb_wait_minutes - 5)
+        self.meal_wait_minutes = max(0, self.meal_wait_minutes - 5)
+
+
+class VirtualPatientModelCarbBolusAccept(VirtualPatientModel):
+    """
+    A vitual patient that does not accept small Loop bolus recommendations. This will encourage recommendations
+    that are related to Carb entries or other insulin-deficient scenarios.
+    """
+
+    def does_accept_bolus_recommendation(self, bolus):
+        does_accept = False
+        u = np.random.random()
+
+        min_bolus_rec_threshold = self.patient_config.min_bolus_rec_threshold
+        if u <= self.patient_config.recommendation_accept_prob and bolus.value >= min_bolus_rec_threshold:
+            does_accept = True
+
+        return does_accept

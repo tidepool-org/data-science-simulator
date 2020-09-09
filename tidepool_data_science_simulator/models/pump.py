@@ -204,6 +204,11 @@ class ContinuousInsulinPump(SimulationComponent):
             if not self.active_temp_basal.is_active(self.time):  # Remove if inactive
                 self.deactivate_temp_basal()
 
+        self.pump_config.basal_schedule.update(time)
+        self.pump_config.carb_ratio_schedule.update(time)
+        self.pump_config.insulin_sensitivity_schedule.update(time)
+        self.pump_config.target_range_schedule.update(time)
+
     def deactivate_temp_basal(self):
         """
         Deactivate current temp basal.

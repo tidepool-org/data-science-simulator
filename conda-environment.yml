@@ -23,4 +23,4 @@ dependencies:
     - pip-chill==1.0.0
     - python-dotenv==0.13.0
     - git+git://github.com/tidepool-org/data-science-models@cas/icgm
-    - git+git://github.com/tidepool-org/Pyloopkit@novalegra/add-pulses
+    - git+git://github.com/tidepool-org/Pyloopkit@cas/physiologic_bg_change

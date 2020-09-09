@@ -279,10 +279,11 @@ class MealModel(UserInput):
     """
     A meal that says if it is time for the meal and probabilistically determines carbs.
     """
-    def __init__(self, name, time_start, time_end, prob_of_eating):
+    def __init__(self, name, time_start, time_end, prob_of_eating, carb_range=(20, 40)):
 
         super().__init__(name, time_start, time_end)
         self.prob_of_eating = prob_of_eating
+        self.carb_range = carb_range
 
         # Get number of simulation steps in meal time range
         datetime_start = datetime.datetime.combine(datetime.date.today(), time_start)
@@ -302,7 +303,7 @@ class MealModel(UserInput):
     def get_carb(self):
 
         carb = Carb(
-            value=np.random.choice(range(20, 40)),
+            value=np.random.choice(range(self.carb_range[0], self.carb_range[1])),
             units="g",
             duration_minutes=np.random.choice([3 * 60, 4 * 60, 5 * 60]),
         )
