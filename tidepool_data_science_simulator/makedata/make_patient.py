@@ -198,7 +198,7 @@ def get_canonical_risk_patient(t0=DATETIME_DEFAULT,
     return t0, virtual_patient
 
 
-def get_variable_risk_patient_config(t0=DATETIME_DEFAULT, random_seed=1234):
+def get_variable_risk_patient_config(random_state, t0=DATETIME_DEFAULT):
     """
     Get canonical patient config
 
@@ -210,7 +210,6 @@ def get_variable_risk_patient_config(t0=DATETIME_DEFAULT, random_seed=1234):
     -------
     PatientConfig
     """
-    np.random.seed(random_seed)
 
     patient_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
     patient_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
@@ -223,9 +222,9 @@ def get_variable_risk_patient_config(t0=DATETIME_DEFAULT, random_seed=1234):
 
     total_hours_in_day = 24
     hours_in_day = range(total_hours_in_day)
-    carb_gain = np.random.uniform(5, 15)
-    basal_rates = [np.random.uniform(0.2, 0.4) for _ in hours_in_day]
-    carb_ratios = [np.random.uniform(18, 22) for _ in hours_in_day]
+    carb_gain = random_state.uniform(5, 15)
+    basal_rates = [random_state.uniform(0.2, 0.4) for _ in hours_in_day]
+    carb_ratios = [random_state.uniform(18, 22) for _ in hours_in_day]
     isfs = [carb_gain * carb_ratio for carb_ratio in carb_ratios]
 
     start_times_hourly = [datetime.time(hour=i, minute=0, second=0) for i in hours_in_day]
@@ -262,7 +261,7 @@ def get_variable_risk_patient_config(t0=DATETIME_DEFAULT, random_seed=1234):
     return t0, patient_config
 
 
-def get_pump_config(patient_config, t0=DATETIME_DEFAULT, risk_profile=1):
+def get_pump_config(random_state, t0=DATETIME_DEFAULT):
     """
     Get canonical pump config
 
@@ -282,21 +281,21 @@ def get_pump_config(patient_config, t0=DATETIME_DEFAULT, risk_profile=1):
         basal_schedule=BasalSchedule24hr(
             t0,
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[BasalRate(np.random.normal(0.3, 0.03), "U/hr")],
+            values=[BasalRate(random_state.normal(0.3, 0.03), "U/hr")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         carb_ratio_schedule=SettingSchedule24Hr(
             t0,
             "CIR",
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[CarbInsulinRatio(np.random.normal(20, 2), "g/U")],
+            values=[CarbInsulinRatio(random_state.normal(20, 2), "g/U")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         insulin_sensitivity_schedule=SettingSchedule24Hr(
             t0,
             "ISF",
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[InsulinSensitivityFactor(np.random.normal(150, 15), "mg/dL/U")],
+            values=[InsulinSensitivityFactor(random_state.normal(150, 15), "mg/dL/U")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         target_range_schedule=TargetRangeSchedule24hr(
