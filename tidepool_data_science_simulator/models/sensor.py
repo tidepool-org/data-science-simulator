@@ -30,6 +30,14 @@ class Sensor(SimulationComponent):
     def get_bg_trace(self, true_bg_trace):
         raise NotImplementedError
 
+    def get_info_stateless(self):
+
+        stateless_info = {
+            "name": self.name,
+            "config": self.sensor_config.get_info_stateless()
+        }
+        return stateless_info
+
     def get_state(self):
         """
         Get the state of the sensor
@@ -86,6 +94,12 @@ class NoisySensor(Sensor):
             icgm_bg = self.get_bg(tbg)
             icgm_trace.append(icgm_bg)
         return icgm_trace
+
+    def get_info_stateless(self):
+        stateless_info = super().get_info_stateless()
+        stateless_info.update({
+            "standard_deviation": self.std_dev
+        })
 
 
 class IdealSensor(Sensor):

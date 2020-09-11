@@ -35,6 +35,14 @@ class ContinuousInsulinPump(SimulationComponent):
         """
         self.basal_insulin_delivered_last_update = self.get_delivered_basal_insulin_since_update()
 
+    def get_info_stateless(self):
+
+        stateless_info = {
+            "name": self.name,
+            "config": self.pump_config.get_info_stateless()
+        }
+        return stateless_info
+
     def set_temp_basal(self, temp_basal):
         """
         Set a temp basal

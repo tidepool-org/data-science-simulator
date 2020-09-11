@@ -165,6 +165,16 @@ class VirtualPatient(SimulationComponent):
 
         return patient_state
 
+    def get_info_stateless(self):
+
+        stateless_info = {
+            "name": self.name,
+            "sensor": self.sensor.get_info_stateless(),
+            "pump": self.pump.get_info_stateless(),
+            "config": self.patient_config.get_info_stateless()
+        }
+        return stateless_info
+
     def get_actions(self):
         """
         Get actions that the user has performed which are not boluses or meals.
@@ -677,6 +687,7 @@ class VirtualPatientModel(VirtualPatient):
         """
 
         u = np.random.random()
+        correction_carb_value = np.random.uniform(5, 15)  # Here to keep random streams in sync
 
         carb = None
         if (
@@ -684,7 +695,7 @@ class VirtualPatientModel(VirtualPatient):
             and u <= self.correct_carb_step_prob
             and self.correct_carb_wait_minutes == 0
         ):
-            carb = Carb(value=np.random.uniform(5, 15), units="g", duration_minutes=3 * 60)
+            carb = Carb(value=correction_carb_value, units="g", duration_minutes=3 * 60)
             self.correct_carb_wait_minutes = self.correct_carb_wait_time_min
 
         return carb
@@ -850,10 +861,15 @@ class VirtualPatientModelCarbBolusAccept(VirtualPatientModel):
     """
 
     def does_accept_bolus_recommendation(self, bolus):
+        u = np.random.random()  # Here to keep random streams in sync
+
+        if bolus is None:
+            return False
+
         does_accept = False
-        u = np.random.random()
 
         min_bolus_rec_threshold = self.patient_config.min_bolus_rec_threshold
+
         if u <= self.patient_config.recommendation_accept_prob and bolus.value >= min_bolus_rec_threshold:
             does_accept = True
 

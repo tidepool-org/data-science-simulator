@@ -23,6 +23,13 @@ class BaseControllerClass(SimulationComponent):
     def get_classname(cls):
         return cls.__name__
 
+    def get_info_stateless(self):
+
+        stateless_info = {
+            "config": self.controller_config.get_info_stateless()
+        }
+        return stateless_info
+
 
 class DoNothingController(BaseControllerClass):
     """
@@ -200,7 +207,7 @@ class LoopController(BaseControllerClass):
         bolus_rec = self.get_recommended_bolus(loop_algorithm_output)
         temp_basal_rec = self.get_recommended_temp_basal(loop_algorithm_output)
 
-        if bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation(bolus_rec):
+        if virtual_patient.does_accept_bolus_recommendation(bolus_rec) and bolus_rec is not None:
             self.set_bolus_recommendation_event(virtual_patient, bolus_rec)
         elif temp_basal_rec is not None:
             if temp_basal_rec.scheduled_duration_minutes == 0 and temp_basal_rec.value == 0:

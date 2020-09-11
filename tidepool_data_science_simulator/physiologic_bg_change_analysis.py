@@ -1,14 +1,30 @@
 __author__ = "Cameron Summers"
 
+import os
 import pdb
+import json
 import time
 import copy
+import logging
+
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
+
 
 print("***************** Warning: Overriding Pyloopkit with Local Copy ***************************")
 import sys
+
+# sys.path.insert(0, "/Users/csummers/dev/PyLoopKit/")
 sys.path.insert(0, "/mnt/cameronsummers/dev/PyLoopKit/")
 
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+LOG_FILENAME = "sim.log"
+filehandler = logging.FileHandler(LOG_FILENAME)
+logger.addHandler(filehandler)
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
@@ -19,19 +35,21 @@ from tidepool_data_science_simulator.models.patient import VirtualPatientModelCa
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
-from tidepool_data_science_simulator.utils import timing, save_df, get_sim_results_save_dir
 
 from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_sensor_config, \
     get_pump_config, get_variable_risk_patient_config
+from tidepool_data_science_simulator.utils import timing, save_df, get_sim_results_save_dir
 
-from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
+from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index, percent_values_ge_70_le_180
 
 from numpy.random import RandomState
 
 
+
+
 @timing
-def compare_physiologic_bg_change_cap(save_dir, save_results):
+def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False):
     """
     Compare two controllers for a given scenario file:
         1. No controller, ie no insulin modulation except for pump schedule
@@ -87,10 +105,11 @@ def compare_physiologic_bg_change_cap(save_dir, save_results):
             carb_count_noise_percentage=prng.uniform(0.1, 0.25)
         )
         vp.name = "vp{}".format(i)
-        vp.patient_config.min_bolus_rec_threshold = prng.uniform(0.4, 0.6)
+        vp.patient_config.min_bolus_rec_threshold = np.inf# prng.uniform(0.4, 0.6)
         virtual_patients.append(vp)
 
     sims = {}
+
     for controller in controllers:
         for vp in virtual_patients:
             sim_id = "{}_{}".format(vp.name, controller.name)
@@ -99,6 +118,7 @@ def compare_physiologic_bg_change_cap(save_dir, save_results):
                 time=t0,
                 duration_hrs=4*7*24, # 4 weeks
                 virtual_patient=vp,
+                sim_id=sim_id,
                 controller=controller,
                 multiprocess=True,
             )
@@ -111,30 +131,83 @@ def compare_physiologic_bg_change_cap(save_dir, save_results):
     num_procs = 20
     running_sims = {}
     for sim_id, sim in sims.items():
-        print("Running: {}. {} of {}".format(sim_id, sim_ctr, num_sims))
+        logger.debug("Running: {}. {} of {}".format(sim_id, sim_ctr, num_sims))
         sim.start()
-        sim_ctr += 1
         running_sims[sim_id] = sim
 
-        if len(running_sims) >= num_procs:
+        if len(running_sims) >= num_procs or sim_ctr >= num_sims:
             all_results = {id: sim.queue.get() for id, sim in running_sims.items()}
             [sim.join() for id, sim in running_sims.items()]
+            for id, sim in running_sims.items():
+                info = sim.get_info_stateless()
+                json.dump(info, open(os.path.join(results_dir, "{:2.f}.json".format(id)), "w"), indent=4)
             running_sims = {}
 
+            logger.debug("Batch run time: {}m".format((time.time() - start_time) / 60.0))
             for sim_id, results_df in all_results.items():
                 lbgi, hbgi, brgi = blood_glucose_risk_index(results_df['bg'])
-                print(sim_id, lbgi, hbgi, brgi)
+                summary_str = "Sim {}. LBGI: {} HBGI: {} BRGI: {}".format(sim_id, lbgi, hbgi, brgi)
+                logger.debug(summary_str)
 
                 if save_results:
                     save_df(results_df, sim_id, save_dir)
 
-    print("Run time sec:", time.time() - start_time)
-    #plot_sim_results(all_results, save=False)
+            if plot_results:
+                plot_sim_results(all_results, save=False)
+
+        sim_ctr += 1
+
+    logger.debug("Full run time: {:.2f}m".format((time.time() - start_time) / 60.0))
+    os.rename(LOG_FILENAME, os.path.join(results_dir, LOG_FILENAME))
+
+
+def analyze_results(result_dir):
+
+    import re
+
+    results = []
+    for root, dirs, files in os.walk(result_dir, topdown=False):
+        for file in files:
+            results_df = pd.read_csv(os.path.join(root, file), sep="\t")
+            try:
+                lbgi, hbgi, brgi = blood_glucose_risk_index(results_df['bg'])
+                tir = percent_values_ge_70_le_180(results_df['bg'])
+            except:
+                lbgi, hbgi, brgi = (None, None, None)
+
+            vp = re.search("vp\d+", file).group()
+            rate = 11.11
+            if re.search("Max=\d", file):
+                rate = float(re.search("Max=(\d)", file).groups()[0])
+            print(vp, rate)
+
+            row = {
+                "vp": vp,
+                "rate": rate,
+                "lbgi": lbgi,
+                "hbgi": hbgi,
+                "brgi": brgi,
+                "tir": tir
+            }
+            results.append(row)
+
+    summary_df = pd.DataFrame(results)
+
+    print(summary_df.groupby("rate")["lbgi"].median())
+    print(summary_df.groupby("rate")["hbgi"].median())
+    print(summary_df.groupby("rate")["tir"].median())
+
+    sns.lmplot("rate", y="tir", hue="vp", data=summary_df)
+    plt.show()
+
 
 if __name__ == "__main__":
+
     results_dir = get_sim_results_save_dir()
-    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True)
+
+    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=False)
+
+    # analyze_results("/Users/csummers/physio_results")
 
     # TODO:
     #   Delays for carb/bolus times
-    #   Random seed alignment for meal carbs?

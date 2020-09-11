@@ -34,7 +34,7 @@ class SimulationState(object):
     A class for holding the state of the simulation at any given time.
     """
 
-    def __init__(self, patient_state, controller_state):
+    def __init__(self, patient_state, controller_state, randint):
         """
         Parameters
         ----------
@@ -44,6 +44,7 @@ class SimulationState(object):
 
         self.patient_state = patient_state
         self.controller_state = controller_state
+        self.randint = randint
 
     def __repr__(self):
 
@@ -68,8 +69,9 @@ class Simulation(multiprocessing.Process):
         duration_hrs,
         virtual_patient,
         controller,
+        sim_id,
         multiprocess=False,
-        seed=1234
+        seed=1234,
     ):
 
         # To enable multiprocessing
@@ -78,6 +80,7 @@ class Simulation(multiprocessing.Process):
         self.multiprocess = multiprocess
         self.seed = seed
 
+        self.sim_id = sim_id
         self.start_time = copy.deepcopy(time)
         self.time = time
 
@@ -154,6 +157,7 @@ class Simulation(multiprocessing.Process):
         self.simulation_results[self.time] = SimulationState(
             patient_state=self.virtual_patient.get_state(),
             controller_state=self.controller.get_state(),
+            randint=np.random.randint(0, 1e6)
         )
 
     def is_finished(self):
@@ -242,13 +246,27 @@ class Simulation(multiprocessing.Process):
                 "reported_carb_value": reported_carb.value,
                 "reported_carb_duration": reported_carb.duration_minutes,
                 "delivered_basal_insulin": delivered_basal_insulin,
-                "undelivered_basal_insulin": undelivered_basal_insulin
+                "undelivered_basal_insulin": undelivered_basal_insulin,
+                "randint": simulation_state.randint
             }
             data.append(row)
 
         df = pd.DataFrame(data)
         df.set_index("time")
         return df
+
+    def get_info_stateless(self):
+
+        stateless_info = {
+            "sim_id": self.sim_id,
+            "duration_hrs": self.duration_hrs,
+            "seed": self.seed,
+            "start_time": self.start_time.isoformat(),
+            "multiprocess": self.multiprocess,
+            "patient": self.virtual_patient.get_info_stateless(),
+            "controller": self.controller.get_info_stateless()
+        }
+        return stateless_info
 
 
 class SettingSchedule24Hr(SimulationComponent):
@@ -348,6 +366,20 @@ class SettingSchedule24Hr(SimulationComponent):
             end_times.append(end_time)
 
         return values, start_times, end_times
+
+    def get_info_stateless(self):
+
+        stateless_info = {
+            "schedule": [
+                {
+                    "setting": str(setting),
+                    "start_time": start_time.strftime('%H:%M:%S'),
+                    "end_time": end_time.strftime('%H:%M:%S')
+                }
+                for (start_time, end_time), setting in self.schedule.items()
+            ]
+        }
+        return stateless_info
 
 
 class BasalSchedule24hr(SettingSchedule24Hr):

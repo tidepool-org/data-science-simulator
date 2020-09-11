@@ -19,10 +19,11 @@ def plot_sim_results(all_results, save=False):
     linestyle = itertools.cycle(('-', '--', '-.'))
     for sim_id, ctrl_result_df in all_results.items():
 
-        ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple", linestyle=next(linestyle))
-        ax[0].scatter(range(len(ctrl_result_df)), ctrl_result_df["bg_sensor"], 4,
-                      label="{} {}".format("bg_sensor", sim_id),
-                      color="green")
+        # ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple", linestyle=next(linestyle))
+        ax[0].plot(ctrl_result_df["bg_sensor"], label="{} {}".format("bg", sim_id), color="green", linestyle=next(linestyle))
+        # ax[0].scatter(range(len(ctrl_result_df)), ctrl_result_df["bg_sensor"], 4,
+        #               label="{} {}".format("bg_sensor", sim_id),
+        #               color="green")
         ax[0].set_title("BG Over Time")
         ax[0].set_xlabel("Time (5min)")
         ax[0].set_ylabel("BG (mg/dL)")

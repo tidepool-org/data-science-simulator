@@ -350,6 +350,10 @@ class ControllerConfig(object):
         self.temp_basal_event_timeline = TempBasalTimeline()  # No existing scenario specifies temp basal events
         self.controller_settings = controller_settings
 
+    def get_info_stateless(self):
+
+        return self.controller_settings
+
 
 class PatientConfig(object):
     def __init__(
@@ -402,6 +406,16 @@ class PatientConfig(object):
 
         self.recommendation_accept_prob = recommendation_accept_prob
 
+    def get_info_stateless(self):
+
+        stateless_info = {
+            "basal_schedule": self.basal_schedule.get_info_stateless(),
+            "carb_ratio_schedule": self.carb_ratio_schedule.get_info_stateless(),
+            "insulin_sensitivity_schedule": self.insulin_sensitivity_schedule.get_info_stateless()
+        }
+
+        return stateless_info
+
 
 class PumpConfig(object):
     def __init__(
@@ -449,9 +463,23 @@ class PumpConfig(object):
         self.max_temp_basal = np.inf
         self.max_bolus = np.inf
 
+    def get_info_stateless(self):
+
+        stateless_info = {
+            "basal_schedule": self.basal_schedule.get_info_stateless(),
+            "carb_ratio_schedule": self.carb_ratio_schedule.get_info_stateless(),
+            "insulin_sensitivity_schedule": self.insulin_sensitivity_schedule.get_info_stateless()
+        }
+
+        return stateless_info
+
 
 class SensorConfig(object):
 
     def __init__(self, sensor_bg_history=None):
 
         self.sensor_bg_history = sensor_bg_history
+
+    def get_info_stateless(self):
+
+        return dict()
