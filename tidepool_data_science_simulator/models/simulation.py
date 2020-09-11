@@ -141,12 +141,16 @@ class Simulation(multiprocessing.Process):
         """
         np.random.seed(self.seed)
 
+        # print("Start random:", np.random.random())
+
         while not (self.is_finished() or early_stop_datetime == self.time):
             self.step()
             self.store_state()
 
         if self.multiprocess:
             self.queue.put(self.get_results_df())
+
+        # print("End random:", np.random.random())
 
         return self.simulation_results
 

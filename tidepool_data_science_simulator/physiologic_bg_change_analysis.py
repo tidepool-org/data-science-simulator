@@ -49,7 +49,7 @@ from numpy.random import RandomState
 
 
 @timing
-def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False):
+def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False, dry_run=False):
     """
     Compare two controllers for a given scenario file:
         1. No controller, ie no insulin modulation except for pump schedule
@@ -60,6 +60,14 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
     scenario_csv_filepath: str
         Path to the scenario file
     """
+    num_patients = 30
+    rate_caps = [3.0, 5.0, 7.0, 9.0]
+    duration_hrs = 4*7*24
+    if dry_run:
+        num_patients = 1
+        rate_caps = [3.0]
+        duration_hrs = 4
+
     prng = RandomState(1234567890)
 
     t0, controller_config = get_canonical_controller_config()
@@ -68,14 +76,13 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
     no_cap_loop_controller = LoopController(time=t0, controller_config=no_cap_controller_config)
 
     controllers = [no_cap_loop_controller]
-    for max_rate in [3.0, 5.0, 7.0, 9.0]:
+    for max_rate in rate_caps:
         capped_controller_config = copy.deepcopy(controller_config)
         capped_controller_config.controller_settings["max_physiologic_slope"] = max_rate
         capped_loop_controller = LoopController(time=t0, controller_config=capped_controller_config)
         capped_loop_controller.name = "PyloopKit_BG_Change_Max={}".format(max_rate)
         controllers.append(capped_loop_controller)
 
-    num_patients = 30
     virtual_patients = []
     for i in range(num_patients):
 
@@ -116,7 +123,7 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
 
             sim = Simulation(
                 time=t0,
-                duration_hrs=4*7*24, # 4 weeks
+                duration_hrs=duration_hrs, # 4 weeks
                 virtual_patient=vp,
                 sim_id=sim_id,
                 controller=controller,
@@ -140,14 +147,17 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
             [sim.join() for id, sim in running_sims.items()]
             for id, sim in running_sims.items():
                 info = sim.get_info_stateless()
-                json.dump(info, open(os.path.join(results_dir, "{:2.f}.json".format(id)), "w"), indent=4)
+                json.dump(info, open(os.path.join(results_dir, "{}.json".format(id)), "w"), indent=4)
             running_sims = {}
 
-            logger.debug("Batch run time: {}m".format((time.time() - start_time) / 60.0))
+            logger.debug("Batch run time: {:.2f}m".format((time.time() - start_time) / 60.0))
             for sim_id, results_df in all_results.items():
-                lbgi, hbgi, brgi = blood_glucose_risk_index(results_df['bg'])
-                summary_str = "Sim {}. LBGI: {} HBGI: {} BRGI: {}".format(sim_id, lbgi, hbgi, brgi)
-                logger.debug(summary_str)
+                try:
+                    lbgi, hbgi, brgi = blood_glucose_risk_index(results_df['bg'])
+                    summary_str = "Sim {}. LBGI: {} HBGI: {} BRGI: {}".format(sim_id, lbgi, hbgi, brgi)
+                    logger.debug(summary_str)
+                except:
+                    logger.debug("Exception in summary stats, passing {}...".format(sim_id))
 
                 if save_results:
                     save_df(results_df, sim_id, save_dir)
@@ -205,7 +215,7 @@ if __name__ == "__main__":
 
     results_dir = get_sim_results_save_dir()
 
-    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=False)
+    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True, plot_results=True, dry_run=True)
 
     # analyze_results("/Users/csummers/physio_results")
 
