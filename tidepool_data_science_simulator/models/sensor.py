@@ -72,10 +72,11 @@ class NoisySensor(Sensor):
     """
     A simple sensor with Gaussian noise.
     """
-    def __init__(self, time, sensor_config):
+    def __init__(self, time, sensor_config, random_state):
         super().__init__(time, sensor_config)
 
         self.name = "iCGM"
+        self.random_state = random_state
         try:
             self.std_dev = sensor_config.std_dev
         except:
@@ -85,7 +86,7 @@ class NoisySensor(Sensor):
         """
         Get noisy according to internal params
         """
-        bg = int(np.random.normal(true_bg, self.std_dev))
+        bg = int(self.random_state.normal(true_bg, self.std_dev))
         return bg
 
     def get_bg_trace(self, true_bg_trace):

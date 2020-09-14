@@ -6,6 +6,10 @@ import json
 import time
 import copy
 import logging
+import argparse
+import re
+from collections import defaultdict
+from itertools import combinations
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,7 +35,7 @@ from tidepool_data_science_models.models.simple_metabolism_model import SimpleMe
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.events import ActionTimeline
 from tidepool_data_science_simulator.models.controller import LoopController
-from tidepool_data_science_simulator.models.patient import VirtualPatientModelCarbBolusAccept
+from tidepool_data_science_simulator.models.patient import VirtualPatientModel
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
@@ -45,7 +49,11 @@ from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_ind
 
 from numpy.random import RandomState
 
+SEED = 1234567890
 
+
+def get_new_random_state():
+    return RandomState(SEED)
 
 
 @timing
@@ -60,6 +68,8 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
     scenario_csv_filepath: str
         Path to the scenario file
     """
+    logger.debug("Random Seed: {}".format(SEED))
+
     num_patients = 30
     rate_caps = [3.0, 5.0, 7.0, 9.0]
     duration_hrs = 4*7*24
@@ -68,68 +78,74 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
         rate_caps = [3.0]
         duration_hrs = 4
 
-    prng = RandomState(1234567890)
+    logger.debug("Running {} patients. {} rate caps. {} hours}".format(num_patients, len(rate_caps), duration_hrs))
 
-    t0, controller_config = get_canonical_controller_config()
-
-    no_cap_controller_config = copy.deepcopy(controller_config)
-    no_cap_loop_controller = LoopController(time=t0, controller_config=no_cap_controller_config)
-
-    controllers = [no_cap_loop_controller]
-    for max_rate in rate_caps:
-        capped_controller_config = copy.deepcopy(controller_config)
-        capped_controller_config.controller_settings["max_physiologic_slope"] = max_rate
-        capped_loop_controller = LoopController(time=t0, controller_config=capped_controller_config)
-        capped_loop_controller.name = "PyloopKit_BG_Change_Max={}".format(max_rate)
-        controllers.append(capped_loop_controller)
-
+    # Setup Patients
+    global_random_state = get_new_random_state()  # Single instance generates different patients
     virtual_patients = []
     for i in range(num_patients):
+        sim_random_state = get_new_random_state()
 
         t0, sensor_config = get_canonical_sensor_config()
-        sensor_config.std_dev = prng.uniform(5, 15)
-        sensor = NoisySensor(time=t0, sensor_config=sensor_config)
+        sensor_config.std_dev = global_random_state.uniform(5, 15)
+        sensor = NoisySensor(time=t0, sensor_config=sensor_config, random_state=sim_random_state)
 
-        t0, patient_config = get_variable_risk_patient_config(prng)
+        t0, patient_config = get_variable_risk_patient_config(global_random_state)
 
-        patient_config.recommendation_accept_prob = prng.uniform(0.8, 0.99)
+        patient_config.recommendation_accept_prob = global_random_state.uniform(0.8, 0.99)
         patient_config.action_timeline = ActionTimeline()
 
-        t0, pump_config = get_pump_config(prng)
+        t0, pump_config = get_pump_config(global_random_state)
         pump = ContinuousInsulinPump(time=t0, pump_config=pump_config)
 
-        vp = VirtualPatientModelCarbBolusAccept(
+        vp = VirtualPatientModel(
             time=t0,
             pump=pump,
             sensor=sensor,
             metabolism_model=SimpleMetabolismModel,
             patient_config=patient_config,
-            remember_meal_bolus_prob=prng.uniform(0.9, 1.0),
-            correct_bolus_bg_threshold=prng.uniform(140, 190),
-            correct_bolus_delay_minutes=prng.uniform(20, 40),
-            correct_carb_bg_threshold=prng.uniform(70, 90),
-            correct_carb_delay_minutes=prng.uniform(5, 15),
-            carb_count_noise_percentage=prng.uniform(0.1, 0.25)
+            random_state=get_new_random_state(),
+            remember_meal_bolus_prob=global_random_state.uniform(0.9, 1.0),
+            correct_bolus_bg_threshold=global_random_state.uniform(140, 190),
+            correct_bolus_delay_minutes=global_random_state.uniform(20, 40),
+            correct_carb_bg_threshold=global_random_state.uniform(70, 90),
+            correct_carb_delay_minutes=global_random_state.uniform(5, 15),
+            carb_count_noise_percentage=global_random_state.uniform(0.1, 0.25),
         )
         vp.name = "vp{}".format(i)
-        vp.patient_config.min_bolus_rec_threshold = np.inf# prng.uniform(0.4, 0.6)
+        vp.patient_config.min_bolus_rec_threshold = global_random_state.uniform(1, 1.5)
         virtual_patients.append(vp)
 
-    sims = {}
+    # Setup Controllers
+    t0, controller_config = get_canonical_controller_config()
 
+    no_cap_controller_config = copy.deepcopy(controller_config)
+    no_cap_loop_controller = LoopController(time=t0, controller_config=no_cap_controller_config,
+                                            random_state=get_new_random_state())
+
+    controllers = [no_cap_loop_controller]
+    for max_rate in rate_caps:
+        capped_controller_config = copy.deepcopy(controller_config)
+        capped_controller_config.controller_settings["max_physiologic_slope"] = max_rate
+        capped_loop_controller = LoopController(time=t0, controller_config=capped_controller_config,
+                                                random_state=get_new_random_state())
+        capped_loop_controller.name = "PyloopKit_BG_Change_Max={}".format(max_rate)
+        controllers.append(capped_loop_controller)
+
+    sims = {}
     for controller in controllers:
         for vp in virtual_patients:
             sim_id = "{}_{}".format(vp.name, controller.name)
 
             sim = Simulation(
                 time=t0,
-                duration_hrs=duration_hrs, # 4 weeks
+                duration_hrs=duration_hrs,  # 4 weeks
                 virtual_patient=vp,
                 sim_id=sim_id,
                 controller=controller,
                 multiprocess=True,
+                random_state=get_new_random_state()
             )
-            sim.seed = 1234
             sims[sim_id] = sim
 
     num_sims = len(sims)
@@ -173,8 +189,6 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
 
 def analyze_results(result_dir):
 
-    import re
-
     results = []
     for root, dirs, files in os.walk(result_dir, topdown=False):
         for file in files:
@@ -211,13 +225,49 @@ def analyze_results(result_dir):
     plt.show()
 
 
+def validate_random_number_streams(result_dir):
+
+    vp_dfpath_dict = defaultdict(list)
+    for root, dirs, files in os.walk(result_dir, topdown=False):
+        for file in sorted(files):
+            if re.search("vp\d.*.json", file):
+                sim_info = json.load(open(os.path.join(root, file), "r"))
+                sim_id = sim_info["sim_id"]
+                vp = sim_info["patient"]["name"]
+                df_file = [fn for fn in files if sim_id in fn and ".tsv" in fn][0]
+                df_path = os.path.join(root, df_file)
+                vp_dfpath_dict[vp].append(df_path)
+
+    for vp, path_list in vp_dfpath_dict.items():
+        for path1, path2 in combinations(path_list, 2):
+            df1 = pd.read_csv(path1, sep="\t")
+            df2 = pd.read_csv(path2, sep="\t")
+
+            if sum(abs(df1.iloc[1:]["randint"] - df2.iloc[1:]["randint"]) != 0):
+                print(path1, path2)
+                print(np.where(df1, df1["randint"] != df2["randint"])[:10])
+                break
+
+    # print(rate_caps_results_dict)
+    print(vp_dfpath_dict)
+
+
 if __name__ == "__main__":
 
-    results_dir = get_sim_results_save_dir()
+    parser = argparse.ArgumentParser()
 
-    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True, plot_results=True, dry_run=True)
+    parser.add_argument("-a", "--action")#, choices=["simulate", "analyze"])
+    parser.add_argument("-d", "--result_dir", help="simulation result directory to analyze")
 
-    # analyze_results("/Users/csummers/physio_results")
+    args = parser.parse_args()
+    action = args.action
+    result_dir = args.result_dir
 
-    # TODO:
-    #   Delays for carb/bolus times
+    if action == "simulate":
+        results_dir = get_sim_results_save_dir()
+        compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True, plot_results=True, dry_run=True)
+    elif action == "analyze":
+        analyze_results(result_dir)
+    else:
+        validate_random_number_streams(result_dir)
+

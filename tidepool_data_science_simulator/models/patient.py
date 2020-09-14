@@ -56,7 +56,7 @@ class VirtualPatient(SimulationComponent):
     Patient class for simulation
     """
 
-    def __init__(self, time, pump, sensor, metabolism_model, patient_config):
+    def __init__(self, time, pump, sensor, metabolism_model, patient_config, random_state):
         """
         Parameters
         ----------
@@ -72,6 +72,8 @@ class VirtualPatient(SimulationComponent):
         self.time = time
 
         self.name = "Virtual Patient"
+
+        self.random_state = random_state
 
         self.pump = pump
         self.sensor = sensor
@@ -487,11 +489,13 @@ class VirtualPatient(SimulationComponent):
         bool
             True if patient accepts
         """
+        if bolus is None:  # Need here to keep random streams in sync
+            return False
 
         does_accept = False
-        u = np.random.random()
+        u = self.random_state.random_sample()
 
-        if u <= self.patient_config.recommendation_accept_prob:
+        if u <= self.patient_config.recommendation_accept_prob and bolus.value >= self.patient_config.min_bolus_rec_threshold:
             does_accept = True
 
         return does_accept
@@ -533,7 +537,7 @@ class VirtualPatientCarbBolusAccept(VirtualPatient):
 
     def does_accept_bolus_recommendation(self, bolus):
         does_accept = False
-        u = np.random.random()
+        u = self.random_state.random_sample()
 
         min_bolus_rec_threshold = self.patient_config.min_bolus_rec_threshold
         if u <= self.patient_config.recommendation_accept_prob and bolus.value >= min_bolus_rec_threshold:
@@ -555,6 +559,7 @@ class VirtualPatientModel(VirtualPatient):
         sensor,
         metabolism_model,
         patient_config,
+        random_state,
         remember_meal_bolus_prob=1.0,  # TODO: move these into config object. Separate config object?
         correct_bolus_bg_threshold=180,
         correct_bolus_delay_minutes=30,
@@ -563,19 +568,19 @@ class VirtualPatientModel(VirtualPatient):
         carb_count_noise_percentage=0.1,
         id=None,
     ):
-        super().__init__(time, pump, sensor, metabolism_model, patient_config)
+        super().__init__(time, pump, sensor, metabolism_model, patient_config, random_state=random_state)
 
         if id is None:
-            id = np.random.randint(0, 1000000)
+            id = self.random_state.randint(0, 1000000)
 
         self.name = "VP-{}".format(id)
 
         self.meal_model = [
-            MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98),
-            MealModel("Snack", datetime.time(hour=10), datetime.time(hour=11), 0.2, carb_range=(5, 15)),
-            MealModel("Lunch", datetime.time(hour=11), datetime.time(hour=13), 0.98),
-            MealModel("Snack", datetime.time(hour=14), datetime.time(hour=16), 0.2, carb_range=(5, 15)),
-            MealModel("Dinner", datetime.time(hour=17), datetime.time(hour=21), 0.999),
+            MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98, random_state=random_state),
+            MealModel("Snack", datetime.time(hour=10), datetime.time(hour=11), 0.2, carb_range=(5, 15), random_state=random_state),
+            MealModel("Lunch", datetime.time(hour=11), datetime.time(hour=13), 0.98, random_state=random_state),
+            MealModel("Snack", datetime.time(hour=14), datetime.time(hour=16), 0.2, carb_range=(5, 15), random_state=random_state),
+            MealModel("Dinner", datetime.time(hour=17), datetime.time(hour=21), 0.999, random_state=random_state),
         ]
 
         self.report_carb_probability = 1.0  # TODO: move into config object
@@ -584,12 +589,14 @@ class VirtualPatientModel(VirtualPatient):
         self.remember_meal_bolus_prob = remember_meal_bolus_prob
 
         self.correct_bolus_bg_threshold = correct_bolus_bg_threshold
+        self.correct_bolus_delay_minutes = correct_bolus_delay_minutes
         num_trials = int(correct_bolus_delay_minutes / 5.0)
         self.correct_bolus_step_prob = get_bernoulli_trial_uniform_step_prob(
             num_trials, 1.0
         )
 
         self.correct_carb_bg_threshold = correct_carb_bg_threshold
+        self.correct_carb_delay_minutes = correct_carb_delay_minutes
         num_trials = int(correct_carb_delay_minutes / 5.0)
         self.correct_carb_step_prob = get_bernoulli_trial_uniform_step_prob(
             num_trials, 1.0
@@ -601,6 +608,20 @@ class VirtualPatientModel(VirtualPatient):
         self.correct_carb_wait_minutes = 0
 
         self.meal_wait_minutes = 0
+
+    def get_info_stateless(self):
+
+        stateless_info = super().get_info_stateless()
+        stateless_info.update({
+            "remember_meal_bolus_prob": self.remember_meal_bolus_prob,
+            "correct_bolus_bg_threshold": self.correct_bolus_bg_threshold,
+            "correct_bolus_delay_minutes": self.correct_bolus_delay_minutes,
+            "correct_carb_bg_threshold": self.correct_carb_bg_threshold,
+            "correct_carb_delay_minutes": self.correct_carb_delay_minutes,
+            "carb_count_noise_percentage": self.carb_count_noise_percentage,
+            "correct_carb_wait_time_min": self.correct_carb_wait_time_min
+        })
+        return stateless_info
 
     def get_user_inputs(self):
         """
@@ -640,7 +661,7 @@ class VirtualPatientModel(VirtualPatient):
         ----------
         carb
         """
-        u = np.random.random()
+        u = self.random_state.random_sample()
         if u <= self.report_carb_probability:
             estimated_carb = self.estimate_meal_carb(carb)
             self.pump.carb_event_timeline.add_event(self.time, estimated_carb)
@@ -654,7 +675,7 @@ class VirtualPatientModel(VirtualPatient):
         ----------
         bolus
         """
-        u = np.random.random()
+        u = self.random_state.random_sample()
         if u <= self.report_bolus_probability:
             self.pump.bolus_event_timeline.add_event(self.time, bolus)
 
@@ -667,7 +688,7 @@ class VirtualPatientModel(VirtualPatient):
         MealModel
         """
         meal = None
-        u = np.random.uniform()
+        u = self.random_state.uniform()
 
         for meal_model in self.meal_model:
             if self.meal_wait_minutes == 0 and meal_model.is_meal_time(self.time) and u < meal_model.step_prob:
@@ -686,8 +707,8 @@ class VirtualPatientModel(VirtualPatient):
         Carb
         """
 
-        u = np.random.random()
-        correction_carb_value = np.random.uniform(5, 15)  # Here to keep random streams in sync
+        u = self.random_state.random_sample()
+        correction_carb_value = self.random_state.uniform(5, 15)  # Here to keep random streams in sync
 
         carb = None
         if (
@@ -708,7 +729,7 @@ class VirtualPatientModel(VirtualPatient):
         -------
         Bolus
         """
-        u = np.random.random()
+        u = self.random_state.random_sample()
 
         correction_bolus = None
         if (
@@ -750,7 +771,7 @@ class VirtualPatientModel(VirtualPatient):
         # Meal bolus
         bolus = None
         if carb is not None:
-            u = np.random.random()
+            u = self.random_state.random_sample()
 
             if u <= self.remember_meal_bolus_prob:
 
@@ -839,12 +860,12 @@ class VirtualPatientModel(VirtualPatient):
 
         estimated_carb = Carb(
             value=max(0.0, int(
-                np.random.normal(
+                self.random_state.normal(
                     carb.value, carb.value * self.carb_count_noise_percentage
                 )
             )),
             units="g",
-            duration_minutes=np.random.choice([3 * 60, 4 * 60, 5 * 60]),
+            duration_minutes=self.random_state.choice([3 * 60, 4 * 60, 5 * 60]),
         )
         return estimated_carb
 
@@ -852,25 +873,3 @@ class VirtualPatientModel(VirtualPatient):
         super().update(time, **kwargs)
         self.correct_carb_wait_minutes = max(0, self.correct_carb_wait_minutes - 5)
         self.meal_wait_minutes = max(0, self.meal_wait_minutes - 5)
-
-
-class VirtualPatientModelCarbBolusAccept(VirtualPatientModel):
-    """
-    A vitual patient that does not accept small Loop bolus recommendations. This will encourage recommendations
-    that are related to Carb entries or other insulin-deficient scenarios.
-    """
-
-    def does_accept_bolus_recommendation(self, bolus):
-        u = np.random.random()  # Here to keep random streams in sync
-
-        if bolus is None:
-            return False
-
-        does_accept = False
-
-        min_bolus_rec_threshold = self.patient_config.min_bolus_rec_threshold
-
-        if u <= self.patient_config.recommendation_accept_prob and bolus.value >= min_bolus_rec_threshold:
-            does_accept = True
-
-        return does_accept

@@ -59,12 +59,13 @@ class LoopController(BaseControllerClass):
     def __str__(self):
         return "PyLoopkit_v0.1"
 
-    def __init__(self, time, controller_config):
+    def __init__(self, time, controller_config, random_state):
 
         self.name = "PyLoopkit v0.1"
         self.time = time
         self.controller_config = copy.deepcopy(controller_config)
         self.recommendations = None
+        self.random_state = random_state
 
         self.bolus_event_timeline = controller_config.bolus_event_timeline
         self.temp_basal_event_timeline = controller_config.temp_basal_event_timeline
@@ -300,8 +301,8 @@ class LoopControllerDisconnector(LoopController):
     setting of temp basals.
     """
 
-    def __init__(self, time, controller_config, connect_prob):
-        super().__init__(time, controller_config)
+    def __init__(self, time, controller_config, connect_prob, random_state):
+        super().__init__(time, controller_config, random_state=random_state)
 
         self.name = "PyLoopkit v0.1, P(Connect)={}".format(connect_prob)
         self.original_time = copy.copy(time)
@@ -316,7 +317,7 @@ class LoopControllerDisconnector(LoopController):
         bool
         """
         is_connected = False
-        u = np.random.random()
+        u = self.random_state.random_sample()
         if u < self.connect_prob:
             is_connected = True
 

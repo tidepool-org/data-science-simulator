@@ -114,7 +114,7 @@ def timing(f):
 
 def save_df(df_results, analysis_name, save_dir, save_type="tsv"):
     utc_string = dt.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S")
-    filename = "{}-created_{}".format(analysis_name, utc_string)
+    filename = "{}".format(analysis_name, utc_string)
     path = os.path.join(save_dir, filename)
     if "tsv" in save_type:
         df_results.to_csv("{}.tsv".format(path), sep="\t")

@@ -71,14 +71,14 @@ class Simulation(multiprocessing.Process):
         controller,
         sim_id,
         multiprocess=False,
-        seed=1234,
+        random_state=1234,
     ):
 
         # To enable multiprocessing
         super().__init__()
         self.queue = multiprocessing.Queue()
         self.multiprocess = multiprocess
-        self.seed = seed
+        self.random_state = random_state
 
         self.sim_id = sim_id
         self.start_time = copy.deepcopy(time)
@@ -139,9 +139,6 @@ class Simulation(multiprocessing.Process):
         early_stop_datetime: datetime
             Optional stop time for the simulation.
         """
-        np.random.seed(self.seed)
-
-        # print("Start random:", np.random.random())
 
         while not (self.is_finished() or early_stop_datetime == self.time):
             self.step()
@@ -149,8 +146,6 @@ class Simulation(multiprocessing.Process):
 
         if self.multiprocess:
             self.queue.put(self.get_results_df())
-
-        # print("End random:", np.random.random())
 
         return self.simulation_results
 
@@ -161,7 +156,7 @@ class Simulation(multiprocessing.Process):
         self.simulation_results[self.time] = SimulationState(
             patient_state=self.virtual_patient.get_state(),
             controller_state=self.controller.get_state(),
-            randint=np.random.randint(0, 1e6)
+            randint=self.random_state.randint(0, 1e6)
         )
 
     def is_finished(self):
@@ -264,7 +259,7 @@ class Simulation(multiprocessing.Process):
         stateless_info = {
             "sim_id": self.sim_id,
             "duration_hrs": self.duration_hrs,
-            "seed": self.seed,
+            # "seed": self.random_state.get_state(),
             "start_time": self.start_time.isoformat(),
             "multiprocess": self.multiprocess,
             "patient": self.virtual_patient.get_info_stateless(),
