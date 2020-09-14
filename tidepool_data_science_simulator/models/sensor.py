@@ -4,12 +4,9 @@ __author__ = "Cameron Summers"
 Sensor model classes
 """
 
-import numpy as np
+import copy
 
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
-from tidepool_data_science_simulator.models.measures import GlucoseTrace
-
-from tidepool_data_science_models.models.icgm_sensor import iCGMSensor
 
 
 class Sensor(SimulationComponent):
@@ -18,8 +15,8 @@ class Sensor(SimulationComponent):
 
         super().__init__()
         self.time = time
-        self.sensor_bg_history = sensor_config.sensor_bg_history
-        self.sensor_config = sensor_config
+        self.sensor_config = copy.deepcopy(sensor_config)
+        self.sensor_bg_history = self.sensor_config.sensor_bg_history
 
         self.current_sensor_bg = self.sensor_config.sensor_bg_history.bg_values[0]
         self.current_sensor_bg_prediction = None
@@ -101,6 +98,7 @@ class NoisySensor(Sensor):
         stateless_info.update({
             "standard_deviation": self.std_dev
         })
+        return stateless_info
 
 
 class IdealSensor(Sensor):

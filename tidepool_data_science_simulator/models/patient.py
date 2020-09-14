@@ -489,11 +489,11 @@ class VirtualPatient(SimulationComponent):
         bool
             True if patient accepts
         """
-        if bolus is None:  # Need here to keep random streams in sync
-            return False
-
         does_accept = False
-        u = self.random_state.random_sample()
+        u = self.random_state.random_sample()  # Need here to keep random streams in sync
+
+        if bolus is None:
+            return False
 
         if u <= self.patient_config.recommendation_accept_prob and bolus.value >= self.patient_config.min_bolus_rec_threshold:
             does_accept = True
@@ -560,12 +560,6 @@ class VirtualPatientModel(VirtualPatient):
         metabolism_model,
         patient_config,
         random_state,
-        remember_meal_bolus_prob=1.0,  # TODO: move these into config object. Separate config object?
-        correct_bolus_bg_threshold=180,
-        correct_bolus_delay_minutes=30,
-        correct_carb_bg_threshold=80,
-        correct_carb_delay_minutes=10,
-        carb_count_noise_percentage=0.1,
         id=None,
     ):
         super().__init__(time, pump, sensor, metabolism_model, patient_config, random_state=random_state)
@@ -586,23 +580,16 @@ class VirtualPatientModel(VirtualPatient):
         self.report_carb_probability = 1.0  # TODO: move into config object
         self.report_bolus_probability = 1.0
 
-        self.remember_meal_bolus_prob = remember_meal_bolus_prob
 
-        self.correct_bolus_bg_threshold = correct_bolus_bg_threshold
-        self.correct_bolus_delay_minutes = correct_bolus_delay_minutes
-        num_trials = int(correct_bolus_delay_minutes / 5.0)
+        num_trials = int(self.patient_config.correct_bolus_delay_minutes / 5.0)
         self.correct_bolus_step_prob = get_bernoulli_trial_uniform_step_prob(
             num_trials, 1.0
         )
 
-        self.correct_carb_bg_threshold = correct_carb_bg_threshold
-        self.correct_carb_delay_minutes = correct_carb_delay_minutes
-        num_trials = int(correct_carb_delay_minutes / 5.0)
+        num_trials = int(self.patient_config.correct_carb_delay_minutes / 5.0)
         self.correct_carb_step_prob = get_bernoulli_trial_uniform_step_prob(
             num_trials, 1.0
         )
-
-        self.carb_count_noise_percentage = carb_count_noise_percentage
 
         self.correct_carb_wait_time_min = 30
         self.correct_carb_wait_minutes = 0
@@ -613,13 +600,12 @@ class VirtualPatientModel(VirtualPatient):
 
         stateless_info = super().get_info_stateless()
         stateless_info.update({
-            "remember_meal_bolus_prob": self.remember_meal_bolus_prob,
-            "correct_bolus_bg_threshold": self.correct_bolus_bg_threshold,
-            "correct_bolus_delay_minutes": self.correct_bolus_delay_minutes,
-            "correct_carb_bg_threshold": self.correct_carb_bg_threshold,
-            "correct_carb_delay_minutes": self.correct_carb_delay_minutes,
-            "carb_count_noise_percentage": self.carb_count_noise_percentage,
-            "correct_carb_wait_time_min": self.correct_carb_wait_time_min
+            "remember_meal_bolus_prob": self.patient_config.remember_meal_bolus_prob,
+            "correct_bolus_bg_threshold": self.patient_config.correct_bolus_bg_threshold,
+            "correct_bolus_delay_minutes": self.patient_config.correct_bolus_delay_minutes,
+            "correct_carb_bg_threshold": self.patient_config.correct_carb_bg_threshold,
+            "correct_carb_delay_minutes": self.patient_config.correct_carb_delay_minutes,
+            "carb_count_noise_percentage": self.patient_config.carb_count_noise_percentage,
         })
         return stateless_info
 
@@ -693,6 +679,7 @@ class VirtualPatientModel(VirtualPatient):
         for meal_model in self.meal_model:
             if self.meal_wait_minutes == 0 and meal_model.is_meal_time(self.time) and u < meal_model.step_prob:
                 meal = meal_model
+                # print(u, meal.name)
                 self.meal_wait_minutes = (datetime.datetime.combine(self.time.date(), meal_model.time_end) - self.time).total_seconds() / 60
                 break
 
@@ -712,7 +699,7 @@ class VirtualPatientModel(VirtualPatient):
 
         carb = None
         if (
-            self.bg_current <= self.correct_carb_bg_threshold
+            self.bg_current <= self.patient_config.correct_carb_bg_threshold
             and u <= self.correct_carb_step_prob
             and self.correct_carb_wait_minutes == 0
         ):
@@ -733,7 +720,7 @@ class VirtualPatientModel(VirtualPatient):
 
         correction_bolus = None
         if (
-            self.bg_current >= self.correct_bolus_bg_threshold
+            self.bg_current >= self.patient_config.correct_bolus_bg_threshold
             and u <= self.correct_bolus_step_prob
         ):
             isf = self.patient_config.insulin_sensitivity_schedule.get_state()
@@ -773,7 +760,7 @@ class VirtualPatientModel(VirtualPatient):
         if carb is not None:
             u = self.random_state.random_sample()
 
-            if u <= self.remember_meal_bolus_prob:
+            if u <= self.patient_config.remember_meal_bolus_prob:
 
                 estimated_carb = self.estimate_meal_carb(carb)
                 cir = self.pump.pump_config.carb_ratio_schedule.get_state()
@@ -861,7 +848,7 @@ class VirtualPatientModel(VirtualPatient):
         estimated_carb = Carb(
             value=max(0.0, int(
                 self.random_state.normal(
-                    carb.value, carb.value * self.carb_count_noise_percentage
+                    carb.value, carb.value * self.patient_config.carb_count_noise_percentage
                 )
             )),
             units="g",

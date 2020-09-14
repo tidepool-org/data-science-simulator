@@ -9,6 +9,7 @@ import copy
 import datetime
 import pandas as pd
 import numpy as np
+import copy
 
 from tidepool_data_science_simulator.models.measures import Bolus, Carb
 

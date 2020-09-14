@@ -20,10 +20,15 @@ import seaborn as sns
 print("***************** Warning: Overriding Pyloopkit with Local Copy ***************************")
 import sys
 
-# sys.path.insert(0, "/Users/csummers/dev/PyLoopKit/")
-sys.path.insert(0, "/mnt/cameronsummers/dev/PyLoopKit/")
 
+# For easier dev
+local_pyloopkit_path = "/Users/csummers/dev/PyLoopKit/"
+if not os.path.isdir(local_pyloopkit_path):
+    local_pyloopkit_path = "/mnt/cameronsummers/dev/PyLoopKit/"
+assert os.path.isdir(local_pyloopkit_path)
+sys.path.insert(0, local_pyloopkit_path)
 
+# Setup Logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 LOG_FILENAME = "sim.log"
@@ -71,72 +76,61 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
     logger.debug("Random Seed: {}".format(SEED))
 
     num_patients = 30
-    rate_caps = [3.0, 5.0, 7.0, 9.0]
+    rate_caps = [3.0, 5.0, 7.0, 9.0, 1e12]
     duration_hrs = 4*7*24
     if dry_run:
         num_patients = 1
-        rate_caps = [3.0]
-        duration_hrs = 4
+        rate_caps = [1e12, 3.0]
+        duration_hrs = 12
 
-    logger.debug("Running {} patients. {} rate caps. {} hours}".format(num_patients, len(rate_caps), duration_hrs))
+    logger.debug("Running {} patients. {} rate caps. {} hours".format(num_patients, len(rate_caps), duration_hrs))
 
     # Setup Patients
-    global_random_state = get_new_random_state()  # Single instance generates different patients
-    virtual_patients = []
+    patient_random_state = get_new_random_state()  # Single instance generates different patients
+    sims = {}
     for i in range(num_patients):
-        sim_random_state = get_new_random_state()
-
         t0, sensor_config = get_canonical_sensor_config()
-        sensor_config.std_dev = global_random_state.uniform(5, 15)
-        sensor = NoisySensor(time=t0, sensor_config=sensor_config, random_state=sim_random_state)
+        sensor_config.std_dev = patient_random_state.uniform(5, 15)
 
-        t0, patient_config = get_variable_risk_patient_config(global_random_state)
+        t0, patient_config = get_variable_risk_patient_config(patient_random_state)
 
-        patient_config.recommendation_accept_prob = global_random_state.uniform(0.8, 0.99)
+        patient_config.recommendation_accept_prob = patient_random_state.uniform(0.8, 0.99)
+        patient_config.min_bolus_rec_threshold = patient_random_state.uniform(0.4, 0.6)
+        patient_config.remember_meal_bolus_prob = patient_random_state.uniform(0.9, 1.0)
+        patient_config.correct_bolus_bg_threshold = patient_random_state.uniform(140, 190)
+        patient_config.correct_bolus_delay_minutes = patient_random_state.uniform(20, 40)
+        patient_config.correct_carb_bg_threshold = patient_random_state.uniform(70, 90)
+        patient_config.correct_carb_delay_minutes = patient_random_state.uniform(5, 15)
+        patient_config.carb_count_noise_percentage = patient_random_state.uniform(0.1, 0.25)
+
         patient_config.action_timeline = ActionTimeline()
 
-        t0, pump_config = get_pump_config(global_random_state)
-        pump = ContinuousInsulinPump(time=t0, pump_config=pump_config)
+        t0, pump_config = get_pump_config(patient_random_state)
 
-        vp = VirtualPatientModel(
-            time=t0,
-            pump=pump,
-            sensor=sensor,
-            metabolism_model=SimpleMetabolismModel,
-            patient_config=patient_config,
-            random_state=get_new_random_state(),
-            remember_meal_bolus_prob=global_random_state.uniform(0.9, 1.0),
-            correct_bolus_bg_threshold=global_random_state.uniform(140, 190),
-            correct_bolus_delay_minutes=global_random_state.uniform(20, 40),
-            correct_carb_bg_threshold=global_random_state.uniform(70, 90),
-            correct_carb_delay_minutes=global_random_state.uniform(5, 15),
-            carb_count_noise_percentage=global_random_state.uniform(0.1, 0.25),
-        )
-        vp.name = "vp{}".format(i)
-        vp.patient_config.min_bolus_rec_threshold = global_random_state.uniform(1, 1.5)
-        virtual_patients.append(vp)
+        # Setup Controllers
+        for max_rate in rate_caps:
+            sim_random_state = get_new_random_state()
 
-    # Setup Controllers
-    t0, controller_config = get_canonical_controller_config()
+            sensor = NoisySensor(time=t0, sensor_config=sensor_config, random_state=sim_random_state)
+            pump = ContinuousInsulinPump(time=t0, pump_config=pump_config)
 
-    no_cap_controller_config = copy.deepcopy(controller_config)
-    no_cap_loop_controller = LoopController(time=t0, controller_config=no_cap_controller_config,
-                                            random_state=get_new_random_state())
+            vp = VirtualPatientModel(
+                time=t0,
+                pump=pump,
+                sensor=sensor,
+                metabolism_model=SimpleMetabolismModel,
+                patient_config=patient_config,
+                random_state=sim_random_state,
+            )
+            vp.name = "vp{}".format(i)
 
-    controllers = [no_cap_loop_controller]
-    for max_rate in rate_caps:
-        capped_controller_config = copy.deepcopy(controller_config)
-        capped_controller_config.controller_settings["max_physiologic_slope"] = max_rate
-        capped_loop_controller = LoopController(time=t0, controller_config=capped_controller_config,
-                                                random_state=get_new_random_state())
-        capped_loop_controller.name = "PyloopKit_BG_Change_Max={}".format(max_rate)
-        controllers.append(capped_loop_controller)
+            t0, controller_config = get_canonical_controller_config()
+            controller_config.controller_settings["max_physiologic_slope"] = max_rate
+            controller = LoopController(time=t0, controller_config=controller_config, random_state=sim_random_state)
+            controller.name = "PyloopKit_BG_Change_Max={}".format(max_rate)
 
-    sims = {}
-    for controller in controllers:
-        for vp in virtual_patients:
+            # Setup Sims
             sim_id = "{}_{}".format(vp.name, controller.name)
-
             sim = Simulation(
                 time=t0,
                 duration_hrs=duration_hrs,  # 4 weeks
@@ -144,10 +138,11 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
                 sim_id=sim_id,
                 controller=controller,
                 multiprocess=True,
-                random_state=get_new_random_state()
+                random_state=sim_random_state
             )
             sims[sim_id] = sim
 
+    # Run the sims
     num_sims = len(sims)
     sim_ctr = 1
     start_time = time.time()
