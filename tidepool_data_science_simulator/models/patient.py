@@ -81,6 +81,8 @@ class VirtualPatient(SimulationComponent):
 
         self.patient_config = copy.deepcopy(patient_config)
 
+        self.set_random_values()
+
         self.bg_history = self.patient_config.glucose_history
         self.iob_history = []  # TODO: make trace obj, not list
 
@@ -490,10 +492,7 @@ class VirtualPatient(SimulationComponent):
             True if patient accepts
         """
         does_accept = False
-        u = self.random_state.random_sample()  # Need here to keep random streams in sync
-
-        if bolus is None:
-            return False
+        u = self.random_values["uniform"][0]# Need here to keep random streams in sync
 
         if u <= self.patient_config.recommendation_accept_prob and bolus.value >= self.patient_config.min_bolus_rec_threshold:
             does_accept = True
@@ -524,6 +523,72 @@ class VirtualPatient(SimulationComponent):
 
         self.pump = pump_class(time=self.time, pump_config=pump_config)
 
+    def set_random_values(self):
+        """
+        Draw all random values that may be needed to keep streams in sync across sims
+        """
+        num_values = 100
+
+        meal_carb_values = self.random_state.uniform(20, 50, num_values)
+        meal_carb_estimates = []
+        for carb_value in meal_carb_values:
+            meal_carb_estimates.append(
+                max(0,
+                    int(self.random_state.normal(carb_value, carb_value * self.patient_config.carb_count_noise_percentage))
+                )
+            )
+
+        meal_carb_durations = self.random_state.choice(range(3 * 60, 5 * 60), num_values)
+        meal_carb_duration_estimates = []
+        for duration in meal_carb_durations:
+            meal_carb_duration_estimates.append(
+                max(120,
+                    int(self.random_state.normal(duration, duration * self.patient_config.carb_count_noise_percentage))
+                )
+            )
+
+        snack_carb_values = self.random_state.uniform(5, 15, num_values)
+        snack_carb_estimates = []
+        for carb_value in snack_carb_values:
+            snack_carb_estimates.append(
+                max(0,
+                    int(self.random_state.normal(carb_value,
+                                                 carb_value * self.patient_config.carb_count_noise_percentage))
+                    )
+            )
+
+        snack_carb_durations = self.random_state.choice(range(3 * 60, 5 * 60), num_values)
+        snack_carb_duration_estimates = []
+        for duration in snack_carb_durations:
+            snack_carb_duration_estimates.append(
+                max(120,
+                    int(self.random_state.normal(duration, duration * self.patient_config.carb_count_noise_percentage))
+                    )
+            )
+
+        correct_carbs = self.random_state.uniform(5, 15, num_values)
+        correct_carb_estimates = []
+        for carb_value in correct_carbs:
+            correct_carb_estimates.append(
+                max(0,
+                    int(self.random_state.normal(carb_value, carb_value * self.patient_config.carb_count_noise_percentage))
+                )
+            )
+
+        self.random_values = {
+            "uniform": self.random_state.uniform(0, 1, 100),
+            "meal_carbs": meal_carb_values,
+            "meal_carb_estimates": meal_carb_estimates,
+            "meal_carb_durations": meal_carb_durations,
+            "meal_carb_duration_estimates": meal_carb_duration_estimates,
+            "snack_carbs": snack_carb_values,
+            "snack_carb_estimates": snack_carb_estimates,
+            "snack_carb_durations": snack_carb_durations,
+            "snack_carb_duration_estimates": snack_carb_duration_estimates,
+            "correct_carbs": correct_carbs,
+            "correct_carb_estimates": correct_carb_estimates,
+        }
+
     def __repr__(self):
 
         return "BG: {:.2f}. IOB: {:.2f}. BR {:.2f}".format(self.bg_current, self.iob_current, self.pump.get_basal_rate().value)
@@ -537,7 +602,7 @@ class VirtualPatientCarbBolusAccept(VirtualPatient):
 
     def does_accept_bolus_recommendation(self, bolus):
         does_accept = False
-        u = self.random_state.random_sample()
+        u = self.random_values["uniform"][1]
 
         min_bolus_rec_threshold = self.patient_config.min_bolus_rec_threshold
         if u <= self.patient_config.recommendation_accept_prob and bolus.value >= min_bolus_rec_threshold:
@@ -560,26 +625,24 @@ class VirtualPatientModel(VirtualPatient):
         metabolism_model,
         patient_config,
         random_state,
-        id=None,
+        id,
     ):
         super().__init__(time, pump, sensor, metabolism_model, patient_config, random_state=random_state)
-
-        if id is None:
-            id = self.random_state.randint(0, 1000000)
 
         self.name = "VP-{}".format(id)
 
         self.meal_model = [
-            MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98, random_state=random_state),
-            MealModel("Snack", datetime.time(hour=10), datetime.time(hour=11), 0.2, carb_range=(5, 15), random_state=random_state),
-            MealModel("Lunch", datetime.time(hour=11), datetime.time(hour=13), 0.98, random_state=random_state),
-            MealModel("Snack", datetime.time(hour=14), datetime.time(hour=16), 0.2, carb_range=(5, 15), random_state=random_state),
-            MealModel("Dinner", datetime.time(hour=17), datetime.time(hour=21), 0.999, random_state=random_state),
+            MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98),
+            MealModel("Snack", datetime.time(hour=10), datetime.time(hour=11), 0.2),
+            MealModel("Lunch", datetime.time(hour=11), datetime.time(hour=13), 0.98),
+            MealModel("Snack", datetime.time(hour=14), datetime.time(hour=16), 0.2),
+            MealModel("Dinner", datetime.time(hour=17), datetime.time(hour=21), 0.999),
         ]
 
-        self.report_carb_probability = 1.0  # TODO: move into config object
-        self.report_bolus_probability = 1.0
-
+        # self.meal_model = [
+        #     MealModel("Breakfast", datetime.time(hour=i - 1), datetime.time(hour=i), 0.98)
+        #     for i in range(1, 22)
+        # ]
 
         num_trials = int(self.patient_config.correct_bolus_delay_minutes / 5.0)
         self.correct_bolus_step_prob = get_bernoulli_trial_uniform_step_prob(
@@ -616,13 +679,25 @@ class VirtualPatientModel(VirtualPatient):
         meal = self.get_meal()
 
         meal_carb = None
+        meal_carb_estimate = None
         if meal is not None:
-            meal_carb = meal.get_carb()
+            if meal.name == "Snack":
+                random_key = "snack"
+            else:
+                random_key = "meal"
+            meal_carb = Carb(value=self.random_values["{}_carbs".format(random_key)][0],
+                             units="g",
+                             duration_minutes=self.random_values["{}_carb_durations".format(random_key)][0])
+            meal_carb_estimate = Carb(value=self.random_values["{}_carb_estimates".format(random_key)][0],
+                             units="g",
+                             duration_minutes=self.random_values["{}_carb_duration_estimates".format(random_key)][0])
 
-        # TODO maybe don't combine since different durations and better accounting
-        #   instead let predict() run on multiple carbs at a time.
-        correction_carb = self.get_correction_carb()
+        correction_carb, correction_carb_estimate = self.get_correction_carb()
+
         total_carb = self.combine_carbs(meal_carb, correction_carb)
+        total_carb_estimate = self.combine_carbs(meal_carb_estimate, correction_carb_estimate)
+
+        # This is set from Loop controller
         total_bolus = self.bolus_event_timeline.get_event(self.time)
 
         # meal_bolus = self.get_meal_bolus(meal_carb)
@@ -630,8 +705,8 @@ class VirtualPatientModel(VirtualPatient):
         # total_bolus = self.combine_boluses(meal_bolus, correction_bolus)
 
         if total_carb is not None:
-            self.carb_event_timeline.add_event(self.time, total_carb)
-            self.report_carb(total_carb)
+            self.carb_event_timeline.add_event(self.time, total_carb)  # Actual carbs go to patient predict
+            self.report_carb(total_carb_estimate)  # Reported carbs go to Loop
 
         # if total_bolus is not None:
         #     self.bolus_event_timeline.add_event(self.time, total_bolus)
@@ -639,7 +714,7 @@ class VirtualPatientModel(VirtualPatient):
 
         return total_bolus, total_carb
 
-    def report_carb(self, carb):
+    def report_carb(self, estimated_carb):
         """
         Probabilistically report carb to pump. Controller knows about pump events.
 
@@ -647,9 +722,9 @@ class VirtualPatientModel(VirtualPatient):
         ----------
         carb
         """
-        u = self.random_state.random_sample()
-        if u <= self.report_carb_probability:
-            estimated_carb = self.estimate_meal_carb(carb)
+        u = self.random_values["uniform"][2]
+
+        if u <= self.patient_config.report_carb_probability:
             self.pump.carb_event_timeline.add_event(self.time, estimated_carb)
 
     def report_bolus(self, bolus):
@@ -661,8 +736,8 @@ class VirtualPatientModel(VirtualPatient):
         ----------
         bolus
         """
-        u = self.random_state.random_sample()
-        if u <= self.report_bolus_probability:
+        u = self.random_values["uniform"][3]
+        if u <= self.patient_config.report_bolus_probability:
             self.pump.bolus_event_timeline.add_event(self.time, bolus)
 
     def get_meal(self):
@@ -674,12 +749,11 @@ class VirtualPatientModel(VirtualPatient):
         MealModel
         """
         meal = None
-        u = self.random_state.uniform()
+        u = self.random_values["uniform"][4]
 
         for meal_model in self.meal_model:
             if self.meal_wait_minutes == 0 and meal_model.is_meal_time(self.time) and u < meal_model.step_prob:
                 meal = meal_model
-                # print(u, meal.name)
                 self.meal_wait_minutes = (datetime.datetime.combine(self.time.date(), meal_model.time_end) - self.time).total_seconds() / 60
                 break
 
@@ -694,19 +768,22 @@ class VirtualPatientModel(VirtualPatient):
         Carb
         """
 
-        u = self.random_state.random_sample()
-        correction_carb_value = self.random_state.uniform(5, 15)  # Here to keep random streams in sync
+        u = self.random_values["uniform"][5]
+        correction_carb_value = self.random_values["correct_carbs"][0]
+        correction_carb_value_estimate = self.random_values["correct_carb_estimates"][0]
 
         carb = None
+        carb_estimate = None
         if (
             self.bg_current <= self.patient_config.correct_carb_bg_threshold
             and u <= self.correct_carb_step_prob
             and self.correct_carb_wait_minutes == 0
         ):
             carb = Carb(value=correction_carb_value, units="g", duration_minutes=3 * 60)
+            carb_estimate = Carb(value=correction_carb_value_estimate, units="g", duration_minutes=3 * 60)
             self.correct_carb_wait_minutes = self.correct_carb_wait_time_min
 
-        return carb
+        return carb, carb_estimate
 
     def get_correction_bolus(self):
         """
@@ -716,7 +793,7 @@ class VirtualPatientModel(VirtualPatient):
         -------
         Bolus
         """
-        u = self.random_state.random_sample()
+        u = self.random_values["uniform"][6]
 
         correction_bolus = None
         if (
@@ -758,7 +835,7 @@ class VirtualPatientModel(VirtualPatient):
         # Meal bolus
         bolus = None
         if carb is not None:
-            u = self.random_state.random_sample()
+            u = self.random_values["uniform"][7]
 
             if u <= self.patient_config.remember_meal_bolus_prob:
 
@@ -844,15 +921,13 @@ class VirtualPatientModel(VirtualPatient):
         Carb
             The estimated carb for the meal
         """
+        value = self.random_values["estimated_meal_carbs"][0]
+        duration = self.random_values["estimated_meal_durations"][0]
 
         estimated_carb = Carb(
-            value=max(0.0, int(
-                self.random_state.normal(
-                    carb.value, carb.value * self.patient_config.carb_count_noise_percentage
-                )
-            )),
+            value=value,
             units="g",
-            duration_minutes=self.random_state.choice([3 * 60, 4 * 60, 5 * 60]),
+            duration_minutes=duration,
         )
         return estimated_carb
 
@@ -860,3 +935,5 @@ class VirtualPatientModel(VirtualPatient):
         super().update(time, **kwargs)
         self.correct_carb_wait_minutes = max(0, self.correct_carb_wait_minutes - 5)
         self.meal_wait_minutes = max(0, self.meal_wait_minutes - 5)
+        self.set_random_values()
+

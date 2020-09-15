@@ -14,7 +14,7 @@ from itertools import combinations
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
+# import seaborn as sns
 
 
 print("***************** Warning: Overriding Pyloopkit with Local Copy ***************************")
@@ -102,6 +102,8 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
         patient_config.correct_carb_bg_threshold = patient_random_state.uniform(70, 90)
         patient_config.correct_carb_delay_minutes = patient_random_state.uniform(5, 15)
         patient_config.carb_count_noise_percentage = patient_random_state.uniform(0.1, 0.25)
+        patient_config.report_bolus_probability = patient_random_state.uniform(1.0, 1.0)
+        patient_config.report_carb_probability = patient_random_state.uniform(0.95, 1.0)
 
         patient_config.action_timeline = ActionTimeline()
 
@@ -121,8 +123,8 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
                 metabolism_model=SimpleMetabolismModel,
                 patient_config=patient_config,
                 random_state=sim_random_state,
+                id=i
             )
-            vp.name = "vp{}".format(i)
 
             t0, controller_config = get_canonical_controller_config()
             controller_config.controller_settings["max_physiologic_slope"] = max_rate
@@ -169,6 +171,9 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
                     logger.debug(summary_str)
                 except:
                     logger.debug("Exception in summary stats, passing {}...".format(sim_id))
+
+                # TMP - debugging random stream sync
+                print(results_df.iloc[-1]["randint"])
 
                 if save_results:
                     save_df(results_df, sim_id, save_dir)

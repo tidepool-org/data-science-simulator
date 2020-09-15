@@ -208,7 +208,7 @@ class LoopController(BaseControllerClass):
         bolus_rec = self.get_recommended_bolus(loop_algorithm_output)
         temp_basal_rec = self.get_recommended_temp_basal(loop_algorithm_output)
 
-        if virtual_patient.does_accept_bolus_recommendation(bolus_rec) and bolus_rec is not None:
+        if bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation(bolus_rec):
             self.set_bolus_recommendation_event(virtual_patient, bolus_rec)
         elif temp_basal_rec is not None:
             if temp_basal_rec.scheduled_duration_minutes == 0 and temp_basal_rec.value == 0:
