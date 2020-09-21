@@ -63,6 +63,13 @@ class ScenarioParserCSV(SimulationParser):
 
         time = self.get_simulation_start_time()
 
+	# TMP
+        ylw = data[data['setting_name'] == 'ylw']['settings'].values[0]
+        age = data[data['setting_name'] == 'age']['settings'].values[0]
+        self.ylw = ylw
+        self.age = age
+	# /TMP
+
         # ========== Pump =============
         self.pump_basal_schedule = BasalSchedule24hr(
             time,
