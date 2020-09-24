@@ -210,7 +210,6 @@ def get_variable_risk_patient_config(random_state, t0=DATETIME_DEFAULT):
     -------
     PatientConfig
     """
-
     patient_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
     patient_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
 
@@ -222,7 +221,7 @@ def get_variable_risk_patient_config(random_state, t0=DATETIME_DEFAULT):
 
     total_hours_in_day = 24
     hours_in_day = range(total_hours_in_day)
-    carb_gain = random_state.uniform(5, 15)
+    carb_gain = random_state.uniform(7, 9)
     basal_rates = [random_state.uniform(0.2, 0.4) for _ in hours_in_day]
     carb_ratios = [random_state.uniform(18, 22) for _ in hours_in_day]
     isfs = [carb_gain * carb_ratio for carb_ratio in carb_ratios]
@@ -295,7 +294,7 @@ def get_pump_config(random_state, t0=DATETIME_DEFAULT):
             t0,
             "ISF",
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[InsulinSensitivityFactor(random_state.normal(150, 15), "mg/dL/U")],
+            values=[InsulinSensitivityFactor(random_state.normal(160, 15), "mg/dL/U")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         target_range_schedule=TargetRangeSchedule24hr(

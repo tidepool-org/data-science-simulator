@@ -492,12 +492,23 @@ class VirtualPatient(SimulationComponent):
             True if patient accepts
         """
         does_accept = False
-        u = self.random_values["uniform"][0]# Need here to keep random streams in sync
+        u = self.random_values["uniform"][0]
 
-        if u <= self.patient_config.recommendation_accept_prob and bolus.value >= self.patient_config.min_bolus_rec_threshold:
+        if u <= self.patient_config.recommendation_accept_prob and \
+                bolus.value >= self.patient_config.min_bolus_rec_threshold and \
+                self.has_eaten_recently(within_time_minutes=np.inf):
             does_accept = True
 
         return does_accept
+
+    def has_eaten_recently(self, within_time_minutes):
+        recent_carb_events = self.carb_event_timeline.get_recent_event_times(self.time, num_hours_history=within_time_minutes / 60)
+
+        has_eaten_recently = False
+        if len(recent_carb_events) > 0:
+            has_eaten_recently = True
+
+        return has_eaten_recently
 
     def stop_pump_session(self):
         """
@@ -529,7 +540,7 @@ class VirtualPatient(SimulationComponent):
         """
         num_values = 100
 
-        meal_carb_values = self.random_state.uniform(20, 50, num_values)
+        meal_carb_values = self.random_state.uniform(20, 60, num_values)
         meal_carb_estimates = []
         for carb_value in meal_carb_values:
             meal_carb_estimates.append(
@@ -538,7 +549,7 @@ class VirtualPatient(SimulationComponent):
                 )
             )
 
-        meal_carb_durations = self.random_state.choice(range(3 * 60, 5 * 60), num_values)
+        meal_carb_durations = self.random_state.choice(range(2 * 60, 5 * 60), num_values)
         meal_carb_duration_estimates = []
         for duration in meal_carb_durations:
             meal_carb_duration_estimates.append(
@@ -557,7 +568,7 @@ class VirtualPatient(SimulationComponent):
                     )
             )
 
-        snack_carb_durations = self.random_state.choice(range(3 * 60, 5 * 60), num_values)
+        snack_carb_durations = self.random_state.choice(range(2 * 60, 5 * 60), num_values)
         snack_carb_duration_estimates = []
         for duration in snack_carb_durations:
             snack_carb_duration_estimates.append(
@@ -566,7 +577,7 @@ class VirtualPatient(SimulationComponent):
                     )
             )
 
-        correct_carbs = self.random_state.uniform(5, 15, num_values)
+        correct_carbs = self.random_state.uniform(5, 10, num_values)
         correct_carb_estimates = []
         for carb_value in correct_carbs:
             correct_carb_estimates.append(
@@ -633,9 +644,9 @@ class VirtualPatientModel(VirtualPatient):
 
         self.meal_model = [
             MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98),
-            MealModel("Snack", datetime.time(hour=10), datetime.time(hour=11), 0.2),
+            MealModel("Snack", datetime.time(hour=10), datetime.time(hour=11), 0.05),
             MealModel("Lunch", datetime.time(hour=11), datetime.time(hour=13), 0.98),
-            MealModel("Snack", datetime.time(hour=14), datetime.time(hour=16), 0.2),
+            MealModel("Snack", datetime.time(hour=14), datetime.time(hour=15), 0.05),
             MealModel("Dinner", datetime.time(hour=17), datetime.time(hour=21), 0.999),
         ]
 

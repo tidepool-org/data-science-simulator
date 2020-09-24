@@ -5,6 +5,7 @@ Sensor model classes
 """
 
 import copy
+import datetime as dt
 
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 
@@ -53,6 +54,8 @@ class Sensor(SimulationComponent):
         time: datetime
         """
         self.time = time
+        self.set_random_values()
+
         true_bg = kwargs["patient_true_bg"]
         true_bg_prediction = kwargs["patient_true_bg_prediction"]
         self.current_sensor_bg = self.get_bg(true_bg)
@@ -64,26 +67,61 @@ class Sensor(SimulationComponent):
     def get_loop_inputs(self):
         return self.sensor_config.sensor_bg_history.get_loop_inputs()
 
+    def set_random_values(self):
+        return
+
 
 class NoisySensor(Sensor):
     """
-    A simple sensor with Gaussian noise.
+    A simple sensor with Gaussian noise, spurious events, and missing data.
     """
     def __init__(self, time, sensor_config, random_state):
         super().__init__(time, sensor_config)
 
-        self.name = "iCGM"
+        self.name = "BasicNoisySensor"
         self.random_state = random_state
-        try:
+
+        self.std_dev = 5.0
+        if hasattr(sensor_config, "std_dev"):
             self.std_dev = sensor_config.std_dev
-        except:
-            self.std_dev = 5.0  # todo: hack for now
+
+        self.spurious_prob = 0.0
+        if hasattr(sensor_config, "spurious_prob"):
+            self.spurious_prob = sensor_config.spurious_prob
+
+        self.spurious_outage_prob = 0.0
+        if hasattr(sensor_config, "spurious_outage_prob"):
+            self.spurious_outage_prob = sensor_config.spurious_outage_prob
+
+        self.not_working_timer_minutes_remaining = 0.0
+
+    def is_sensor_working(self):
+
+        is_working = True
+        if self.not_working_timer_minutes_remaining > 0.0:
+            is_working = False
+
+        return is_working
 
     def get_bg(self, true_bg):
         """
         Get noisy according to internal params
         """
-        bg = int(self.random_state.normal(true_bg, self.std_dev))
+        u1 = self.random_values["uniform"][0]
+
+        if not self.is_sensor_working():
+            bg = None
+            self.not_working_timer_minutes_remaining = max(0, self.not_working_timer_minutes_remaining - 5.0)
+        elif u1 < self.spurious_prob:
+            bg_spurious_error_delta = self.random_values["bg_spurious_error_delta"]  # always positive
+            bg = int(true_bg + bg_spurious_error_delta)
+            u2 = self.random_values["uniform"][1]
+            if u2 < self.spurious_outage_prob:
+                self.not_working_timer_minutes_remaining = self.random_values["not_working_time_min"]
+        else:
+            bg_normal_error_delta = self.random_values["bg_normal_error_delta"]  # pos or neg
+            bg = int(true_bg + bg_normal_error_delta)
+
         return bg
 
     def get_bg_trace(self, true_bg_trace):
@@ -99,6 +137,43 @@ class NoisySensor(Sensor):
             "standard_deviation": self.std_dev
         })
         return stateless_info
+
+    def set_random_values(self):
+
+        self.random_values = {
+            "uniform": self.random_state.uniform(0, 1, 100),
+            "bg_normal_error_delta": self.random_state.normal(0, self.std_dev),
+            "bg_spurious_error_delta": self.random_state.uniform(20, 100),
+            "not_working_time_min": self.random_state.uniform(10, 45),
+            "cgm_offset_minutes": self.random_state.uniform(2, 4.99)
+        }
+
+    def update(self, time, **kwargs):
+        """
+        Get the current sensed bg and store.
+
+        Parameters
+        ----------
+        time: datetime
+        """
+        self.time = time
+        self.set_random_values()
+
+        true_bg = kwargs["patient_true_bg"]
+        true_bg_prediction = kwargs["patient_true_bg_prediction"]
+        self.current_sensor_bg = self.get_bg(true_bg)
+        self.current_sensor_bg_prediction = self.get_bg_trace(true_bg_prediction)
+
+        # Store the value
+        bg_time = copy.deepcopy(time)
+
+        # Noisy Shift in Time for BG
+        u = self.random_values["uniform"][2]
+        if u < self.sensor_config.time_delta_crunch_prob:
+            offset_minutes = self.random_values["cgm_offset_minutes"]
+            bg_time = bg_time - dt.timedelta(minutes=offset_minutes)
+
+        self.sensor_bg_history.append(bg_time, self.current_sensor_bg)
 
 
 class IdealSensor(Sensor):

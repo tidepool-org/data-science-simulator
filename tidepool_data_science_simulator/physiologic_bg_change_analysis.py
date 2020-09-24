@@ -4,17 +4,10 @@ import os
 import pdb
 import json
 import time
-import copy
 import logging
 import argparse
-import re
-from collections import defaultdict
-from itertools import combinations
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-# import seaborn as sns
 
 
 print("***************** Warning: Overriding Pyloopkit with Local Copy ***************************")
@@ -39,7 +32,7 @@ from tidepool_data_science_models.models.simple_metabolism_model import SimpleMe
 
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.events import ActionTimeline
-from tidepool_data_science_simulator.models.controller import LoopController
+from tidepool_data_science_simulator.models.controller import LoopController, LoopControllerDisconnector
 from tidepool_data_science_simulator.models.patient import VirtualPatientModel
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
@@ -55,10 +48,11 @@ from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_ind
 from numpy.random import RandomState
 
 SEED = 1234567890
+ONCE_PER_WEEK_PROB = 1.0 / (12 * 24 * 7)  # 12 readings/hr * hr/day * day/wk = readings/wk
+NO_RATE_CAP_VALUE = 1e12
 
-
-def get_new_random_state():
-    return RandomState(SEED)
+def get_new_random_state(seed=SEED):
+    return RandomState(seed)
 
 
 @timing
@@ -74,14 +68,15 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
         Path to the scenario file
     """
     logger.debug("Random Seed: {}".format(SEED))
+    logger.debug("Results Directory: {}".format(save_dir))
 
-    num_patients = 30
-    rate_caps = [3.0, 5.0, 7.0, 9.0, 1e12]
+    num_patients = 75
+    rate_caps = list(np.arange(1.0, 11, 1))
     duration_hrs = 4*7*24
     if dry_run:
         num_patients = 1
-        rate_caps = [1e12, 3.0]
-        duration_hrs = 12
+        rate_caps = [3.0]
+        duration_hrs = 24
 
     logger.debug("Running {} patients. {} rate caps. {} hours".format(num_patients, len(rate_caps), duration_hrs))
 
@@ -89,16 +84,14 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
     patient_random_state = get_new_random_state()  # Single instance generates different patients
     sims = {}
     for i in range(num_patients):
-        t0, sensor_config = get_canonical_sensor_config()
-        sensor_config.std_dev = patient_random_state.uniform(5, 15)
 
         t0, patient_config = get_variable_risk_patient_config(patient_random_state)
 
         patient_config.recommendation_accept_prob = patient_random_state.uniform(0.8, 0.99)
         patient_config.min_bolus_rec_threshold = patient_random_state.uniform(0.4, 0.6)
         patient_config.remember_meal_bolus_prob = patient_random_state.uniform(0.9, 1.0)
-        patient_config.correct_bolus_bg_threshold = patient_random_state.uniform(140, 190)
-        patient_config.correct_bolus_delay_minutes = patient_random_state.uniform(20, 40)
+        # patient_config.correct_bolus_bg_threshold = patient_random_state.uniform(140, 190)
+        # patient_config.correct_bolus_delay_minutes = patient_random_state.uniform(20, 40)
         patient_config.correct_carb_bg_threshold = patient_random_state.uniform(70, 90)
         patient_config.correct_carb_delay_minutes = patient_random_state.uniform(5, 15)
         patient_config.carb_count_noise_percentage = patient_random_state.uniform(0.1, 0.25)
@@ -109,9 +102,28 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
 
         t0, pump_config = get_pump_config(patient_random_state)
 
-        # Setup Controllers
-        for max_rate in rate_caps:
-            sim_random_state = get_new_random_state()
+        t0, baseline_sensor_config = get_canonical_sensor_config()
+        baseline_sensor_config.std_dev = 1.0
+        baseline_sensor_config.spurious_prob = 0.0
+        baseline_sensor_config.spurious_outage_prob = 0.0
+        baseline_sensor_config.time_delta_crunch_prob = 0.0
+        baseline_sensor_config.name = "Clean"
+
+        t0, noisy_sensor_config = get_canonical_sensor_config()
+        noisy_sensor_config.std_dev = patient_random_state.uniform(3, 7)  # sensor noise
+        noisy_sensor_config.spurious_prob = ONCE_PER_WEEK_PROB  # spurious events
+        noisy_sensor_config.spurious_outage_prob = 0.9  # data outage
+        noisy_sensor_config.time_delta_crunch_prob = ONCE_PER_WEEK_PROB  # small time delta
+        noisy_sensor_config.name = "Noisy"
+
+        loop_connect_prob = patient_random_state.uniform(0.9, 0.99)
+
+        # ===== Setup Baseline Simulations =====
+        for sensor_config in [
+            baseline_sensor_config,
+            noisy_sensor_config
+        ]:
+            sim_random_state = get_new_random_state(seed=i)
 
             sensor = NoisySensor(time=t0, sensor_config=sensor_config, random_state=sim_random_state)
             pump = ContinuousInsulinPump(time=t0, pump_config=pump_config)
@@ -127,12 +139,53 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
             )
 
             t0, controller_config = get_canonical_controller_config()
+            controller_config.controller_settings["max_physiologic_slope"] = NO_RATE_CAP_VALUE
+            controller = LoopControllerDisconnector(time=t0,
+                                                    controller_config=controller_config,
+                                                    connect_prob=loop_connect_prob,
+                                                    random_state=sim_random_state)
+            controller.name = "PyloopKit_BG_Change_Max={}".format(NO_RATE_CAP_VALUE)
+
+            # Setup Sims
+            sim_id = "{}_{}_{}".format(vp.name, controller.name, sensor_config.name)
+            sim = Simulation(
+                time=t0,
+                duration_hrs=duration_hrs,  # 4 weeks
+                virtual_patient=vp,
+                sim_id=sim_id,
+                controller=controller,
+                multiprocess=True,
+                random_state=sim_random_state
+            )
+            sims[sim_id] = sim
+
+        # ===== Setup Risk Mitigiation Controllers =====
+        for max_rate in rate_caps:
+            sim_random_state = get_new_random_state(seed=i)
+
+            sensor = NoisySensor(time=t0, sensor_config=noisy_sensor_config, random_state=sim_random_state)
+            pump = ContinuousInsulinPump(time=t0, pump_config=pump_config)
+
+            vp = VirtualPatientModel(
+                time=t0,
+                pump=pump,
+                sensor=sensor,
+                metabolism_model=SimpleMetabolismModel,
+                patient_config=patient_config,
+                random_state=sim_random_state,
+                id=i
+            )
+
+            t0, controller_config = get_canonical_controller_config()
             controller_config.controller_settings["max_physiologic_slope"] = max_rate
-            controller = LoopController(time=t0, controller_config=controller_config, random_state=sim_random_state)
+            controller = LoopControllerDisconnector(time=t0,
+                                                    controller_config=controller_config,
+                                                    connect_prob=loop_connect_prob,
+                                                    random_state=sim_random_state)
             controller.name = "PyloopKit_BG_Change_Max={}".format(max_rate)
 
             # Setup Sims
-            sim_id = "{}_{}".format(vp.name, controller.name)
+            sim_id = "{}_{}_{}".format(vp.name, controller.name, noisy_sensor_config.name)
             sim = Simulation(
                 time=t0,
                 duration_hrs=duration_hrs,  # 4 weeks
@@ -147,9 +200,9 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
     # Run the sims
     num_sims = len(sims)
     sim_ctr = 1
-    start_time = time.time()
-    num_procs = 20
+    num_procs = 28
     running_sims = {}
+    start_time = time.time()
     for sim_id, sim in sims.items():
         logger.debug("Running: {}. {} of {}".format(sim_id, sim_ctr, num_sims))
         sim.start()
@@ -172,7 +225,7 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
                 except:
                     logger.debug("Exception in summary stats, passing {}...".format(sim_id))
 
-                # TMP - debugging random stream sync
+                # Sanity debugging random stream sync
                 print(results_df.iloc[-1]["randint"])
 
                 if save_results:
@@ -187,87 +240,9 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
     os.rename(LOG_FILENAME, os.path.join(results_dir, LOG_FILENAME))
 
 
-def analyze_results(result_dir):
-
-    results = []
-    for root, dirs, files in os.walk(result_dir, topdown=False):
-        for file in files:
-            results_df = pd.read_csv(os.path.join(root, file), sep="\t")
-            try:
-                lbgi, hbgi, brgi = blood_glucose_risk_index(results_df['bg'])
-                tir = percent_values_ge_70_le_180(results_df['bg'])
-            except:
-                lbgi, hbgi, brgi = (None, None, None)
-
-            vp = re.search("vp\d+", file).group()
-            rate = 11.11
-            if re.search("Max=\d", file):
-                rate = float(re.search("Max=(\d)", file).groups()[0])
-            print(vp, rate)
-
-            row = {
-                "vp": vp,
-                "rate": rate,
-                "lbgi": lbgi,
-                "hbgi": hbgi,
-                "brgi": brgi,
-                "tir": tir
-            }
-            results.append(row)
-
-    summary_df = pd.DataFrame(results)
-
-    print(summary_df.groupby("rate")["lbgi"].median())
-    print(summary_df.groupby("rate")["hbgi"].median())
-    print(summary_df.groupby("rate")["tir"].median())
-
-    sns.lmplot("rate", y="tir", hue="vp", data=summary_df)
-    plt.show()
-
-
-def validate_random_number_streams(result_dir):
-
-    vp_dfpath_dict = defaultdict(list)
-    for root, dirs, files in os.walk(result_dir, topdown=False):
-        for file in sorted(files):
-            if re.search("vp\d.*.json", file):
-                sim_info = json.load(open(os.path.join(root, file), "r"))
-                sim_id = sim_info["sim_id"]
-                vp = sim_info["patient"]["name"]
-                df_file = [fn for fn in files if sim_id in fn and ".tsv" in fn][0]
-                df_path = os.path.join(root, df_file)
-                vp_dfpath_dict[vp].append(df_path)
-
-    for vp, path_list in vp_dfpath_dict.items():
-        for path1, path2 in combinations(path_list, 2):
-            df1 = pd.read_csv(path1, sep="\t")
-            df2 = pd.read_csv(path2, sep="\t")
-
-            if sum(abs(df1.iloc[1:]["randint"] - df2.iloc[1:]["randint"]) != 0):
-                print(path1, path2)
-                print(np.where(df1, df1["randint"] != df2["randint"])[:10])
-                break
-
-    # print(rate_caps_results_dict)
-    print(vp_dfpath_dict)
-
-
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
+    results_dir = get_sim_results_save_dir()
+    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True, plot_results=True, dry_run=True)
 
-    parser.add_argument("-a", "--action")#, choices=["simulate", "analyze"])
-    parser.add_argument("-d", "--result_dir", help="simulation result directory to analyze")
-
-    args = parser.parse_args()
-    action = args.action
-    result_dir = args.result_dir
-
-    if action == "simulate":
-        results_dir = get_sim_results_save_dir()
-        compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True, plot_results=True, dry_run=True)
-    elif action == "analyze":
-        analyze_results(result_dir)
-    else:
-        validate_random_number_streams(result_dir)
 
