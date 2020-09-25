@@ -51,12 +51,13 @@ SEED = 1234567890
 ONCE_PER_WEEK_PROB = 1.0 / (12 * 24 * 7)  # 12 readings/hr * hr/day * day/wk = readings/wk
 NO_RATE_CAP_VALUE = 1e12
 
+
 def get_new_random_state(seed=SEED):
     return RandomState(seed)
 
 
 @timing
-def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False, dry_run=False):
+def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False, test_run=False):
     """
     Compare two controllers for a given scenario file:
         1. No controller, ie no insulin modulation except for pump schedule
@@ -73,7 +74,7 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
     num_patients = 75
     rate_caps = list(np.arange(1.0, 11, 1))
     duration_hrs = 4*7*24
-    if dry_run:
+    if test_run:
         num_patients = 1
         rate_caps = [3.0]
         duration_hrs = 24
@@ -90,8 +91,8 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
         patient_config.recommendation_accept_prob = patient_random_state.uniform(0.8, 0.99)
         patient_config.min_bolus_rec_threshold = patient_random_state.uniform(0.4, 0.6)
         patient_config.remember_meal_bolus_prob = patient_random_state.uniform(0.9, 1.0)
-        # patient_config.correct_bolus_bg_threshold = patient_random_state.uniform(140, 190)
-        # patient_config.correct_bolus_delay_minutes = patient_random_state.uniform(20, 40)
+        patient_config.correct_bolus_bg_threshold = patient_random_state.uniform(140, 190)
+        patient_config.correct_bolus_delay_minutes = patient_random_state.uniform(20, 40)
         patient_config.correct_carb_bg_threshold = patient_random_state.uniform(70, 90)
         patient_config.correct_carb_delay_minutes = patient_random_state.uniform(5, 15)
         patient_config.carb_count_noise_percentage = patient_random_state.uniform(0.1, 0.25)
@@ -100,7 +101,7 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
 
         patient_config.action_timeline = ActionTimeline()
 
-        t0, pump_config = get_pump_config(patient_random_state)
+        t0, pump_config = get_pump_config(patient_random_state, patient_config=patient_config, risk_level=0.0)
 
         t0, baseline_sensor_config = get_canonical_sensor_config()
         baseline_sensor_config.std_dev = 1.0
@@ -110,10 +111,10 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
         baseline_sensor_config.name = "Clean"
 
         t0, noisy_sensor_config = get_canonical_sensor_config()
-        noisy_sensor_config.std_dev = patient_random_state.uniform(3, 7)  # sensor noise
-        noisy_sensor_config.spurious_prob = ONCE_PER_WEEK_PROB  # spurious events
-        noisy_sensor_config.spurious_outage_prob = 0.9  # data outage
-        noisy_sensor_config.time_delta_crunch_prob = ONCE_PER_WEEK_PROB  # small time delta
+        noisy_sensor_config.std_dev = 1.0  # patient_random_state.uniform(3, 7)  # sensor noise
+        noisy_sensor_config.spurious_prob = 3.5 * ONCE_PER_WEEK_PROB  # spurious events
+        noisy_sensor_config.spurious_outage_prob = 0.8  # data outage
+        noisy_sensor_config.time_delta_crunch_prob = 3.5 * ONCE_PER_WEEK_PROB  # small time delta
         noisy_sensor_config.name = "Noisy"
 
         loop_connect_prob = patient_random_state.uniform(0.9, 0.99)
@@ -243,6 +244,6 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
 if __name__ == "__main__":
 
     results_dir = get_sim_results_save_dir()
-    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True, plot_results=True, dry_run=True)
+    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True, plot_results=True, test_run=True)
 
 
