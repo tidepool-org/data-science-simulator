@@ -143,7 +143,7 @@ class NoisySensor(Sensor):
         self.random_values = {
             "uniform": self.random_state.uniform(0, 1, 100),
             "bg_normal_error_delta": self.random_state.normal(0, self.std_dev),
-            "bg_spurious_error_delta": self.random_state.uniform(20, 100),
+            "bg_spurious_error_delta": self.random_state.uniform(60, 150),
             "not_working_time_min": self.random_state.uniform(10, 45),
             "cgm_offset_minutes": self.random_state.uniform(2, 4.99)
         }

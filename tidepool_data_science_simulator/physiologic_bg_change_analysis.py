@@ -244,6 +244,6 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
 if __name__ == "__main__":
 
     results_dir = get_sim_results_save_dir()
-    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True, plot_results=True, test_run=True)
+    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True, plot_results=False, test_run=False)
 
 
