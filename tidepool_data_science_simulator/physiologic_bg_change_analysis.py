@@ -259,7 +259,6 @@ if __name__ == "__main__":
 
     compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=save_results, plot_results=True, test_run=test_run)
 
-
     # TODO:
     #   - Pyloopkit changes as commit
     #   - Pass sensor time delta info for stateful
