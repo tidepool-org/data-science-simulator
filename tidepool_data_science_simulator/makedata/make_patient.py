@@ -260,9 +260,9 @@ def get_variable_risk_patient_config(random_state, t0=DATETIME_DEFAULT):
     return t0, patient_config
 
 
-def get_pump_config(random_state, patient_config=None, risk_level=0, t0=DATETIME_DEFAULT):
+def get_pump_config_from_patient(random_state, patient_config, risk_level=0, t0=DATETIME_DEFAULT):
     """
-    Get canonical pump config
+    Get pump config that is the mean of the true patient config values.
 
     Parameters
     ----------
@@ -275,28 +275,22 @@ def get_pump_config(random_state, patient_config=None, risk_level=0, t0=DATETIME
     pump_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
     pump_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
 
-    # Canonical values
-    pump_br = 0.3
-    pump_cir = 20.0
-    pump_isf = 150.0
-
     # Risk Configurable values
-    if patient_config is not None:
-        patient_basal_values = [br.value for br in patient_config.basal_schedule.schedule.values()]
-        patient_basal_mean = np.mean(patient_basal_values)
-        patient_basal_std = np.std(patient_basal_values)
+    patient_basal_values = [br.value for br in patient_config.basal_schedule.schedule.values()]
+    patient_basal_mean = np.mean(patient_basal_values)
+    patient_basal_std = np.std(patient_basal_values)
 
-        patient_cir_values = [cir.value for cir in patient_config.carb_ratio_schedule.schedule.values()]
-        patient_cir_mean = np.mean(patient_cir_values)
-        patient_cir_std = np.std(patient_cir_values)
+    patient_cir_values = [cir.value for cir in patient_config.carb_ratio_schedule.schedule.values()]
+    patient_cir_mean = np.mean(patient_cir_values)
+    patient_cir_std = np.std(patient_cir_values)
 
-        patient_isf_values = [isf.value for isf in patient_config.insulin_sensitivity_schedule.schedule.values()]
-        patient_isf_mean = np.mean(patient_isf_values)
-        patient_isf_std = np.std(patient_isf_values)
+    patient_isf_values = [isf.value for isf in patient_config.insulin_sensitivity_schedule.schedule.values()]
+    patient_isf_mean = np.mean(patient_isf_values)
+    patient_isf_std = np.std(patient_isf_values)
 
-        pump_br = random_state.normal(patient_basal_mean, patient_basal_std * risk_level)
-        pump_cir = random_state.normal(patient_cir_mean, patient_cir_std * risk_level)
-        pump_isf =random_state.normal(patient_isf_mean, patient_isf_std * risk_level)
+    pump_br = random_state.normal(patient_basal_mean, patient_basal_std * risk_level)
+    pump_cir = random_state.normal(patient_cir_mean, patient_cir_std * risk_level)
+    pump_isf =random_state.normal(patient_isf_mean, patient_isf_std * risk_level)
 
     pump_config = PumpConfig(
         basal_schedule=BasalSchedule24hr(

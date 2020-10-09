@@ -13,8 +13,7 @@ import numpy as np
 print("***************** Warning: Overriding Pyloopkit with Local Copy ***************************")
 import sys
 
-
-# For easier dev
+# NOTE This uses Pyloopkit commit: https://github.com/tidepool-org/PyLoopKit/commit/edb52bd1e733f0f1d5591a2c36d917395f20ee44
 local_pyloopkit_path = "/Users/csummers/dev/PyLoopKit/"
 if not os.path.isdir(local_pyloopkit_path):
     local_pyloopkit_path = "/mnt/cameronsummers/dev/PyLoopKit/"
@@ -40,7 +39,7 @@ from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_resul
 
 from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_sensor_config, \
-    get_pump_config, get_variable_risk_patient_config
+    get_pump_config_from_patient, get_variable_risk_patient_config
 from tidepool_data_science_simulator.utils import timing, save_df, get_sim_results_save_dir
 
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index, percent_values_ge_70_le_180
@@ -86,23 +85,27 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
     sims = {}
     for i in range(num_patients):
 
+        # Setup patient config
         t0, patient_config = get_variable_risk_patient_config(patient_random_state)
 
         patient_config.recommendation_accept_prob = patient_random_state.uniform(0.8, 0.99)
         patient_config.min_bolus_rec_threshold = patient_random_state.uniform(0.4, 0.6)
-        patient_config.remember_meal_bolus_prob = patient_random_state.uniform(0.9, 1.0)
-        patient_config.correct_bolus_bg_threshold = patient_random_state.uniform(140, 190)
-        patient_config.correct_bolus_delay_minutes = patient_random_state.uniform(20, 40)
+        patient_config.correct_bolus_bg_threshold = patient_random_state.uniform(140, 190)  # no impact
+        patient_config.correct_bolus_delay_minutes = patient_random_state.uniform(20, 40)  # no impact
         patient_config.correct_carb_bg_threshold = patient_random_state.uniform(70, 90)
         patient_config.correct_carb_delay_minutes = patient_random_state.uniform(5, 15)
         patient_config.carb_count_noise_percentage = patient_random_state.uniform(0.1, 0.25)
-        patient_config.report_bolus_probability = patient_random_state.uniform(1.0, 1.0)
+        patient_config.report_bolus_probability = patient_random_state.uniform(1.0, 1.0)  # no impact
         patient_config.report_carb_probability = patient_random_state.uniform(0.95, 1.0)
+
+        patient_config.prebolus_minutes_choices = [0]
+        patient_config.carb_reported_minutes_choices = [0]
 
         patient_config.action_timeline = ActionTimeline()
 
-        t0, pump_config = get_pump_config(patient_random_state, patient_config=patient_config, risk_level=0.0)
+        t0, pump_config = get_pump_config_from_patient(patient_random_state, patient_config=patient_config, risk_level=0.0)
 
+        # Setup sensor config
         t0, baseline_sensor_config = get_canonical_sensor_config()
         baseline_sensor_config.std_dev = 1.0
         baseline_sensor_config.spurious_prob = 0.0
@@ -111,13 +114,16 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
         baseline_sensor_config.name = "Clean"
 
         t0, noisy_sensor_config = get_canonical_sensor_config()
-        noisy_sensor_config.std_dev = 1.0  # patient_random_state.uniform(3, 7)  # sensor noise
+        noisy_sensor_config.std_dev = 1.0
         noisy_sensor_config.spurious_prob = 3.5 * ONCE_PER_WEEK_PROB  # spurious events
         noisy_sensor_config.spurious_outage_prob = 0.8  # data outage
         noisy_sensor_config.time_delta_crunch_prob = 3.5 * ONCE_PER_WEEK_PROB  # small time delta
+        noisy_sensor_config.bg_spurious_error_delta_mgdl_range = [60, 150]
+        noisy_sensor_config.not_working_time_minutes_range = [10, 45]
+        noisy_sensor_config.cgm_offset_minutes_range = [2, 4.99]
         noisy_sensor_config.name = "Noisy"
 
-        loop_connect_prob = patient_random_state.uniform(0.9, 0.99)
+        loop_connect_prob = patient_random_state.uniform(0.8, 0.99)
 
         # ===== Setup Baseline Simulations =====
         for sensor_config in [
@@ -243,7 +249,19 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
 
 if __name__ == "__main__":
 
-    results_dir = get_sim_results_save_dir()
-    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=True, plot_results=True, test_run=True)
+    test_run = True
 
+    results_dir = ""
+    save_results = False
+    if not test_run:
+        results_dir = get_sim_results_save_dir()
+        save_results = True
+
+    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=save_results, plot_results=True, test_run=test_run)
+
+
+    # TODO:
+    #   - Pyloopkit changes as commit
+    #   - Pass sensor time delta info for stateful
+    #   - Document the code, e.g. new functions
 

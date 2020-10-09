@@ -1,9 +1,8 @@
 __author__ = "Cameron Summers"
 
-import pickle as pk
 import datetime
 import copy
-import numpy as np
+from numpy.random import RandomState
 
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus, TempBasal
@@ -59,13 +58,12 @@ class LoopController(BaseControllerClass):
     def __str__(self):
         return "PyLoopkit_v0.1"
 
-    def __init__(self, time, controller_config, random_state):
+    def __init__(self, time, controller_config):
 
         self.name = "PyLoopkit v0.1"
         self.time = time
         self.controller_config = copy.deepcopy(controller_config)
         self.recommendations = None
-        self.random_state = random_state
 
         self.bolus_event_timeline = controller_config.bolus_event_timeline
         self.temp_basal_event_timeline = controller_config.temp_basal_event_timeline
@@ -301,12 +299,16 @@ class LoopControllerDisconnector(LoopController):
     setting of temp basals.
     """
 
-    def __init__(self, time, controller_config, connect_prob, random_state):
-        super().__init__(time, controller_config, random_state=random_state)
+    def __init__(self, time, controller_config, connect_prob, random_state=None):
+        super().__init__(time, controller_config)
 
         self.name = "PyLoopkit v0.1, P(Connect)={}".format(connect_prob)
         self.original_time = copy.copy(time)
         self.connect_prob = connect_prob
+
+        self.random_state = random_state
+        if random_state is None:
+            self.random_state = RandomState(0)
 
     def is_connected(self):
         """

@@ -65,9 +65,6 @@ def analyze_variance(scenario_csv_filepath, param_grid, plot):
             sensor=sensor,
             metabolism_model=SimpleMetabolismModel,
             patient_config=sim_parser.get_patient_config(),
-            remember_meal_bolus_prob=1.0,
-            correct_bolus_delay_minutes=30,
-            correct_carb_delay_minutes=10,
             id=i,
             **pgrid
         )
@@ -135,7 +132,6 @@ def analyze_variance_multiprocess(scenario_csv_filepath, param_grid, plot):
             sensor=sensor,
             metabolism_model=SimpleMetabolismModel,
             patient_config=sim_parser.get_patient_config(),
-            remember_meal_bolus_prob=1.0,
             correct_bolus_delay_minutes=30,
             correct_carb_delay_minutes=10,
             id=i,

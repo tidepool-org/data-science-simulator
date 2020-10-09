@@ -283,8 +283,6 @@ class MealModel(UserInput):
 
         super().__init__(name, time_start, time_end)
         self.prob_of_eating = prob_of_eating
-        # self.carb_range = carb_range
-        # self.random_state = random_state
 
         # Get number of simulation steps in meal time range
         datetime_start = datetime.datetime.combine(datetime.date.today(), time_start)
@@ -300,16 +298,6 @@ class MealModel(UserInput):
     def is_meal_time(self, time):
 
         return self.time_start <= time.time() < self.time_end
-
-    # def get_carb(self):
-    #
-    #     carb = Carb(
-    #         value=self.random_state.choice(range(self.carb_range[0], self.carb_range[1])),
-    #         units="g",
-    #         duration_minutes=self.random_state.choice([3 * 60, 4 * 60, 5 * 60]),
-    #     )
-    #
-    #     return carb
 
     def __repr__(self):
 

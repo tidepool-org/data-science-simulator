@@ -60,6 +60,7 @@ def test_icgm_sensitivity_analysis():
 
                     simulation = Simulation(
                         time=t0, duration_hrs=8.0, virtual_patient=vp, controller=copy.deepcopy(controller),
+                        sim_id="Test Sim"
                     )
 
                     simulation.run()

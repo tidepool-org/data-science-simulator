@@ -15,12 +15,15 @@ def plot_sim_results(all_results, save=False):
 
     # ==== TMP ====
     # TODO - This is a placeholder for dev. Replace with viz tools module.
-    fig, ax = plt.subplots(3, 1, figsize=(16, 20))
+    fig, ax = plt.subplots(3, 1, figsize=(16, 20), sharex=True)
     linestyle = itertools.cycle(('-', '--', '-.'))
+    color = itertools.cycle(('g', 'r', 'y', 'o', 'b'))
     for sim_id, ctrl_result_df in all_results.items():
 
+        print(sim_id, ctrl_result_df.head(1).T)
+
         # ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple", linestyle=next(linestyle))
-        ax[0].plot(ctrl_result_df["bg_sensor"], label="{} {}".format("bg", sim_id), color="green", linestyle=next(linestyle))
+        ax[0].plot(ctrl_result_df["bg_sensor"], label="{} {}".format("bg", sim_id), color=next(color), linestyle=next(linestyle))
         # ax[0].scatter(range(len(ctrl_result_df)), ctrl_result_df["bg_sensor"], 4,
         #               label="{} {}".format("bg_sensor", sim_id),
         #               color="green")
@@ -33,7 +36,8 @@ def plot_sim_results(all_results, save=False):
         # ax[0].axhline(median, label="BG Median {}".format(median), color="green")
         # ax[0].axhline(median + std, label="BG Std {}".format(std), color="green")
         # ax[0].axhline(median - std, label="BG Std {}".format(std), color="green")
-        ax[0].legend()
+        if len(all_results) <= 4:
+            ax[0].legend(prop={'size': 6})
 
         ax[1].set_title("Insulin")
         ax[1].set_ylabel("Insulin (U or U/hr)")
@@ -43,20 +47,22 @@ def plot_sim_results(all_results, save=False):
         ax[1].stem(ctrl_result_df["true_bolus"], label="{} {}".format("true bolus", sim_id), use_line_collection=True)
         ax[1].stem(ctrl_result_df["reported_bolus"], linefmt='g--', markerfmt='X', label="{} {}".format("reported bolus", sim_id), use_line_collection=True)
         ax[1].plot(ctrl_result_df["iob"], label="{} {}".format("iob", sim_id))
-        ax[1].set_ylim((0, 3))
-        ax[1].legend()
+        ax[1].set_ylim((0, 4))
+        if len(all_results) <= 2:
+            ax[1].legend(prop={'size': 6})
 
         ax[2].stem(ctrl_result_df["true_carb_value"], label="{} {}".format("true carb", sim_id), use_line_collection=True)
         ax[2].stem(ctrl_result_df["reported_carb_value"], linefmt='g--', markerfmt='X', label="{} {}".format("reported carb", sim_id), use_line_collection=True)
         ax[2].set_title("Carb Events")
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")
-        ax[2].set_ylim((0, 40))
-        ax[2].legend()
+        ax[2].set_ylim((0, 60))
+        if len(all_results) <= 4:
+            ax[2].legend(prop={'size': 6})
 
         print(
-            "Patient Bg min {} max {}".format(
-                ctrl_result_df["bg"].min(), ctrl_result_df["bg"].max()
+            "{}: Patient Bg min {} max {}".format(
+                sim_id, ctrl_result_df["bg"].min(), ctrl_result_df["bg"].max()
             )
         )
 

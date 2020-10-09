@@ -48,12 +48,6 @@ def eval_settings(scenario_csv_filepath):
         sensor=sensor,
         metabolism_model=SimpleMetabolismModel,
         patient_config=sim_parser.get_patient_config(),
-        remember_meal_bolus_prob=1.0,
-        correct_bolus_bg_threshold=180,
-        correct_bolus_delay_minutes=30,
-        correct_carb_bg_threshold=80,
-        correct_carb_delay_minutes=10,
-        carb_count_noise_percentage=0.1,
         id=0,
     )
 

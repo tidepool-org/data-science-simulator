@@ -134,14 +134,12 @@ def sample_behavior_parameters(t0, virtual_patient):
 
     # === Patient Behavior Parameterization ===
     age = np.random.randint(1, 80)
-    remember_meal_bolus_prob = round(np.random.uniform(0.6, 0.95), 2)
     correct_bolus_bg_threshold = round(np.random.uniform(130, 200))
     correct_bolus_delay_minutes = round(np.random.uniform(15, 45))
     correct_carb_bg_threshold = round(np.random.uniform(75, 100))
     correct_carb_delay_minutes = round(np.random.uniform(5, 20))
     carb_count_noise_percentage = round(np.random.uniform(0.05, 0.2), 2)
 
-    virtual_patient.remember_meal_bolus_prob = remember_meal_bolus_prob
     virtual_patient.correct_bolus_bg_threshold = correct_bolus_bg_threshold
     virtual_patient.correct_bolus_delay_minutes = correct_bolus_delay_minutes
     virtual_patient.correct_carb_bg_threshold = correct_carb_bg_threshold

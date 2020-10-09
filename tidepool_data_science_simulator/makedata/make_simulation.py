@@ -43,7 +43,8 @@ def get_canonical_simulation(t0=DATETIME_DEFAULT,
         duration_hrs=duration_hrs,
         virtual_patient=vp,
         controller=controller,
-        multiprocess=multiprocess
+        multiprocess=multiprocess,
+        sim_id="Refactor Test Sim"
     )
 
     return t0, sim

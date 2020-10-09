@@ -34,7 +34,8 @@ def test_virtual_patient_delete():
             time=t0,
             duration_hrs=6.0,
             virtual_patient=vp,
-            controller=controller
+            controller=controller,
+            sim_id="Test Sim"
     )
 
     simulation.run(early_stop_datetime=action_time)
@@ -65,6 +66,7 @@ def test_virtual_patient_delete_with_scenario_file():
         metabolism_model=SimpleMetabolismModel,
         patient_config=sim_parser.get_patient_config(),
     )
+    vp.patient_config.min_bolus_rec_threshold = 0.0
 
     action_time = t0 + timedelta(minutes=30)
     vp.action_timeline = ActionTimeline()
@@ -81,7 +83,8 @@ def test_virtual_patient_delete_with_scenario_file():
             time=t0,
             duration_hrs=8.0,
             virtual_patient=vp,
-            controller=controller
+            controller=controller,
+            sim_id="Test Sim"
     )
 
     before_action_time = action_time - timedelta(minutes=5)

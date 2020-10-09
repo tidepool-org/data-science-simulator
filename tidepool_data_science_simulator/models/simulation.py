@@ -8,8 +8,9 @@ import multiprocessing
 import copy
 import datetime
 import pandas as pd
-import numpy as np
 import copy
+from numpy.random import RandomState
+
 
 from tidepool_data_science_simulator.models.measures import Bolus, Carb
 
@@ -72,14 +73,17 @@ class Simulation(multiprocessing.Process):
         controller,
         sim_id,
         multiprocess=False,
-        random_state=1234,
+        random_state=None,
     ):
 
         # To enable multiprocessing
         super().__init__()
         self.queue = multiprocessing.Queue()
         self.multiprocess = multiprocess
+
         self.random_state = random_state
+        if random_state is None:
+            self.random_state = RandomState(0)
 
         self.sim_id = sim_id
         self.start_time = copy.deepcopy(time)
@@ -249,6 +253,25 @@ class Simulation(multiprocessing.Process):
                 "undelivered_basal_insulin": undelivered_basal_insulin,
                 "randint": simulation_state.randint
             }
+
+            # Controller stuff
+            for horizon_minutes in [15, 30, 60, 90]:
+                time_horizon_ago = time - datetime.timedelta(minutes=horizon_minutes)
+                if time_horizon_ago in self.simulation_results and hasattr(self.simulation_results[time_horizon_ago].controller_state,
+                               "pyloopkit_recommendations"):
+                    predicted_bgs_from_horizon_ago = self.simulation_results[time_horizon_ago].controller_state.pyloopkit_recommendations.get("predicted_glucose_values")
+
+                    try:
+                        predicted_bg_at_horizon = predicted_bgs_from_horizon_ago[int(horizon_minutes / 5)]
+                        loop_prediction_mae_true = abs(predicted_bg_at_horizon - simulation_state.patient_state.bg)
+                        loop_prediction_mae_sensor = abs(predicted_bg_at_horizon - simulation_state.patient_state.sensor_bg)
+                        row.update({
+                            "loop_prediction_abs_error_{}_ago_true".format(horizon_minutes): loop_prediction_mae_true,
+                            "loop_prediction_abs_error_{}_ago_sensor".format(horizon_minutes): loop_prediction_mae_sensor,
+                        })
+                    except:
+                        pass
+
             data.append(row)
 
         df = pd.DataFrame(data)
@@ -260,7 +283,6 @@ class Simulation(multiprocessing.Process):
         stateless_info = {
             "sim_id": self.sim_id,
             "duration_hrs": self.duration_hrs,
-            # "seed": self.random_state.get_state(),
             "start_time": self.start_time.isoformat(),
             "multiprocess": self.multiprocess,
             "patient": self.virtual_patient.get_info_stateless(),

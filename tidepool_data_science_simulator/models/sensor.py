@@ -6,6 +6,7 @@ Sensor model classes
 
 import copy
 import datetime as dt
+from numpy.random import RandomState
 
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 
@@ -19,7 +20,7 @@ class Sensor(SimulationComponent):
         self.sensor_config = copy.deepcopy(sensor_config)
         self.sensor_bg_history = self.sensor_config.sensor_bg_history
 
-        self.current_sensor_bg = self.sensor_config.sensor_bg_history.bg_values[0]
+        self.current_sensor_bg = self.sensor_config.sensor_bg_history.bg_values[-1]
         self.current_sensor_bg_prediction = None
 
     def get_bg(self, true_bg):
@@ -64,8 +65,8 @@ class Sensor(SimulationComponent):
         # Store the value
         self.sensor_bg_history.append(self.time, self.current_sensor_bg)
 
-    def get_loop_inputs(self):
-        return self.sensor_config.sensor_bg_history.get_loop_inputs()
+    def get_loop_inputs(self, time=None, num_hours_history=None):
+        return self.sensor_config.sensor_bg_history.get_loop_inputs(time, num_hours_history=num_hours_history)
 
     def set_random_values(self):
         return
@@ -75,23 +76,34 @@ class NoisySensor(Sensor):
     """
     A simple sensor with Gaussian noise, spurious events, and missing data.
     """
-    def __init__(self, time, sensor_config, random_state):
+    def __init__(self, time, sensor_config, random_state=None):
         super().__init__(time, sensor_config)
 
         self.name = "BasicNoisySensor"
         self.random_state = random_state
+        if random_state is None:
+            self.random_state = RandomState(0)
 
-        self.std_dev = 5.0
-        if hasattr(sensor_config, "std_dev"):
-            self.std_dev = sensor_config.std_dev
+        if not hasattr(self.sensor_config, "std_dev"):
+            self.sensor_config.std_dev = 5.0
 
-        self.spurious_prob = 0.0
-        if hasattr(sensor_config, "spurious_prob"):
-            self.spurious_prob = sensor_config.spurious_prob
+        if not hasattr(self.sensor_config, "spurious_prob"):
+            self.sensor_config.spurious_prob = 0.0
 
-        self.spurious_outage_prob = 0.0
-        if hasattr(sensor_config, "spurious_outage_prob"):
-            self.spurious_outage_prob = sensor_config.spurious_outage_prob
+        if not hasattr(self.sensor_config, "spurious_outage_prob"):
+            self.sensor_config.spurious_outage_prob = 0.0
+
+        if not hasattr(self.sensor_config, "time_delta_crunch_prob"):
+            self.sensor_config.time_delta_crunch_prob = 0.0
+
+        if not hasattr(self.sensor_config, "bg_spurious_error_delta_mgdl_range"):
+            self.sensor_config.bg_spurious_error_delta_mgdl_range = [60, 150]
+
+        if not hasattr(self.sensor_config, "not_working_time_minutes_range"):
+            self.sensor_config.not_working_time_minutes_range = [10, 45]
+
+        if not hasattr(self.sensor_config, "cgm_offset_minutes_range"):
+            self.sensor_config.cgm_offset_minutes_range = [2, 4.99]
 
         self.not_working_timer_minutes_remaining = 0.0
 
@@ -105,14 +117,14 @@ class NoisySensor(Sensor):
 
     def get_bg(self, true_bg):
         """
-        Get noisy according to internal params
+        Get noisy reading according to internal params
         """
         u1 = self.random_values["uniform"][0]
 
         if not self.is_sensor_working():
             bg = None
             self.not_working_timer_minutes_remaining = max(0, self.not_working_timer_minutes_remaining - 5.0)
-        elif u1 < self.spurious_prob:
+        elif u1 < self.sensor_config.spurious_prob:
             bg_spurious_error_delta = self.random_values["bg_spurious_error_delta"]  # always positive
             bg = int(true_bg + bg_spurious_error_delta)
             u2 = self.random_values["uniform"][1]
@@ -134,18 +146,33 @@ class NoisySensor(Sensor):
     def get_info_stateless(self):
         stateless_info = super().get_info_stateless()
         stateless_info.update({
-            "standard_deviation": self.std_dev
+            "standard_deviation": self.sensor_config.std_dev,
+            "spurious_prob": self.sensor_config.spurious_prob,
+            "spurious_outage_prob": self.sensor_config.spurious_outage_prob,
+            "time_delta_crunch_prob": self.sensor_config.time_delta_crunch_prob,
+            "bg_spurious_error_delta_mgdl_range": self.sensor_config.bg_spurious_error_delta_mgdl_range,
+            "not_working_time_minutes_range": self.sensor_config.not_working_time_minutes_range,
+            "cgm_offset_minutes_range": self.sensor_config.cgm_offset_minutes_range
         })
         return stateless_info
 
     def set_random_values(self):
 
+        bg_spurious_error_delta_mgdl_min = self.sensor_config.bg_spurious_error_delta_mgdl_range[0]
+        bg_spurious_error_delta_mgdl_max = self.sensor_config.bg_spurious_error_delta_mgdl_range[1]
+
+        not_working_time_minutes_min = self.sensor_config.not_working_time_minutes_range[0]
+        not_working_time_minutes_max = self.sensor_config.not_working_time_minutes_range[1]
+
+        cgm_offset_minutes_min = self.sensor_config.cgm_offset_minutes_range[0]
+        cgm_offset_minutes_max = self.sensor_config.cgm_offset_minutes_range[1]
+
         self.random_values = {
             "uniform": self.random_state.uniform(0, 1, 100),
-            "bg_normal_error_delta": self.random_state.normal(0, self.std_dev),
-            "bg_spurious_error_delta": self.random_state.uniform(20, 100),
-            "not_working_time_min": self.random_state.uniform(10, 45),
-            "cgm_offset_minutes": self.random_state.uniform(2, 4.99)
+            "bg_normal_error_delta": self.random_state.normal(0, self.sensor_config.std_dev),
+            "bg_spurious_error_delta": self.random_state.uniform(bg_spurious_error_delta_mgdl_min, bg_spurious_error_delta_mgdl_max),
+            "not_working_time_minutes": self.random_state.uniform(not_working_time_minutes_min, not_working_time_minutes_max),
+            "cgm_offset_minutes": self.random_state.uniform(cgm_offset_minutes_min, cgm_offset_minutes_max)
         }
 
     def update(self, time, **kwargs):

@@ -100,12 +100,14 @@ def test_all_controllers_icgm_integration():
             metabolism_model=SimpleMetabolismModel,
             patient_config=sim_parser.get_patient_config(),
         )
+        vp.patient_config.min_bolus_rec_threshold = 0.0
 
         simulation = Simulation(
             time=t0,
             duration_hrs=8.0,
             virtual_patient=vp,
             controller=controller,
+            sim_id="Test Sim"
         )
 
         simulation.run()

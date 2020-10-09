@@ -2,6 +2,7 @@ __author__ = "Cameron Summers"
 
 import copy
 import numpy as np
+from numpy.random import RandomState
 import datetime
 
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
@@ -56,7 +57,7 @@ class VirtualPatient(SimulationComponent):
     Patient class for simulation
     """
 
-    def __init__(self, time, pump, sensor, metabolism_model, patient_config, random_state):
+    def __init__(self, time, pump, sensor, metabolism_model, patient_config, random_state=None):
         """
         Parameters
         ----------
@@ -74,12 +75,15 @@ class VirtualPatient(SimulationComponent):
         self.name = "Virtual Patient"
 
         self.random_state = random_state
+        if random_state is None:
+            self.random_state = RandomState(0)
 
         self.pump = pump
         self.sensor = sensor
         self.metabolism_model = metabolism_model
 
         self.patient_config = copy.deepcopy(patient_config)
+        self._validate_config()
 
         self.set_random_values()
 
@@ -102,6 +106,16 @@ class VirtualPatient(SimulationComponent):
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
         self.num_prediction_steps = int(prediction_horizon_hrs * 60 / 5)
+
+    def _validate_config(self):
+
+        assert hasattr(self.patient_config, "recommendation_accept_prob"), "No recommendation_accept_prob in patient config"
+        assert hasattr(self.patient_config, "glucose_history"), "No glucose_history in patient config"
+        assert hasattr(self.patient_config, "basal_schedule"), "No basal_schedule in patient config"
+        assert hasattr(self.patient_config, "carb_ratio_schedule"), "No carb_ratio_schedule in patient config"
+        assert hasattr(self.patient_config, "carb_event_timeline"), "No carb_event_timeline in patient config"
+        assert hasattr(self.patient_config, "bolus_event_timeline"), "No bolus_event_timeline in patient config"
+        assert hasattr(self.patient_config, "action_timeline"), "No action_timeline in patient config"
 
     def init(self):
         """
@@ -538,66 +552,8 @@ class VirtualPatient(SimulationComponent):
         """
         Draw all random values that may be needed to keep streams in sync across sims
         """
-        num_values = 100
-
-        meal_carb_values = self.random_state.uniform(20, 60, num_values)
-        meal_carb_estimates = []
-        for carb_value in meal_carb_values:
-            meal_carb_estimates.append(
-                max(0,
-                    int(self.random_state.normal(carb_value, carb_value * self.patient_config.carb_count_noise_percentage))
-                )
-            )
-
-        meal_carb_durations = self.random_state.choice(range(2 * 60, 5 * 60), num_values)
-        meal_carb_duration_estimates = []
-        for duration in meal_carb_durations:
-            meal_carb_duration_estimates.append(
-                max(120,
-                    int(self.random_state.normal(duration, duration * self.patient_config.carb_count_noise_percentage))
-                )
-            )
-
-        snack_carb_values = self.random_state.uniform(5, 15, num_values)
-        snack_carb_estimates = []
-        for carb_value in snack_carb_values:
-            snack_carb_estimates.append(
-                max(0,
-                    int(self.random_state.normal(carb_value,
-                                                 carb_value * self.patient_config.carb_count_noise_percentage))
-                    )
-            )
-
-        snack_carb_durations = self.random_state.choice(range(2 * 60, 5 * 60), num_values)
-        snack_carb_duration_estimates = []
-        for duration in snack_carb_durations:
-            snack_carb_duration_estimates.append(
-                max(120,
-                    int(self.random_state.normal(duration, duration * self.patient_config.carb_count_noise_percentage))
-                    )
-            )
-
-        correct_carbs = self.random_state.uniform(5, 10, num_values)
-        correct_carb_estimates = []
-        for carb_value in correct_carbs:
-            correct_carb_estimates.append(
-                max(0,
-                    int(self.random_state.normal(carb_value, carb_value * self.patient_config.carb_count_noise_percentage))
-                )
-            )
-
         self.random_values = {
             "uniform": self.random_state.uniform(0, 1, 100),
-            "meal_carbs": meal_carb_values,
-            "meal_carb_estimates": meal_carb_estimates,
-            "meal_carb_durations": meal_carb_durations,
-            "meal_carb_duration_estimates": meal_carb_duration_estimates,
-            "snack_carbs": snack_carb_values,
-            "snack_carb_estimates": snack_carb_estimates,
-            "snack_carb_durations": snack_carb_durations,
-            "snack_carb_duration_estimates": snack_carb_duration_estimates,
-            "correct_carbs": correct_carbs,
-            "correct_carb_estimates": correct_carb_estimates,
         }
 
     def __repr__(self):
@@ -635,10 +591,11 @@ class VirtualPatientModel(VirtualPatient):
         sensor,
         metabolism_model,
         patient_config,
-        random_state,
         id,
+        random_state=None,
     ):
         super().__init__(time, pump, sensor, metabolism_model, patient_config, random_state=random_state)
+        self._validate_config()
 
         self.name = "VP-{}".format(id)
 
@@ -649,11 +606,6 @@ class VirtualPatientModel(VirtualPatient):
             MealModel("Snack", datetime.time(hour=14), datetime.time(hour=15), 0.05),
             MealModel("Dinner", datetime.time(hour=17), datetime.time(hour=21), 0.999),
         ]
-
-        # self.meal_model = [
-        #     MealModel("Breakfast", datetime.time(hour=i - 1), datetime.time(hour=i), 0.98)
-        #     for i in range(1, 22)
-        # ]
 
         num_trials = int(self.patient_config.correct_bolus_delay_minutes / 5.0)
         self.correct_bolus_step_prob = get_bernoulli_trial_uniform_step_prob(
@@ -670,11 +622,29 @@ class VirtualPatientModel(VirtualPatient):
 
         self.meal_wait_minutes = 0
 
+    def _validate_config(self):
+
+        super()._validate_config()
+
+        assert hasattr(self.patient_config, "correct_bolus_bg_threshold"), "No correct_bolus_bg_threshold in patient config"
+        assert hasattr(self.patient_config, "correct_bolus_delay_minutes"), "No correct_bolus_delay_minutes in patient config"
+        assert hasattr(self.patient_config, "correct_carb_bg_threshold"), "No correct_carb_bg_threshold in patient config"
+        assert hasattr(self.patient_config, "correct_carb_delay_minutes"), "No correct_carb_delay_minutes in patient config"
+        assert hasattr(self.patient_config, "carb_count_noise_percentage"), "No carb_count_noise_percentage in patient config"
+        assert hasattr(self.patient_config, "report_carb_probability"), "No report_carb_probability in patient config"
+
+        assert hasattr(self.patient_config, "prebolus_minutes_choices"), "No prebolus_minutes_choices in patient config"
+        assert np.array([v % 5 == 0 for v in self.patient_config.prebolus_minutes_choices]).all(), "Prebolus minutes not a multiple of 5"
+
+        assert hasattr(self.patient_config, "carb_reported_minutes_choices"), "No carb_reported_minutes_choices in patient config"
+        assert np.array([v % 5 == 0 for v in self.patient_config.carb_reported_minutes_choices]).all(), "Prebolus minutes not a multiple of 5"
+
+        assert hasattr(self.patient_config, "correct_carb_delay_minutes"), "No correct_carb_delay_minutes in patient config"
+
     def get_info_stateless(self):
 
         stateless_info = super().get_info_stateless()
         stateless_info.update({
-            "remember_meal_bolus_prob": self.patient_config.remember_meal_bolus_prob,
             "correct_bolus_bg_threshold": self.patient_config.correct_bolus_bg_threshold,
             "correct_bolus_delay_minutes": self.patient_config.correct_bolus_delay_minutes,
             "correct_carb_bg_threshold": self.patient_config.correct_carb_bg_threshold,
@@ -711,21 +681,15 @@ class VirtualPatientModel(VirtualPatient):
         # This is set from Loop controller
         total_bolus = self.bolus_event_timeline.get_event(self.time)
 
-        # meal_bolus = self.get_meal_bolus(meal_carb)
-        # correction_bolus = self.get_correction_bolus()
-        # total_bolus = self.combine_boluses(meal_bolus, correction_bolus)
-
         if total_carb is not None:
-            self.carb_event_timeline.add_event(self.time, total_carb)  # Actual carbs go to patient predict
-            self.report_carb(total_carb_estimate)  # Reported carbs go to Loop
-
-        # if total_bolus is not None:
-        #     self.bolus_event_timeline.add_event(self.time, total_bolus)
-        #     self.report_bolus(total_bolus)
+            carb_time = self.time + datetime.timedelta(minutes=self.random_values["prebolus_offset_minutes"])
+            carb_time_reported = self.time + datetime.timedelta(minutes=self.random_values["carb_reported_minutes"])
+            self.carb_event_timeline.add_event(carb_time, total_carb)  # Actual carbs go to patient predict
+            self.report_carb(total_carb_estimate, carb_time_reported)  # Reported carbs go to Loop
 
         return total_bolus, total_carb
 
-    def report_carb(self, estimated_carb):
+    def report_carb(self, estimated_carb, carb_time_estimated):
         """
         Probabilistically report carb to pump. Controller knows about pump events.
 
@@ -736,20 +700,7 @@ class VirtualPatientModel(VirtualPatient):
         u = self.random_values["uniform"][2]
 
         if u <= self.patient_config.report_carb_probability:
-            self.pump.carb_event_timeline.add_event(self.time, estimated_carb)
-
-    def report_bolus(self, bolus):
-        """
-        Probabilistically report bolus to pump. Controller knows about pump events.
-        This case is more for an MDI or Afrezza type situation.
-
-        Parameters
-        ----------
-        bolus
-        """
-        u = self.random_values["uniform"][3]
-        if u <= self.patient_config.report_bolus_probability:
-            self.pump.bolus_event_timeline.add_event(self.time, bolus)
+            self.pump.carb_event_timeline.add_event(carb_time_estimated, estimated_carb)
 
     def get_meal(self):
         """
@@ -829,61 +780,6 @@ class VirtualPatientModel(VirtualPatient):
 
         return correction_bolus
 
-    def get_meal_bolus(self, carb):
-        """
-        Get the bolus for a meal based whether the user remembered
-        to bolus and user estimation capabilities.
-
-        Parameters
-        ----------
-        carb: Carb
-
-        Returns
-        -------
-        Bolus
-        """
-
-        # Meal bolus
-        bolus = None
-        if carb is not None:
-            u = self.random_values["uniform"][7]
-
-            if u <= self.patient_config.remember_meal_bolus_prob:
-
-                estimated_carb = self.estimate_meal_carb(carb)
-                cir = self.pump.pump_config.carb_ratio_schedule.get_state()
-
-                bolus = Bolus(value=cir.calculate_bolus(estimated_carb), units="U")
-            else:
-                print("{} Forgot bolus".format(self.name))
-
-        return bolus
-
-    def combine_boluses(self, meal_bolus, correction_bolus):
-        """
-        Combine boluses if they occur at the same time.
-
-        Parameters
-        ----------
-        meal_bolus: Bolus
-        correction_bolus: Bolus
-
-        Returns
-        -------
-        Bolus
-        """
-        if meal_bolus is not None and correction_bolus is not None:
-            # TODO use measure __add__() here instead
-            bolus = Bolus(value=correction_bolus.value + meal_bolus.value, units="U")
-        elif meal_bolus is not None:
-            bolus = meal_bolus
-        elif correction_bolus is not None:
-            bolus = correction_bolus
-        else:
-            bolus = None
-
-        return bolus
-
     def combine_carbs(self, meal_carb, correction_carb):
         """
         Combine carbs if they occur at the same time.
@@ -917,30 +813,77 @@ class VirtualPatientModel(VirtualPatient):
     def delete_pump_event_history(self):
         self.action_timeline.add_action(self.time, "delete_pump_event_history")
 
-    def estimate_meal_carb(self, carb):
+    def set_random_values(self):
         """
-        Estimate the meal's carb based on a normal distribution centered
-        on the real value and variance parameter in the user model.
-
-        Parameters
-        ----------
-        carb: Carb
-            The actual carb for the meal
-
-        Returns
-        -------
-        Carb
-            The estimated carb for the meal
+        Draw all random values that may be needed to keep streams in sync across sims
         """
-        value = self.random_values["estimated_meal_carbs"][0]
-        duration = self.random_values["estimated_meal_durations"][0]
+        super().set_random_values()  # Set values needed for inherited class
 
-        estimated_carb = Carb(
-            value=value,
-            units="g",
-            duration_minutes=duration,
-        )
-        return estimated_carb
+        num_values = 100
+
+        meal_carb_values = self.random_state.uniform(20, 60, num_values)
+        meal_carb_estimates = []
+        for carb_value in meal_carb_values:
+            meal_carb_estimates.append(
+                max(0,
+                    int(self.random_state.normal(carb_value, carb_value * self.patient_config.carb_count_noise_percentage))
+                )
+            )
+
+        meal_carb_durations = self.random_state.choice(range(2 * 60, 5 * 60), num_values)
+        meal_carb_duration_estimates = []
+        for duration in meal_carb_durations:
+            meal_carb_duration_estimates.append(
+                max(120,
+                    int(self.random_state.normal(duration, duration * self.patient_config.carb_count_noise_percentage))
+                )
+            )
+
+        snack_carb_values = self.random_state.uniform(5, 15, num_values)
+        snack_carb_estimates = []
+        for carb_value in snack_carb_values:
+            snack_carb_estimates.append(
+                max(0,
+                    int(self.random_state.normal(carb_value,
+                                                 carb_value * self.patient_config.carb_count_noise_percentage))
+                    )
+            )
+
+        snack_carb_durations = self.random_state.choice(range(2 * 60, 5 * 60), num_values)
+        snack_carb_duration_estimates = []
+        for duration in snack_carb_durations:
+            snack_carb_duration_estimates.append(
+                max(120,
+                    int(self.random_state.normal(duration, duration * self.patient_config.carb_count_noise_percentage))
+                    )
+            )
+
+        correct_carbs = self.random_state.uniform(5, 10, num_values)
+        correct_carb_estimates = []
+        for carb_value in correct_carbs:
+            correct_carb_estimates.append(
+                max(0,
+                    int(self.random_state.normal(carb_value, carb_value * self.patient_config.carb_count_noise_percentage))
+                )
+            )
+
+        prebolus_minutes = int(self.random_state.choice(self.patient_config.prebolus_minutes_choices))
+        carb_reported_minutes = int(self.random_state.choice(self.patient_config.carb_reported_minutes_choices))
+
+        self.random_values.update({
+            "meal_carbs": meal_carb_values,
+            "meal_carb_estimates": meal_carb_estimates,
+            "meal_carb_durations": meal_carb_durations,
+            "meal_carb_duration_estimates": meal_carb_duration_estimates,
+            "snack_carbs": snack_carb_values,
+            "snack_carb_estimates": snack_carb_estimates,
+            "snack_carb_durations": snack_carb_durations,
+            "snack_carb_duration_estimates": snack_carb_duration_estimates,
+            "correct_carbs": correct_carbs,
+            "correct_carb_estimates": correct_carb_estimates,
+            "prebolus_offset_minutes": prebolus_minutes,
+            "carb_reported_minutes": carb_reported_minutes
+        })
 
     def update(self, time, **kwargs):
         super().update(time, **kwargs)

@@ -47,6 +47,7 @@ def test_sensitivity_analysis_patient():
             duration_hrs=8.0,
             virtual_patient=vp,
             controller=controller,
+            sim_id="Test Sim"
         )
 
         simulation.run()
