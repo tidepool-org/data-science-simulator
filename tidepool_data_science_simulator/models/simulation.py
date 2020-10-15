@@ -240,9 +240,9 @@ class Simulation(multiprocessing.Process):
                 "sbr": simulation_state.patient_state.sbr.value,
                 "cir": simulation_state.patient_state.cir.value,
                 "isf": simulation_state.patient_state.isf.value,
-                "pump_sbr": pump_sbr,
-                "pump_isf": pump_isf,
-                "pump_cir": pump_cir,
+                "pump_sbr": pump_sbr.value,
+                "pump_isf": pump_isf.value,
+                "pump_cir": pump_cir.value,
                 "true_bolus": true_bolus.value,
                 "true_carb_value": true_carb.value,
                 "true_carb_duration": true_carb.duration_minutes,
@@ -275,7 +275,7 @@ class Simulation(multiprocessing.Process):
             data.append(row)
 
         df = pd.DataFrame(data)
-        df.set_index("time")
+        df.set_index("time", inplace=True)
         return df
 
     def get_info_stateless(self):

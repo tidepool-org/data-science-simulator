@@ -1,11 +1,18 @@
 __author__ = "Cameron Summers"
 
+"""
+https://tidepool.atlassian.net/browse/LOOP-1423
+
+This code runs the analysis for capping the rate of change computation in the
+Pyloopkit algorithm.
+
+Update: Oct 1, 2020
+
+Analysis results pointed to a value of 4.0 mg/dL / minute for the rate cap.
+"""
+
 import os
-import pdb
-import json
-import time
 import logging
-import argparse
 
 import numpy as np
 
@@ -22,27 +29,22 @@ sys.path.insert(0, local_pyloopkit_path)
 
 # Setup Logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-LOG_FILENAME = "sim.log"
-filehandler = logging.FileHandler(LOG_FILENAME)
-logger.addHandler(filehandler)
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
+from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.events import ActionTimeline
 from tidepool_data_science_simulator.models.controller import LoopController, LoopControllerDisconnector
 from tidepool_data_science_simulator.models.patient import VirtualPatientModel
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
-from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 
 from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_sensor_config, \
     get_pump_config_from_patient, get_variable_risk_patient_config
-from tidepool_data_science_simulator.utils import timing, save_df, get_sim_results_save_dir
+from tidepool_data_science_simulator.utils import get_sim_results_save_dir
 
-from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index, percent_values_ge_70_le_180
 
 from numpy.random import RandomState
 
@@ -55,28 +57,18 @@ def get_new_random_state(seed=SEED):
     return RandomState(seed)
 
 
-@timing
-def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False, test_run=False):
-    """
-    Compare two controllers for a given scenario file:
-        1. No controller, ie no insulin modulation except for pump schedule
-        2. Loop controller
+def build_rate_cap_sims(test_run=True):
 
-    Parameters
-    ----------
-    scenario_csv_filepath: str
-        Path to the scenario file
-    """
     logger.debug("Random Seed: {}".format(SEED))
-    logger.debug("Results Directory: {}".format(save_dir))
 
     num_patients = 75
     rate_caps = list(np.arange(1.0, 11, 1))
-    duration_hrs = 4*7*24
+    duration_hrs = 4 * 7 * 24
+
     if test_run:
         num_patients = 1
         rate_caps = [3.0]
-        duration_hrs = 24
+        duration_hrs = 8
 
     logger.debug("Running {} patients. {} rate caps. {} hours".format(num_patients, len(rate_caps), duration_hrs))
 
@@ -103,7 +95,8 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
 
         patient_config.action_timeline = ActionTimeline()
 
-        t0, pump_config = get_pump_config_from_patient(patient_random_state, patient_config=patient_config, risk_level=0.0)
+        t0, pump_config = get_pump_config_from_patient(patient_random_state, patient_config=patient_config,
+                                                       risk_level=0.0)
 
         # Setup sensor config
         t0, baseline_sensor_config = get_canonical_sensor_config()
@@ -166,7 +159,7 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
             )
             sims[sim_id] = sim
 
-        # ===== Setup Risk Mitigiation Controllers =====
+        # ===== Setup Risk Mitigation Controllers =====
         for max_rate in rate_caps:
             sim_random_state = get_new_random_state(seed=i)
 
@@ -204,47 +197,7 @@ def compare_physiologic_bg_change_cap(save_dir, save_results, plot_results=False
             )
             sims[sim_id] = sim
 
-    # Run the sims
-    num_sims = len(sims)
-    sim_ctr = 1
-    num_procs = 28
-    running_sims = {}
-    start_time = time.time()
-    for sim_id, sim in sims.items():
-        logger.debug("Running: {}. {} of {}".format(sim_id, sim_ctr, num_sims))
-        sim.start()
-        running_sims[sim_id] = sim
-
-        if len(running_sims) >= num_procs or sim_ctr >= num_sims:
-            all_results = {id: sim.queue.get() for id, sim in running_sims.items()}
-            [sim.join() for id, sim in running_sims.items()]
-            for id, sim in running_sims.items():
-                info = sim.get_info_stateless()
-                json.dump(info, open(os.path.join(results_dir, "{}.json".format(id)), "w"), indent=4)
-            running_sims = {}
-
-            logger.debug("Batch run time: {:.2f}m".format((time.time() - start_time) / 60.0))
-            for sim_id, results_df in all_results.items():
-                try:
-                    lbgi, hbgi, brgi = blood_glucose_risk_index(results_df['bg'])
-                    summary_str = "Sim {}. LBGI: {} HBGI: {} BRGI: {}".format(sim_id, lbgi, hbgi, brgi)
-                    logger.debug(summary_str)
-                except:
-                    logger.debug("Exception in summary stats, passing {}...".format(sim_id))
-
-                # Sanity debugging random stream sync
-                print(results_df.iloc[-1]["randint"])
-
-                if save_results:
-                    save_df(results_df, sim_id, save_dir)
-
-            if plot_results:
-                plot_sim_results(all_results, save=False)
-
-        sim_ctr += 1
-
-    logger.debug("Full run time: {:.2f}m".format((time.time() - start_time) / 60.0))
-    os.rename(LOG_FILENAME, os.path.join(results_dir, LOG_FILENAME))
+    return sims
 
 
 if __name__ == "__main__":
@@ -257,10 +210,10 @@ if __name__ == "__main__":
         results_dir = get_sim_results_save_dir()
         save_results = True
 
-    compare_physiologic_bg_change_cap(save_dir=results_dir, save_results=save_results, plot_results=True, test_run=test_run)
-
-    # TODO:
-    #   - Pyloopkit changes as commit
-    #   - Pass sensor time delta info for stateful
-    #   - Document the code, e.g. new functions
+    sims = build_rate_cap_sims(test_run=test_run)
+    run_simulations(sims,
+                    save_dir=results_dir,
+                    save_results=save_results,
+                    plot_results=True,
+                    num_procs=10)
 

@@ -11,7 +11,7 @@ from numpy.random import RandomState
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 
 
-class Sensor(SimulationComponent):
+class SensorBase(SimulationComponent):
 
     def __init__(self, time, sensor_config):
 
@@ -72,7 +72,7 @@ class Sensor(SimulationComponent):
         return
 
 
-class NoisySensor(Sensor):
+class NoisySensor(SensorBase):
     """
     A simple sensor with Gaussian noise, spurious events, and missing data.
     """
@@ -203,7 +203,7 @@ class NoisySensor(Sensor):
         self.sensor_bg_history.append(bg_time, self.current_sensor_bg)
 
 
-class IdealSensor(Sensor):
+class IdealSensor(SensorBase):
     """
     Sensor that reads bg perfectly.
     """
