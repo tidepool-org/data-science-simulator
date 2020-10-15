@@ -107,6 +107,10 @@ class VirtualPatient(SimulationComponent):
         prediction_horizon_hrs = 8
         self.num_prediction_steps = int(prediction_horizon_hrs * 60 / 5)
 
+    @classmethod
+    def get_classname(cls):
+        return cls.__name__
+
     def _validate_config(self):
 
         assert hasattr(self.patient_config, "recommendation_accept_prob"), "No recommendation_accept_prob in patient config"
@@ -591,11 +595,14 @@ class VirtualPatientModel(VirtualPatient):
         sensor,
         metabolism_model,
         patient_config,
-        id,
+        id=None,
         random_state=None,
     ):
         super().__init__(time, pump, sensor, metabolism_model, patient_config, random_state=random_state)
         self._validate_config()
+
+        if id is None:
+            id = np.random.randint(0, 1e6)
 
         self.name = "VP-{}".format(id)
 

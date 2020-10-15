@@ -29,6 +29,10 @@ class ContinuousInsulinPump(SimulationComponent):
         self.basal_insulin_delivered_last_update = 0
         self.basal_undelivered_insulin_since_last_update = 0
 
+    @classmethod
+    def get_classname(cls):
+        return cls.__name__
+
     def init(self):
         """
         Initialize the pump for t0

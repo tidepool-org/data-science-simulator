@@ -23,6 +23,10 @@ class SensorBase(SimulationComponent):
         self.current_sensor_bg = self.sensor_config.sensor_bg_history.bg_values[-1]
         self.current_sensor_bg_prediction = None
 
+    @classmethod
+    def get_classname(cls):
+        return cls.__name__
+
     def get_bg(self, true_bg):
         raise NotImplementedError
 

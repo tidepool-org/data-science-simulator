@@ -299,7 +299,7 @@ class LoopControllerDisconnector(LoopController):
     setting of temp basals.
     """
 
-    def __init__(self, time, controller_config, connect_prob, random_state=None):
+    def __init__(self, time, controller_config, connect_prob=1.0, random_state=None):
         super().__init__(time, controller_config)
 
         self.name = "PyLoopkit v0.1, P(Connect)={}".format(connect_prob)
