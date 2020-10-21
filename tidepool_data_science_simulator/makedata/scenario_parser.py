@@ -13,7 +13,7 @@ from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG i
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
 )
-from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, TempBasalTimeline
+from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, TempBasalTimeline, ActionTimeline
 from tidepool_data_science_simulator.models.measures import (
     Carb,
     Bolus,
@@ -289,7 +289,12 @@ class ScenarioParserCSV(SimulationParser):
             carb_event_timeline=self.patient_carb_events,
             bolus_event_timeline=self.patient_bolus_events,
             glucose_history=copy.deepcopy(self.patient_glucose_history),
+            action_timeline=ActionTimeline()
         )
+
+        patient_config.recommendation_accept_prob = 0.0  # Does not accept any bolus recommendations
+        patient_config.min_bolus_rec_threshold = 0.5  # Minimum size of bolus to accept
+        patient_config.recommendation_meal_attention_time_minutes = 1e12  # Time since meal to take recommendations
 
         return patient_config
 
@@ -364,8 +369,7 @@ class PatientConfig(object):
         glucose_history,
         carb_event_timeline,
         bolus_event_timeline,
-        action_timeline=None,
-        recommendation_accept_prob=1.0,
+        action_timeline,
     ):
         """
         Configuration object for virtual patient.
@@ -403,8 +407,6 @@ class PatientConfig(object):
         self.action_timeline = action_timeline
 
         self.glucose_history = glucose_history
-
-        self.recommendation_accept_prob = recommendation_accept_prob
 
     def get_info_stateless(self):
 

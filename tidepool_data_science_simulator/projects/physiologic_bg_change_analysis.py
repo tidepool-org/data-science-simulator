@@ -93,8 +93,6 @@ def build_rate_cap_sims(test_run=True):
         patient_config.prebolus_minutes_choices = [0]
         patient_config.carb_reported_minutes_choices = [0]
 
-        patient_config.action_timeline = ActionTimeline()
-
         t0, pump_config = get_pump_config_from_patient(patient_random_state, patient_config=patient_config,
                                                        risk_level=0.0)
 
@@ -204,7 +202,7 @@ if __name__ == "__main__":
 
     test_run = True
 
-    results_dir = ""
+    results_dir = "./"
     save_results = False
     if not test_run:
         results_dir = get_sim_results_save_dir()
@@ -214,6 +212,5 @@ if __name__ == "__main__":
     run_simulations(sims,
                     save_dir=results_dir,
                     save_results=save_results,
-                    plot_results=True,
                     num_procs=10)
 

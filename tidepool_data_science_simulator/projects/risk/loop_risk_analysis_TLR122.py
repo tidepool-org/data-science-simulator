@@ -20,6 +20,7 @@ from tidepool_data_science_simulator.utils import timing
 
 from tidepool_data_science_simulator.models.events import VirtualPatientAttachPump, VirtualPatientRemovePump
 
+from tidepool_data_science_simulator.run import run_simulations
 
 @timing
 def risk_analysis_tlr122_pump_session_gap():
@@ -60,7 +61,7 @@ def risk_analysis_tlr122_pump_session_gap():
         t0, pump_config = get_canonical_risk_pump_config()
         t0, controller_config = get_canonical_controller_config()
 
-        patient_config.recommendation_accept_prob = 0.0  # TODO: put in scenario file
+        patient_config.recommendation_accept_prob = 0.0
 
         # Remove Pump Event
         remove_pump_time = t0 + timedelta(minutes=120)
@@ -91,14 +92,13 @@ def risk_analysis_tlr122_pump_session_gap():
         )
 
         sims[sim_id] = sim
-        sim.start()
 
-    all_results = {id: sim.queue.get() for id, sim in sims.items()}
-    [sim.join() for id, sim in sims.items()]
-
-    plot_sim_results(all_results, save=False)
+    return sims
 
 
 if __name__ == "__main__":
 
-    risk_analysis_tlr122_pump_session_gap()
+    sims = risk_analysis_tlr122_pump_session_gap()
+    all_results = run_simulations(sims, results_dir="./")
+    plot_sim_results(all_results, save=False)
+

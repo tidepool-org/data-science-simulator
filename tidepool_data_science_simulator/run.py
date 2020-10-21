@@ -15,14 +15,12 @@ logger.addHandler(filehandler)
 
 from tidepool_data_science_simulator.utils import timing, save_df
 
-from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index, percent_values_ge_70_le_180
 
 
 @timing
 def run_simulations(sims, save_dir,
                     save_results=True,
-                    plot_results=False,
                     compute_summary_metrics=True,
                     num_procs=1):
     """
@@ -58,6 +56,7 @@ def run_simulations(sims, save_dir,
     running_sims = {}
     run_start_time = time.time()
 
+    all_results = {}
     # Process sims in batches of num_procs
     for sim_id, sim in sims.items():
         logger.debug("Running: {}. {} of {}".format(sim_id, sim_ctr, num_sims))
@@ -68,7 +67,7 @@ def run_simulations(sims, save_dir,
         if len(running_sims) >= num_procs or sim_ctr >= num_sims:  # Batch condition
 
             # Gather results from sim queues
-            all_results = {id: sim.queue.get() for id, sim in running_sims.items()}
+            batch_results = {id: sim.queue.get() for id, sim in running_sims.items()}
             [sim.join() for id, sim in running_sims.items()]
 
             # Save stateless info
@@ -83,11 +82,14 @@ def run_simulations(sims, save_dir,
             logger.debug("Total run time: {:.2f}m".format((time.time() - run_start_time) / 60.0))
 
             # Summarize, save, or plot results
-            for sim_id, results_df in all_results.items():
+            for sim_id, results_df in batch_results.items():
 
                 if compute_summary_metrics:
                     lbgi, hbgi, brgi = blood_glucose_risk_index(results_df['bg'])
-                    summary_str = "Sim {}. LBGI: {} HBGI: {} BRGI: {}".format(sim_id, lbgi, hbgi, brgi)
+                    basal_delivered = results_df["delivered_basal_insulin"].sum()
+                    bolus_delivered = results_df["reported_bolus"].sum()
+                    total_delivered = basal_delivered + bolus_delivered
+                    summary_str = "Sim {}. \n\tLBGI: {} HBGI: {} BRGI: {}\n\t Basal {}. Bolus {}. Total {}".format(sim_id, lbgi, hbgi, brgi, basal_delivered, bolus_delivered, total_delivered)
                     logger.debug(summary_str)
 
                 # Sanity debugging random stream sync
@@ -96,11 +98,12 @@ def run_simulations(sims, save_dir,
                 if save_results:
                     save_df(results_df, sim_id, save_dir)
 
-            if plot_results:
-                plot_sim_results(all_results, save=False)
+                all_results[sim_id] = results_df
 
         sim_ctr += 1
 
     logger.debug("Full run time: {:.2f}m".format((time.time() - run_start_time) / 60.0))
 
     os.rename(LOG_FILENAME, os.path.join(save_dir, LOG_FILENAME))
+
+    return all_results

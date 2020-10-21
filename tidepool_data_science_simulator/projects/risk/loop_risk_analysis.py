@@ -70,6 +70,7 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
             duration_hrs=8.0,
             virtual_patient=vp,
             controller=controller,
+            sim_id=controller.get_classname()
         )
 
         simulation.run()
@@ -82,10 +83,11 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
 
 if __name__ == "__main__":
 
-    scenarios_folder_path = "../data/raw/fda_risk_scenarios/"
+    scenarios_folder_path = "../../../data/raw/fda_risk_scenarios/"
     scenario_file_names = os.listdir(scenarios_folder_path)
 
     for file_name in scenario_file_names[:1]:
+        print(file_name)
         scenario_csv_filepath = os.path.join(
             scenarios_folder_path, file_name
         )

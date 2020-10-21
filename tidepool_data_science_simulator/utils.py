@@ -6,6 +6,11 @@ import datetime as dt
 import time
 import numpy as np
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 def get_bernoulli_trial_uniform_step_prob(num_trials, prob_of_occurring):
     """
@@ -120,6 +125,7 @@ def save_df(df_results, analysis_name, save_dir, save_type="tsv"):
         df_results.to_csv("{}.tsv".format(path), sep="\t")
     else:
         df_results.to_csv("{}.csv".format(path))
+    logger.debug("Saving sim to {}...".format(path))
 
 
 def get_sim_results_save_dir():

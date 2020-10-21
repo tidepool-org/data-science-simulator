@@ -144,8 +144,11 @@ def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT):
         carb_event_timeline=patient_carb_timeline,
         bolus_event_timeline=patient_bolus_timeline,
         action_timeline=ActionTimeline(),
-        recommendation_accept_prob=0.0  # Does not accept any recommendations
     )
+
+    patient_config.recommendation_accept_prob = 0.0  # Does not accept any bolus recommendations
+    patient_config.min_bolus_rec_threshold = 0.5  # Minimum size of bolus to accept
+    patient_config.recommendation_meal_attention_time_minutes = 1e12  # Time since meal to take recommendations
 
     return t0, patient_config
 
@@ -254,8 +257,35 @@ def get_variable_risk_patient_config(random_state, t0=DATETIME_DEFAULT):
         carb_event_timeline=patient_carb_timeline,
         bolus_event_timeline=patient_bolus_timeline,
         action_timeline=ActionTimeline(),
-        recommendation_accept_prob=0.0  # Does not accept any recommendations
     )
+
+    patient_config.recommendation_accept_prob = 0.0  # Does not accept any bolus recommendations
+    patient_config.min_bolus_rec_threshold = 0.5  # Minimum size of bolus to accept
+    patient_config.recommendation_meal_attention_time_minutes = 1e12  # Time since meal to take recommendations
+
+    return t0, patient_config
+
+
+def get_canonical_virtual_patient_model_config(random_state=None):
+
+    if random_state is None:
+        random_state = np.random.RandomState(0)
+
+    t0, patient_config = get_canonical_risk_patient_config()
+
+    patient_config.recommendation_accept_prob = random_state.uniform(0.8, 0.99)
+    patient_config.min_bolus_rec_threshold = random_state.uniform(0.4, 0.6)
+    patient_config.correct_bolus_bg_threshold = random_state.uniform(140, 190)  # no impact
+    patient_config.correct_bolus_delay_minutes = random_state.uniform(20, 40)  # no impact
+    patient_config.correct_carb_bg_threshold = random_state.uniform(70, 90)
+    patient_config.correct_carb_delay_minutes = random_state.uniform(5, 15)
+    patient_config.carb_count_noise_percentage = random_state.uniform(0.1, 0.25)
+    patient_config.report_bolus_probability = random_state.uniform(1.0, 1.0)  # no impact
+    patient_config.report_carb_probability = random_state.uniform(0.95, 1.0)
+    patient_config.recommendation_meal_attention_time_minutes = np.inf
+
+    patient_config.prebolus_minutes_choices = [0]
+    patient_config.carb_reported_minutes_choices = [0]
 
     return t0, patient_config
 

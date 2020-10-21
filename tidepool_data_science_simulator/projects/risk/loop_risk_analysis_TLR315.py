@@ -18,6 +18,7 @@ from tidepool_data_science_simulator.makedata.make_controller import get_canonic
 from tidepool_data_science_simulator.makedata.make_simulation import get_canonical_simulation
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_simulator.utils import timing
+from tidepool_data_science_simulator.run import run_simulations
 
 
 class LoopBolusRecMalfunctionDelay(LoopController):
@@ -107,14 +108,12 @@ def risk_analysis_tlr315_bolus_report_time_difference():
         )
 
         sims[sim_id] = sim
-        sim.start()
 
-    all_results = {id: sim.queue.get() for id, sim in sims.items()}
-    [sim.join() for id, sim in sims.items()]
-
-    plot_sim_results(all_results, save=False)
+    return sims
 
 
 if __name__ == "__main__":
 
-    risk_analysis_tlr315_bolus_report_time_difference()
+    sims = risk_analysis_tlr315_bolus_report_time_difference()
+    all_results = run_simulations(sims, results_dir="./")
+    plot_sim_results(all_results, save=False)

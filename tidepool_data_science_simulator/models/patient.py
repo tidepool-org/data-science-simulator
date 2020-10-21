@@ -99,9 +99,6 @@ class VirtualPatient(SimulationComponent):
 
         self.carb_event_timeline = patient_config.carb_event_timeline
         self.bolus_event_timeline = patient_config.bolus_event_timeline
-        self.action_timeline = patient_config.action_timeline
-        if self.action_timeline is None:
-            self.action_timeline = ActionTimeline() # fixme: quick fix to allow Travis build to pass, fix later
 
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
@@ -182,7 +179,7 @@ class VirtualPatient(SimulationComponent):
             pump_state=pump_state,
             bolus=self.bolus_event_timeline.get_event(self.time),
             carb=self.carb_event_timeline.get_event(self.time),
-            actions=self.action_timeline.get_event(self.time)
+            actions=self.patient_config.action_timeline.get_event(self.time)
         )
 
         return patient_state
@@ -206,7 +203,7 @@ class VirtualPatient(SimulationComponent):
         -------
         [Action]
         """
-        actions = self.action_timeline.get_event(self.time)
+        actions = self.patient_config.action_timeline.get_event(self.time)
 
         return actions
 
@@ -514,7 +511,7 @@ class VirtualPatient(SimulationComponent):
 
         if u <= self.patient_config.recommendation_accept_prob and \
                 bolus.value >= self.patient_config.min_bolus_rec_threshold and \
-                self.has_eaten_recently(within_time_minutes=np.inf):
+                self.has_eaten_recently(within_time_minutes=self.patient_config.recommendation_meal_attention_time_minutes):
             does_accept = True
 
         return does_accept
@@ -657,6 +654,13 @@ class VirtualPatientModel(VirtualPatient):
             "correct_carb_bg_threshold": self.patient_config.correct_carb_bg_threshold,
             "correct_carb_delay_minutes": self.patient_config.correct_carb_delay_minutes,
             "carb_count_noise_percentage": self.patient_config.carb_count_noise_percentage,
+            "recommendation_accept_prob": self.patient_config.recommendation_accept_prob,
+            "min_bolus_rec_threshold": self.patient_config.min_bolus_rec_threshold,
+            "report_bolus_probability": self.patient_config.report_bolus_probability,
+            "report_carb_probability": self.patient_config.report_carb_probability,
+            "recommendation_meal_attention_time_minutes": self.patient_config.recommendation_meal_attention_time_minutes,
+            "prebolus_minutes_choices": self.patient_config.prebolus_minutes_choices,
+            "carb_reported_minutes_choices": self.patient_config.carb_reported_minutes_choices
         })
         return stateless_info
 
@@ -818,7 +822,7 @@ class VirtualPatientModel(VirtualPatient):
         return carb
 
     def delete_pump_event_history(self):
-        self.action_timeline.add_action(self.time, "delete_pump_event_history")
+        self.patient_config.action_timeline.add_action(self.time, "delete_pump_event_history")
 
     def set_random_values(self):
         """

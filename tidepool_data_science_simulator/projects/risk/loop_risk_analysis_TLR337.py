@@ -101,6 +101,7 @@ def risk_analysis_tlr337_user_delete_data(scenario_csv_filepath):
             duration_hrs=8.0,
             virtual_patient=vp,
             controller=controller,
+            sim_id=sim_id
         )
 
         simulation.run()
@@ -113,7 +114,7 @@ def risk_analysis_tlr337_user_delete_data(scenario_csv_filepath):
 
 if __name__ == "__main__":
 
-    scenarios_folder_path = "../data/raw/fda_risk_scenarios/"
+    scenarios_folder_path = "../../../data/raw/fda_risk_scenarios/"
     scenario_file_names = os.listdir(scenarios_folder_path)
 
     for file_name in scenario_file_names[:1]:

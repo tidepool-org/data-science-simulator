@@ -216,9 +216,9 @@ class Simulation(multiprocessing.Process):
                 temp_basal_time_remaining = pump_state.get_temp_basal_minutes_left(
                     time
                 )
-                pump_sbr = pump_state.scheduled_basal_rate
-                pump_isf = pump_state.scheduled_insulin_sensitivity_factor
-                pump_cir = pump_state.scheduled_carb_insulin_ratio
+                pump_sbr = pump_state.scheduled_basal_rate.value
+                pump_isf = pump_state.scheduled_insulin_sensitivity_factor.value
+                pump_cir = pump_state.scheduled_carb_insulin_ratio.value
                 delivered_basal_insulin = pump_state.delivered_basal_insulin
                 undelivered_basal_insulin = pump_state.undelivered_basal_insulin
 
@@ -240,9 +240,9 @@ class Simulation(multiprocessing.Process):
                 "sbr": simulation_state.patient_state.sbr.value,
                 "cir": simulation_state.patient_state.cir.value,
                 "isf": simulation_state.patient_state.isf.value,
-                "pump_sbr": pump_sbr.value,
-                "pump_isf": pump_isf.value,
-                "pump_cir": pump_cir.value,
+                "pump_sbr": pump_sbr,
+                "pump_isf": pump_isf,
+                "pump_cir": pump_cir,
                 "true_bolus": true_bolus.value,
                 "true_carb_value": true_carb.value,
                 "true_carb_duration": true_carb.duration_minutes,
@@ -318,6 +318,7 @@ class SettingSchedule24Hr(SimulationComponent):
         self.name = name
         self.schedule_durations = {}
         self.schedule = {}
+        self.percentage_change = None
 
         # All the same length
         assert (
@@ -340,6 +341,36 @@ class SettingSchedule24Hr(SimulationComponent):
             end_time = end_datetime.time()
             self.schedule[(start_time, end_time)] = value
             self.schedule_durations[(start_time, end_time)] = duration_minutes
+
+    def set_override(self, percentage_change):
+        """
+        Set override for setting in the form of a percentage multiplier.
+
+        Parameters
+        ----------
+        percentage_change: float
+            The amount to change the setting. 0.1 means 10% more, -0.1 means 10% less
+        """
+
+        if self.percentage_change is not None:
+            raise ValueError("Cannot set multiple overrides.")
+
+        for (start_time, end_time), setting in self.schedule.items():
+            setting.value = setting.value * (1.0 + percentage_change)
+            self.schedule[(start_time, end_time)] = setting
+        self.percentage_change = percentage_change
+
+    def unset_override(self):
+        """
+        Unset an override back to original values.
+        """
+        if self.percentage_change is None:
+            raise ValueError("No override to unset.")
+
+        for (start_time, end_time), setting in self.schedule.items():
+            setting.value = setting.value / (1.0 + self.percentage_change)
+            self.schedule[(start_time, end_time)] = setting
+        self.percentage_change = None
 
     def get_state(self):
         """
