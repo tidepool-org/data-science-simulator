@@ -63,6 +63,16 @@ class ScenarioParserCSV(SimulationParser):
 
         time = self.get_simulation_start_time()
 
+        # FIXME: Hack for iCGM and input file format
+        # Patient properties are stores in the scenario file as settings only for iCGM
+        try:
+            ylw = data[data['setting_name'] == 'ylw']['settings'].values[0]
+            age = data[data['setting_name'] == 'age']['settings'].values[0]
+            self.ylw = ylw
+            self.age = age
+        except Exception:
+            pass
+
         # ========== Pump =============
         self.pump_basal_schedule = BasalSchedule24hr(
             time,
@@ -393,9 +403,6 @@ class PatientConfig(object):
 
         bolus_event_timeline: BolusTimeline
             Timeline of true bolus events
-
-        recommendation_accept_prob: float
-            Probability of patient accepting a bolus recommendation
         """
 
         self.basal_schedule = basal_schedule
