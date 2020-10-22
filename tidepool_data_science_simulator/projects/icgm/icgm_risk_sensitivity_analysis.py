@@ -1,5 +1,6 @@
 __author__ = "Jason Meno"
 
+import time
 import pdb
 import os
 import datetime
@@ -16,8 +17,10 @@ from tidepool_data_science_models.models.icgm_sensor_generator import iCGMSensor
 
 from tidepool_data_science_simulator.run import run_simulations
 
+from tidepool_data_science_simulator.utils import timing
 
-def build_icgm_simulations(scenarios_dir):
+
+def build_icgm_sim_generator(scenarios_dir, sim_batch_size=30):
     """
     Build simulations for the FDA 510k Loop iCGM sensitivity analysis.
 
@@ -34,6 +37,7 @@ def build_icgm_simulations(scenarios_dir):
     n_sensors = 30
     analysis_type_list = ["temp_basal_only", "correction_bolus", "meal_bolus"]
 
+    sim_ctr = 1
     sims = {}
     for virtual_patient_num, vp_name in enumerate(virtual_patient_list):
 
@@ -63,6 +67,9 @@ def build_icgm_simulations(scenarios_dir):
             true_bg_trace = sim_parser.patient_glucose_history.bg_values
             sensor_generator = iCGMSensorGenerator(batch_training_size=30)
             sensor_generator.fit(true_bg_trace)
+            train_percent_pass, train_loss = sensor_generator.score(true_bg_trace)
+            print("Train percent pass {}. Train loss {}".format(train_percent_pass, train_loss))
+
             sensors = sensor_generator.generate_sensors(n_sensors, sensor_start_datetime=t0)
 
             for sensor_num in range(len(sensors)):
@@ -101,6 +108,11 @@ def build_icgm_simulations(scenarios_dir):
                     sim.seed = 0
                     sims[sim_id] = sim
 
+                    if sim_ctr == sim_batch_size:
+                        yield sims
+                        sims = {}
+                        sim_ctr = 1
+
     return sims
 
 
@@ -116,10 +128,20 @@ if __name__ == "__main__":
         os.makedirs(save_dir)
         print("Made director for results: {}".format(save_dir))
 
-    sims = build_icgm_simulations(scenarios_dir=scenarios_dir)
-    all_results = run_simulations(
-        sims,
-        save_dir=save_dir,
-        save_results=True,
-        num_procs=30
-    )
+    sim_batch_generator = build_icgm_sim_generator(scenarios_dir=scenarios_dir, sim_batch_size=1)
+
+    start_time = time.time()
+    for i, sim_batch in enumerate(sim_batch_generator):
+        batch_start_time = time.time()
+
+        # all_results = run_simulations(
+        #     sim_batch,
+        #     save_dir=save_dir,
+        #     save_results=True,
+        #     num_procs=30
+        # )
+        batch_total_time = (time.time() - batch_start_time) / 60
+        run_total_time = (time.time() - start_time) / 60
+        print("Batch {}".format(i))
+        print("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
+

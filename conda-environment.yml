@@ -24,3 +24,4 @@ dependencies:
     - python-dotenv==0.13.0
     - git+git://github.com/tidepool-org/data-science-models@master
     - git+git://github.com/tidepool-org/Pyloopkit@develop
+    - git+git://github.com/tidepool-org/data-science-metrics@cas/quadratic
