@@ -37,7 +37,7 @@ def build_icgm_sim_generator(scenarios_dir, sim_batch_size=30):
     n_sensors = 30
     analysis_type_list = ["temp_basal_only", "correction_bolus", "meal_bolus"]
 
-    sim_ctr = 1
+    sim_ctr = 0
     sims = {}
     for virtual_patient_num, vp_name in enumerate(virtual_patient_list):
 
@@ -108,10 +108,13 @@ def build_icgm_sim_generator(scenarios_dir, sim_batch_size=30):
                     sim.seed = 0
                     sims[sim_id] = sim
 
+                    sim_ctr += 1
+
                     if sim_ctr == sim_batch_size:
                         yield sims
                         sims = {}
-                        sim_ctr = 1
+                        sim_ctr = 0
+
 
     return sims
 
@@ -119,16 +122,16 @@ def build_icgm_sim_generator(scenarios_dir, sim_batch_size=30):
 # %%
 if __name__ == "__main__":
 
-    scenarios_dir = "../../../data/raw/icgm-sensitivity-analysis-scenarios-2020-07-10/"
+    scenarios_dir = "data/raw/icgm-sensitivity-analysis-scenarios-2020-07-10/"
 
     today_timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
-    save_dir = "../../../data/processed/icgm-sensitivity-analysis-results-" + today_timestamp
+    save_dir = "data/processed/icgm-sensitivity-analysis-results-" + today_timestamp
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
         print("Made director for results: {}".format(save_dir))
 
-    sim_batch_generator = build_icgm_sim_generator(scenarios_dir=scenarios_dir, sim_batch_size=1)
+    sim_batch_generator = build_icgm_sim_generator(scenarios_dir=scenarios_dir, sim_batch_size=30)
 
     start_time = time.time()
     for i, sim_batch in enumerate(sim_batch_generator):
