@@ -6,6 +6,8 @@ import os
 import datetime
 import json
 import copy
+import re
+from collections import defaultdict
 
 from tidepool_data_science_simulator.models.patient_for_icgm_sensitivity_analysis import VirtualPatientISA
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
@@ -14,45 +16,50 @@ from tidepool_data_science_models.models.simple_metabolism_model import SimpleMe
 from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_models.models.icgm_sensor_generator import iCGMSensorGenerator
+from tidepool_data_science_simulator.models.sensor import IdealSensor
 
 from tidepool_data_science_simulator.run import run_simulations
 
-from tidepool_data_science_simulator.utils import timing
+
+def load_vp_training_data(scenarios_dir):
+
+    file_names = os.listdir(scenarios_dir)
+    all_scenario_files = [filename for filename in file_names if filename.endswith('.csv')]
+    print("Num scenario files: {}".format(len(all_scenario_files)))
+
+    vp_scenario_dict = defaultdict(dict)
+    for filename in all_scenario_files:
+        vp_id = re.search("train_(.*)\.csv.+", filename).groups()[0]
+        bg_condition = re.search("condition(\d)", filename).groups()[0]
+        vp_scenario_dict[vp_id][bg_condition] = filename
+
+    return vp_scenario_dict
 
 
-def build_icgm_sim_generator(scenarios_dir, sim_batch_size=30):
+def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
     """
     Build simulations for the FDA 510k Loop iCGM sensitivity analysis.
 
     Scenario files are on Compute-2 in Cameron Summers' copy of this code base.
     """
 
-    file_names = os.listdir(scenarios_dir)
-    all_scenario_files = [filename for filename in file_names if filename.endswith('.csv')]
-    print("Num scenario files: {}".format(len(all_scenario_files)))
-
-    virtual_patient_list = sorted(list(set([file[:-5] for file in all_scenario_files])))
-
-    bg_test_conditions = 9
     n_sensors = 30
     analysis_type_list = ["temp_basal_only", "correction_bolus", "meal_bolus"]
 
     sim_ctr = 0
     sims = {}
-    for virtual_patient_num, vp_name in enumerate(virtual_patient_list):
+    for vp_id, bg_scenario_dict in vp_scenario_dict.items():
+        for bg_cond_id, scenario_filename in bg_scenario_dict.items():
 
-        for bg_test_condition in range(1, bg_test_conditions+1):
-
-            scenario_path = os.path.join(scenarios_dir, vp_name + "{}.csv".format(bg_test_condition))
-
+            scenario_path = os.path.join(scenarios_dir, scenario_filename)
             sim_parser = ScenarioParserCSV(scenario_path)
 
             # Save patient properties for analysis
-            vp_filename = "vp{}.json".format(virtual_patient_num)
+            vp_filename = "vp_{}.json".format(vp_id)
             vp_properties = {
                 "age": sim_parser.age,
                 "ylw": sim_parser.ylw,
-                "patient_scenario_filename": scenario_path
+                "patient_scenario_filename": scenario_filename
             }
             with open(os.path.join(save_dir, vp_filename), "w") as file_to_write:
                 json.dump(vp_properties, file_to_write, indent=4)
@@ -73,17 +80,18 @@ def build_icgm_sim_generator(scenarios_dir, sim_batch_size=30):
             sensors = sensor_generator.generate_sensors(n_sensors, sensor_start_datetime=t0)
 
             for sensor_num in range(len(sensors)):
+
                 sensor = copy.deepcopy(sensors[sensor_num])
                 sensor.prefill_sensor_history(true_bg_trace[-289:])  # Load sensor with the previous 24hrs of bg data
 
                 # Save sensor properties for analysis
-                sensor_json_filename = "vp{}.bg{}.s{}.json".format(virtual_patient_num, bg_test_condition, sensor_num)
+                sensor_json_filename = "vp{}.bg{}.s{}.json".format(vp_id, bg_cond_id, sensor_num)
                 sensor_save_path = os.path.join(save_dir, sensor_json_filename)
                 sensor.serialize_properties_to_json(sensor_save_path)
 
                 for analysis_type in analysis_type_list:
                     sim_id = "vp{}.bg{}.s{}.{}".format(
-                        virtual_patient_num, bg_test_condition, sensor_num, analysis_type
+                        vp_id, bg_cond_id, sensor_num, analysis_type
                     )
 
                     vp = VirtualPatientISA(
@@ -115,7 +123,6 @@ def build_icgm_sim_generator(scenarios_dir, sim_batch_size=30):
                         sims = {}
                         sim_ctr = 0
 
-
     return sims
 
 
@@ -131,7 +138,8 @@ if __name__ == "__main__":
         os.makedirs(save_dir)
         print("Made director for results: {}".format(save_dir))
 
-    sim_batch_generator = build_icgm_sim_generator(scenarios_dir=scenarios_dir, sim_batch_size=30)
+    vp_scenario_dict = load_vp_training_data(scenarios_dir)
+    sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30)
 
     start_time = time.time()
     for i, sim_batch in enumerate(sim_batch_generator):
