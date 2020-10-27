@@ -55,7 +55,7 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
             sim_parser = ScenarioParserCSV(scenario_path)
 
             # Save patient properties for analysis
-            vp_filename = "vp_{}.json".format(vp_id)
+            vp_filename = "vp{}.json".format(vp_id)
             vp_properties = {
                 "age": sim_parser.age,
                 "ylw": sim_parser.ylw,
@@ -72,10 +72,20 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
             pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
 
             true_bg_trace = sim_parser.patient_glucose_history.bg_values
-            sensor_generator = iCGMSensorGenerator(batch_training_size=30)
+            sensor_generator = iCGMSensorGenerator(batch_training_size=30, use_g6_accuracy_in_loss=True)
             sensor_generator.fit(true_bg_trace)
             train_percent_pass, train_loss = sensor_generator.score(true_bg_trace)
             print("Train percent pass {}. Train loss {}".format(train_percent_pass, train_loss))
+
+            bg_cond_filename = "sensor_batch_vp{}_bg{}.json".format(vp_id, bg_cond_id)
+            bg_cond_properties = {
+                "fit_percent_pass": sensor_generator.percent_pass,
+                "vp": vp_id,
+                "bg_condition": bg_cond_id,
+                "scenario_filename": scenario_filename,
+            }
+            with open(os.path.join(save_dir, bg_cond_filename), "w") as file_to_write:
+                json.dump(bg_cond_properties, file_to_write, indent=4)
 
             sensors = sensor_generator.generate_sensors(n_sensors, sensor_start_datetime=t0)
 
