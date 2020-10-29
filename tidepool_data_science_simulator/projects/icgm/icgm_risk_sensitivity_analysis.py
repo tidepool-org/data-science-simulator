@@ -75,7 +75,7 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
             sim_parser = ScenarioParserCSV(scenario_path)
 
             # Save patient properties for analysis
-            vp_filename = "vp_{}.json".format(vp_id)
+            vp_filename = "vp{}.json".format(vp_id)
             vp_properties = {
                 "age": sim_parser.age,
                 "ylw": sim_parser.ylw,
@@ -121,18 +121,18 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
                 bias_drift_type = pd.Series(["random"])
 
                 sensor = iCGMSensor(
-                        current_datetime=t0,
-                        sensor_properties={
-                            "initial_bias": initial_bias,
-                            "phi_drift": phi,
-                            "bias_drift_range_start": bias_drift_range_start,
-                            "bias_drift_range_end": bias_drift_range_end,
-                            "bias_drift_oscillations": bias_drift_oscillations,
-                            "bias_norm_factor": bias_norm_factor,
-                            "noise_coefficient": noise_per_sensor,
-                            "delay": delay,
-                            "random_seed": random_seed,
-                            "bias_drift_type": bias_drift_type
+                    current_datetime=t0,
+                    sensor_properties={
+                        "initial_bias": initial_bias,
+                        "phi_drift": phi,
+                        "bias_drift_range_start": bias_drift_range_start,
+                        "bias_drift_range_end": bias_drift_range_end,
+                        "bias_drift_oscillations": bias_drift_oscillations,
+                        "bias_norm_factor": bias_norm_factor,
+                        "noise_coefficient": noise_per_sensor,
+                        "delay": delay,
+                        "random_seed": random_seed,
+                        "bias_drift_type": bias_drift_type
                     }
                 )
                 sensors.append(sensor)
@@ -145,7 +145,7 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
                 # Save sensor properties for analysis
                 sensor_json_filename = "vp{}.bg{}.s{}.json".format(vp_id, bg_cond_id, sensor_num)
                 sensor_save_path = os.path.join(save_dir, sensor_json_filename)
-                # sensor.serialize_properties_to_json(sensor_save_path)
+                sensor.serialize_properties_to_json(sensor_save_path)
 
                 for analysis_type in analysis_type_list:
                     sim_id = "vp{}.bg{}.s{}.{}".format(
