@@ -33,6 +33,40 @@ def collect_sims_and_results(result_dir):
     return sim_info_dict
 
 
+def load_results(save_dir, ext="tsv", max_dfs=10):
+
+    all_results = {}
+    for root, dirs, files in os.walk(save_dir, topdown=False):
+        for i, file in enumerate(sorted(files)):
+            if re.search(".*.{}".format(ext), file):
+
+                filepath = os.path.join(root, file)
+                result_dict = load_result(filepath)
+                all_results.update(result_dict)
+
+                if i >= max_dfs:
+                    break
+
+    return all_results
+
+
+def load_result(result_filepath, ext="tsv"):
+
+    if ext == "csv":
+        sep = ","
+    elif ext == "tsv":
+        sep = "\t"
+
+    all_results = {}
+
+    df = pd.read_csv(result_filepath, sep=sep)
+    df.set_index("time", inplace=True)
+    df.index = pd.to_datetime(df.index)
+    all_results[result_filepath] = df
+
+    return all_results
+
+
 def get_sim_population_results(result_dir, num_vps=10, vp_list=None):
 
     print("Loading sim population results...")

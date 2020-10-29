@@ -11,6 +11,7 @@ from tidepool_data_science_simulator.models.sensor import NoisySensor
 from tidepool_data_science_simulator.models.patient import VirtualPatientModel
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.controller import LoopController
+from tidepool_data_science_simulator.evaluation.inspect_results import load_results
 from tidepool_data_science_simulator.makedata.make_simulation import get_canonical_simulation
 from tidepool_data_science_simulator.makedata.make_patient import (
     get_canonical_risk_pump_config,
@@ -77,8 +78,8 @@ def build_metabolic_sensitivity_sims():
             "isf_change": isf_change,
             "cir_change": 0
         }
-        for br_change in [-0.2, 0, 0.2]
-        for isf_change in [-0.2, 0, 0.2]
+        for br_change in [0.0]
+        for isf_change in [0, 0.2, 0.4, 0.6, 0.8, 1.0]
     ]
 
     sims = {}
@@ -151,21 +152,6 @@ def plot_insulin_changes(all_results):
     plt.legend()
     ax[1].plot(br_change, cgm_mean)
     plt.show()
-
-
-def load_results(save_dir):
-
-    all_results = {}
-    for root, dirs, files in os.walk(save_dir, topdown=False):
-        for file in sorted(files):
-            if re.search(".*.tsv", file):
-
-                filepath = os.path.join(root, file)
-                df = pd.read_csv(filepath, sep="\t")
-
-                all_results[file] = df
-
-    return all_results
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ __author__ = "Jason Meno"
 
 import time
 import pdb
+import sys
 import os
 import datetime
 import json
@@ -9,19 +10,38 @@ import copy
 import re
 from collections import defaultdict
 
+import numpy as np
+from scipy.stats import johnsonsu
+import pandas as pd
+
 from tidepool_data_science_simulator.models.patient_for_icgm_sensitivity_analysis import VirtualPatientISA
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_simulator.models.simulation import Simulation
-from tidepool_data_science_models.models.icgm_sensor_generator import iCGMSensorGenerator
+from tidepool_data_science_models.models.icgm_sensor_generator import iCGMSensorGenerator, iCGMSensor
 from tidepool_data_science_simulator.models.sensor import IdealSensor
+from tidepool_data_science_simulator.evaluation.inspect_results import load_results, load_result
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 
 from tidepool_data_science_simulator.run import run_simulations
 
 
 def load_vp_training_data(scenarios_dir):
+    """
+    Load scenarios in a dictionary for easier data management
+
+    Parameters
+    ----------
+    scenarios_dir: str
+        Path to directory with scenarios
+
+    Returns
+    -------
+    dict
+        Map of virtual patient id -> bg condition -> filename
+    """
 
     file_names = os.listdir(scenarios_dir)
     all_scenario_files = [filename for filename in file_names if filename.endswith('.csv')]
@@ -72,12 +92,50 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
             pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
 
             true_bg_trace = sim_parser.patient_glucose_history.bg_values
-            sensor_generator = iCGMSensorGenerator(batch_training_size=30)
-            sensor_generator.fit(true_bg_trace)
-            train_percent_pass, train_loss = sensor_generator.score(true_bg_trace)
-            print("Train percent pass {}. Train loss {}".format(train_percent_pass, train_loss))
 
-            sensors = sensor_generator.generate_sensors(n_sensors, sensor_start_datetime=t0)
+            # OLD - keeping for now
+            # sensor_generator = iCGMSensorGenerator(batch_training_size=30)
+            # sensor_generator.fit(true_bg_trace)
+            # train_percent_pass, train_loss = sensor_generator.score(true_bg_trace)
+            # print("Train percent pass {}. Train loss {}".format(train_percent_pass, train_loss))
+            # sensors = sensor_generator.generate_sensors(n_sensors, sensor_start_datetime=t0)
+            # /OLD
+
+            sensors = []
+            EPS = sys.float_info.epsilon
+            noise_sampling_max = np.random.uniform(EPS, 2.0)
+
+            for i in range(n_sensors):
+
+                initial_bias = pd.Series(johnsonsu.rvs(a=0, b=1, loc=1.0, scale=2.0, size=1))
+                phi = pd.Series(np.random.uniform(low=-np.pi, high=np.pi, size=1))
+                noise_per_sensor = pd.Series(np.random.uniform(low=EPS, high=noise_sampling_max, size=1))
+
+                bias_drift_range_start = pd.Series([0.9])
+                bias_drift_range_end = pd.Series([1.1])
+                bias_drift_oscillations = pd.Series([1])
+                bias_norm_factor = pd.Series([55])
+
+                delay = pd.Series([10])
+                random_seed = pd.Series([0])
+                bias_drift_type = pd.Series(["random"])
+
+                sensor = iCGMSensor(
+                        current_datetime=t0,
+                        sensor_properties={
+                            "initial_bias": initial_bias,
+                            "phi_drift": phi,
+                            "bias_drift_range_start": bias_drift_range_start,
+                            "bias_drift_range_end": bias_drift_range_end,
+                            "bias_drift_oscillations": bias_drift_oscillations,
+                            "bias_norm_factor": bias_norm_factor,
+                            "noise_coefficient": noise_per_sensor,
+                            "delay": delay,
+                            "random_seed": random_seed,
+                            "bias_drift_type": bias_drift_type
+                    }
+                )
+                sensors.append(sensor)
 
             for sensor_num in range(len(sensors)):
 
@@ -87,7 +145,7 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
                 # Save sensor properties for analysis
                 sensor_json_filename = "vp{}.bg{}.s{}.json".format(vp_id, bg_cond_id, sensor_num)
                 sensor_save_path = os.path.join(save_dir, sensor_json_filename)
-                sensor.serialize_properties_to_json(sensor_save_path)
+                # sensor.serialize_properties_to_json(sensor_save_path)
 
                 for analysis_type in analysis_type_list:
                     sim_id = "vp{}.bg{}.s{}.{}".format(
@@ -139,20 +197,33 @@ if __name__ == "__main__":
         print("Made director for results: {}".format(save_dir))
 
     vp_scenario_dict = load_vp_training_data(scenarios_dir)
-    sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30)
+    # analyze_bg_training_data(vp_scenario_dict)
+
+    sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=1)
 
     start_time = time.time()
     for i, sim_batch in enumerate(sim_batch_generator):
         batch_start_time = time.time()
 
-        # all_results = run_simulations(
-        #     sim_batch,
-        #     save_dir=save_dir,
-        #     save_results=True,
-        #     num_procs=30
-        # )
+        all_results = run_simulations(
+            sim_batch,
+            save_dir=save_dir,
+            save_results=True,
+            num_procs=1
+        )
         batch_total_time = (time.time() - batch_start_time) / 60
         run_total_time = (time.time() - start_time) / 60
         print("Batch {}".format(i))
         print("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
 
+    # ===============
+    # Inspect results
+    # Local test results
+    # result_dir = "/Users/csummers/dev/data-science-simulator/data/processed/icgm-sensitivity-analysis-results-2020-10-29/"
+    #
+    # # Sept iCGM results
+    # # result_dir = "/Users/csummers/dev/data-science-simulator/data/processed/icgm-sensitivity-analysis-results-2020-09-19/"
+    #
+    # all_results = load_results(result_dir, ext="tsv")
+    # for sim_id, result_df in all_results.items():
+    #     plot_sim_results({sim_id: result_df})
