@@ -1,4 +1,4 @@
-__author__ = "Jason Meno"
+__author__ = "Cameron Summers"
 
 import time
 import pdb
@@ -103,11 +103,11 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
 
             sensors = []
             EPS = sys.float_info.epsilon
-            noise_sampling_max = np.random.uniform(EPS, 2.0)
+            noise_sampling_max = np.random.uniform(EPS, 5.0)
 
             for i in range(n_sensors):
 
-                initial_bias = pd.Series(johnsonsu.rvs(a=0, b=1, loc=1.0, scale=2.0, size=1))
+                initial_bias = pd.Series(johnsonsu.rvs(a=0, b=1, loc=2.0, scale=1.0, size=1))
                 phi = pd.Series(np.random.uniform(low=-np.pi, high=np.pi, size=1))
                 noise_per_sensor = pd.Series(np.random.uniform(low=EPS, high=noise_sampling_max, size=1))
 
@@ -143,9 +143,9 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
                 sensor.prefill_sensor_history(true_bg_trace[-289:])  # Load sensor with the previous 24hrs of bg data
 
                 # Save sensor properties for analysis
-                sensor_json_filename = "vp{}.bg{}.s{}.json".format(vp_id, bg_cond_id, sensor_num)
-                sensor_save_path = os.path.join(save_dir, sensor_json_filename)
-                sensor.serialize_properties_to_json(sensor_save_path)
+                #sensor_json_filename = "vp{}.bg{}.s{}.json".format(vp_id, bg_cond_id, sensor_num)
+                #sensor_save_path = os.path.join(save_dir, sensor_json_filename)
+                #sensor.serialize_properties_to_json(sensor_save_path)
 
                 for analysis_type in analysis_type_list:
                     sim_id = "vp{}.bg{}.s{}.{}".format(
@@ -190,7 +190,8 @@ if __name__ == "__main__":
     scenarios_dir = "data/raw/icgm-sensitivity-analysis-scenarios-2020-07-10/"
 
     today_timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
-    save_dir = "data/processed/icgm-sensitivity-analysis-results-" + today_timestamp
+    working_dir = os.getcwd()
+    save_dir = os.path.join(working_dir, "data/processed/icgm-sensitivity-analysis-results-" + today_timestamp)
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -199,7 +200,7 @@ if __name__ == "__main__":
     vp_scenario_dict = load_vp_training_data(scenarios_dir)
     # analyze_bg_training_data(vp_scenario_dict)
 
-    sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=1)
+    sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30)
 
     start_time = time.time()
     for i, sim_batch in enumerate(sim_batch_generator):
@@ -209,7 +210,7 @@ if __name__ == "__main__":
             sim_batch,
             save_dir=save_dir,
             save_results=True,
-            num_procs=1
+            num_procs=30
         )
         batch_total_time = (time.time() - batch_start_time) / 60
         run_total_time = (time.time() - start_time) / 60
