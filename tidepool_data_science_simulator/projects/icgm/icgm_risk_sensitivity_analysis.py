@@ -102,37 +102,24 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
             # /OLD
 
             sensors = []
-            EPS = sys.float_info.epsilon
-            noise_sampling_max = np.random.uniform(EPS, 2.0)
-
             for i in range(n_sensors):
-
-                initial_bias = pd.Series(johnsonsu.rvs(a=0, b=1, loc=1.0, scale=2.0, size=1))
-                phi = pd.Series(np.random.uniform(low=-np.pi, high=np.pi, size=1))
-                noise_per_sensor = pd.Series(np.random.uniform(low=EPS, high=noise_sampling_max, size=1))
-
-                bias_drift_range_start = pd.Series([0.9])
-                bias_drift_range_end = pd.Series([1.1])
-                bias_drift_oscillations = pd.Series([1])
-                bias_norm_factor = pd.Series([55])
-
-                delay = pd.Series([10])
-                random_seed = pd.Series([0])
-                bias_drift_type = pd.Series(["random"])
-
+                random_seed = np.random.randint(1, 1e9)
                 sensor = iCGMSensor(
                     current_datetime=t0,
                     sensor_properties={
-                        "initial_bias": initial_bias,
-                        "phi_drift": phi,
-                        "bias_drift_range_start": bias_drift_range_start,
-                        "bias_drift_range_end": bias_drift_range_end,
-                        "bias_drift_oscillations": bias_drift_oscillations,
-                        "bias_norm_factor": bias_norm_factor,
-                        "noise_coefficient": noise_per_sensor,
-                        "delay": delay,
-                        "random_seed": random_seed,
-                        "bias_drift_type": bias_drift_type
+                        "a": 0,
+                        "b": 1,
+                        "mu": 2.0,
+                        "sigma": 1.0,
+                        "bias_drift_range_start": 0.9,
+                        "bias_drift_range_end": 1.1,
+                        "bias_drift_oscillations": 1,
+                        "bias_norm_factor": 55,
+                        "noise_coefficient": 5.0,
+                        "delay": 10,
+                        "bias_drift_type": "random",
+                        "bias_type": "percentage_of_value",
+                        "random_seed": random_seed
                     }
                 )
                 sensors.append(sensor)
@@ -141,11 +128,6 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
 
                 sensor = copy.deepcopy(sensors[sensor_num])
                 sensor.prefill_sensor_history(true_bg_trace[-289:])  # Load sensor with the previous 24hrs of bg data
-
-                # Save sensor properties for analysis
-                sensor_json_filename = "vp{}.bg{}.s{}.json".format(vp_id, bg_cond_id, sensor_num)
-                sensor_save_path = os.path.join(save_dir, sensor_json_filename)
-                sensor.serialize_properties_to_json(sensor_save_path)
 
                 for analysis_type in analysis_type_list:
                     sim_id = "vp{}.bg{}.s{}.{}".format(
