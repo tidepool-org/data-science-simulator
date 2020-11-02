@@ -6,6 +6,8 @@ import json
 import os
 import subprocess
 
+import pdb
+
 # Setup Logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -85,12 +87,15 @@ def run_simulations(sims, save_dir,
             for sim_id, results_df in batch_results.items():
 
                 if compute_summary_metrics:
-                    lbgi, hbgi, brgi = blood_glucose_risk_index(results_df['bg'])
-                    basal_delivered = results_df["delivered_basal_insulin"].sum()
-                    bolus_delivered = results_df["reported_bolus"].sum()
-                    total_delivered = basal_delivered + bolus_delivered
-                    summary_str = "Sim {}. \n\tLBGI: {} HBGI: {} BRGI: {}\n\t Basal {}. Bolus {}. Total {}".format(sim_id, lbgi, hbgi, brgi, basal_delivered, bolus_delivered, total_delivered)
-                    logger.debug(summary_str)
+                    try:
+                        lbgi, hbgi, brgi = blood_glucose_risk_index(results_df['bg'])
+                        basal_delivered = results_df["delivered_basal_insulin"].sum()
+                        bolus_delivered = results_df["reported_bolus"].sum()
+                        total_delivered = basal_delivered + bolus_delivered
+                        summary_str = "Sim {}. \n\tLBGI: {} HBGI: {} BRGI: {}\n\t Basal {}. Bolus {}. Total {}".format(sim_id, lbgi, hbgi, brgi, basal_delivered, bolus_delivered, total_delivered)
+                        logger.debug(summary_str)
+                    except Exception as e:
+                        logger.debug("Exception occurred in computed summary metrics")
 
                 # Sanity debugging random stream sync
                 logger.debug("Final Random Int: {}".format(results_df.iloc[-1]["randint"]))
@@ -104,6 +109,6 @@ def run_simulations(sims, save_dir,
 
     logger.debug("Full run time: {:.2f}m".format((time.time() - run_start_time) / 60.0))
 
-    os.rename(LOG_FILENAME, os.path.join(save_dir, LOG_FILENAME))
+    #os.rename(LOG_FILENAME, os.path.join(save_dir, LOG_FILENAME))
 
     return all_results

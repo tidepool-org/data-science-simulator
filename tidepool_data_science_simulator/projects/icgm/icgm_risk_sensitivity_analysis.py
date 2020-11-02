@@ -1,4 +1,4 @@
-__author__ = "Jason Meno"
+__author__ = "Cameron Summers"
 
 import time
 import pdb
@@ -104,6 +104,7 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
             sensors = []
             for i in range(n_sensors):
                 random_seed = np.random.randint(1, 1e9)
+
                 sensor = iCGMSensor(
                     current_datetime=t0,
                     sensor_properties={
@@ -172,7 +173,8 @@ if __name__ == "__main__":
     scenarios_dir = "data/raw/icgm-sensitivity-analysis-scenarios-2020-07-10/"
 
     today_timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
-    save_dir = "data/processed/icgm-sensitivity-analysis-results-" + today_timestamp
+    working_dir = os.getcwd()
+    save_dir = os.path.join(working_dir, "data/processed/icgm-sensitivity-analysis-results-" + today_timestamp)
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -181,7 +183,7 @@ if __name__ == "__main__":
     vp_scenario_dict = load_vp_training_data(scenarios_dir)
     # analyze_bg_training_data(vp_scenario_dict)
 
-    sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=1)
+    sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30)
 
     start_time = time.time()
     for i, sim_batch in enumerate(sim_batch_generator):
@@ -191,7 +193,7 @@ if __name__ == "__main__":
             sim_batch,
             save_dir=save_dir,
             save_results=True,
-            num_procs=1
+            num_procs=30
         )
         batch_total_time = (time.time() - batch_start_time) / 60
         run_total_time = (time.time() - start_time) / 60
