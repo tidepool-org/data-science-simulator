@@ -6,7 +6,7 @@ import numpy as np
 from tidepool_data_science_simulator.models.measures import Carb, Bolus, TempBasal
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 from pyloopkit.dose import DoseType
-
+from pytz import utc
 
 class Action(object):
     """
@@ -244,8 +244,8 @@ class BolusTimeline(EventTimeline):
 
             dose_types.append(DoseType.bolus)
             dose_values.append(self.events[time].value)
-            dose_start_times.append(time)
-            dose_end_times.append(time)
+            dose_start_times.append(time.replace(tzinfo=None))
+            dose_end_times.append(time.replace(tzinfo=None))
             dose_delivered_units.append(self.events[time].value)  # fixme: shouldn't be same value
 
         return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
@@ -280,7 +280,6 @@ class TempBasalTimeline(EventTimeline):
 
         return recent_event_times
 
-
     def get_loop_inputs(self, time, num_hours_history=6):
         """
         Convert event timeline into format for input into Pyloopkit.
@@ -302,8 +301,8 @@ class TempBasalTimeline(EventTimeline):
             temp_basal_event = self.events[time]
             dose_types.append(DoseType.tempbasal)
             dose_values.append(temp_basal_event.value)
-            dose_start_times.append(time)
-            dose_end_times.append(temp_basal_event.get_end_time())
+            dose_start_times.append(time.replace(tzinfo=None))
+            dose_end_times.append(temp_basal_event.get_end_time().replace(tzinfo=None))
             dose_delivered_units.append(temp_basal_event.delivered_units)  # fixme: put actual values here
 
         return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
@@ -357,7 +356,7 @@ class CarbTimeline(EventTimeline):
         for time in sorted_recent_event_times:
             carb_event = self.events[time]
             carb_values.append(carb_event.value)
-            carb_start_times.append(time)
+            carb_start_times.append(time.replace(tzinfo=None))
             carb_durations.append(carb_event.duration_minutes)
 
         return carb_values, carb_start_times, carb_durations

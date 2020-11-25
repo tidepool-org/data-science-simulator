@@ -36,23 +36,35 @@ def plot_sim_results(all_results, save=False):
         ax[1].set_ylabel("Insulin (U or U/hr)")
         ax[1].set_xlabel("Time (5 mins)")
         ax[1].plot(ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id), linestyle="--")
-        ax[1].plot(ctrl_result_df["temp_basal"], label="{} {}".format("tmp_br", sim_id))
+        # ax[1].scatter(range(len(ctrl_result_df)), ctrl_result_df["temp_basal"],
+        #               label="{} {}".format("tmp_br", sim_id), color="orange")
+        ax[1].plot(ctrl_result_df["temp_basal"], label="{} {}".format("tmp_br", sim_id), color="orange")
         #ax[1].stem(ctrl_result_df["true_bolus"], label="{} {}".format("true bolus", sim_id))
         ax[1].stem(ctrl_result_df["reported_bolus"], linefmt='g--', markerfmt='X', label="{} {}".format("reported bolus", sim_id))
+        # ax[1].scatter(range(len(ctrl_result_df)), ctrl_result_df["reported_bolus"], 5,
+        #               label="{} {}".format("reported bolus", sim_id))
         ax[1].plot(ctrl_result_df["iob"], label="{} {}".format("iob", sim_id))
         # ax[1].set_ylim((0, 3))
+        # if "suggested_bolus" in ctrl_result_df:
+        #     ax[1].stem(ctrl_result_df["suggested_bolus"], label="{} {}".format("sug_bolus", sim_id))
+        # if "suggested_temp_basal_value" in ctrl_result_df:
+        #     ax[1].scatter(range(len(ctrl_result_df)), ctrl_result_df["suggested_temp_basal_value"],
+        #                   label="{} {}".format("sug_tbr", sim_id), color="purple")
+        if "suggested_temp_basal_value" in ctrl_result_df:
+            ax[1].plot(ctrl_result_df["suggested_temp_basal_value"], label="{} {}".format("sug_tbr", sim_id),
+                       color="purple")
         ax[1].legend()
 
-        ax[2].set_title("Suggested Insulin")
-        ax[2].set_ylabel("Insulin (U or U/hr)")
-        ax[2].set_xlabel("Time (5 mins)")
-        ax[2].plot(ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id), linestyle="--")
-        if "suggested_bolus" in ctrl_result_df:
-            ax[2].stem(ctrl_result_df["suggested_bolus"], label="{} {}".format("sug_bolus", sim_id))
-        if "suggested_temp_basal_value" in ctrl_result_df:
-            ax[2].plot(ctrl_result_df["suggested_temp_basal_value"], label="{} {}".format("sug_tbr", sim_id),
-                       linestyle="--")
-        ax[2].legend()
+        # ax[2].set_title("Suggested Insulin")
+        # ax[2].set_ylabel("Insulin (U or U/hr)")
+        # ax[2].set_xlabel("Time (5 mins)")
+        # ax[2].plot(ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id), linestyle="--")
+        # if "suggested_bolus" in ctrl_result_df:
+        #     ax[2].stem(ctrl_result_df["suggested_bolus"], label="{} {}".format("sug_bolus", sim_id))
+        # if "suggested_temp_basal_value" in ctrl_result_df:
+        #     ax[2].plot(ctrl_result_df["suggested_temp_basal_value"], label="{} {}".format("sug_tbr", sim_id),
+        #                linestyle="--")
+        # ax[2].legend()
 
         #ax[2].stem(ctrl_result_df["true_carb_value"], label="{} {}".format("true carb", sim_id))
         ax[3].stem(ctrl_result_df["reported_carb_value"], linefmt='g--', markerfmt='X', label="{} {}".format(

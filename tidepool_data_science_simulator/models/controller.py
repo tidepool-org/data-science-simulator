@@ -8,7 +8,7 @@ import pandas as pd
 
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus, TempBasal
-
+from pytz import utc
 from pyloopkit.loop_data_manager import update
 
 
@@ -181,8 +181,8 @@ class LoopController(BaseControllerClass):
         e.g. via pump.
         """
         self.time = time
-
         virtual_patient = kwargs["virtual_patient"]
+
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
             loop_algorithm_output = update(loop_inputs_dict)
@@ -332,7 +332,6 @@ class LoopReplay(LoopController):
         self.name = "Jaeb Replay in PyLoopkit v0.1"
         self.active_temp_basal = None
 
-
     def get_dose_event_timelines(self, virtual_patient):
         """
         Retrieve dose data to pass to Pyloopkit without merging in controller timelines.
@@ -364,7 +363,8 @@ class LoopReplay(LoopController):
         dict
             Inputs for Pyloopkit algo
         """
-        glucose_dates, glucose_values = virtual_patient.sensor.get_loop_inputs()
+        glucose_dates_with_timezone, glucose_values = virtual_patient.sensor.get_loop_inputs()
+        glucose_dates = [date.replace(tzinfo=None) for date in glucose_dates_with_timezone]
 
         bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = self.get_dose_event_timelines(virtual_patient)
 
@@ -374,9 +374,18 @@ class LoopReplay(LoopController):
         temp_basal_dose_types, temp_basal_dose_values, temp_basal_start_times, temp_basal_end_times, temp_basal_delivered_units = \
             temp_basal_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
+        time_naive = self.time.replace(tzinfo=None)
+
+        shouldbedeliveredunits = abs((temp_basal_dose_values[-1] / 12) * \
+                int(int((time_naive - temp_basal_start_times[-1]).total_seconds()/60) / 5) - \
+                temp_basal_delivered_units[-1])
+
+        if temp_basal_end_times[-1] > time_naive and shouldbedeliveredunits > 0.05:
+            temp_basal_delivered_units[-1] = (temp_basal_dose_values[-1] / 12) * \
+                int(int((time_naive - temp_basal_start_times[-1]).total_seconds()/60) / 5)
+
         if ((temp_basal_end_times[-1] - temp_basal_start_times[-1]).total_seconds() / 60) % 30 != 0 and \
-                temp_basal_end_times[
-            -1] == self.time:
+                temp_basal_end_times[-1] == time_naive:
             temp_basal_end_times[-1] = temp_basal_start_times[-1] + \
                                        datetime.timedelta(
                                            minutes=(((temp_basal_end_times[-1] - temp_basal_start_times[
@@ -402,7 +411,7 @@ class LoopReplay(LoopController):
             last_temp_basal = [temp_basal_dose_types[-1], temp_basal_start_times[-1], temp_basal_end_times[-1], temp_basal_dose_values[-1]]
 
         loop_inputs_dict = {
-            "time_to_calculate_at": self.time,
+            "time_to_calculate_at": time_naive,
             "glucose_dates": glucose_dates,
             "glucose_values": glucose_values,
 
@@ -459,7 +468,8 @@ class LoopReplay(LoopController):
         elif temp_basal_rec is not None:
             if temp_basal_rec.scheduled_duration_minutes == 0 and temp_basal_rec.value == 0:
                 # In pyloopkit this is a "cancel"
-                self.deactivate_recorded_temp_basal()
+                if self.active_temp_basal is not None:
+                    self.deactivate_recorded_temp_basal()
             else:
                 self.record_temp_basal(virtual_patient, temp_basal_rec)
         else:
