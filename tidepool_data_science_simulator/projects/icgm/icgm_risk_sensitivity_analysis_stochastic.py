@@ -14,7 +14,7 @@ import numpy as np
 from numpy.random import RandomState
 from scipy.stats import johnsonsu
 import pandas as pd
-import seaborn as sns
+# import seaborn as sns
 import matplotlib.pyplot as plt
 
 from tidepool_data_science_simulator.models.patient_for_icgm_sensitivity_analysis import VirtualPatientISA
@@ -37,6 +37,7 @@ from tidepool_data_science_simulator.makedata.scenario_parser import SensorConfi
 from tidepool_data_science_simulator.run import run_simulations
 
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index, percent_values_ge_70_le_180
+from tidepool_data_science_metrics.insulin.insulin import dka_index, dka_risk_score
 
 
 def load_vp_training_data(scenarios_dir):
@@ -263,15 +264,15 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
             sim_seed = np.random.randint(0, 1e7)
 
             sensors.append(get_ideal_sensor(t0, sim_parser))
-            # sensors.append(get_icgm_sensor(t0, sim_parser, max_bias_percentage=50, random_state=RandomState(sim_seed)))
+            sensors.append(get_icgm_sensor(t0, sim_parser, max_bias_percentage=0, random_state=RandomState(sim_seed)))
             # sensors.append(get_dexcom_rate_sensor(t0, sim_parser, random_state=RandomState(sim_seed)))
 
-            t0_true_bg = sim_parser.patient_glucose_history.bg_values[-1]
+            # t0_true_bg = sim_parser.patient_glucose_history.bg_values[-1]
             # sampled_error_values = sample_uniformly_positive_error_cgm_ranges(t0_true_bg, num_samples=10)
-            sampled_error_values = sample_worst_negative_error_cgm_ranges(t0_true_bg)
-            for initial_error_value in sampled_error_values:
-                sensors.append(get_initial_offset_sensor(t0, sim_parser, random_state=RandomState(sim_seed),
-                                                         initial_error_value=initial_error_value))
+            # sampled_error_values = sample_worst_negative_error_cgm_ranges(t0_true_bg)
+            # for initial_error_value in sampled_error_values:
+            #     sensors.append(get_initial_offset_sensor(t0, sim_parser, random_state=RandomState(sim_seed),
+            #                                              initial_error_value=initial_error_value))
 
             print("Num sensors", len(sensors))
             for sensor in sensors:
@@ -334,8 +335,6 @@ def plot_icgm_results(result_dir):
 
 def plot_sensor_error_vs_risk(result_dir):
 
-    dexcome_value_model = DexcomG6ValueModel()
-
     sim_results = collect_sims_and_results(result_dir, sim_id_pattern="vp.*bg.*.json")
 
     summary_data = []
@@ -350,39 +349,57 @@ def plot_sensor_error_vs_risk(result_dir):
                 sim_json_info_match = sim_json_info_match
                 break
 
-        df_results = load_result(sim_json_info["result_path"])
-        true_bg = df_results[sim_json_info["result_path"]]['bg']
+        df_results_dict = load_result(sim_json_info["result_path"])
+        df_results = df_results_dict[sim_json_info["result_path"]]
+        true_bg = df_results['bg']
         true_bg[true_bg < 1] = 1
         lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(true_bg)
+        dkai_icgm = dka_index(df_results['iob'], df_results["sbr"])
 
-        df_results_ideal = load_result(sim_json_info_match["result_path"])
-        true_bg = df_results_ideal[sim_json_info_match["result_path"]]["bg"]
+        df_results_ideal_dict = load_result(sim_json_info_match["result_path"])
+        df_results_ideal = df_results_ideal_dict[sim_json_info_match["result_path"]]
+        true_bg = df_results_ideal["bg"]
         true_bg[true_bg < 1] = 1
         lbgi_ideal, hbgi_ideal, brgi_ideal = blood_glucose_risk_index(true_bg)
+        dkai_ideal = dka_index(df_results_ideal['iob'], df_results_ideal["sbr"])
 
         error_percentage = float(re.search("_(\d+)", sim_id).groups()[0])
 
         bg_cond = int(re.search("bg(\d)", sim_id).groups()[0])
 
         row = {
+            "sim_id": sim_id,
             "error_percentage": error_percentage,
             "lbgi_diff": lbgi_icgm - lbgi_ideal,
+            "dkai_diff": dkai_icgm - dkai_ideal,
             "bg_condition": bg_cond,
             "true_start_bg": sim_json_info["patient"]["sensor"]["true_start_bg"],
             "start_bg_with_offset": sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
         }
         summary_data.append(row)
+
+        if dkai_icgm - dkai_ideal > 8:  # TMP
+            a = 1
+
     summary_df = pd.DataFrame(summary_data)
 
-    # sns.boxplot(x="error_percentage", y="lbgi", data=summary_df)
-    # plt.figure()
-    # sns.boxplot(x="bg_condition", y="lbgi", data=summary_df)
-
-    # sns.heatmap(pd.pivot_table(summary_df, values="lbgi_diff", index=["error_percentage"], columns="bg_condition"), annot=True, linewidths=0.5)
-    # plt.show()
+    compute_dka_risk_tidepool_icgm(summary_df, severity_target=8)
+    compute_hypoglycemia_risk_tidepool_icgm(summary_df, severity_target=2.5)
 
 
-    severity_target = 2.5
+def compute_dka_risk_tidepool_icgm(summary_df, severity_target=2.5):
+
+    risky_mask = summary_df["dkai_diff"] > severity_target
+    num_risky = len(summary_df[risky_mask])
+    num_total = len(summary_df)
+
+    print("Num dka risky:", num_risky, "Num total:", num_total)
+
+
+def compute_hypoglycemia_risk_tidepool_icgm(summary_df, severity_target = 2.5):
+
+    dexcome_value_model = DexcomG6ValueModel()
+
     p_severe_given_corr_bolus = 0.0
     total_sims = 0
     for (low_true, high_true), (low_icgm, high_icgm) in [
@@ -486,7 +503,8 @@ if __name__ == "__main__":
                 except:
                     print("Bgs below zero.")
 
-    result_dir = "/Users/csummers/dev/data-science-simulator/data/processed/icgm-sensitivity-analysis-results-2020-12-03/"
+    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
+    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-03/"
     # plot_icgm_results(result_dir)
 
     plot_sensor_error_vs_risk(result_dir)
