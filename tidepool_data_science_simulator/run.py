@@ -6,6 +6,8 @@ import json
 import os
 import subprocess
 
+import numpy as np
+
 import pdb
 
 # Setup Logging
@@ -94,6 +96,10 @@ def run_simulations(sims, save_dir,
                         total_delivered = basal_delivered + bolus_delivered
                         summary_str = "Sim {}. \n\tLBGI: {} HBGI: {} BRGI: {}\n\t Basal {}. Bolus {}. Total {}".format(sim_id, lbgi, hbgi, brgi, basal_delivered, bolus_delivered, total_delivered)
                         logger.debug(summary_str)
+
+                        sensor_mard = np.mean(np.abs(results_df["bg"] - results_df["bg_sensor"]) / results_df["bg"])
+                        sensor_mbe = np.mean(results_df["bg_sensor"] - results_df["bg"])
+                        logger.debug("Sensor Stats: MBE: {}. MARD: {}".format(sensor_mbe, sensor_mard))
                     except Exception as e:
                         logger.debug("Exception occurred in computed summary metrics")
 

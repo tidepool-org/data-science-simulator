@@ -20,7 +20,10 @@ class SensorBase(SimulationComponent):
         self.sensor_config = copy.deepcopy(sensor_config)
         self.sensor_bg_history = self.sensor_config.sensor_bg_history
 
-        self.current_sensor_bg = self.sensor_config.sensor_bg_history.bg_values[-1]
+        try:
+            self.current_sensor_bg = self.sensor_config.sensor_bg_history.bg_values[-1]
+        except IndexError:
+            self.current_sensor_bg = None
         self.current_sensor_bg_prediction = None
 
     @classmethod

@@ -17,12 +17,12 @@ from tidepool_data_science_simulator.evaluation.jaeb_utils import (
 JAEB_DATA_DIR = "../../data/PHI/time-series-data-around-issue-reports-2020-07-28"
 
 
-def collect_sims_and_results(result_dir):
+def collect_sims_and_results(result_dir, sim_id_pattern="vp.*.json"):
 
     sim_info_dict = dict()
     for root, dirs, files in os.walk(result_dir, topdown=False):
         for file in sorted(files):
-            if re.search("VP-\d.*.json", file):
+            if re.search(sim_id_pattern, file):
                 sim_info = json.load(open(os.path.join(root, file), "r"))
                 sim_id = sim_info["sim_id"]
                 df_file = [fn for fn in files if sim_id in fn and ".tsv" in fn][0]
@@ -44,7 +44,7 @@ def load_results(save_dir, ext="tsv", max_dfs=10):
                 result_dict = load_result(filepath)
                 all_results.update(result_dict)
 
-                if i >= max_dfs:
+                if len(all_results) >= max_dfs:
                     break
 
     return all_results

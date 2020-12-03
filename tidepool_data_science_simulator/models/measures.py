@@ -7,6 +7,8 @@ Classes structures for various types of data used for simulation.
 import copy
 import datetime
 
+import numpy as np
+
 
 class Measure(object):
     """
@@ -292,11 +294,11 @@ class GlucoseTrace(object):
                 time_since_bg = (time - dt).total_seconds() / 3600.0
 
                 if bg is not None and time_since_bg < num_hours_history:
-                    processed_bg = max(40, min(400, float(round(bg))))
+                    processed_bg = max(40, min(400, float(np.round(bg))))
                     loop_bg_datetimes.append(dt)
                     loop_bg_values.append(processed_bg)
         else:
-            loop_bg_values = [max(40, min(400, float(round(bg)))) for bg in self.bg_values]
+            loop_bg_values = [max(40, min(400, float(np.round(bg)))) for bg in self.bg_values]
             loop_bg_datetimes = self.datetimes
 
         return loop_bg_datetimes, loop_bg_values

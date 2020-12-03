@@ -22,7 +22,7 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5):
 
         # print(sim_id, ctrl_result_df.head(1).T)
 
-        # ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple", linestyle=next(linestyle))
+        ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple", linestyle=next(linestyle))
         ax[0].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["bg_sensor"], label="{} {}".format("bg", sim_id), color=next(color), linestyle=next(linestyle))
         # ax[0].scatter(range(len(ctrl_result_df)), ctrl_result_df["bg_sensor"], 4,
         #               label="{} {}".format("bg_sensor", sim_id),
