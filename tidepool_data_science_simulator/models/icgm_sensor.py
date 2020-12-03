@@ -710,8 +710,8 @@ class SensoriCGM(SensorBase):
                 "initial_controls": self.sensor_config.initial_controls,
                 "behavior_models": [m.get_info_stateless() for m in self.sensor_config.behavior_models],
                 "history_window_hrs": self.sensor_config.history_window_hrs,
-                "true_start_bg": self.true_start_bg,
-                "start_bg_with_offset": self.start_bg_with_offset
+                # "true_start_bg": self.true_start_bg,
+                # "start_bg_with_offset": self.start_bg_with_offset
             }
         )
 
@@ -729,8 +729,8 @@ class SensoriCGM(SensorBase):
 
         # sensor_bg = true_bg
         # if self.sim_start_time is not None and time == self.sim_start_time:
-        #     sensor_bg = self.t0_error_bg
-        #     self.true_start_bg = true_bg
+            # sensor_bg = self.t0_error_bg
+            # self.true_start_bg = true_bg
         #     self.start_bg_with_offset = sensor_bg
         # else:
         try:

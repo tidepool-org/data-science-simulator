@@ -12,7 +12,6 @@ from collections import defaultdict
 
 import numpy as np
 from numpy.random import RandomState
-from scipy.stats import johnsonsu
 import pandas as pd
 # import seaborn as sns
 import matplotlib.pyplot as plt
@@ -23,7 +22,6 @@ from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_simulator.models.simulation import Simulation
-from tidepool_data_science_models.models.icgm_sensor_generator import iCGMSensorGenerator, iCGMSensor
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.evaluation.inspect_results import load_results, collect_sims_and_results, load_result
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
@@ -122,6 +120,8 @@ def get_icgm_sensor(t0, sim_parser, max_bias_percentage, random_state):
     sensor = SensoriCGM(t0 - datetime.timedelta(minutes=num_history_values * 5.0),
                         sensor_config=sensor_config,
                         random_state=random_state)
+
+    sensor.sim_start_time = t0
 
     for dt, true_bg in zip(sim_parser.patient_glucose_history.datetimes[-num_history_values:],
                            sim_parser.patient_glucose_history.bg_values[-num_history_values:]):
@@ -363,31 +363,27 @@ def plot_sensor_error_vs_risk(result_dir):
         lbgi_ideal, hbgi_ideal, brgi_ideal = blood_glucose_risk_index(true_bg)
         dkai_ideal = dka_index(df_results_ideal['iob'], df_results_ideal["sbr"])
 
-        error_percentage = float(re.search("_(\d+)", sim_id).groups()[0])
-
         bg_cond = int(re.search("bg(\d)", sim_id).groups()[0])
 
         row = {
             "sim_id": sim_id,
-            "error_percentage": error_percentage,
             "lbgi_diff": lbgi_icgm - lbgi_ideal,
             "dkai_diff": dkai_icgm - dkai_ideal,
             "bg_condition": bg_cond,
-            "true_start_bg": sim_json_info["patient"]["sensor"]["true_start_bg"],
-            "start_bg_with_offset": sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
+            # "true_start_bg": sim_json_info["patient"]["sensor"]["true_start_bg"],
+            # "start_bg_with_offset": sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
         }
         summary_data.append(row)
 
-        if dkai_icgm - dkai_ideal > 8:  # TMP
-            a = 1
-
     summary_df = pd.DataFrame(summary_data)
 
-    compute_dka_risk_tidepool_icgm(summary_df, severity_target=8)
-    compute_hypoglycemia_risk_tidepool_icgm(summary_df, severity_target=2.5)
+    compute_dka_risk_tp_icgm(summary_df, severity_target=8)
+    compute_lbgi_risk_tp_icgm_negative_bias(summary_df, severity_target=2.5)
+
+    # compute_hypoglycemia_risk_tidepool_icgm(summary_df, severity_target=2.5)
 
 
-def compute_dka_risk_tidepool_icgm(summary_df, severity_target=2.5):
+def compute_dka_risk_tp_icgm(summary_df, severity_target=8):
 
     risky_mask = summary_df["dkai_diff"] > severity_target
     num_risky = len(summary_df[risky_mask])
@@ -396,7 +392,16 @@ def compute_dka_risk_tidepool_icgm(summary_df, severity_target=2.5):
     print("Num dka risky:", num_risky, "Num total:", num_total)
 
 
-def compute_hypoglycemia_risk_tidepool_icgm(summary_df, severity_target = 2.5):
+def compute_lbgi_risk_tp_icgm_negative_bias(summary_df, severity_target=2.5):
+
+    risky_mask = summary_df["lbgi_diff"] > severity_target
+    num_risky = len(summary_df[risky_mask])
+    num_total = len(summary_df)
+
+    print("Num lbgi risky:", num_risky, "Num total:", num_total)
+    
+
+def compute_lbgi_risk_tp_icgm_positive_bias(summary_df, severity_target = 2.5):
 
     dexcome_value_model = DexcomG6ValueModel()
 
@@ -473,7 +478,7 @@ if __name__ == "__main__":
     vp_scenario_dict = load_vp_training_data(scenarios_dir)
 
     if 0:
-        sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=12)
+        sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=2)
 
         start_time = time.time()
         for i, sim_batch in enumerate(sim_batch_generator):
@@ -484,7 +489,7 @@ if __name__ == "__main__":
                 sim_batch,
                 save_dir=save_dir,
                 save_results=True,
-                num_procs=12
+                num_procs=2
             )
             batch_total_time = (time.time() - batch_start_time) / 60
             run_total_time = (time.time() - start_time) / 60
@@ -503,8 +508,8 @@ if __name__ == "__main__":
                 except:
                     print("Bgs below zero.")
 
-    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
-    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-03/"
+    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
+    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-03/"
     # plot_icgm_results(result_dir)
 
     plot_sensor_error_vs_risk(result_dir)
