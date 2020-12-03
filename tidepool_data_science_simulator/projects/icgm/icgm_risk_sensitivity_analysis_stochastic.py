@@ -193,6 +193,34 @@ def sample_uniformly_positive_error_cgm_ranges(value, num_samples=10):
     return sampled_errors
 
 
+def sample_worst_negative_error_cgm_ranges(value):
+
+    if value < 40:
+        icgm_low = 40
+    elif 40 <= value <= 60:
+        icgm_low = 40
+    elif 60 < value <= 80:
+        icgm_low = 40
+    elif 80 < value <= 120:
+        icgm_low = 40
+    elif 120 < value <= 160:
+        icgm_low = 40
+    elif 160 < value <= 200:
+        icgm_low = 40
+    elif 200 < value <= 250:
+        icgm_low = 121
+    elif 250 < value <= 300:
+        icgm_low = 161
+    elif 300 < value <= 350:
+        icgm_low = 201
+    elif 350 < value <= 400:
+        icgm_low = 251
+    elif value > 400:
+        icgm_low = 351
+
+    return [icgm_low]
+
+
 def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
     """
     Build simulations for the FDA 510k Loop iCGM sensitivity analysis.
@@ -239,7 +267,8 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
             # sensors.append(get_dexcom_rate_sensor(t0, sim_parser, random_state=RandomState(sim_seed)))
 
             t0_true_bg = sim_parser.patient_glucose_history.bg_values[-1]
-            sampled_error_values = sample_uniformly_positive_error_cgm_ranges(t0_true_bg, num_samples=10)
+            # sampled_error_values = sample_uniformly_positive_error_cgm_ranges(t0_true_bg, num_samples=10)
+            sampled_error_values = sample_worst_negative_error_cgm_ranges(t0_true_bg)
             for initial_error_value in sampled_error_values:
                 sensors.append(get_initial_offset_sensor(t0, sim_parser, random_state=RandomState(sim_seed),
                                                          initial_error_value=initial_error_value))
@@ -252,6 +281,7 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
                         vp_id, bg_cond_id, sensor.name, analysis_type
                     )
 
+                    # For restarting at same spot if things break midway
                     # if os.path.exists(os.path.join(save_dir, "{}.tsv".format(sim_id))):
                     #     continue
 
@@ -338,7 +368,7 @@ def plot_sensor_error_vs_risk(result_dir):
             "error_percentage": error_percentage,
             "lbgi_diff": lbgi_icgm - lbgi_ideal,
             "bg_condition": bg_cond,
-            "true_bg_start": sim_json_info["patient"]["sensor"]["true_start_bg"],
+            "true_start_bg": sim_json_info["patient"]["sensor"]["true_start_bg"],
             "start_bg_with_offset": sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
         }
         summary_data.append(row)
@@ -387,7 +417,7 @@ def plot_sensor_error_vs_risk(result_dir):
         ((301, 350), (351, 400)),
         ((351, 400), (351, 450)),
     ]:
-        true_mask = (summary_df["true_bg_start"] >= low_true) & (summary_df["true_bg_start"] <= high_true)
+        true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
         icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (summary_df["start_bg_with_offset"] <= high_icgm)
         num_risky = (summary_df[true_mask & icgm_mask]["lbgi_diff"] > severity_target).sum()
         num_total = len(summary_df[true_mask & icgm_mask])
@@ -425,7 +455,7 @@ if __name__ == "__main__":
 
     vp_scenario_dict = load_vp_training_data(scenarios_dir)
 
-    if 1:
+    if 0:
         sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=12)
 
         start_time = time.time()
@@ -456,7 +486,7 @@ if __name__ == "__main__":
                 except:
                     print("Bgs below zero.")
 
-    result_dir = "/Users/csummers/dev/data-science-simulator/data/processed/icgm-sensitivity-analysis-results-2020-12-02/"
+    result_dir = "/Users/csummers/dev/data-science-simulator/data/processed/icgm-sensitivity-analysis-results-2020-12-03/"
     # plot_icgm_results(result_dir)
 
     plot_sensor_error_vs_risk(result_dir)
