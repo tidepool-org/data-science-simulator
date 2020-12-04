@@ -367,20 +367,24 @@ def plot_sensor_error_vs_risk(result_dir):
 
         row = {
             "sim_id": sim_id,
+            "lbgi_icgm": lbgi_icgm,
+            "lbgi_ideal": lbgi_ideal,
             "lbgi_diff": lbgi_icgm - lbgi_ideal,
+            "dkai_icgm": dkai_icgm,
+            "dkai_ideal": dkai_ideal,
             "dkai_diff": dkai_icgm - dkai_ideal,
             "bg_condition": bg_cond,
-            # "true_start_bg": sim_json_info["patient"]["sensor"]["true_start_bg"],
-            # "start_bg_with_offset": sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
+            "true_start_bg": sim_json_info["patient"]["sensor"]["true_start_bg"],
+            "start_bg_with_offset": sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
         }
         summary_data.append(row)
 
     summary_df = pd.DataFrame(summary_data)
 
-    compute_dka_risk_tp_icgm(summary_df, severity_target=8)
-    compute_lbgi_risk_tp_icgm_negative_bias(summary_df, severity_target=2.5)
+    # compute_dka_risk_tp_icgm(summary_df, severity_target=8)
+    # compute_lbgi_risk_tp_icgm_negative_bias(summary_df, severity_target=2.5)
 
-    # compute_hypoglycemia_risk_tidepool_icgm(summary_df, severity_target=2.5)
+    compute_lbgi_risk_tp_icgm_positive_bias(summary_df, severity_target=2.5)
 
 
 def compute_dka_risk_tp_icgm(summary_df, severity_target=8):
@@ -403,7 +407,7 @@ def compute_lbgi_risk_tp_icgm_negative_bias(summary_df, severity_target=2.5):
 
 def compute_lbgi_risk_tp_icgm_positive_bias(summary_df, severity_target = 2.5):
 
-    dexcome_value_model = DexcomG6ValueModel()
+    dexcome_value_model = DexcomG6ValueModel(concurrency_table="TP_iCGM")
 
     p_severe_given_corr_bolus = 0.0
     total_sims = 0
@@ -441,12 +445,19 @@ def compute_lbgi_risk_tp_icgm_positive_bias(summary_df, severity_target = 2.5):
     ]:
         true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
         icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (summary_df["start_bg_with_offset"] <= high_icgm)
+
+        # Metric - "makes things worse"
         num_risky = (summary_df[true_mask & icgm_mask]["lbgi_diff"] > severity_target).sum()
         num_total = len(summary_df[true_mask & icgm_mask])
 
-        if num_total > 0:
-            p_severe = num_risky / num_total
+        # Metric - "made things non-negligible from negligible"
+        # initially_ok_mask = summary_df["lbgi_ideal"] < 2.5
+        # num_risky = (summary_df[true_mask & icgm_mask & initially_ok_mask]["lbgi_icgm"] >= 2.5).sum()
+        # num_total = len(summary_df[true_mask & icgm_mask & initially_ok_mask])
 
+        if num_total > 0:
+
+            p_severe = num_risky / num_total
             total_sims += num_total
 
             p_dexcom_square = dexcome_value_model.get_joint_probability(low_true, low_icgm)
@@ -508,8 +519,8 @@ if __name__ == "__main__":
                 except:
                     print("Bgs below zero.")
 
-    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
-    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-03/"
+    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
+    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"
     # plot_icgm_results(result_dir)
 
     plot_sensor_error_vs_risk(result_dir)
