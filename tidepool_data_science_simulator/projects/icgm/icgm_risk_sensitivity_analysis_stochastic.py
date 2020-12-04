@@ -229,8 +229,8 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
     Scenario files are on Compute-2 in Cameron Summers' copy of this code base.
     """
     analysis_type_list = [
-        # "temp_basal_only",
-        "correction_bolus",
+        "temp_basal_only",
+        # "correction_bolus",
         # "meal_bolus"
     ]
 
@@ -264,15 +264,15 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
             sim_seed = np.random.randint(0, 1e7)
 
             sensors.append(get_ideal_sensor(t0, sim_parser))
-            sensors.append(get_icgm_sensor(t0, sim_parser, max_bias_percentage=0, random_state=RandomState(sim_seed)))
+            # sensors.append(get_icgm_sensor(t0, sim_parser, max_bias_percentage=0, random_state=RandomState(sim_seed)))
             # sensors.append(get_dexcom_rate_sensor(t0, sim_parser, random_state=RandomState(sim_seed)))
 
-            # t0_true_bg = sim_parser.patient_glucose_history.bg_values[-1]
-            # sampled_error_values = sample_uniformly_positive_error_cgm_ranges(t0_true_bg, num_samples=10)
-            # sampled_error_values = sample_worst_negative_error_cgm_ranges(t0_true_bg)
-            # for initial_error_value in sampled_error_values:
-            #     sensors.append(get_initial_offset_sensor(t0, sim_parser, random_state=RandomState(sim_seed),
-            #                                              initial_error_value=initial_error_value))
+            t0_true_bg = sim_parser.patient_glucose_history.bg_values[-1]
+            sampled_error_values = sample_uniformly_positive_error_cgm_ranges(t0_true_bg, num_samples=10)
+            sampled_error_values = sample_worst_negative_error_cgm_ranges(t0_true_bg)
+            for initial_error_value in sampled_error_values:
+                sensors.append(get_initial_offset_sensor(t0, sim_parser, random_state=RandomState(sim_seed),
+                                                         initial_error_value=initial_error_value))
 
             print("Num sensors", len(sensors))
             for sensor in sensors:
@@ -381,8 +381,8 @@ def plot_sensor_error_vs_risk(result_dir):
 
     summary_df = pd.DataFrame(summary_data)
 
-    # compute_dka_risk_tp_icgm(summary_df, severity_target=8)
-    # compute_lbgi_risk_tp_icgm_negative_bias(summary_df, severity_target=2.5)
+    compute_dka_risk_tp_icgm(summary_df, severity_target=8)
+    compute_lbgi_risk_tp_icgm_negative_bias(summary_df, severity_target=2.5)
 
     compute_lbgi_risk_tp_icgm_positive_bias(summary_df, severity_target=2.5)
 
@@ -471,8 +471,6 @@ def compute_lbgi_risk_tp_icgm_positive_bias(summary_df, severity_target = 2.5):
     print("Total sims", total_sims)
 
 
-
-
 # %%
 if __name__ == "__main__":
 
@@ -488,8 +486,9 @@ if __name__ == "__main__":
 
     vp_scenario_dict = load_vp_training_data(scenarios_dir)
 
-    if 0:
-        sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=2)
+    if 1:
+        sim_batch_size = 2
+        sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=sim_batch_size)
 
         start_time = time.time()
         for i, sim_batch in enumerate(sim_batch_generator):
@@ -500,7 +499,7 @@ if __name__ == "__main__":
                 sim_batch,
                 save_dir=save_dir,
                 save_results=True,
-                num_procs=2
+                num_procs=sim_batch_size
             )
             batch_total_time = (time.time() - batch_start_time) / 60
             run_total_time = (time.time() - start_time) / 60
@@ -519,8 +518,8 @@ if __name__ == "__main__":
                 except:
                     print("Bgs below zero.")
 
-    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
-    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"
+    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
+    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"
     # plot_icgm_results(result_dir)
 
     plot_sensor_error_vs_risk(result_dir)

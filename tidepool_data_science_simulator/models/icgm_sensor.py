@@ -740,8 +740,8 @@ class SensoriCGM(SensorBase):
                 "initial_controls": self.sensor_config.initial_controls,
                 "behavior_models": [m.get_info_stateless() for m in self.sensor_config.behavior_models],
                 "history_window_hrs": self.sensor_config.history_window_hrs,
-                # "true_start_bg": self.true_start_bg,
-                # "start_bg_with_offset": self.start_bg_with_offset
+                "true_start_bg": self.true_start_bg,
+                "start_bg_with_offset": self.start_bg_with_offset
             }
         )
 
@@ -757,46 +757,46 @@ class SensoriCGM(SensorBase):
 
         sensor_candidate_range = self.sensor_config.sensor_range
 
-        # sensor_bg = true_bg
-        # if self.sim_start_time is not None and time == self.sim_start_time:
-            # sensor_bg = self.t0_error_bg
-            # self.true_start_bg = true_bg
-        #     self.start_bg_with_offset = sensor_bg
+        sensor_bg = true_bg
+        if self.sim_start_time is not None and time == self.sim_start_time:
+            sensor_bg = self.t0_error_bg
+            self.true_start_bg = true_bg
+            self.start_bg_with_offset = sensor_bg
         # else:
-        try:
-            probability_chain_for_plotting = []
-            icgm_transition_probabilities, icgm_losses = self.state.get_state_transition_probabilities(true_bg, sensor_candidate_range)
-
-            probability_chain_for_plotting.append(copy.copy(icgm_transition_probabilities))
-
-            for model in self.sensor_config.behavior_models:
-                behavior_probabilities = model.get_conditional_probabilities(
-                    sensor_candidate_range,
-                    true_bg_history=self.true_bg_history,
-                    sensor_bg_history=self.sensor_bg_history.bg_values,
-                    icgm_transition_probabilities=icgm_transition_probabilities,
-                    icgm_losses=icgm_losses
-                )
-
-                icgm_transition_probabilities = np.multiply(icgm_transition_probabilities, behavior_probabilities)
-                probability_chain_for_plotting.append(copy.copy(icgm_transition_probabilities))
-
-            if np.sum(icgm_transition_probabilities) == 0:
-                raise Exception("Transition probabilities are zero.")
-
-            icgm_transition_probabilities /= np.sum(icgm_transition_probabilities)
-
-            do_plot_step_probs = kwargs.get("do_plot", False)
-            if do_plot_step_probs or np.isnan(icgm_transition_probabilities).any():
-                self.plot_internals(sensor_candidate_range,
-                                    probability_chain_for_plotting,
-                                    icgm_losses)
-
-            sensor_bg = self.random_state.choice(sensor_candidate_range, p=icgm_transition_probabilities)
-            self.state.update(time, true_bg, sensor_bg)
-
-        except LegitimateNoniCGMSensor:
-            sensor_bg = np.nan
+        # try:
+        #     probability_chain_for_plotting = []
+        #     icgm_transition_probabilities, icgm_losses = self.state.get_state_transition_probabilities(true_bg, sensor_candidate_range)
+        #
+        #     probability_chain_for_plotting.append(copy.copy(icgm_transition_probabilities))
+        #
+        #     for model in self.sensor_config.behavior_models:
+        #         behavior_probabilities = model.get_conditional_probabilities(
+        #             sensor_candidate_range,
+        #             true_bg_history=self.true_bg_history,
+        #             sensor_bg_history=self.sensor_bg_history.bg_values,
+        #             icgm_transition_probabilities=icgm_transition_probabilities,
+        #             icgm_losses=icgm_losses
+        #         )
+        #
+        #         icgm_transition_probabilities = np.multiply(icgm_transition_probabilities, behavior_probabilities)
+        #         probability_chain_for_plotting.append(copy.copy(icgm_transition_probabilities))
+        #
+        #     if np.sum(icgm_transition_probabilities) == 0:
+        #         raise Exception("Transition probabilities are zero.")
+        #
+        #     icgm_transition_probabilities /= np.sum(icgm_transition_probabilities)
+        #
+        #     do_plot_step_probs = kwargs.get("do_plot", False)
+        #     if do_plot_step_probs or np.isnan(icgm_transition_probabilities).any():
+        #         self.plot_internals(sensor_candidate_range,
+        #                             probability_chain_for_plotting,
+        #                             icgm_losses)
+        #
+        #     sensor_bg = self.random_state.choice(sensor_candidate_range, p=icgm_transition_probabilities)
+        #     self.state.update(time, true_bg, sensor_bg)
+        #
+        # except LegitimateNoniCGMSensor:
+        #     sensor_bg = np.nan
 
         self.current_sensor_bg = sensor_bg
         self.sensor_bg_history.append(self.time, self.current_sensor_bg)
