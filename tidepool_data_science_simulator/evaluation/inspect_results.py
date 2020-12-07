@@ -17,7 +17,7 @@ from tidepool_data_science_simulator.evaluation.jaeb_utils import (
 JAEB_DATA_DIR = "../../data/PHI/time-series-data-around-issue-reports-2020-07-28"
 
 
-def collect_sims_and_results(result_dir, sim_id_pattern="vp.*.json"):
+def collect_sims_and_results(result_dir, sim_id_pattern="vp.*.json", max_sims=np.inf):
 
     sim_info_dict = dict()
     for root, dirs, files in os.walk(result_dir, topdown=False):
@@ -29,6 +29,9 @@ def collect_sims_and_results(result_dir, sim_id_pattern="vp.*.json"):
                 df_path = os.path.join(root, df_file)
                 sim_info["result_path"] = df_path
                 sim_info_dict[sim_id] = sim_info
+
+                if len(sim_info_dict) > max_sims:
+                    break
 
     return sim_info_dict
 

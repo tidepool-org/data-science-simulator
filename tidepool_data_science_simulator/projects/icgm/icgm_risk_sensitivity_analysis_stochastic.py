@@ -269,7 +269,7 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
 
             t0_true_bg = sim_parser.patient_glucose_history.bg_values[-1]
             sampled_error_values = sample_uniformly_positive_error_cgm_ranges(t0_true_bg, num_samples=10)
-            sampled_error_values = sample_worst_negative_error_cgm_ranges(t0_true_bg)
+            # sampled_error_values = sample_worst_negative_error_cgm_ranges(t0_true_bg)
             for initial_error_value in sampled_error_values:
                 sensors.append(get_initial_offset_sensor(t0, sim_parser, random_state=RandomState(sim_seed),
                                                          initial_error_value=initial_error_value))
@@ -335,7 +335,7 @@ def plot_icgm_results(result_dir):
 
 def plot_sensor_error_vs_risk(result_dir):
 
-    sim_results = collect_sims_and_results(result_dir, sim_id_pattern="vp.*bg.*.json")
+    sim_results = collect_sims_and_results(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=np.inf)
 
     summary_data = []
     for sim_id, sim_json_info in sim_results.items():
@@ -377,44 +377,38 @@ def plot_sensor_error_vs_risk(result_dir):
             "true_start_bg": sim_json_info["patient"]["sensor"]["true_start_bg"],
             "start_bg_with_offset": sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
         }
+
         summary_data.append(row)
 
     summary_df = pd.DataFrame(summary_data)
 
-    compute_dka_risk_tp_icgm(summary_df, severity_target=8)
-    compute_lbgi_risk_tp_icgm_negative_bias(summary_df, severity_target=2.5)
-
-    compute_lbgi_risk_tp_icgm_positive_bias(summary_df, severity_target=2.5)
-
-
-def compute_dka_risk_tp_icgm(summary_df, severity_target=8):
-
-    risky_mask = summary_df["dkai_diff"] > severity_target
-    num_risky = len(summary_df[risky_mask])
-    num_total = len(summary_df)
-
-    print("Num dka risky:", num_risky, "Num total:", num_total)
+    compute_dka_risk_tp_icgm(summary_df)
+    compute_lbgi_risk_tp_icgm_negative_bias(summary_df)
+    compute_lbgi_risk_tp_icgm_positive_bias(summary_df)
 
 
-def compute_lbgi_risk_tp_icgm_negative_bias(summary_df, severity_target=2.5):
+def compute_dka_risk_tp_icgm(summary_df):
 
-    risky_mask = summary_df["lbgi_diff"] > severity_target
-    num_risky = len(summary_df[risky_mask])
-    num_total = len(summary_df)
+    initially_ok_mask = summary_df["dkai_ideal"] == 0.0
+    print(summary_df[initially_ok_mask]["dkai_icgm"].describe())
 
-    print("Num lbgi risky:", num_risky, "Num total:", num_total)
-    
 
-def compute_lbgi_risk_tp_icgm_positive_bias(summary_df, severity_target = 2.5):
+def compute_lbgi_risk_tp_icgm_negative_bias(summary_df):
+
+    initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
+    print(summary_df[initially_ok_mask]["lbgi_icgm"].describe())
+
+
+def compute_lbgi_risk_tp_icgm_positive_bias(summary_df):
 
     dexcome_value_model = DexcomG6ValueModel(concurrency_table="TP_iCGM")
 
-    p_severe_given_corr_bolus = 0.0
+    expected_value = 0.0
     total_sims = 0
     for (low_true, high_true), (low_icgm, high_icgm) in [
         ((40, 60), (40, 60)),
-        ((40, 60), (81, 120)),
         ((40, 60), (61, 80)),
+        ((40, 60), (81, 120)),
 
         ((61, 80), (61, 80)),
         ((61, 80), (81, 120)),
@@ -446,28 +440,24 @@ def compute_lbgi_risk_tp_icgm_positive_bias(summary_df, severity_target = 2.5):
         true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
         icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (summary_df["start_bg_with_offset"] <= high_icgm)
 
-        # Metric - "makes things worse"
-        num_risky = (summary_df[true_mask & icgm_mask]["lbgi_diff"] > severity_target).sum()
-        num_total = len(summary_df[true_mask & icgm_mask])
+        initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
 
-        # Metric - "made things non-negligible from negligible"
-        # initially_ok_mask = summary_df["lbgi_ideal"] < 2.5
-        # num_risky = (summary_df[true_mask & icgm_mask & initially_ok_mask]["lbgi_icgm"] >= 2.5).sum()
-        # num_total = len(summary_df[true_mask & icgm_mask & initially_ok_mask])
+        # Metric - "expected severity"
+        severity = summary_df[true_mask & icgm_mask & initially_ok_mask]["lbgi_icgm"].mean()
+        if np.isnan(severity):
+            severity = 0.0
+        num_total = len(summary_df[true_mask & icgm_mask & initially_ok_mask])
 
-        if num_total > 0:
+        total_sims += num_total
 
-            p_severe = num_risky / num_total
-            total_sims += num_total
+        p_dexcom_square = dexcome_value_model.get_joint_probability(low_true, low_icgm)
 
-            p_dexcom_square = dexcome_value_model.get_joint_probability(low_true, low_icgm)
+        expected_value += severity * p_dexcom_square
 
-            p_severe_given_corr_bolus += p_severe * p_dexcom_square
+        print(low_true, high_true, low_icgm, high_icgm, num_total)
+        print("P(lbgi > thresh | CB, true range, icgm range)", severity, "P(true range, icgm range)", p_dexcom_square, "\n")
 
-            print(low_true, high_true, low_icgm, high_icgm, num_risky, num_total)
-            print("P(lbgi > thresh | CB, true range, icgm range)", p_severe, "P(true range, icgm range)", p_dexcom_square, "\n")
-
-    print("P(lbgi > thresh & CB)", p_severe_given_corr_bolus)
+    print("E[LBGI iCGM]", expected_value)
     print("Total sims", total_sims)
 
 
@@ -486,7 +476,7 @@ if __name__ == "__main__":
 
     vp_scenario_dict = load_vp_training_data(scenarios_dir)
 
-    if 1:
+    if 0:
         sim_batch_size = 2
         sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=sim_batch_size)
 
@@ -519,7 +509,12 @@ if __name__ == "__main__":
                     print("Bgs below zero.")
 
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
-    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"
+    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"
+
+    # On compute-1
+    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-03/"  # worst case negative bias, 887 sims
+    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"  # temp basal case
+
     # plot_icgm_results(result_dir)
 
     plot_sensor_error_vs_risk(result_dir)
