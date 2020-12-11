@@ -187,7 +187,9 @@ def sample_uniformly_positive_error_cgm_ranges(value, num_samples=10):
     elif value > 400:
         icgm_low, icgm_high = (351, 401)
 
-    step = (icgm_high - icgm_low) / (num_samples)
+    # step = (icgm_high - icgm_low) / (num_samples)
+
+    step = 5.0
 
     sampled_errors = [round(v) for v in np.arange(icgm_low, icgm_high + step, step)]
 
@@ -222,6 +224,24 @@ def sample_worst_negative_error_cgm_ranges(value):
     return [icgm_low]
 
 
+def generate_sim_parser_starting_glucose(original_sim_parser):
+
+    num_history_values = 6
+    for true_start_glucose in range(40, 400, 5):
+
+        new_sim_parser = copy.deepcopy(original_sim_parser)
+
+        sensor_glucose_dates = new_sim_parser.sensor_glucose_history.datetimes[-num_history_values:]
+        sensor_glucose_values = [true_start_glucose] * num_history_values
+        new_sim_parser.sensor_glucose_history = GlucoseTrace(datetimes=sensor_glucose_dates, values=sensor_glucose_values)
+
+        patient_glucose_dates = new_sim_parser.patient_glucose_history.datetimes[-num_history_values:]
+        patient_glucose_values = [true_start_glucose] * num_history_values
+        new_sim_parser.patient_glucose_history = GlucoseTrace(datetimes=patient_glucose_dates, values=patient_glucose_values)
+
+        yield new_sim_parser
+
+
 def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
     """
     Build simulations for the FDA 510k Loop iCGM sensitivity analysis.
@@ -238,87 +258,92 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
     sims = {}
     for vp_idx, (vp_id, bg_scenario_dict) in enumerate(vp_scenario_dict.items()):
         print("VP", vp_idx)
-        for bg_cond_id, scenario_filename in bg_scenario_dict.items():
+        for bg_cond_id, scenario_filename in list(bg_scenario_dict.items())[:1]:
 
             scenario_path = os.path.join(scenarios_dir, scenario_filename)
-            sim_parser = ScenarioParserCSV(scenario_path)
+            original_sim_parser = ScenarioParserCSV(scenario_path)
 
-            # Save patient properties for analysis
-            vp_filename = "vp{}.json".format(vp_id)
-            vp_properties = {
-                "age": sim_parser.age,
-                "ylw": sim_parser.ylw,
-                "patient_scenario_filename": scenario_filename
-            }
-            with open(os.path.join(save_dir, vp_filename), "w") as file_to_write:
-                json.dump(vp_properties, file_to_write, indent=4)
+            for sim_parser in generate_sim_parser_starting_glucose(original_sim_parser):
 
-            t0 = sim_parser.get_simulation_start_time()
+                # Save patient properties for analysis
+                vp_filename = "vp{}.json".format(vp_id)
+                vp_properties = {
+                    "age": sim_parser.age,
+                    "ylw": sim_parser.ylw,
+                    "patient_scenario_filename": scenario_filename
+                }
+                with open(os.path.join(save_dir, vp_filename), "w") as file_to_write:
+                    json.dump(vp_properties, file_to_write, indent=4)
 
-            controller = LoopController(time=t0, controller_config=sim_parser.get_controller_config())
-            controller.num_hours_history = 8  # Force 8 hours to look for boluses at start of simulation
+                t0 = sim_parser.get_simulation_start_time()
 
-            pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
+                controller = LoopController(time=t0, controller_config=sim_parser.get_controller_config())
+                controller.num_hours_history = 8  # Force 8 hours to look for boluses at start of simulation
 
-            sensors = []
-            sim_seed = np.random.randint(0, 1e7)
+                pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
 
-            sensors.append(get_ideal_sensor(t0, sim_parser))
-            # sensors.append(get_icgm_sensor(t0, sim_parser, max_bias_percentage=0, random_state=RandomState(sim_seed)))
-            # sensors.append(get_dexcom_rate_sensor(t0, sim_parser, random_state=RandomState(sim_seed)))
+                sensors = []
+                sim_seed = np.random.randint(0, 1e7)
 
-            t0_true_bg = sim_parser.patient_glucose_history.bg_values[-1]
-            sampled_error_values = sample_uniformly_positive_error_cgm_ranges(t0_true_bg, num_samples=10)
-            # sampled_error_values = sample_worst_negative_error_cgm_ranges(t0_true_bg)
-            for initial_error_value in sampled_error_values:
-                sensors.append(get_initial_offset_sensor(t0, sim_parser, random_state=RandomState(sim_seed),
-                                                         initial_error_value=initial_error_value))
+                sensors.append(get_ideal_sensor(t0, sim_parser))
+                # sensors.append(get_icgm_sensor(t0, sim_parser, max_bias_percentage=0, random_state=RandomState(sim_seed)))
+                # sensors.append(get_dexcom_rate_sensor(t0, sim_parser, random_state=RandomState(sim_seed)))
 
-            print("Num sensors", len(sensors))
-            for sensor in sensors:
-                for analysis_type in analysis_type_list:
+                t0_true_bg = sim_parser.patient_glucose_history.bg_values[-1]
+                sampled_error_values = sample_uniformly_positive_error_cgm_ranges(t0_true_bg)
+                # sampled_error_values = sample_worst_negative_error_cgm_ranges(t0_true_bg)
+                for initial_error_value in sampled_error_values:
+                    sensors.append(get_initial_offset_sensor(t0, sim_parser, random_state=RandomState(sim_seed),
+                                                             initial_error_value=initial_error_value))
 
-                    sim_id = "vp{}.bg{}.s{}.{}".format(
-                        vp_id, bg_cond_id, sensor.name, analysis_type
-                    )
+                print("Num sensors", len(sensors))
+                for sensor in sensors:
+                    for analysis_type in analysis_type_list:
 
-                    # For restarting at same spot if things break midway
-                    # if os.path.exists(os.path.join(save_dir, "{}.tsv".format(sim_id))):
-                    #     continue
+                        sim_id = "vp{}.bg{}.s{}.{}".format(
+                            vp_id, bg_cond_id, sensor.name, analysis_type
+                        )
 
-                    vp = VirtualPatientISA(
-                        time=t0,
-                        pump=copy.deepcopy(pump),
-                        sensor=copy.deepcopy(sensor),
-                        metabolism_model=SimpleMetabolismModel,
-                        patient_config=copy.deepcopy(sim_parser.get_patient_config()),
-                        t0=t0,
-                        analysis_type=analysis_type,
-                    )
+                        # For restarting at same spot if things break midway
+                        # if os.path.exists(os.path.join(save_dir, "{}.tsv".format(sim_id))):
+                        #     continue
 
-                    sim = Simulation(
-                        time=t0,
-                        duration_hrs=8.0,
-                        virtual_patient=vp,
-                        controller=copy.deepcopy(controller),
-                        multiprocess=True,
-                        sim_id=sim_id
-                    )
+                        vp = VirtualPatientISA(
+                            time=t0,
+                            pump=copy.deepcopy(pump),
+                            sensor=copy.deepcopy(sensor),
+                            metabolism_model=SimpleMetabolismModel,
+                            patient_config=copy.deepcopy(sim_parser.get_patient_config()),
+                            t0=t0,
+                            analysis_type=analysis_type,
+                        )
 
-                    sim.seed = 0
-                    sims[sim_id] = sim
+                        sim = Simulation(
+                            time=t0,
+                            duration_hrs=8.0,
+                            virtual_patient=vp,
+                            controller=copy.deepcopy(controller),
+                            multiprocess=True,
+                            sim_id=sim_id
+                        )
 
-                    sim_ctr += 1
+                        sim.seed = 0
+                        sims[sim_id] = sim
 
-                    if sim_ctr == sim_batch_size:
-                        yield sims
-                        sims = {}
-                        sim_ctr = 0
+                        sim_ctr += 1
+
+                        if sim_ctr == sim_batch_size:
+                            yield sims
+                            sims = {}
+                            sim_ctr = 0
 
     yield sims
 
 
 def sim_id_without_sensor(sim_id):
+    if sim_id is None:
+        return
+
     return re.sub("\.s.*\.", "", sim_id)
 
 
@@ -639,7 +664,7 @@ if __name__ == "__main__":
 
     vp_scenario_dict = load_vp_training_data(scenarios_dir)
 
-    if 0:
+    if 1:
         sim_batch_size = 2
         sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=sim_batch_size)
 
@@ -671,20 +696,19 @@ if __name__ == "__main__":
                 except:
                     print("Bgs below zero.")
 
-    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
-    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"
+    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
+    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-11/"
 
     # On compute-1
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-03/"  # worst case negative bias, 887 sims
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"  # temp basal case
 
-    # plot_icgm_results(result_dir,
-    #                   sim_inspect_id="vp6fe50b9e99a575d7cca29bd011fb4b145923e8b6388e051cc626a07df7541c68.bg5.siCGM_200.0.correction_bolus.tsv")
+    # plot_icgm_results(result_dir, sim_inspect_id=None)
 
-    # compute_sim_summary_stats(result_dir)
+    compute_sim_summary_stats(result_dir)
 
-    summary_df_positive_bias_sims = pd.read_csv("./result_summary_positive_bias.csv", sep=",")
-    compute_risk_stats(summary_df_positive_bias_sims)
+    # summary_df_positive_bias_sims = pd.read_csv("./result_summary_positive_bias.csv", sep=",")
+    # compute_risk_stats(summary_df_positive_bias_sims)
 
     # To check before running
     # 1. Sensor behavior model & properties
