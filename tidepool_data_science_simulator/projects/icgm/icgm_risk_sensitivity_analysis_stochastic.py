@@ -1,8 +1,8 @@
 __author__ = "Cameron Summers"
 
-import time
 import pdb
 import sys
+import time
 import os
 import datetime
 import json
@@ -24,7 +24,7 @@ from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.evaluation.inspect_results import load_results, collect_sims_and_results, load_result
-from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results, plot_sim_icgm_paired
 
 from tidepool_data_science_simulator.models.icgm_sensor import (
     SensoriCGM, SensoriCGMModelOverlayNoiseBiasWorst, CLEAN_INITIAL_CONTROLS, iCGM_THRESHOLDS, SensoriCGMModelOverlayV1,
@@ -229,8 +229,8 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
     Scenario files are on Compute-2 in Cameron Summers' copy of this code base.
     """
     analysis_type_list = [
-        "temp_basal_only",
-        # "correction_bolus",
+        # "temp_basal_only",
+        "correction_bolus",
         # "meal_bolus"
     ]
 
@@ -318,24 +318,39 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
     yield sims
 
 
-def plot_icgm_results(result_dir):
+def sim_id_without_sensor(sim_id):
+    return re.sub("\.s.*\.", "", sim_id)
 
-    all_results = load_results(result_dir, ext="tsv", max_dfs=1000)
+
+def plot_icgm_results(result_dir, sim_inspect_id=None):
+
+    all_results = load_results(result_dir, ext="tsv", max_dfs=np.inf)
 
     sim_groups_to_plot = defaultdict(dict)
+    ideal_sims = defaultdict(dict)
     for sim_id, result_df in all_results.items():
-        non_sensor_id = re.sub("\.s.*\.", "", sim_id)
+        sensor_group_id = sim_id_without_sensor(sim_id)
         if "Ideal" in sim_id:
-            continue
-        sim_groups_to_plot[non_sensor_id][sim_id] = result_df
+            ideal_sims[sensor_group_id][sim_id] = result_df
+        else:
+            sim_groups_to_plot[sensor_group_id][sim_id] = result_df
 
+    sim_inspect_group_id = sim_id_without_sensor(sim_inspect_id)
     for sim_group_id, sim_group_results in sim_groups_to_plot.items():
+
+        if sim_inspect_id is not None and sim_inspect_group_id != sim_group_id:
+            continue
+
         plot_sim_results(sim_group_results)
 
+        # sim_group_results = {sim_id: results_df for i, (sim_id, results_df) in enumerate(sim_group_results.items()) if i == 10}
+        # sim_group_results.update({sim_id: result_df for sim_id, result_df in ideal_sims[sim_group_id].items()})
+        # plot_sim_icgm_paired(sim_group_results)
 
-def plot_sensor_error_vs_risk(result_dir):
 
-    sim_results = collect_sims_and_results(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=np.inf)
+def compute_sim_summary_stats(result_dir):
+
+    sim_results = collect_sims_and_results(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=100)
 
     summary_data = []
     for sim_id, sim_json_info in sim_results.items():
@@ -350,14 +365,14 @@ def plot_sensor_error_vs_risk(result_dir):
                 break
 
         df_results_dict = load_result(sim_json_info["result_path"])
-        df_results = df_results_dict[sim_json_info["result_path"]]
+        filename_icgm, df_results = list(df_results_dict.items())[0]
         true_bg = df_results['bg']
         true_bg[true_bg < 1] = 1
         lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(true_bg)
         dkai_icgm = dka_index(df_results['iob'], df_results["sbr"])
 
         df_results_ideal_dict = load_result(sim_json_info_match["result_path"])
-        df_results_ideal = df_results_ideal_dict[sim_json_info_match["result_path"]]
+        filename_ideal, df_results_ideal = list(df_results_ideal_dict.items())[0]
         true_bg = df_results_ideal["bg"]
         true_bg[true_bg < 1] = 1
         lbgi_ideal, hbgi_ideal, brgi_ideal = blood_glucose_risk_index(true_bg)
@@ -375,15 +390,28 @@ def plot_sensor_error_vs_risk(result_dir):
             "dkai_diff": dkai_icgm - dkai_ideal,
             "bg_condition": bg_cond,
             "true_start_bg": sim_json_info["patient"]["sensor"]["true_start_bg"],
-            "start_bg_with_offset": sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
+            "start_bg_with_offset": sim_json_info["patient"]["sensor"]["start_bg_with_offset"],
+            "sbr": df_results["sbr"].values[0],
+            "isf": df_results["isf"].values[0],
+            "cir": df_results["cir"].values[0],
+            "ylw": sim_json_info["controller"]["config"]["ylw"],
+            "age": sim_json_info["controller"]["config"]["ylw"],
+            "max_bolus_delivered": df_results["true_bolus"].max()
         }
 
         summary_data.append(row)
 
     summary_df = pd.DataFrame(summary_data)
 
-    compute_dka_risk_tp_icgm(summary_df)
-    compute_lbgi_risk_tp_icgm_negative_bias(summary_df)
+    summary_result_filepath = "./result_summary_{}.csv".format(datetime.datetime.now().isoformat())
+    summary_df.to_csv(summary_result_filepath, sep="\t")
+    print("Saved summary results to", summary_result_filepath)
+
+
+def compute_risk_stats(summary_df):
+
+    # compute_dka_risk_tp_icgm(summary_df)
+    # compute_lbgi_risk_tp_icgm_negative_bias(summary_df)
     compute_lbgi_risk_tp_icgm_positive_bias(summary_df)
 
 
@@ -397,11 +425,82 @@ def compute_lbgi_risk_tp_icgm_negative_bias(summary_df):
 
     initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
     print(summary_df[initially_ok_mask]["lbgi_icgm"].describe())
+    print("2.5 LBGI percentile",
+          summary_df[initially_ok_mask]["lbgi_icgm"].values.searchsorted(2.5)/len(summary_df[initially_ok_mask])*100)
+
+
+class RiskTableRev7(object):
+
+    def __init__(self):
+        self.table = np.zeros(shape=(5, 5))
+
+        self.table_severity_indices = {
+            (0.0, 2.5): 0,
+            (2.5, 5.0): 1,
+            (5.0, 10.0): 2,
+            (10.0, 20.0): 3,
+            (20.0, np.inf): 4
+        }
+
+        self.table_probability_indices = {
+            (14600000, np.inf): 0,
+            (1460000, 14599999): 1,
+            (14600, 1459999): 2,
+            (146, 14599): 3,
+            (0, 146): 4,
+        }
+
+    def get_probability_index(self, num_events_per_100k_person_years):
+
+        for bounds in self.table_probability_indices.keys():
+            if bounds[0] <= num_events_per_100k_person_years < bounds[1]:
+                return self.table_probability_indices[bounds]
+
+        raise Exception("Probability not in indices.")
+
+    def get_severity_index(self, severity_lbgi):
+
+        for bounds in self.table_severity_indices.keys():
+            if bounds[0] <= severity_lbgi < bounds[1]:
+                return self.table_severity_indices[bounds]
+
+        raise Exception("Severity not in indices.")
+
+    def add(self, severity_lbgi, num_events_per_100k_person_years):
+
+        severity_idx = self.get_severity_index(severity_lbgi)
+        prob_idx = self.get_probability_index(num_events_per_100k_person_years)
+
+        self.table[prob_idx, severity_idx] += 1
+
+    def is_problematic(self, severity_lbgi, num_events_per_100k_person_years):
+
+        severity_idx = self.get_severity_index(severity_lbgi)
+        prob_idx = self.get_probability_index(num_events_per_100k_person_years)
+        problematic = False
+        if (prob_idx, severity_idx) in [
+            (2, 3), (2, 4), (3, 3), (3, 4)
+        ]:
+            problematic = True
+
+        return problematic
+
+    def print(self):
+        print(pd.DataFrame(self.table))
 
 
 def compute_lbgi_risk_tp_icgm_positive_bias(summary_df):
 
     dexcome_value_model = DexcomG6ValueModel(concurrency_table="TP_iCGM")
+
+    summary_df["vp_id"] = summary_df["sim_id"].apply(lambda sim_id: re.search("(vp.*).bg\d", sim_id).groups()[0])
+
+    risk_table_per_error_bin_patient_prob = RiskTableRev7()
+    risk_table_per_error_bin_sim_prob = RiskTableRev7()
+    risk_table_per_sim = RiskTableRev7()
+
+    patient_percentages = []
+    lbgi_band = []
 
     expected_value = 0.0
     total_sims = 0
@@ -439,26 +538,90 @@ def compute_lbgi_risk_tp_icgm_positive_bias(summary_df):
     ]:
         true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
         icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (summary_df["start_bg_with_offset"] <= high_icgm)
-
         initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
 
+        concurrency_square_mask = true_mask & icgm_mask & initially_ok_mask
+
         # Metric - "expected severity"
-        severity = summary_df[true_mask & icgm_mask & initially_ok_mask]["lbgi_icgm"].mean()
+        severity = summary_df[concurrency_square_mask]["lbgi_icgm"].mean()
         if np.isnan(severity):
             severity = 0.0
-        num_total = len(summary_df[true_mask & icgm_mask & initially_ok_mask])
 
-        total_sims += num_total
+        p_error = dexcome_value_model.get_joint_probability(low_true, low_icgm)
+        p_corr_bolus_given_error = 3 / 288
+        num_cgm_per_100k_person_years = 288 * 365 * 100000
 
-        p_dexcom_square = dexcome_value_model.get_joint_probability(low_true, low_icgm)
+        num_total_sims = max(1, len(summary_df[concurrency_square_mask]))
 
-        expected_value += severity * p_dexcom_square
+        lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]
 
-        print(low_true, high_true, low_icgm, high_icgm, num_total)
-        print("P(lbgi > thresh | CB, true range, icgm range)", severity, "P(true range, icgm range)", p_dexcom_square, "\n")
+        num_total_patients = max(1, len(summary_df[concurrency_square_mask]["vp_id"].unique()))
+        for s_idx, severity_band in enumerate([(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)], 1):
+            severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
 
-    print("E[LBGI iCGM]", expected_value)
+            num_patients_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask]["vp_id"].unique())
+            num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
+
+            patient_prob = num_patients_in_severity_band / num_total_patients
+            sim_prob = num_sims_in_severity_band / num_total_sims
+
+            risk_prob_patient = patient_prob * p_corr_bolus_given_error * p_error
+            risk_prob_sim = sim_prob * p_corr_bolus_given_error * p_error
+
+            num_risk_events_patient = risk_prob_patient * num_cgm_per_100k_person_years
+            num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
+
+            patient_percentages.append(patient_prob)
+            lbgi_band.append(s_idx)
+
+            if not np.isnan(num_risk_events_patient) and num_risk_events_patient > 0.0:
+                risk_table_per_error_bin_patient_prob.add(severity_band[0], num_risk_events_patient)
+                # print(num_risk_events_patient)
+
+            if not np.isnan(num_risk_events_sim) and num_risk_events_sim > 0.0:
+                risk_table_per_error_bin_sim_prob.add(severity_band[0], num_risk_events_sim)
+                # print(num_risk_events_sim)
+
+            # if s_idx > 2 and patient_prob > 0.5:
+            # print(s_idx, patient_prob, sim_prob, num_total_patients, num_total_sims)
+            # print(low_true, high_true, low_icgm, high_icgm)
+
+        # p_settings = 1/99.0
+        # for i, row in summary_df[concurrency_square_mask].iterrows():
+        #
+        #     sim_severity = row["lbgi_icgm"]
+        #
+        #     # bg_error = max(10, row["start_bg_with_offset"] - row["true_start_bg"])
+        #     # p_corr_bolus_given_error /= (bg_error / 10)
+        #     # print(p_corr_bolus_given_error)
+        #
+        #     sim_prob = p_error * p_corr_bolus_given_error * p_settings
+        #     num_events_per_100k_person_years = sim_prob * num_cgm_per_100k_person_years
+        #     risk_table_per_sim.add(sim_severity, num_events_per_100k_person_years)
+        #
+        #     if risk_table_per_sim.is_problematic(sim_severity, num_events_per_100k_person_years):
+        #         print(num_events_per_100k_person_years)
+
+        # print("Num sims excluded", num_sims_excluded)
+        expected_value += severity * p_error
+
+        total_sims += num_total_sims
+
+        # print(low_true, high_true, low_icgm, high_icgm, num_total)
+        # print("Severity:", severity, "P(true range, icgm range)", p_error, "\n")
+
+    risk_table_per_error_bin_patient_prob.print()
+    risk_table_per_error_bin_sim_prob.print()
+    # risk_table_per_sim.print()
+
     print("Total sims", total_sims)
+
+    # print(risk_severities)
+    # print(risk_severities.values())
+    # print([val / sum(list(risk_severities.values())) for val in risk_severities.values()])
+
+    # plt.scatter(lbgi_band, patient_percentages)
+    # plt.show()
 
 
 # %%
@@ -508,16 +671,20 @@ if __name__ == "__main__":
                 except:
                     print("Bgs below zero.")
 
-    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
+    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"
 
     # On compute-1
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-03/"  # worst case negative bias, 887 sims
-    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"  # temp basal case
+    # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"  # temp basal case
 
-    # plot_icgm_results(result_dir)
+    # plot_icgm_results(result_dir,
+    #                   sim_inspect_id="vp6fe50b9e99a575d7cca29bd011fb4b145923e8b6388e051cc626a07df7541c68.bg5.siCGM_200.0.correction_bolus.tsv")
 
-    plot_sensor_error_vs_risk(result_dir)
+    # compute_sim_summary_stats(result_dir)
+
+    summary_df_positive_bias_sims = pd.read_csv("./result_summary_positive_bias.csv", sep=",")
+    compute_risk_stats(summary_df_positive_bias_sims)
 
     # To check before running
     # 1. Sensor behavior model & properties

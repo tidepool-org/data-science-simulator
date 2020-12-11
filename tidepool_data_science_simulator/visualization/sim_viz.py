@@ -11,6 +11,24 @@ style.use("seaborn-poster")  # sets the size of the charts
 style.use("ggplot")
 
 
+def plot_sim_icgm_paired(all_results):
+
+    for sim_id, ctrl_result_df in all_results.items():
+        if "Ideal" in sim_id:
+            plt.plot(ctrl_result_df["bg"].to_numpy(), label="True Glucose - Ideal", color="black")
+            plt.plot(ctrl_result_df["bg_sensor"].to_numpy(), label="CGM - Ideal", color="grey", marker="^", markersize=6, alpha=0.7)
+        else:
+            plt.plot(ctrl_result_df["bg"].to_numpy(), label="True Glucose - iCGM", color="purple")
+            plt.plot(ctrl_result_df["bg_sensor"].to_numpy(), label="iCGM", color="green", marker="^", markersize=6, alpha=0.7)
+
+    plt.legend()
+    plt.title("Example: Positive Bias iCGM Paired Simulation")
+    plt.xlabel("Time (5 min)")
+    plt.ylabel("BG (mg/dL)")
+    plt.ylim((0, 400))
+    plt.show()
+
+
 def plot_sim_results(all_results, save=False, n_sims_max_legend=5):
 
     # ==== TMP ====
@@ -22,7 +40,7 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5):
 
         # print(sim_id, ctrl_result_df.head(1).T)
 
-        ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple", linestyle=next(linestyle))
+        # ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple", linestyle=next(linestyle))
         ax[0].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["bg_sensor"], label="{} {}".format("bg", sim_id), color=next(color), linestyle=next(linestyle))
         # ax[0].scatter(range(len(ctrl_result_df)), ctrl_result_df["bg_sensor"], 4,
         #               label="{} {}".format("bg_sensor", sim_id),

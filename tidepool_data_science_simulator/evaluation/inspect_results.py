@@ -65,7 +65,8 @@ def load_result(result_filepath, ext="tsv"):
     df = pd.read_csv(result_filepath, sep=sep)
     df.set_index("time", inplace=True)
     df.index = pd.to_datetime(df.index)
-    all_results[result_filepath] = df
+    path, file = os.path.split(result_filepath)
+    all_results[file] = df
 
     return all_results
 
