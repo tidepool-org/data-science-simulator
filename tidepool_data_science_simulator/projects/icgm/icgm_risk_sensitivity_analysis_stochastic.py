@@ -13,7 +13,7 @@ from collections import defaultdict
 import numpy as np
 from numpy.random import RandomState
 import pandas as pd
-# import seaborn as sns
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 from tidepool_data_science_simulator.models.patient_for_icgm_sensitivity_analysis import VirtualPatientISA
@@ -437,7 +437,8 @@ def compute_risk_stats(summary_df):
 
     # compute_dka_risk_tp_icgm(summary_df)
     # compute_lbgi_risk_tp_icgm_negative_bias(summary_df)
-    compute_lbgi_risk_tp_icgm_positive_bias(summary_df)
+
+    score_risk_table(summary_df)
 
 
 def compute_dka_risk_tp_icgm(summary_df):
@@ -454,7 +455,7 @@ def compute_lbgi_risk_tp_icgm_negative_bias(summary_df):
           summary_df[initially_ok_mask]["lbgi_icgm"].values.searchsorted(2.5)/len(summary_df[initially_ok_mask])*100)
 
 
-class RiskTableRev7(object):
+class TPRiskTableRev7(object):
 
     def __init__(self):
         self.table = np.zeros(shape=(5, 5))
@@ -473,6 +474,34 @@ class RiskTableRev7(object):
             (14600, 1459999): 2,
             (146, 14599): 3,
             (0, 146): 4,
+        }
+
+        self.acceptability_regions = {
+            (0, 0): "Yellow",
+            (0, 1): "Red",
+            (0, 2): "Red",
+            (0, 3): "Red",
+            (0, 4): "Red",
+            (1, 0): "Green",
+            (1, 1): "Yellow",
+            (1, 2): "Red",
+            (1, 3): "Red",
+            (1, 4): "Red",
+            (2, 0): "Green",
+            (2, 1): "Yellow",
+            (2, 2): "Yellow",
+            (2, 3): "Red",
+            (2, 4): "Red",
+            (3, 0): "Green",
+            (3, 1): "Green",
+            (3, 2): "Yellow",
+            (3, 3): "Red",
+            (3, 4): "Red",
+            (4, 0): "Green",
+            (4, 1): "Green",
+            (4, 2): "Green",
+            (4, 3): "Yellow",
+            (4, 4): "Yellow",
         }
 
     def get_probability_index(self, num_events_per_100k_person_years):
@@ -503,9 +532,7 @@ class RiskTableRev7(object):
         severity_idx = self.get_severity_index(severity_lbgi)
         prob_idx = self.get_probability_index(num_events_per_100k_person_years)
         problematic = False
-        if (prob_idx, severity_idx) in [
-            (2, 3), (2, 4), (3, 3), (3, 4)
-        ]:
+        if self.acceptability_regions[(prob_idx, severity_idx)] == "Red":
             problematic = True
 
         return problematic
@@ -514,20 +541,165 @@ class RiskTableRev7(object):
         print(pd.DataFrame(self.table))
 
 
-def compute_lbgi_risk_tp_icgm_positive_bias(summary_df):
+class PositiveBiasiCGMRequirements():
+
+    def __init__(self, risk_table=TPRiskTableRev7(), true_ranges=None):
+
+        self.p_corr_bolus_given_error = 3.0 / 288.0
+        self.num_cgm_per_100k_person_years = 288 * 365 * 100000
+
+        self.true_ranges = true_ranges
+        if true_ranges is None:
+            self.true_ranges = [
+                (0, 40),
+                (40, 60),
+                (61, 80),
+                (81, 120),
+                (121, 160),
+                (161, 200),
+                (201, 250),
+                (251, 300),
+                (301, 350),
+                (351, 400),
+            ]
+
+        self.dexcom_pediatric_value_model = DexcomG6ValueModel(concurrency_table="pediatric")
+        total_data_points = np.sum(self.dexcom_pediatric_value_model.comparator_totals)
+        self.p_true_pediatric = np.array([v / total_data_points for v in self.dexcom_pediatric_value_model.comparator_totals])
+
+        self.risk_table = risk_table
+
+    def fit_positive_bias_prob(self, summary_df):
+
+        for i, (low_true, high_true) in enumerate(self.true_ranges):
+
+            for (low_icgm, high_icgm) in self.true_ranges[i:]:
+
+                initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
+                true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
+
+                icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (
+                            summary_df["start_bg_with_offset"] <= high_icgm)
+
+                concurrency_square_mask = true_mask & icgm_mask & initially_ok_mask
+                sub_df = summary_df[concurrency_square_mask]
+
+                p_error_max = self.fit_error_probability(sub_df)
+                p_requirements = self.dexcom_pediatric_value_model.get_joint_probability(low_true, low_icgm)
+
+                print(low_true, high_true, low_icgm, high_icgm, p_error_max, p_requirements)
+
+    def fit_positive_bias_range_and_prob(self, summary_df):
+
+        initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
+        # initially_ok_mask = summary_df["lbgi_ideal"] < 0.5
+
+        for i, (low_true, high_true) in enumerate(self.true_ranges):
+
+            true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
+
+            for (low_icgm, high_icgm) in self.true_ranges[i:]:
+
+                test_high_icgms = [high_icgm - i for i in range(0, 40, 1)]
+                mitigation_probs = []
+
+                for test_high_icgm in test_high_icgms:
+
+                    icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (
+                            summary_df["start_bg_with_offset"] <= test_high_icgm)
+
+                    concurrency_square_mask = true_mask & icgm_mask & initially_ok_mask
+                    sub_df = summary_df[concurrency_square_mask]
+
+                    # plt.hist(sub_df["true_start_bg"], alpha=0.5, label="True")
+                    # plt.hist(sub_df["start_bg_with_offset"], alpha=0.5, label="iCGM")
+                    # plt.legend()
+                    # plt.show()
+
+                    p_error_max = self.fit_error_probability(sub_df)
+
+                    mitigation_probs.append(p_error_max)
+                    p_requirements = self.dexcom_pediatric_value_model.get_joint_probability(low_true, low_icgm)
+
+                    print(low_true, high_true, low_icgm, test_high_icgm, p_error_max, p_requirements)
+                    print("Num sims", np.sum(concurrency_square_mask))
+
+                    if p_error_max is not None and p_error_max < p_requirements and (test_high_icgm - low_icgm) < 5:
+                        a = 1
+
+                plt.plot(test_high_icgms, mitigation_probs, label="Max P(True, iCGM)")
+                plt.axhline(p_requirements, label="Dexcom P(True, iCGM)", linestyle="--")
+                plt.legend()
+                plt.show()
+
+    def fit_error_probability(self, df, max_iters=20):
+
+        high_bound = 1.0
+        low_bound = 0.0
+
+        lbgi_data = df["lbgi_icgm"]
+
+        if len(lbgi_data) == 0:
+            return None
+
+        # Check if ok initially
+        if self.is_mitigated(lbgi_data, high_bound):
+            return high_bound
+
+        num_iters = 0
+        num_iters_not_mitigated = 0
+        test_bounds = []
+        while True:
+
+            test_bound = (high_bound - low_bound) / 2.0
+
+            if num_iters >= max_iters:
+                # plt.plot(test_bounds)
+                # plt.show()
+                # print(num_iters_not_mitigated)
+                return test_bound
+
+            test_bounds.append(test_bound)
+
+            if not self.is_mitigated(lbgi_data, test_bound):
+                high_bound = test_bound
+            else:
+                low_bound = test_bound
+                num_iters_not_mitigated += 1
+
+            num_iters += 1
+
+    def is_mitigated(self, lbgi_data, region_probability):
+
+        num_total_sims = len(lbgi_data)
+
+        for s_idx, severity_band in enumerate([(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)], 1):
+
+            severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
+            num_sims_in_severity_band = len(lbgi_data[severity_mask])
+            severity_prob = num_sims_in_severity_band / num_total_sims
+            risk_prob_sim = severity_prob * self.p_corr_bolus_given_error * region_probability
+            num_risk_events_sim = risk_prob_sim * self.num_cgm_per_100k_person_years
+
+            if self.risk_table.is_problematic(severity_band[0], num_risk_events_sim):
+                return False
+
+        return True
+
+
+def score_risk_table(summary_df):
 
     dexcome_value_model = DexcomG6ValueModel(concurrency_table="TP_iCGM")
 
     summary_df["vp_id"] = summary_df["sim_id"].apply(lambda sim_id: re.search("(vp.*).bg\d", sim_id).groups()[0])
 
-    risk_table_per_error_bin_patient_prob = RiskTableRev7()
-    risk_table_per_error_bin_sim_prob = RiskTableRev7()
-    risk_table_per_sim = RiskTableRev7()
+    risk_table_per_error_bin_patient_prob = TPRiskTableRev7()
+    risk_table_per_error_bin_sim_prob = TPRiskTableRev7()
+    risk_table_per_sim = TPRiskTableRev7()
 
     patient_percentages = []
     lbgi_band = []
 
-    expected_value = 0.0
     total_sims = 0
     for (low_true, high_true), (low_icgm, high_icgm) in [
         ((40, 60), (40, 60)),
@@ -567,11 +739,6 @@ def compute_lbgi_risk_tp_icgm_positive_bias(summary_df):
 
         concurrency_square_mask = true_mask & icgm_mask & initially_ok_mask
 
-        # Metric - "expected severity"
-        severity = summary_df[concurrency_square_mask]["lbgi_icgm"].mean()
-        if np.isnan(severity):
-            severity = 0.0
-
         p_error = dexcome_value_model.get_joint_probability(low_true, low_icgm)
         p_corr_bolus_given_error = 3 / 288
         num_cgm_per_100k_person_years = 288 * 365 * 100000
@@ -607,10 +774,6 @@ def compute_lbgi_risk_tp_icgm_positive_bias(summary_df):
                 risk_table_per_error_bin_sim_prob.add(severity_band[0], num_risk_events_sim)
                 # print(num_risk_events_sim)
 
-            # if s_idx > 2 and patient_prob > 0.5:
-            # print(s_idx, patient_prob, sim_prob, num_total_patients, num_total_sims)
-            # print(low_true, high_true, low_icgm, high_icgm)
-
         # p_settings = 1/99.0
         # for i, row in summary_df[concurrency_square_mask].iterrows():
         #
@@ -628,7 +791,6 @@ def compute_lbgi_risk_tp_icgm_positive_bias(summary_df):
         #         print(num_events_per_100k_person_years)
 
         # print("Num sims excluded", num_sims_excluded)
-        expected_value += severity * p_error
 
         total_sims += num_total_sims
 
@@ -649,6 +811,27 @@ def compute_lbgi_risk_tp_icgm_positive_bias(summary_df):
     # plt.show()
 
 
+def general_exploration():
+
+    # initially_ok_mask = (summary_df_positive_bias_sims["lbgi_ideal"] == 0)
+    # lbgi_range_mask = summary_df_positive_bias_sims["lbgi_icgm"] < 20.0
+    df = summary_df_positive_bias_sims  # [initially_ok_mask]# & lbgi_range_mask]
+    df["lbgi_diff_log"] = np.log2(df["lbgi_diff"])
+
+    # df['category'] = pd.cut(df["lbgi_icgm"], bins=[0, 2.5, 5.0, 10.0, 20.0, np.inf], labels=["1", "2", "3", "4", "5"])
+    df["category"] = pd.cut(df["lbgi_diff_log"], bins=[-np.inf, 1.321928, 2.321928, 3.321928, 4.321928, np.inf],
+                            labels=["1", "2", "3", "4", "5"])
+    df["error"] = df["start_bg_with_offset"] - df["true_start_bg"]
+    df["sbr-isf"] = df["sbr"] * df["isf"]
+
+    # sns.kdeplot(data=df, x="true_start_bg", y="start_bg_with_offset", hue="category", alpha=0.5, fill=True)
+    # plt.plot(range(40, 400), range(40, 400), color="grey", linestyle="--")
+
+    sns.kdeplot(data=df, x="error", hue="category")
+    plt.show()
+
+
+
 # %%
 if __name__ == "__main__":
 
@@ -664,7 +847,7 @@ if __name__ == "__main__":
 
     vp_scenario_dict = load_vp_training_data(scenarios_dir)
 
-    if 1:
+    if 0:
         sim_batch_size = 2
         sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=sim_batch_size)
 
@@ -705,10 +888,19 @@ if __name__ == "__main__":
 
     # plot_icgm_results(result_dir, sim_inspect_id=None)
 
-    compute_sim_summary_stats(result_dir)
+    # compute_sim_summary_stats(result_dir)
 
-    # summary_df_positive_bias_sims = pd.read_csv("./result_summary_positive_bias.csv", sep=",")
+    sim_run_887_filename_pos_bias_corr_bolus = "result_summary_positive_bias.csv"
+    sim_run_200k_filename = "result_summary_2020-12-13T05:55:01.004257.csv"
+    summary_df_positive_bias_sims = pd.read_csv(sim_run_200k_filename, sep="\t")
+
+    # Compute the risk table
     # compute_risk_stats(summary_df_positive_bias_sims)
+
+    # Fit the requirements
+    # requirements_model = PositiveBiasiCGMRequirements()
+    # requirements_model.fit_positive_bias_prob(summary_df_positive_bias_sims)
+    # requirements_model.fit_positive_bias_range_and_prob(summary_df_positive_bias_sims)
 
     # To check before running
     # 1. Sensor behavior model & properties
