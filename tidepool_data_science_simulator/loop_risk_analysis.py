@@ -14,7 +14,13 @@ from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySens
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_simulator.utils import timing
+from tidepool_data_science_metrics.insulin.insulin import dka_index
+from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
+from tidepool_data_science_metrics.insulin.insulin import dka_index, dka_risk_score
+from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index, lbgi_risk_score, percent_values_gt_180, percent_values_lt_40
 
+import numpy as np
+import pandas as pd
 
 @timing
 def compare_loop_to_pump_only(scenario_csv_filepath):
@@ -76,17 +82,37 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
 
         results_df = simulation.get_results_df()
         all_results[sim_id] = results_df
-
+    dkais = {}
+    lgbis = {}
+    for sim_id, results_df in all_results.items():
+        # TODO: Separate out into it's own function
+        risk_assessment_array = np.zeros((5, len(all_results)))
+        ids = []
+        for items, results_tuple in enumerate(all_results.items()):
+            ids.append(results_tuple[0])
+            dkai = dka_index(results_tuple[1]['iob'], results_tuple[1]['sbr'])
+            risk_assessment_array[0][items] = dkai
+            risk_assessment_array[1][items] = dka_risk_score(dkai)
+            lbgi, _, _ = blood_glucose_risk_index(results_tuple[1]['bg'])
+            risk_assessment_array[2][items] = lbgi
+            risk_assessment_array[3][items] = lbgi_risk_score(lbgi)
+            risk_assessment_array[4][items] = percent_values_lt_40(results_tuple[1]['bg'])
+        risk_assessment = pd.DataFrame(risk_assessment_array, columns=ids, index=['dkai', 'dkai_risk_score', 'lbgi',
+                                                                                      'lbgi_risk_score',
+                                                                                      'percent_less_than_40'])
+    print(file_name)
+    print(risk_assessment)
     plot_sim_results(all_results, save=False)
 
 
 if __name__ == "__main__":
 
-    scenarios_folder_path = "../data/raw/fda_risk_scenarios/"
-    scenario_file_names = os.listdir(scenarios_folder_path)
+    scenarios_folder_path = "/Users/shawnfoster/Documents/py4e/data-science-simulator/data/raw/fda_risk_scenarios"
+    scenario_file_names = sorted(os.listdir(scenarios_folder_path))
 
-    for file_name in scenario_file_names[:1]:
+    for file_name in scenario_file_names[1:]:
         scenario_csv_filepath = os.path.join(
             scenarios_folder_path, file_name
         )
         compare_loop_to_pump_only(scenario_csv_filepath)
+
