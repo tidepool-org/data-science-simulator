@@ -5,10 +5,13 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib.style as style
+import itertools
+
 
 style.use("seaborn-poster")  # sets the size of the charts
 style.use("ggplot")
 
+color = itertools.cycle(('g', 'r', 'y', 'orange', 'b'))
 
 def plot_sim_results(all_results, save=False):
 
@@ -17,10 +20,10 @@ def plot_sim_results(all_results, save=False):
     fig, ax = plt.subplots(3, 1, figsize=(16, 20))
     for sim_id, ctrl_result_df in all_results.items():
 
-        ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple")
-        ax[0].scatter(range(len(ctrl_result_df)), ctrl_result_df["bg_sensor"], 4,
-                      label="{} {}".format("bg_sensor", sim_id),
-                      color="green")
+        ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color=next(color))
+       # ax[0].scatter(range(len(ctrl_result_df)), ctrl_result_df["bg_sensor"], 4,
+        #              label="{} {}".format("bg_sensor", sim_id),
+         #             color="green")
         ax[0].set_title("BG Over Time")
         ax[0].set_xlabel("Time (5min)")
         ax[0].set_ylabel("BG (mg/dL)")
@@ -40,7 +43,7 @@ def plot_sim_results(all_results, save=False):
         ax[1].stem(ctrl_result_df["true_bolus"], label="{} {}".format("true bolus", sim_id))
         ax[1].stem(ctrl_result_df["reported_bolus"], linefmt='g--', markerfmt='X', label="{} {}".format("reported bolus", sim_id))
         ax[1].plot(ctrl_result_df["iob"], label="{} {}".format("iob", sim_id))
-        ax[1].set_ylim((0, 3))
+        ax[1].set_ylim((0, 10))
         ax[1].legend()
 
         ax[2].stem(ctrl_result_df["true_carb_value"], label="{} {}".format("true carb", sim_id))
@@ -48,7 +51,7 @@ def plot_sim_results(all_results, save=False):
         ax[2].set_title("Carb Events")
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")
-        ax[2].set_ylim((0, 40))
+        ax[2].set_ylim((0, 45))
         ax[2].legend()
 
         print(
