@@ -107,12 +107,13 @@ def compare_loop_to_pump_only(scenario_csv_filepath):
 
 if __name__ == "__main__":
 
-    scenarios_folder_path = "/Users/shawnfoster/Documents/py4e/data-science-simulator/data/raw/fda_risk_scenarios"
+    scenarios_folder_path = "../data/raw/fda_risk_scenarios"
     scenario_file_names = sorted(os.listdir(scenarios_folder_path))
 
-    for file_name in scenario_file_names[1:]:
-        scenario_csv_filepath = os.path.join(
-            scenarios_folder_path, file_name
-        )
-        compare_loop_to_pump_only(scenario_csv_filepath)
+    for file_name in scenario_file_names:
+        if file_name.startswith('Scenario'):
+            scenario_csv_filepath = os.path.join(
+                scenarios_folder_path, file_name
+            )
+            compare_loop_to_pump_only(scenario_csv_filepath)
 
