@@ -12,7 +12,7 @@ def get_canonical_controller_config(t0=DATETIME_DEFAULT):
     controller_settings = {
         "model": [360.0, 65],
         "momentum_data_interval": 15,
-        "suspend_threshold": 70,
+        "suspend_threshold":75,
         "dynamic_carb_absorption_enabled": True,
         "retrospective_correction_integration_interval": True,
         "recency_interval": 15,
@@ -21,7 +21,7 @@ def get_canonical_controller_config(t0=DATETIME_DEFAULT):
         "insulin_delay": 10,
         "carb_delay": 10,
         "default_absorption_times": [120.0, 180.0, 240.0],
-        "max_basal_rate": 35,
+        "max_basal_rate": 0.9,
         "max_bolus": 30,
         "retrospective_correction_enabled": True
     }

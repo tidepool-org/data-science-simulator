@@ -43,27 +43,27 @@ def get_canonical_risk_pump_config(t0=DATETIME_DEFAULT):
         basal_schedule=BasalSchedule24hr(
             t0,
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[BasalRate(0.3, "U/hr")],
+            values=[BasalRate(0.8, "U/hr")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         carb_ratio_schedule=SettingSchedule24Hr(
             t0,
             "CIR",
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[CarbInsulinRatio(20.0, "g/U")],
+            values=[CarbInsulinRatio(15.0, "g/U")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         insulin_sensitivity_schedule=SettingSchedule24Hr(
             t0,
             "ISF",
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[InsulinSensitivityFactor(150.0, "mg/dL/U")],
+            values=[InsulinSensitivityFactor(120.0, "mg/dL/U")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         target_range_schedule=TargetRangeSchedule24hr(
             t0,
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[TargetRange(100, 120, "mg/dL")],
+            values=[TargetRange(100, 115, "mg/dL")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         carb_event_timeline=pump_carb_timeline,
@@ -122,21 +122,21 @@ def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT):
         basal_schedule=BasalSchedule24hr(
             t0,
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[BasalRate(0.3, "mg/dL")],
+            values=[BasalRate(0.5, "mg/dL")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         carb_ratio_schedule=SettingSchedule24Hr(
             t0,
             "CIR",
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[CarbInsulinRatio(20.0, "g/U")],
+            values=[CarbInsulinRatio(13.0, "g/U")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         insulin_sensitivity_schedule=SettingSchedule24Hr(
             t0,
             "ISF",
             start_times=[SINGLE_SETTING_START_TIME],
-            values=[InsulinSensitivityFactor(150.0, "md/dL / U")],
+            values=[InsulinSensitivityFactor(50.0, "md/dL / U")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         glucose_history=true_bg_history,

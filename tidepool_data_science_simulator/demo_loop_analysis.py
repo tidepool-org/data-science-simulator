@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     scenarios_folder_path = "../data/raw/fda_risk_scenarios/"
     scenario_csv_filepath = os.path.join(
-        scenarios_folder_path, "Scenario-0-simulation-template - inputs.tsv"
+        scenarios_folder_path, "Scenario-1-simulation-template - inputs.tsv"
     )
 
     analyze_controllers(scenario_csv_filepath)
