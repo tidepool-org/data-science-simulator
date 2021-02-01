@@ -16,7 +16,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from tidepool_data_science_simulator.models.patient_for_icgm_sensitivity_analysis import VirtualPatientISA
+from tidepool_data_science_simulator.models.patient import VirtualPatientISA
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
@@ -26,7 +26,7 @@ from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySens
 from tidepool_data_science_simulator.evaluation.inspect_results import load_results, collect_sims_and_results, load_result
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results, plot_sim_icgm_paired
 
-from tidepool_data_science_simulator.models.icgm_sensor import (
+from tidepool_data_science_simulator.models.sensor_icgm import (
     SensoriCGM, SensoriCGMModelOverlayNoiseBiasWorst, CLEAN_INITIAL_CONTROLS, iCGM_THRESHOLDS, SensoriCGMModelOverlayV1,
     DexcomG6RateModel, DexcomG6ValueModel
 )
@@ -743,6 +743,8 @@ def score_risk_table(summary_df):
         p_corr_bolus_given_error = 3 / 288
         num_cgm_per_100k_person_years = 288 * 365 * 100000
 
+        num_initially_ok = np.sum(initially_ok_mask)
+        num_range_mask = np.sum(true_mask & icgm_mask)
         num_total_sims = max(1, len(summary_df[concurrency_square_mask]))
 
         lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]
@@ -797,7 +799,7 @@ def score_risk_table(summary_df):
         # print(low_true, high_true, low_icgm, high_icgm, num_total)
         # print("Severity:", severity, "P(true range, icgm range)", p_error, "\n")
 
-    risk_table_per_error_bin_patient_prob.print()
+    # risk_table_per_error_bin_patient_prob.print()
     risk_table_per_error_bin_sim_prob.print()
     # risk_table_per_sim.print()
 
@@ -880,22 +882,22 @@ if __name__ == "__main__":
                     print("Bgs below zero.")
 
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
-    result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-11/"
+    result_dir = "./data/processed/big_run_subset_2020-12-11"
 
     # On compute-1
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-03/"  # worst case negative bias, 887 sims
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"  # temp basal case
 
-    # plot_icgm_results(result_dir, sim_inspect_id=None)
+    plot_icgm_results(result_dir, sim_inspect_id=None)
 
     # compute_sim_summary_stats(result_dir)
 
-    sim_run_887_filename_pos_bias_corr_bolus = "result_summary_positive_bias.csv"
+    # sim_run_887_filename_pos_bias_corr_bolus = "result_summary_positive_bias.csv"
     sim_run_200k_filename = "result_summary_2020-12-13T05:55:01.004257.csv"
     summary_df_positive_bias_sims = pd.read_csv(sim_run_200k_filename, sep="\t")
 
     # Compute the risk table
-    # compute_risk_stats(summary_df_positive_bias_sims)
+    compute_risk_stats(summary_df_positive_bias_sims)
 
     # Fit the requirements
     # requirements_model = PositiveBiasiCGMRequirements()

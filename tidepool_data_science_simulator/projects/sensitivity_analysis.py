@@ -78,8 +78,8 @@ def build_metabolic_sensitivity_sims():
             "isf_change": isf_change,
             "cir_change": 0
         }
-        for br_change in [0.0]
-        for isf_change in [0, 0.2, 0.4, 0.6, 0.8, 1.0]
+        for br_change in [0.0, 0.05]
+        for isf_change in [0]#, 0.2, 0.4, 0.6, 0.8, 1.0]
     ]
 
     sims = {}
@@ -90,9 +90,13 @@ def build_metabolic_sensitivity_sims():
             patient_config.carb_ratio_schedule.set_override(patient_pgrid["patient_change"])
             patient_config.recommendation_accept_prob = patient_pgrid["recommendation_accept_prob"]
 
-            pump_config.basal_schedule.set_override(pump_pgrid["br_change"])
-            pump_config.insulin_sensitivity_schedule.set_override(pump_pgrid["isf_change"])
-            pump_config.carb_ratio_schedule.set_override(pump_pgrid["cir_change"])
+            # pump_config.basal_schedule.set_override(pump_pgrid["br_change"])
+            # pump_config.insulin_sensitivity_schedule.set_override(pump_pgrid["isf_change"])
+            # pump_config.carb_ratio_schedule.set_override(pump_pgrid["cir_change"])
+
+            pump_config.basal_schedule.set_override_abs(pump_pgrid["br_change"])
+            pump_config.insulin_sensitivity_schedule.set_override_abs(pump_pgrid["isf_change"])
+            pump_config.carb_ratio_schedule.set_override_abs(pump_pgrid["cir_change"])
 
             sensor_config.std_dev = 1.0
 
@@ -117,9 +121,13 @@ def build_metabolic_sensitivity_sims():
             patient_config.insulin_sensitivity_schedule.unset_override()
             patient_config.carb_ratio_schedule.unset_override()
 
-            pump_config.basal_schedule.unset_override()
-            pump_config.insulin_sensitivity_schedule.unset_override()
-            pump_config.carb_ratio_schedule.unset_override()
+            # pump_config.basal_schedule.unset_override()
+            # pump_config.insulin_sensitivity_schedule.unset_override()
+            # pump_config.carb_ratio_schedule.unset_override()
+
+            pump_config.basal_schedule.unset_override_abs()
+            pump_config.insulin_sensitivity_schedule.unset_override_abs()
+            pump_config.carb_ratio_schedule.unset_override_abs()
 
     return sims
 
@@ -158,11 +166,16 @@ if __name__ == "__main__":
 
     sims = build_metabolic_sensitivity_sims()
 
-    save_dir = "../../data/results/simulations/sensitivity_analysis_testing"
+    save_dir = "../../data/results/simulations/theo_tests/"
     all_results = run_simulations(sims,
                     save_dir=save_dir,
                     save_results=True,
                     num_procs=100)
+
+    for sim_id, results_df in all_results.items():
+        bolus_insulin_total = results_df["true_bolus"].sum()
+        basal_insulin_total = results_df["delivered_basal_insulin"].sum()
+        print(sim_id, bolus_insulin_total, basal_insulin_total, bolus_insulin_total + basal_insulin_total)
 
     # all_results = load_results(save_dir)
 

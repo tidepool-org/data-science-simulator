@@ -194,11 +194,11 @@ class Simulation(multiprocessing.Process):
             # Patient stuff
             true_bolus = simulation_state.patient_state.bolus
             if true_bolus is None:
-                true_bolus = Bolus(0, "U")
+                true_bolus = Bolus(None, "U")
 
             true_carb = simulation_state.patient_state.carb
             if true_carb is None:
-                true_carb = Carb(0, "g", 0)
+                true_carb = Carb(None, "g", 0)
 
             # Pump stuff
             pump_state = simulation_state.patient_state.pump_state
@@ -224,11 +224,11 @@ class Simulation(multiprocessing.Process):
 
                 reported_bolus = pump_state.bolus
                 if reported_bolus is None:
-                    reported_bolus = Bolus(0, "U")
+                    reported_bolus = Bolus(None, "U")
 
                 reported_carb = pump_state.carb
                 if reported_carb is None:
-                    reported_carb = Carb(0, "g", 0)
+                    reported_carb = Carb(None, "g", 0)
 
             row = {
                 "time": time,
@@ -371,6 +371,22 @@ class SettingSchedule24Hr(SimulationComponent):
             setting.value = setting.value / (1.0 + self.percentage_change)
             self.schedule[(start_time, end_time)] = setting
         self.percentage_change = None
+
+    def set_override_abs(self, absolute_change):
+
+        for (start_time, end_time), setting in self.schedule.items():
+            setting.value = setting.value + absolute_change
+            self.schedule[(start_time, end_time)] = setting
+        self.abs_change = absolute_change
+
+    def unset_override_abs(self):
+        """
+        Unset an override back to original values.
+        """
+        for (start_time, end_time), setting in self.schedule.items():
+            setting.value = setting.value - self.abs_change
+            self.schedule[(start_time, end_time)] = setting
+        self.abs_change = None
 
     def get_state(self):
         """

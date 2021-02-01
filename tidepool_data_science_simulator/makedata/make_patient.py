@@ -88,10 +88,11 @@ def get_canonical_sensor_config(t0=DATETIME_DEFAULT):
     """
 
     num_values = 137
+    sensor_bg_values_history = [110.0] * num_values
+
     sensor_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_values)]
     sensor_bg_dates.reverse()
-    sensor_bg_values = [110.0] * num_values
-    sensor_bg_history = GlucoseTrace(sensor_bg_dates, sensor_bg_values)
+    sensor_bg_history = GlucoseTrace(sensor_bg_dates, sensor_bg_values_history)
 
     sensor_config = SensorConfig(sensor_bg_history)
     return t0, sensor_config
@@ -114,10 +115,11 @@ def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT):
     patient_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
 
     num_glucose_values = 137
+    true_bg_values_history = [110.0] * num_glucose_values
+
     true_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_glucose_values)]
     true_bg_dates.reverse()
-    true_bg_values = [110.0] * num_glucose_values
-    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values)
+    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values_history)
 
     patient_config = PatientConfig(
         basal_schedule=BasalSchedule24hr(
@@ -217,10 +219,11 @@ def get_variable_risk_patient_config(random_state, t0=DATETIME_DEFAULT):
     patient_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
 
     num_glucose_values = 137
+    true_bg_values_history = [110.0] * num_glucose_values
+
     true_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_glucose_values)]
     true_bg_dates.reverse()
-    true_bg_values = [110.0] * num_glucose_values
-    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values)
+    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values_history)
 
     total_hours_in_day = 24
     hours_in_day = range(total_hours_in_day)
