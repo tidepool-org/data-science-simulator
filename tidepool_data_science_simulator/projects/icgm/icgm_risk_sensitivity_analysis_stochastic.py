@@ -31,39 +31,12 @@ from tidepool_data_science_simulator.models.sensor_icgm import (
     DexcomG6RateModel, DexcomG6ValueModel
 )
 from tidepool_data_science_simulator.makedata.scenario_parser import SensorConfig, GlucoseTrace
+from tidepool_data_science_simulator.makedata.make_icgm_patients import get_old_icgm_tidepool_patient_files_dict
 
 from tidepool_data_science_simulator.run import run_simulations
 
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index, percent_values_ge_70_le_180
 from tidepool_data_science_metrics.insulin.insulin import dka_index, dka_risk_score
-
-
-def load_vp_training_data(scenarios_dir):
-    """
-    Load scenarios in a dictionary for easier data management
-
-    Parameters
-    ----------
-    scenarios_dir: str
-        Path to directory with scenarios
-
-    Returns
-    -------
-    dict
-        Map of virtual patient id -> bg condition -> filename
-    """
-
-    file_names = os.listdir(scenarios_dir)
-    all_scenario_files = [filename for filename in file_names if filename.endswith('.csv')]
-    print("Num scenario files: {}".format(len(all_scenario_files)))
-
-    vp_scenario_dict = defaultdict(dict)
-    for filename in all_scenario_files:
-        vp_id = re.search("train_(.*)\.csv.+", filename).groups()[0]
-        bg_condition = re.search("condition(\d)", filename).groups()[0]
-        vp_scenario_dict[vp_id][bg_condition] = filename
-
-    return vp_scenario_dict
 
 
 def get_dexcom_rate_sensor(t0, sim_parser, random_state):
@@ -837,7 +810,6 @@ def general_exploration():
 # %%
 if __name__ == "__main__":
 
-    scenarios_dir = "data/raw/icgm-sensitivity-analysis-scenarios-2020-07-10/"
 
     today_timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
     working_dir = os.getcwd()
@@ -847,7 +819,7 @@ if __name__ == "__main__":
         os.makedirs(save_dir)
         print("Made director for results: {}".format(save_dir))
 
-    vp_scenario_dict = load_vp_training_data(scenarios_dir)
+    vp_scenario_dict = get_old_icgm_tidepool_patient_files_dict()
 
     if 0:
         sim_batch_size = 2

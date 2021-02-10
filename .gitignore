@@ -16,6 +16,10 @@ PHI-*
 # Mac OS
 .DS_Store
 
+*.log
+data/
+figures/
+
 
 # ---- Catch all ----
 

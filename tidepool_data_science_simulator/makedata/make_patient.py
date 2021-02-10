@@ -24,6 +24,29 @@ SINGLE_SETTING_DURATION = 1440
 DATETIME_DEFAULT = datetime.datetime(year=2019, month=8, day=15, hour=12, minute=0, second=0)
 
 
+def get_canonical_glucose_history(t0, num_glucose_values=137):
+    """
+    Common glucose history.
+
+    Parameters
+    ----------
+    t0 (datetime.datetime): time of last glucose value
+    num_glucose_values (int): num glucose values
+
+    Returns
+    -------
+        GlucoseTrace
+    """
+
+    true_bg_values_history = [110.0] * num_glucose_values
+
+    true_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_glucose_values)]
+    true_bg_dates.reverse()
+    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values_history)
+
+    return true_bg_history
+
+
 def get_canonical_risk_pump_config(t0=DATETIME_DEFAULT):
     """
     Get canonical pump config
@@ -86,14 +109,7 @@ def get_canonical_sensor_config(t0=DATETIME_DEFAULT):
     -------
     SensorConfig
     """
-
-    num_values = 137
-    sensor_bg_values_history = [110.0] * num_values
-
-    sensor_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_values)]
-    sensor_bg_dates.reverse()
-    sensor_bg_history = GlucoseTrace(sensor_bg_dates, sensor_bg_values_history)
-
+    sensor_bg_history = get_canonical_glucose_history(t0)
     sensor_config = SensorConfig(sensor_bg_history)
     return t0, sensor_config
 
@@ -114,12 +130,7 @@ def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT):
     patient_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
     patient_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
 
-    num_glucose_values = 137
-    true_bg_values_history = [110.0] * num_glucose_values
-
-    true_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_glucose_values)]
-    true_bg_dates.reverse()
-    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values_history)
+    true_bg_history = get_canonical_glucose_history(t0)
 
     patient_config = PatientConfig(
         basal_schedule=BasalSchedule24hr(
@@ -218,12 +229,7 @@ def get_variable_risk_patient_config(random_state, t0=DATETIME_DEFAULT):
     patient_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
     patient_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
 
-    num_glucose_values = 137
-    true_bg_values_history = [110.0] * num_glucose_values
-
-    true_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_glucose_values)]
-    true_bg_dates.reverse()
-    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values_history)
+    true_bg_history = get_canonical_glucose_history(t0)
 
     total_hours_in_day = 24
     hours_in_day = range(total_hours_in_day)
@@ -357,3 +363,4 @@ def get_pump_config_from_patient(random_state, patient_config, risk_level=0, t0=
     )
 
     return t0, pump_config
+

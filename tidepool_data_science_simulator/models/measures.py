@@ -38,6 +38,12 @@ class Measure(object):
     def __hash__(self):
         return hash((self.value, self.units))
 
+    def get_value(self):
+        return self.value
+
+    def get_units(self):
+        return self.units
+
 
 class MeasureRange(object):
     """
@@ -48,6 +54,10 @@ class MeasureRange(object):
         self.min_value = min_value
         self.max_value = max_value
         self.units = units
+
+    def get_value(self):
+
+        return self.min_value, self.max_value
 
 
 class BasalRate(Measure):

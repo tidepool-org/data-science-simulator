@@ -259,9 +259,11 @@ class Simulation(multiprocessing.Process):
                 time_horizon_ago = time - datetime.timedelta(minutes=horizon_minutes)
                 if time_horizon_ago in self.simulation_results and hasattr(self.simulation_results[time_horizon_ago].controller_state,
                                "pyloopkit_recommendations"):
-                    predicted_bgs_from_horizon_ago = self.simulation_results[time_horizon_ago].controller_state.pyloopkit_recommendations.get("predicted_glucose_values")
 
                     try:
+                        predicted_bgs_from_horizon_ago = self.simulation_results[
+                            time_horizon_ago].controller_state.pyloopkit_recommendations.get("predicted_glucose_values")
+
                         predicted_bg_at_horizon = predicted_bgs_from_horizon_ago[int(horizon_minutes / 5)]
                         loop_prediction_mae_true = abs(predicted_bg_at_horizon - simulation_state.patient_state.bg)
                         loop_prediction_mae_sensor = abs(predicted_bg_at_horizon - simulation_state.patient_state.sensor_bg)
@@ -441,7 +443,8 @@ class SettingSchedule24Hr(SimulationComponent):
         stateless_info = {
             "schedule": [
                 {
-                    "setting": str(setting),
+                    "setting": setting.get_value(),
+                    "units": setting.get_units(),
                     "start_time": start_time.strftime('%H:%M:%S'),
                     "end_time": end_time.strftime('%H:%M:%S')
                 }

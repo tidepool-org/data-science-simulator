@@ -12,10 +12,10 @@ import pdb
 
 # Setup Logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-LOG_FILENAME = "sim.log"
-filehandler = logging.FileHandler(LOG_FILENAME)
-logger.addHandler(filehandler)
+# logger.setLevel(logging.DEBUG)
+# LOG_FILENAME = "sim.log"
+# filehandler = logging.FileHandler(LOG_FILENAME)
+# logger.addHandler(filehandler)
 
 from tidepool_data_science_simulator.utils import timing, save_df
 
