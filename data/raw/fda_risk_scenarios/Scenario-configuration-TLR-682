@@ -47,10 +47,14 @@
           post: 75
         },
         correctionRangeMGDL: {
-          preLower: 70,
-          preUpper: 90,
-          postLower: 100,
-          postUpper: 105
+          Lower: {
+            pre: 70,
+            post: 90
+          },
+          Upper: {
+            pre: 100,
+            post: 105
+          }
         },
         basalRateUHr: 0.5,
         maximumBasalRateUHr: {
@@ -75,10 +79,14 @@
           post: 75
         },
         correctionRangeMGDL: {
-          preLower: 70,
-          preUpper: 90,
-          postLower: 100,
-          postUpper: 105
+          Lower: {
+            pre: 70,
+            post: 90
+          },
+          Upper: {
+            pre: 100,
+            post: 105
+          }
         },
         basalRateUHr: 0.8,
         maximumBasalRateUHr: {
@@ -103,10 +111,14 @@
           post: 80
         },
         correctionRangeMGDL: {
-          preLower: 70,
-          preUpper: 90,
-          postLower: 100,
-          postUpper: 115
+          Lower: {
+            pre: 70,
+            post: 90
+          },
+          Upper: {
+            pre: 100,
+            post: 115
+          }
         },
         basalRateUHr: 0.3,
         maximumBasalRateUHr: {
