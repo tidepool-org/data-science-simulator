@@ -1,0 +1,156 @@
+{
+  riskID: "TLR-682",
+  description: "Manual bolus is higher than intended (digit entry error)",
+  simulator: loopKitSimulator, // some identifier of the simulator to be run
+  overrides: [
+    {
+      profile: {
+        type: median,
+        carbEntryForMealBolusG: 32.5,
+      },
+      simulation: {
+        doseValues: 2.5,
+        actualDoses: 5.2
+      }
+    },
+    {
+      profile: {
+        type: resistant,
+        carbEntryForMealBolusG: 25,
+      },
+      simulation: {
+        doseValues: 2.5,
+        actualDoses: 5.2
+      }
+    },
+    {
+      profile: {
+        type: sensitive,
+        carbEntryForMealBolusG: 37.5,
+      },
+      simulation: {
+        doseValues: 2.5,
+        actualDoses: 5.2
+      }
+    }
+  ]
+},
+{
+  profiles: [
+    {
+      type: median,
+      configuration: {
+        startingGlucoseValueMGDL: 110,
+        carbAbsorptionMinutes: 180,
+        glucoseSafetyLimitMGDL: {
+          pre: 70,
+          post: 75
+        },
+        correctionRangeMGDL: {
+          preLower: 70,
+          preUpper: 90,
+          postLower: 100,
+          postUpper: 105
+        },
+        basalRateUHr: 0.5,
+        maximumBasalRateUHr: {
+          pre: 35,
+          post: 1.75
+        },
+        maximumBolusU: 30,
+        insulinModel: rapidActingAdult,
+        carbRatio: 13,
+        isf: 50,
+        carbEntryForMealBolusG: 43,
+        insulinForMealBolusU: 3.3
+      }
+    },
+    {
+      type: resistant,
+      configuration: {
+        startingGlucoseValueMGDL: 110,
+        carbAbsorptionMinutes: 180,
+        glucoseSafetyLimitMGDL: {
+          pre: 70,
+          post: 75
+        },
+        correctionRangeMGDL: {
+          preLower: 70,
+          preUpper: 90,
+          postLower: 100,
+          postUpper: 105
+        },
+        basalRateUHr: 0.8,
+        maximumBasalRateUHr: {
+          pre: 35,
+          post: 2.8
+        },
+        maximumBolusU: 30,
+        insulinModel: rapidActingAdult,
+        carbRatio: 10,
+        isf: 49,
+        carbEntryForMealBolusG: 31,
+        insulinForMealBolusU: 3.1
+      }
+    },
+    {
+      type: sensitive,
+      configuration: {
+        startingGlucoseValueMGDL: 110,
+        carbAbsorptionMinutes: 180,
+        glucoseSafetyLimitMGDL: {
+          pre: 70,
+          post: 80
+        },
+        correctionRangeMGDL: {
+          preLower: 70,
+          preUpper: 90,
+          postLower: 100,
+          postUpper: 115
+        },
+        basalRateUHr: 0.3,
+        maximumBasalRateUHr: {
+          pre: 35,
+          post: 0.9
+        },
+        maximumBolusU: 30,
+        insulinModel: rapidActingChild,
+        carbRatio: 15,
+        isf: 120,
+        carbEntryForMealBolusG: 25,
+        insulinForMealBolusU: 1.65
+      }
+    }
+  ],
+}
+{
+  simulator: {
+    id: loopKitSimulator
+    configuration: {
+      model:  [360.0, 65],
+      momentumDataInterval: 15,
+      dynamicCarbAbsorptionEnabled: true,
+      retrospectiveCorrectionIntegrationInterval: 30,
+      recencyInterval: 15,
+      retrospectiveCorrectionGroupingInterval: 30,
+      rateRounder: 0.05,
+      insulinDelay:	10,
+      carbDelay: 10,
+      defaultAbsorptionTimes: [120.0, 180.0, 240.0],
+      retrospectiveCorrectionEnabled: true,
+      offsetAppliedToDates: 0,
+      timeToCalculateAt: 8/15/2019 12:00:00,
+      basalRateStartRimes: 0:00:00,
+      basalRateMinutes: 1440,
+      carbDates: 8/15/2019 12:00:00,
+      carbRatioStartTimes: 0:00:00,
+      doseTypes: DoseType.bolus,
+      doseStartTimes:	8/15/2019 12:00:00,
+      doseEndTimes:	8/15/2019 12:00:00,
+      sensitivityRatioStartTimes: 0:00:00,
+      sensitivityRatioEndTimes: 0:00:00,
+      targetRangeStartTimes: 0:00:00,
+      targetRangeEndTimes: 0:00:00
+    }
+  }
+}
