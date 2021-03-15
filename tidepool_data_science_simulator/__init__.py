@@ -26,3 +26,16 @@ console.setFormatter(formatter)
 
 # add the handler to the root logger
 logging.getLogger('').addHandler(console)
+
+
+# For Development. When True, use local dev code
+USE_LOCAL_PYLOOPKIT = False
+
+if USE_LOCAL_PYLOOPKIT:
+    logger = logging.getLogger(__name__)
+    logger.debug("========== Importing Local Pyloopkit ============")
+    import sys
+    this_dir = os.path.dirname(__file__)
+    local_pyloopkit_path = os.path.join("../../PyLoopKit/")  # Assume simulator and
+    assert os.path.isdir(local_pyloopkit_path)
+    sys.path.insert(0, local_pyloopkit_path)

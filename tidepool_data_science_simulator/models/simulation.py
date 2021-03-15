@@ -75,7 +75,6 @@ class Simulation(multiprocessing.Process):
         multiprocess=False,
         random_state=None,
     ):
-
         # To enable multiprocessing
         super().__init__()
         self.queue = multiprocessing.Queue()
@@ -192,13 +191,7 @@ class Simulation(multiprocessing.Process):
         for time, simulation_state in self.simulation_results.items():
 
             # Patient stuff
-            true_bolus = simulation_state.patient_state.bolus
-            if true_bolus is None:
-                true_bolus = Bolus(None, "U")
-
-            true_carb = simulation_state.patient_state.carb
-            if true_carb is None:
-                true_carb = Carb(None, "g", 0)
+            patient_state = simulation_state.patient_state
 
             # Pump stuff
             pump_state = simulation_state.patient_state.pump_state
@@ -222,14 +215,6 @@ class Simulation(multiprocessing.Process):
                 delivered_basal_insulin = pump_state.delivered_basal_insulin
                 undelivered_basal_insulin = pump_state.undelivered_basal_insulin
 
-                reported_bolus = pump_state.bolus
-                if reported_bolus is None:
-                    reported_bolus = Bolus(None, "U")
-
-                reported_carb = pump_state.carb
-                if reported_carb is None:
-                    reported_carb = Carb(None, "g", 0)
-
             row = {
                 "time": time,
                 "bg": simulation_state.patient_state.bg,
@@ -243,19 +228,19 @@ class Simulation(multiprocessing.Process):
                 "pump_sbr": pump_sbr,
                 "pump_isf": pump_isf,
                 "pump_cir": pump_cir,
-                "true_bolus": true_bolus.value,
-                "true_carb_value": true_carb.value,
-                "true_carb_duration": true_carb.duration_minutes,
-                "reported_bolus": reported_bolus.value,
-                "reported_carb_value": reported_carb.value,
-                "reported_carb_duration": reported_carb.duration_minutes,
+                "true_bolus": patient_state.get_bolus_value(),
+                "true_carb_value": patient_state.get_carb_value(),
+                "true_carb_duration": patient_state.get_carb_duration(),
+                "reported_bolus": pump_state.get_bolus_value(),
+                "reported_carb_value": pump_state.get_carb_value(),
+                "reported_carb_duration": pump_state.get_carb_duration(),
                 "delivered_basal_insulin": delivered_basal_insulin,
                 "undelivered_basal_insulin": undelivered_basal_insulin,
                 "randint": simulation_state.randint
             }
 
             # Controller stuff
-            for horizon_minutes in [15, 30, 60, 90]:
+            for horizon_minutes in [15, 30, 60, 90, 360]:
                 time_horizon_ago = time - datetime.timedelta(minutes=horizon_minutes)
                 if time_horizon_ago in self.simulation_results and hasattr(self.simulation_results[time_horizon_ago].controller_state,
                                "pyloopkit_recommendations"):

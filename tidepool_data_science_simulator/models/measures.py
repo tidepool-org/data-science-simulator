@@ -190,6 +190,9 @@ class Carb(Measure):
 
         self.duration_minutes = int(duration_minutes)
 
+    def get_duration(self):
+        return self.duration_minutes
+
 
 class CarbInsulinRatio(Measure):
     """

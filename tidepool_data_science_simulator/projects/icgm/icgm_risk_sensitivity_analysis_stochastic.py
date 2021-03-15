@@ -16,6 +16,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+import logging
+
 from tidepool_data_science_simulator.models.patient import VirtualPatientISA
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
@@ -37,6 +39,10 @@ from tidepool_data_science_simulator.run import run_simulations
 
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index, percent_values_ge_70_le_180
 from tidepool_data_science_metrics.insulin.insulin import dka_index, dka_risk_score
+
+from tidepool_data_science_simulator.makedata.make_icgm_patients import ICGM_SCENARIOS_DIR
+
+logger = logging.getLogger(__name__)
 
 
 def get_dexcom_rate_sensor(t0, sim_parser, random_state):
@@ -199,8 +205,12 @@ def sample_worst_negative_error_cgm_ranges(value):
 
 def generate_sim_parser_starting_glucose(original_sim_parser):
 
-    num_history_values = 6
-    for true_start_glucose in range(40, 400, 5):
+    num_history_values = 137
+
+    tmp_vals = [85]
+
+    # for true_start_glucose in range(40, 400, 5):
+    for true_start_glucose in tmp_vals:
 
         new_sim_parser = copy.deepcopy(original_sim_parser)
 
@@ -229,11 +239,12 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
 
     sim_ctr = 0
     sims = {}
-    for vp_idx, (vp_id, bg_scenario_dict) in enumerate(vp_scenario_dict.items()):
-        print("VP", vp_idx)
+
+    for vp_idx, (vp_id, bg_scenario_dict) in enumerate(list(vp_scenario_dict.items())[:1]):
+        logger.info("VP: {}".format(vp_idx))
         for bg_cond_id, scenario_filename in list(bg_scenario_dict.items())[:1]:
 
-            scenario_path = os.path.join(scenarios_dir, scenario_filename)
+            scenario_path = os.path.join(ICGM_SCENARIOS_DIR, scenario_filename)
             original_sim_parser = ScenarioParserCSV(scenario_path)
 
             for sim_parser in generate_sim_parser_starting_glucose(original_sim_parser):
@@ -241,16 +252,19 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
                 # Save patient properties for analysis
                 vp_filename = "vp{}.json".format(vp_id)
                 vp_properties = {
-                    "age": sim_parser.age,
-                    "ylw": sim_parser.ylw,
+                    "age": sim_parser.get_controller_config().controller_settings["age"],
+                    "ylw": sim_parser.get_controller_config().controller_settings["ylw"],
                     "patient_scenario_filename": scenario_filename
                 }
-                with open(os.path.join(save_dir, vp_filename), "w") as file_to_write:
-                    json.dump(vp_properties, file_to_write, indent=4)
+                # with open(os.path.join(save_dir, vp_filename), "w") as file_to_write:
+                #     json.dump(vp_properties, file_to_write, indent=4)
 
                 t0 = sim_parser.get_simulation_start_time()
 
-                controller = LoopController(time=t0, controller_config=sim_parser.get_controller_config())
+                controller_config = sim_parser.get_controller_config()
+                controller_config.controller_settings["max_physiologic_slope"] = 4
+
+                controller = LoopController(time=t0, controller_config=controller_config)
                 controller.num_hours_history = 8  # Force 8 hours to look for boluses at start of simulation
 
                 pump = ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config())
@@ -258,18 +272,21 @@ def build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=30):
                 sensors = []
                 sim_seed = np.random.randint(0, 1e7)
 
-                sensors.append(get_ideal_sensor(t0, sim_parser))
+                # sensors.append(get_ideal_sensor(t0, sim_parser))
                 # sensors.append(get_icgm_sensor(t0, sim_parser, max_bias_percentage=0, random_state=RandomState(sim_seed)))
                 # sensors.append(get_dexcom_rate_sensor(t0, sim_parser, random_state=RandomState(sim_seed)))
 
                 t0_true_bg = sim_parser.patient_glucose_history.bg_values[-1]
                 sampled_error_values = sample_uniformly_positive_error_cgm_ranges(t0_true_bg)
                 # sampled_error_values = sample_worst_negative_error_cgm_ranges(t0_true_bg)
-                for initial_error_value in sampled_error_values:
+                worst_value = [sampled_error_values[-1]]
+                # for initial_error_value in sampled_error_values:
+                for initial_error_value in worst_value:
+
                     sensors.append(get_initial_offset_sensor(t0, sim_parser, random_state=RandomState(sim_seed),
                                                              initial_error_value=initial_error_value))
 
-                print("Num sensors", len(sensors))
+                logger.info("Num sensors: {}".format(len(sensors)))
                 for sensor in sensors:
                     for analysis_type in analysis_type_list:
 
@@ -348,7 +365,7 @@ def plot_icgm_results(result_dir, sim_inspect_id=None):
 
 def compute_sim_summary_stats(result_dir):
 
-    sim_results = collect_sims_and_results(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=100)
+    sim_results = collect_sims_and_results(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=1e12)
 
     summary_data = []
     for sim_id, sim_json_info in sim_results.items():
@@ -378,6 +395,12 @@ def compute_sim_summary_stats(result_dir):
 
         bg_cond = int(re.search("bg(\d)", sim_id).groups()[0])
 
+        true_bg_start = sim_json_info["patient"]["sensor"]["true_start_bg"]
+        sensor_bg_start = sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
+        target_bg = 110
+        isf = df_results["isf"].values[0]
+        max_bolus_delivered = df_results["true_bolus"].max()
+        traditional_bolus_delivered = max(0, (sensor_bg_start - target_bg) / isf)
         row = {
             "sim_id": sim_id,
             "lbgi_icgm": lbgi_icgm,
@@ -387,14 +410,16 @@ def compute_sim_summary_stats(result_dir):
             "dkai_ideal": dkai_ideal,
             "dkai_diff": dkai_icgm - dkai_ideal,
             "bg_condition": bg_cond,
-            "true_start_bg": sim_json_info["patient"]["sensor"]["true_start_bg"],
-            "start_bg_with_offset": sim_json_info["patient"]["sensor"]["start_bg_with_offset"],
+            "true_start_bg": true_bg_start,
+            "start_bg_with_offset": sensor_bg_start,
             "sbr": df_results["sbr"].values[0],
-            "isf": df_results["isf"].values[0],
+            "isf": isf,
             "cir": df_results["cir"].values[0],
             "ylw": sim_json_info["controller"]["config"]["ylw"],
-            "age": sim_json_info["controller"]["config"]["ylw"],
-            "max_bolus_delivered": df_results["true_bolus"].max()
+            "age": sim_json_info["controller"]["config"]["age"],
+            "max_bolus_delivered": max_bolus_delivered,
+            "traditional_bolus_delivered": traditional_bolus_delivered,
+            "bolus_diff": max_bolus_delivered - traditional_bolus_delivered
         }
 
         summary_data.append(row)
@@ -403,7 +428,7 @@ def compute_sim_summary_stats(result_dir):
 
     summary_result_filepath = "./result_summary_{}.csv".format(datetime.datetime.now().isoformat())
     summary_df.to_csv(summary_result_filepath, sep="\t")
-    print("Saved summary results to", summary_result_filepath)
+    logger.info("Saved summary results to", summary_result_filepath)
 
 
 def compute_risk_stats(summary_df):
@@ -417,14 +442,14 @@ def compute_risk_stats(summary_df):
 def compute_dka_risk_tp_icgm(summary_df):
 
     initially_ok_mask = summary_df["dkai_ideal"] == 0.0
-    print(summary_df[initially_ok_mask]["dkai_icgm"].describe())
+    logger.info(summary_df[initially_ok_mask]["dkai_icgm"].describe())
 
 
 def compute_lbgi_risk_tp_icgm_negative_bias(summary_df):
 
     initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
-    print(summary_df[initially_ok_mask]["lbgi_icgm"].describe())
-    print("2.5 LBGI percentile",
+    logger.info(summary_df[initially_ok_mask]["lbgi_icgm"].describe())
+    logger.info("2.5 LBGI percentile",
           summary_df[initially_ok_mask]["lbgi_icgm"].values.searchsorted(2.5)/len(summary_df[initially_ok_mask])*100)
 
 
@@ -560,7 +585,7 @@ class PositiveBiasiCGMRequirements():
                 p_error_max = self.fit_error_probability(sub_df)
                 p_requirements = self.dexcom_pediatric_value_model.get_joint_probability(low_true, low_icgm)
 
-                print(low_true, high_true, low_icgm, high_icgm, p_error_max, p_requirements)
+                logger.info(low_true, high_true, low_icgm, high_icgm, p_error_max, p_requirements)
 
     def fit_positive_bias_range_and_prob(self, summary_df):
 
@@ -594,8 +619,8 @@ class PositiveBiasiCGMRequirements():
                     mitigation_probs.append(p_error_max)
                     p_requirements = self.dexcom_pediatric_value_model.get_joint_probability(low_true, low_icgm)
 
-                    print(low_true, high_true, low_icgm, test_high_icgm, p_error_max, p_requirements)
-                    print("Num sims", np.sum(concurrency_square_mask))
+                    logger.info(low_true, high_true, low_icgm, test_high_icgm, p_error_max, p_requirements)
+                    logger.info("Num sims", np.sum(concurrency_square_mask))
 
                     if p_error_max is not None and p_error_max < p_requirements and (test_high_icgm - low_icgm) < 5:
                         a = 1
@@ -776,7 +801,7 @@ def score_risk_table(summary_df):
     risk_table_per_error_bin_sim_prob.print()
     # risk_table_per_sim.print()
 
-    print("Total sims", total_sims)
+    logger.info("Total sims", total_sims)
 
     # print(risk_severities)
     # print(risk_severities.values())
@@ -813,16 +838,16 @@ if __name__ == "__main__":
 
     today_timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
     working_dir = os.getcwd()
-    save_dir = os.path.join(working_dir, "data/processed/icgm-sensitivity-analysis-results-" + today_timestamp)
+    result_dir = os.path.join(working_dir, "data/processed/icgm-sensitivity-analysis-results-" + today_timestamp)
 
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-        print("Made director for results: {}".format(save_dir))
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+        logger.info("Made director for results: {}".format(result_dir))
 
     vp_scenario_dict = get_old_icgm_tidepool_patient_files_dict()
 
-    if 0:
-        sim_batch_size = 2
+    if 1:
+        sim_batch_size = 1
         sim_batch_generator = build_icgm_sim_generator(vp_scenario_dict, sim_batch_size=sim_batch_size)
 
         start_time = time.time()
@@ -832,14 +857,14 @@ if __name__ == "__main__":
 
             all_results = run_simulations(
                 sim_batch,
-                save_dir=save_dir,
+                save_dir=result_dir,
                 save_results=True,
                 num_procs=sim_batch_size
             )
             batch_total_time = (time.time() - batch_start_time) / 60
             run_total_time = (time.time() - start_time) / 60
-            print("Batch {}".format(i))
-            print("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
+            logger.info("Batch {}".format(i))
+            logger.info("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
 
             for sim_id, result_df in all_results.items():
                 if "Ideal" in sim_id:
@@ -847,29 +872,25 @@ if __name__ == "__main__":
 
                 sim_id_icgm = sim_id
 
-                try:
-                    lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(all_results[sim_id_icgm]['bg'])
-                    print("LBGI iCGM: {}".format(lbgi_icgm))
-                except:
-                    print("Bgs below zero.")
-
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-02-positive_bias_with_requirements/"
-    result_dir = "./data/processed/big_run_subset_2020-12-11"
+    # result_dir = "./data/processed/icgm/big_run_subset_2020-12-11"
+
+    # result_dir = "./data/processed/icgm/icgm-sensitivity-analysis-results-2020-12-11"  # 200k run on compute-2
 
     # On compute-1
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-03/"  # worst case negative bias, 887 sims
     # result_dir = "./data/processed/icgm-sensitivity-analysis-results-2020-12-04/"  # temp basal case
 
-    plot_icgm_results(result_dir, sim_inspect_id=None)
+    # plot_icgm_results(result_dir, sim_inspect_id=None)
 
     # compute_sim_summary_stats(result_dir)
 
     # sim_run_887_filename_pos_bias_corr_bolus = "result_summary_positive_bias.csv"
-    sim_run_200k_filename = "result_summary_2020-12-13T05:55:01.004257.csv"
-    summary_df_positive_bias_sims = pd.read_csv(sim_run_200k_filename, sep="\t")
+    # sim_run_200k_filename = "result_summary_2020-12-13T05:55:01.004257.csv"
+    # summary_df_positive_bias_sims = pd.read_csv(sim_run_200k_filename, sep="\t")
 
     # Compute the risk table
-    compute_risk_stats(summary_df_positive_bias_sims)
+    # compute_risk_stats(summary_df_positive_bias_sims)
 
     # Fit the requirements
     # requirements_model = PositiveBiasiCGMRequirements()

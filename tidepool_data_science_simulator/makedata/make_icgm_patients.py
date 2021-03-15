@@ -8,6 +8,10 @@ import json
 
 import datetime
 
+import pandas as pd
+import numpy as np
+import scipy.stats as st
+
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr
 )
@@ -19,6 +23,7 @@ from tidepool_data_science_simulator.models.measures import (
 )
 
 THIS_DIR = os.path.dirname(__file__)
+RAW_DATA_DIR = os.path.join(THIS_DIR, "../../data/raw/")
 ICGM_SCENARIOS_DIR = os.path.join(THIS_DIR, "../../data/raw/icgm-sensitivity-analysis-scenarios-2020-07-10/")
 PROCESSED_DATA_DIR = os.path.join(THIS_DIR, "../../data/processed/")
 
@@ -56,6 +61,74 @@ class iCGMPatient():
     def get_patient_id(self):
         return self.patient_id
 
+    def sample_total_daily_dose_by_age(self, random_state):
+        """
+        Get total units given in a day based on Tidepool blog post. Initially just
+        returning the median, but once we get the distributions can sample from them.
+
+        https://www.tidepool.org/blog/lets-talk-about-your-insulin-pump-data
+
+        Returns
+        -------
+            float: Number of units
+        """
+
+        tdd_units = None
+        if 0 <= self.age < 6:
+            tdd_units = 15
+        elif 6 <= self.age < 9:
+            tdd_units = 18
+        elif 9 <= self.age < 12:
+            tdd_units = 28
+        elif 12 <= self.age < 15:
+            tdd_units = 46
+        elif 15 <= self.age < 18:
+            tdd_units = 50
+        elif 18 <= self.age < 21:
+            tdd_units = 42
+        elif 21 <= self.age < 25:
+            tdd_units = 44
+        elif 25 <= self.age < 30:
+            tdd_units = 45
+        elif 30 <= self.age < 35:
+            tdd_units = 39
+        elif 35 <= self.age < 40:
+            tdd_units = 45
+        elif 40 <= self.age < 50:
+            tdd_units = 40
+        elif 50 <= self.age < 60:
+            tdd_units = 41
+        elif 60 <= self.age < 70:
+            tdd_units = 37
+        elif 70 <= self.age:
+            tdd_units = 27
+
+        return tdd_units
+
+    def sample_weight_kg_by_age(self, random_state):
+        """
+        Get a weight using CDC growth data tables by age.
+
+        https://www.cdc.gov/growthcharts/percentile_data_files.htm
+        """
+        df = pd.read_csv(os.path.join(RAW_DATA_DIR, "cdc_weight_by_age_2-20.csv"))
+
+        percentile = random_state.uniform()
+        Z = st.norm.ppf(percentile)
+
+        age = self.age  # Ages in data only go 2 to 20, assume everybody over 20 follows similar distribution
+        if self.age > 20:
+            age = 20
+
+        # Since things are months based, just take the first row matching the year.
+        weight_stats_row = df[df["Ageyrs"].astype(int) == age].iloc[0]
+        M, S, L = weight_stats_row[["M", "S", "L"]].values
+
+        # As per instructions on CDC website for recovering weight from params
+        weight_kg = M * (1.0 + L * S * Z) ** (1/L)
+
+        return weight_kg
+
 
 def get_icgm_patient_config(icgm_patient_obj, random_state, t0=DATETIME_DEFAULT):
     """
@@ -80,17 +153,19 @@ def get_icgm_patient_config(icgm_patient_obj, random_state, t0=DATETIME_DEFAULT)
     cir = icgm_patient_obj.get_carb_insulin_ratio()
     isf = icgm_patient_obj.get_insulin_sensitivity_factor()
 
-    basal_jitter = 0.1
+    basal_jitter = 0.2
     basal_rates = [random_state.uniform(basal_rate - basal_jitter, basal_rate + basal_jitter) for _ in hours_in_day]
 
-    cir_jitter = 1
+    cir_jitter = 2
     carb_ratios = [random_state.uniform(cir - cir_jitter, cir + cir_jitter) for _ in hours_in_day]
 
-    isf_jitter = 1
+    isf_jitter = 2
     isfs = [random_state.uniform(isf - isf_jitter, isf + isf_jitter) for _ in hours_in_day]
 
     start_times_hourly = [datetime.time(hour=i, minute=0, second=0) for i in hours_in_day]
     durations_min_per_hour = [SINGLE_SETTING_DURATION / total_hours_in_day for _ in hours_in_day]
+
+    logger.debug("Patient Mean Metabolism Settings. BR: {:.2f} CIR: {:.2f} ISF: {:.2f}".format(np.mean(basal_rates), np.mean(carb_ratios), np.mean(isfs)))
 
     patient_config = PatientConfig(
         basal_schedule=BasalSchedule24hr(
@@ -119,8 +194,8 @@ def get_icgm_patient_config(icgm_patient_obj, random_state, t0=DATETIME_DEFAULT)
         action_timeline=ActionTimeline(),
     )
 
-    patient_config.recommendation_accept_prob = 0.0  # Does not accept any bolus recommendations
-    patient_config.min_bolus_rec_threshold = 0.5  # Minimum size of bolus to accept
+    patient_config.recommendation_accept_prob = 1.0  # Does not accept any bolus recommendations
+    patient_config.min_bolus_rec_threshold = 0.0  # Minimum size of bolus to accept
     patient_config.recommendation_meal_attention_time_minutes = 1e12  # Time since meal to take recommendations
 
     return t0, patient_config
@@ -210,7 +285,6 @@ def export_icgm_scenario_metadata_from_scenario_files():
             logger.debug("processing {}".format(vp_idx))
 
     json.dump(scenario_metadata, open(ICGM_SETTINGS_FILEPATH, "w"), indent=4)
-
 
 
 if __name__ == "__main__":

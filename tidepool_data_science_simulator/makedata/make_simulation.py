@@ -23,6 +23,26 @@ def get_canonical_simulation(t0=DATETIME_DEFAULT,
                              multiprocess=False,
                              duration_hrs=8,
                              ):
+    """
+
+    Parameters
+    ----------
+    t0
+    patient_class
+    patient_config
+    pump_class
+    pump_config
+    sensor_class
+    sensor_config
+    controller_class
+    controller_config
+    multiprocess
+    duration_hrs
+
+    Returns
+    -------
+    Simulation
+    """
     t0, vp = get_canonical_risk_patient(
         t0,
         patient_class=patient_class,

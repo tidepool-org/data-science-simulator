@@ -4,10 +4,20 @@ import datetime
 import copy
 from numpy.random import RandomState
 
+import logging
+
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus, TempBasal
 
 from pyloopkit.loop_data_manager import update
+
+from tidepool_data_science_simulator import USE_LOCAL_PYLOOPKIT
+
+logger = logging.getLogger(__name__)
+if USE_LOCAL_PYLOOPKIT:
+    import pyloopkit
+    import os
+    logger.debug("NOTE: Using local pyloopkit at: {}. {}".format(os.path.abspath(pyloopkit.__file__), "\n**************************"))
 
 
 class BaseControllerClass(SimulationComponent):
