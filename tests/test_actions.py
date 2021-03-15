@@ -45,7 +45,7 @@ def test_virtual_patient_delete():
 
 def test_virtual_patient_delete_with_scenario_file():
 
-    scenario_csv_filepath = "tests/data/Scenario-0-simulation-template - inputs.tsv"
+    scenario_csv_filepath = "tests/test_data/Scenario-0-simulation-template - inputs.tsv"
     sim_parser = ScenarioParserCSV(scenario_csv_filepath)
     t0 = sim_parser.get_simulation_start_time()
 

@@ -231,7 +231,7 @@ def test_regression():
     """
     sims = build_all_test_sims()
 
-    result_compare_dir = "tests/data/regression/commit-{}/".format(REGRESSION_COMMIT)
+    result_compare_dir = "tests/test_data/regression/commit-{}/".format(REGRESSION_COMMIT)
 
     for sim_id, sim in sims.items():
         sim.run()
@@ -256,7 +256,7 @@ def make_regression():
 
     sims = build_all_test_sims()
 
-    save_dir = os.path.join(this_dir, "data/regression/commit-{}/".format(current_commit))
+    save_dir = os.path.join(this_dir, "test_data/regression/commit-{}/".format(current_commit))
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     else:
