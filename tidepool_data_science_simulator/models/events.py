@@ -220,12 +220,17 @@ class TempBasalTimeline(EventTimeline):
 
         recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
         sorted_trecent_event_times = sorted(recent_event_times)  # TODO: too slow?
-        for time in sorted_trecent_event_times:
-            temp_basal_event = self.events[time]
+        for event_time in sorted_trecent_event_times:
+            temp_basal_event = self.events[event_time]
             dose_types.append(DoseType.tempbasal)
             dose_values.append(temp_basal_event.value)
-            dose_start_times.append(time)
-            dose_end_times.append(temp_basal_event.get_end_time())
+            dose_start_times.append(event_time)
+
+            end_time = temp_basal_event.get_end_time()
+            if temp_basal_event.is_active(time):
+                end_time = time  # Pyloopkit does not expect doses past the current time.
+            dose_end_times.append(end_time)
+
             dose_delivered_units.append(temp_basal_event.delivered_units)  # fixme: put actual values here
 
         return dose_types, dose_values, dose_start_times, dose_end_times, dose_delivered_units
