@@ -24,7 +24,7 @@ from tidepool_data_science_simulator.makedata.make_patient import (
 from tidepool_data_science_simulator.models.measures import Bolus, Carb
 from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline
 
-REGRESSION_COMMIT = "4c166d0"
+REGRESSION_COMMIT = "12c5839"
 
 
 def build_test_sims_controllers():
