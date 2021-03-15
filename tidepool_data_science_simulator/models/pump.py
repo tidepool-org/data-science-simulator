@@ -360,6 +360,24 @@ class PumpState(object):
         self.bolus = bolus
         self.carb = carb
 
+    def get_carb_value(self):
+        value = None
+        if self.carb is not None:
+            value = self.carb.get_value()
+        return value
+
+    def get_bolus_value(self):
+        value = None
+        if self.bolus is not None:
+            value = self.bolus.get_value()
+        return value
+
+    def get_carb_duration(self):
+        value = None
+        if self.carb is not None:
+            value = self.carb.get_duration()
+        return value
+
     def get_temp_basal_rate_value(self, default=None):
         """
         Get the value of the temp basal and return None if one is not set.

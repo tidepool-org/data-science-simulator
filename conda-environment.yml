@@ -19,9 +19,10 @@ dependencies:
   - python-dotenv==0.13.0
   - requests==2.23.0
   - scipy==1.4.1
+  - seaborn=0.11.1
   - pip:
     - pip-chill==1.0.0
     - python-dotenv==0.13.0
     - git+git://github.com/tidepool-org/data-science-models@master
-    - git+git://github.com/tidepool-org/Pyloopkit@develop
+    - git+git://github.com/tidepool-org/Pyloopkit@cas/delivered_units_fix
     - git+git://github.com/tidepool-org/data-science-metrics@cas/quadratic

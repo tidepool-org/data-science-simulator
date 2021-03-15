@@ -48,7 +48,7 @@ class SimulationParser(object):
 
 class ScenarioParserCSV(SimulationParser):
     """
-    Parser for scenarios for FDA risk analysis May 2020.
+    Parser for the monolithic scenario files.
     """
 
     def __init__(self, path_to_csv=None):
@@ -304,8 +304,7 @@ class ScenarioParserCSV(SimulationParser):
 
         Returns
         -------
-        dict
-            The settings dictionary
+        ControllerConfig
         """
         controller_settings = self.tmp_dict["settings_dictionary"]
 

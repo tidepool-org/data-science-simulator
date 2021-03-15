@@ -12,10 +12,10 @@ import pdb
 
 # Setup Logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-LOG_FILENAME = "sim.log"
-filehandler = logging.FileHandler(LOG_FILENAME)
-logger.addHandler(filehandler)
+# logger.setLevel(logging.DEBUG)
+# LOG_FILENAME = "sim.log"
+# filehandler = logging.FileHandler(LOG_FILENAME)
+# logger.addHandler(filehandler)
 
 from tidepool_data_science_simulator.utils import timing, save_df
 
@@ -90,11 +90,12 @@ def run_simulations(sims, save_dir,
 
                 if compute_summary_metrics:
                     try:
-                        lbgi, hbgi, brgi = blood_glucose_risk_index(results_df['bg'])
+                        true_bg_trace = np.array([max(1, val) for val in results_df['bg']])
+                        lbgi, hbgi, brgi = blood_glucose_risk_index(true_bg_trace)
                         basal_delivered = results_df["delivered_basal_insulin"].sum()
                         bolus_delivered = results_df["reported_bolus"].sum()
                         total_delivered = basal_delivered + bolus_delivered
-                        summary_str = "Sim {}. \n\tLBGI: {} HBGI: {} BRGI: {}\n\t Basal {}. Bolus {}. Total {}".format(sim_id, lbgi, hbgi, brgi, basal_delivered, bolus_delivered, total_delivered)
+                        summary_str = "Sim {}. \n\tMean BG: {} LBGI: {} HBGI: {} BRGI: {}\n\t Basal {}. Bolus {}. Total {}".format(sim_id, np.mean(true_bg_trace), lbgi, hbgi, brgi, basal_delivered, bolus_delivered, total_delivered)
                         logger.debug(summary_str)
 
                         sensor_mard = np.mean(np.abs(results_df["bg"] - results_df["bg_sensor"]) / results_df["bg"])

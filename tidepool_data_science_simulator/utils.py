@@ -108,7 +108,7 @@ def timing(f):
         time1 = time.time()
         ret = f(*args, **kwargs)
         time2 = time.time()
-        print(
+        logger.debug(
             "{:s} function took {:.3f} ms".format(f.__name__, (time2 - time1) * 1000.0)
         )
 
@@ -128,10 +128,10 @@ def save_df(df_results, analysis_name, save_dir, save_type="tsv"):
     logger.debug("Saving sim to {}...".format(path))
 
 
-def get_sim_results_save_dir():
+def get_sim_results_save_dir(description):
     this_dir = os.path.dirname(os.path.realpath(__file__))
     utc_string = dt.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S")
-    results_dir = "../data/results/simulations/{}".format(utc_string)
+    results_dir = "../data/results/simulations/{}/{}".format(description, utc_string)
     abs_path = os.path.join(this_dir, results_dir)
     os.makedirs(abs_path)
     return abs_path

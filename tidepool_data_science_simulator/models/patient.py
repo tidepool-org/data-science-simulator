@@ -51,8 +51,23 @@ class VirtualPatientState(object):
         self.carb = carb
         self.actions = actions
 
-        def get_bolus():
-            return
+    def get_carb_value(self):
+        value = None
+        if self.carb is not None:
+            value = self.carb.get_value()
+        return value
+
+    def get_bolus_value(self):
+        value = None
+        if self.bolus is not None:
+            value = self.bolus.get_value()
+        return value
+
+    def get_carb_duration(self):
+        value = None
+        if self.carb is not None:
+            value = self.carb.get_duration()
+        return value
 
 
 class VirtualPatient(SimulationComponent):
@@ -605,6 +620,11 @@ class VirtualPatientModel(VirtualPatient):
             id = np.random.randint(0, 1e6)
 
         self.name = "VP-{}".format(id)
+
+        # No meals
+        # self.meal_model = [
+        #     MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98),
+        # ]
 
         self.meal_model = [
             MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98),

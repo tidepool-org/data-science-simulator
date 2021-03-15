@@ -4,11 +4,15 @@ import datetime
 import numpy as np
 import itertools
 
-import matplotlib.pyplot as plt
-import matplotlib.style as style
+import seaborn as sns
 
-style.use("seaborn-poster")  # sets the size of the charts
-style.use("ggplot")
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+
+# style.use("seaborn-poster")  # sets the size of the charts
+# style.use("ggplot")
+
+sns.set_style("darkgrid")
 
 
 def plot_sim_icgm_paired(all_results):
@@ -30,76 +34,89 @@ def plot_sim_icgm_paired(all_results):
 
 
 def plot_sim_results(all_results, save=False, n_sims_max_legend=5):
+    """
+    Default multi-sim plot
+    """
 
-    # ==== TMP ====
-    # TODO - This is a placeholder for dev. Replace with viz tools module.
-    fig, ax = plt.subplots(3, 1, figsize=(16, 20), sharex=True)
-    linestyle = itertools.cycle(('-', '--', '-.'))
-    color = itertools.cycle(('g', 'r', 'y', 'orange', 'b'))
+    fig, ax = plt.subplots(3, 1, figsize=(14, 10), sharex=True)
+    color_cycle = itertools.cycle(mcolors.BASE_COLORS)
+
     for sim_id, ctrl_result_df in all_results.items():
 
-        # print(sim_id, ctrl_result_df.head(1).T)
+        sim_color = next(color_cycle)
 
-        # ax[0].plot(ctrl_result_df["bg"], label="{} {}".format("bg", sim_id), color="purple", linestyle=next(linestyle))
-        ax[0].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["bg_sensor"], label="{} {}".format("bg", sim_id), color=next(color), linestyle=next(linestyle))
-        # ax[0].scatter(range(len(ctrl_result_df)), ctrl_result_df["bg_sensor"], 4,
-        #               label="{} {}".format("bg_sensor", sim_id),
-        #               color="green")
+        ax[0].plot(ctrl_result_df["bg"],
+                   label="{} {}".format("bg", sim_id),
+                   color=sim_color,
+                   linestyle="dashed",
+                   alpha=0.5)
+        ax[0].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["bg_sensor"],
+                   label="{} {}".format("bg_sensor", sim_id),
+                   color=sim_color,
+                   markersize=4,
+                   marker=".",
+                   linestyle="none")
+
         ax[0].set_title("BG Over Time")
         ax[0].set_xlabel("Time (5min)")
         ax[0].set_ylabel("BG (mg/dL)")
         ax[0].set_ylim((0, 400))
-        median = ctrl_result_df["bg"].median()
-        std = round(ctrl_result_df["bg"].std())
-        # ax[0].axhline(median, label="BG Median {}".format(median), color="green")
-        # ax[0].axhline(median + std, label="BG Std {}".format(std), color="green")
-        # ax[0].axhline(median - std, label="BG Std {}".format(std), color="green")
+
         if len(all_results) <= n_sims_max_legend:
             ax[0].legend(prop={'size': 6})
+
+        # ====== Insulin ============
 
         ax[1].set_title("Insulin")
         ax[1].set_ylabel("Insulin (U or U/hr)")
         ax[1].set_xlabel("Time (5 mins)")
-        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id), linestyle="--")
-        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["temp_basal"], label="{} {}".format("tmp_br", sim_id))
-        ax[1].stem(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["true_bolus"], label="{} {}".format("true bolus", sim_id), use_line_collection=True)
-        ax[1].stem(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["reported_bolus"], linefmt='g--', markerfmt='X', label="{} {}".format("reported bolus", sim_id), use_line_collection=True)
-        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["iob"], label="{} {}".format("iob", sim_id))
-        ax[1].set_ylim((0, 4))
+        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["sbr"],
+                   label="{} {}".format("sbr", sim_id),
+                   linestyle="dotted",
+                   color=sim_color,
+                   alpha=0.5)
+        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["temp_basal"],
+                   label="{} {}".format("tmp_br", sim_id),
+                   linestyle="-.",
+                   color=sim_color)
+        ax[1].stem(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["true_bolus"],
+                   linefmt='{}-'.format(sim_color),
+                   label="{} {}".format("true bolus", sim_id),
+                   markerfmt='{}P'.format(sim_color),
+                   use_line_collection=True)
+        ax[1].stem(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["reported_bolus"],
+                   linefmt='{}--'.format(sim_color),
+                   markerfmt='{}X'.format(sim_color),
+                   label="{} {}".format("reported bolus", sim_id),
+                   use_line_collection=True)
+        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["iob"],
+                   label="{} {}".format("iob", sim_id),
+                   color=sim_color,
+                   alpha=0.5)
+        ax[1].set_ylim((0, 8))
+
         if len(all_results) <= n_sims_max_legend:
             ax[1].legend(prop={'size': 6})
 
-        ax[2].stem(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["true_carb_value"], label="{} {}".format("true carb", sim_id), use_line_collection=True)
-        ax[2].stem(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["reported_carb_value"], linefmt='g--', markerfmt='X', label="{} {}".format("reported carb", sim_id), use_line_collection=True)
+        # ======== Carbs ============
+        ax[2].stem(ctrl_result_df.index.to_pydatetime(),
+                   ctrl_result_df["true_carb_value"],
+                   linefmt='{}-'.format(sim_color),
+                   label="{} {}".format("true carb", sim_id),
+                   markerfmt='{}P'.format(sim_color),
+                   use_line_collection=True)
+        ax[2].stem(ctrl_result_df.index.to_pydatetime(),
+                   ctrl_result_df["reported_carb_value"],
+                   linefmt='{}--'.format(sim_color),
+                   markerfmt='{}X'.format(sim_color),
+                   label="{} {}".format("reported carb", sim_id),
+                   use_line_collection=True)
         ax[2].set_title("Carb Events")
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")
-        ax[2].set_ylim((0, 60))
+        ax[2].set_ylim((0, 100))
         if len(all_results) <= n_sims_max_legend:
             ax[2].legend(prop={'size': 6})
-
-        print(
-            "{}: Patient Bg min {} max {}".format(
-                sim_id, ctrl_result_df["bg"].min(), ctrl_result_df["bg"].max()
-            )
-        )
-
-        log_bg = np.log(ctrl_result_df["bg"])
-        geo_mean = np.mean(log_bg)
-        geo_var = np.var(log_bg)
-
-        # counts, bins, patches = ax[2].hist(log_bg, bins=50, label="{} {} {}".format("bg", vp_name, ctr_name), alpha=0.1)
-        # # ax[2].set_xscale("log")
-        # ax[2].set_xticklabels(np.exp(bins).astype(int))
-        # ax[2].axvline(geo_mean, label="{} {} {}".format("Geo Mean", vp_name, ctr_name))
-        # ax[2].set_xlabel("BG (mg/dL)")
-        # ax[2].legend()
-        #
-        # counts, bins, patches = ax[3].hist(ctrl_result_df['bg'], bins=50, label="{} {}".format("bg", sim_id), alpha=0.1)
-        # ax[3].set_xscale("log")
-        # ax[3].set_title("BG Distribution")
-        # ax[3].set_xlabel("BG (mg/dL)")
-        # ax[3].legend()
 
     if save:
         plt.savefig("data-science-simulator-image_{}.png".format(datetime.datetime.now().isoformat()))

@@ -3,6 +3,10 @@ __author__ = "Cameron Summers"
 import datetime
 import numpy as np
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr
 )
@@ -22,6 +26,29 @@ from tidepool_data_science_models.models.simple_metabolism_model import SimpleMe
 SINGLE_SETTING_START_TIME = datetime.time(hour=0, minute=0, second=0)
 SINGLE_SETTING_DURATION = 1440
 DATETIME_DEFAULT = datetime.datetime(year=2019, month=8, day=15, hour=12, minute=0, second=0)
+
+
+def get_canonical_glucose_history(t0, num_glucose_values=137, start_value=110):
+    """
+    Common glucose history.
+
+    Parameters
+    ----------
+    t0 (datetime.datetime): time of last glucose value
+    num_glucose_values (int): num glucose values
+
+    Returns
+    -------
+        GlucoseTrace
+    """
+
+    true_bg_values_history = [start_value] * num_glucose_values
+
+    true_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_glucose_values)]
+    true_bg_dates.reverse()
+    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values_history)
+
+    return true_bg_history
 
 
 def get_canonical_risk_pump_config(t0=DATETIME_DEFAULT):
@@ -74,7 +101,7 @@ def get_canonical_risk_pump_config(t0=DATETIME_DEFAULT):
     return t0, pump_config
 
 
-def get_canonical_sensor_config(t0=DATETIME_DEFAULT):
+def get_canonical_sensor_config(t0=DATETIME_DEFAULT, num_glucose_values=137, start_value=110):
     """
     Get canonical sensor config
 
@@ -86,19 +113,12 @@ def get_canonical_sensor_config(t0=DATETIME_DEFAULT):
     -------
     SensorConfig
     """
-
-    num_values = 137
-    sensor_bg_values_history = [110.0] * num_values
-
-    sensor_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_values)]
-    sensor_bg_dates.reverse()
-    sensor_bg_history = GlucoseTrace(sensor_bg_dates, sensor_bg_values_history)
-
+    sensor_bg_history = get_canonical_glucose_history(t0, num_glucose_values=num_glucose_values, start_value=start_value)
     sensor_config = SensorConfig(sensor_bg_history)
     return t0, sensor_config
 
 
-def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT):
+def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT, start_glucose_value=110):
     """
     Get canonical patient config
 
@@ -114,12 +134,7 @@ def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT):
     patient_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
     patient_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
 
-    num_glucose_values = 137
-    true_bg_values_history = [110.0] * num_glucose_values
-
-    true_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_glucose_values)]
-    true_bg_dates.reverse()
-    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values_history)
+    true_bg_history = get_canonical_glucose_history(t0, start_value=start_glucose_value)
 
     patient_config = PatientConfig(
         basal_schedule=BasalSchedule24hr(
@@ -218,12 +233,7 @@ def get_variable_risk_patient_config(random_state, t0=DATETIME_DEFAULT):
     patient_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
     patient_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
 
-    num_glucose_values = 137
-    true_bg_values_history = [110.0] * num_glucose_values
-
-    true_bg_dates = [t0 - datetime.timedelta(minutes=i * 5) for i in range(num_glucose_values)]
-    true_bg_dates.reverse()
-    true_bg_history = GlucoseTrace(true_bg_dates, true_bg_values_history)
+    true_bg_history = get_canonical_glucose_history(t0)
 
     total_hours_in_day = 24
     hours_in_day = range(total_hours_in_day)
@@ -323,7 +333,11 @@ def get_pump_config_from_patient(random_state, patient_config, risk_level=0, t0=
 
     pump_br = random_state.normal(patient_basal_mean, patient_basal_std * risk_level)
     pump_cir = random_state.normal(patient_cir_mean, patient_cir_std * risk_level)
-    pump_isf =random_state.normal(patient_isf_mean, patient_isf_std * risk_level)
+    pump_isf = random_state.normal(patient_isf_mean, patient_isf_std * risk_level)
+
+    logger.debug("Basal Patient {:.2f} Pump {:.2f}".format(patient_basal_mean, pump_br))
+    logger.debug("CIR Patient {:.2f} Pump {:.2f}".format(patient_cir_mean, pump_cir))
+    logger.debug("ISF Patient {:.2f} Pump {:.2f}".format(patient_isf_mean, pump_isf))
 
     pump_config = PumpConfig(
         basal_schedule=BasalSchedule24hr(
@@ -357,3 +371,65 @@ def get_pump_config_from_patient(random_state, patient_config, risk_level=0, t0=
     )
 
     return t0, pump_config
+
+
+def compute_aace_settings_tmp(weight_kg, prepump_tdd):
+    """
+    AACE Pump settings calculator
+
+    TMP: Need to put this in a more general place like metrics repo.
+    """
+    tdd_method1 = weight_kg * 0.5
+    tdd_method2 = prepump_tdd * 0.75
+    starting_pump_tdd = (tdd_method1 + tdd_method2) / 2
+
+    basal_rate = starting_pump_tdd * 0.5 / 24
+    cir = 450.0 / starting_pump_tdd
+    isf = 1700.0 / starting_pump_tdd
+
+    return basal_rate, cir, isf
+
+
+def get_pump_config_from_aace_settings(random_state, patient_weight, patient_tdd, risk_level=0, t0=DATETIME_DEFAULT):
+
+    basal_rate, cir, isf = compute_aace_settings_tmp(patient_weight, patient_tdd)
+
+    logger.debug("Weight Kg {:.2f}. TDD {:.2f}. Pump AACE BR: {:.2f}, CIR: {:.2f}, ISF {:.2f}".format(patient_weight, patient_tdd, basal_rate, cir, isf))
+
+    pump_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
+    pump_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
+
+    pump_config = PumpConfig(
+        basal_schedule=BasalSchedule24hr(
+            t0,
+            start_times=[SINGLE_SETTING_START_TIME],
+            values=[BasalRate(basal_rate, "U/hr")],
+            duration_minutes=[SINGLE_SETTING_DURATION]
+        ),
+        carb_ratio_schedule=SettingSchedule24Hr(
+            t0,
+            "CIR",
+            start_times=[SINGLE_SETTING_START_TIME],
+            values=[CarbInsulinRatio(cir, "g/U")],
+            duration_minutes=[SINGLE_SETTING_DURATION]
+        ),
+        insulin_sensitivity_schedule=SettingSchedule24Hr(
+            t0,
+            "ISF",
+            start_times=[SINGLE_SETTING_START_TIME],
+            values=[InsulinSensitivityFactor(isf, "mg/dL/U")],
+            duration_minutes=[SINGLE_SETTING_DURATION]
+        ),
+        target_range_schedule=TargetRangeSchedule24hr(
+            t0,
+            start_times=[SINGLE_SETTING_START_TIME],
+            values=[TargetRange(100, 120, "mg/dL")],
+            duration_minutes=[SINGLE_SETTING_DURATION]
+        ),
+        carb_event_timeline=pump_carb_timeline,
+        bolus_event_timeline=pump_bolus_timeline
+    )
+
+    return t0, pump_config
+
+
