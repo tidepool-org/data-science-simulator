@@ -1,5 +1,6 @@
 __author__ = "Cameron Summers"
 
+import os
 import datetime
 import numpy as np
 import itertools
@@ -33,7 +34,7 @@ def plot_sim_icgm_paired(all_results):
     plt.show()
 
 
-def plot_sim_results(all_results, save=False, n_sims_max_legend=5):
+def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=None):
     """
     Default multi-sim plot
     """
@@ -119,9 +120,11 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5):
             ax[2].legend(prop={'size': 6})
 
     if save:
-        plt.savefig("data-science-simulator-image_{}.png".format(datetime.datetime.now().isoformat()))
-
-    plt.show()
+        if save_path is None:
+            save_path = "./data-science-simulator-image_{}.png".format(datetime.datetime.now().isoformat())
+        plt.savefig(save_path)
+    else:
+        plt.show()
 
 
 def plot_sim_results_missing_insulin(all_results):

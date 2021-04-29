@@ -10,6 +10,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+PROJECT_ROOT_DIR = os.path.join(os.path.dirname(__file__), "../")
+DATA_DIR = os.path.join(os.path.expanduser("~"), "data/simulator/")
 
 
 def get_bernoulli_trial_uniform_step_prob(num_trials, prob_of_occurring):

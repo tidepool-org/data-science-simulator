@@ -7,19 +7,21 @@ import os
 import subprocess
 
 import numpy as np
+import pandas as pd
 
 import pdb
 
 # Setup Logging
 logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
-# LOG_FILENAME = "sim.log"
-# filehandler = logging.FileHandler(LOG_FILENAME)
-# logger.addHandler(filehandler)
 
 from tidepool_data_science_simulator.utils import timing, save_df
-
-from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index, percent_values_ge_70_le_180
+from tidepool_data_science_metrics.glucose.glucose import (
+    blood_glucose_risk_index, percent_values_ge_70_le_180, percent_values_lt_40, percent_values_lt_54,
+    percent_values_gt_180, percent_values_gt_250, lbgi_risk_score,
+)
+from tidepool_data_science_metrics.insulin.insulin import (
+    dka_risk_score, dka_index
+)
 
 
 @timing
@@ -60,7 +62,9 @@ def run_simulations(sims, save_dir,
     running_sims = {}
     run_start_time = time.time()
 
-    all_results = {}
+    full_results = dict()
+    summary_results = []
+
     # Process sims in batches of num_procs
     for sim_id, sim in sims.items():
         logger.debug("Running: {}. {} of {}".format(sim_id, sim_ctr, num_sims))
@@ -90,19 +94,43 @@ def run_simulations(sims, save_dir,
 
                 if compute_summary_metrics:
                     try:
-                        true_bg_trace = np.array([max(1, val) for val in results_df['bg']])
-                        lbgi, hbgi, brgi = blood_glucose_risk_index(true_bg_trace)
+                        true_bg_trace_clipped = np.array([min(401, max(1, val)) for val in results_df['bg']])
+                        lbgi, hbgi, brgi = blood_glucose_risk_index(true_bg_trace_clipped)
+                        dka_index_value = dka_index(results_df["iob"], results_df["sbr"].values[0])
                         basal_delivered = results_df["delivered_basal_insulin"].sum()
                         bolus_delivered = results_df["reported_bolus"].sum()
                         total_delivered = basal_delivered + bolus_delivered
-                        summary_str = "Sim {}. \n\tMean BG: {} LBGI: {} HBGI: {} BRGI: {}\n\t Basal {}. Bolus {}. Total {}".format(sim_id, np.mean(true_bg_trace), lbgi, hbgi, brgi, basal_delivered, bolus_delivered, total_delivered)
+                        summary_str = "Sim {}. \n\tMean BG: {} LBGI: {} HBGI: {} BRGI: {}\n\t Basal {}. Bolus {}. Total {}".format(sim_id, np.mean(true_bg_trace_clipped), lbgi, hbgi, brgi, basal_delivered, bolus_delivered, total_delivered)
                         logger.debug(summary_str)
 
                         sensor_mard = np.mean(np.abs(results_df["bg"] - results_df["bg_sensor"]) / results_df["bg"])
                         sensor_mbe = np.mean(results_df["bg_sensor"] - results_df["bg"])
                         logger.debug("Sensor Stats: MBE: {}. MARD: {}".format(sensor_mbe, sensor_mard))
+
+                        summary_results.append({
+                            "sim_id": sim_id,
+                            "total_basal_delivered": basal_delivered,
+                            "total_bolus_delivered": bolus_delivered,
+                            "total_insulin_delivered": total_delivered,
+                            "sensor_mard": sensor_mard,
+                            "sensor_mbe": sensor_mbe,
+                            "lbgi": lbgi,
+                            "hbgi": hbgi,
+                            "brgi": brgi,
+                            "lbgi_risk_score": lbgi_risk_score(lbgi),
+                            "dka_index": dka_index_value,
+                            "dka_risk_score": dka_risk_score(dka_index_value),
+                            "percent_cgm_lt_40": percent_values_lt_40(true_bg_trace_clipped),
+                            "percent_cgm_lt_54": percent_values_lt_54(true_bg_trace_clipped),
+                            "percent_cgm_gt_180": percent_values_gt_180(true_bg_trace_clipped),
+                            "percent_cgm_gt_250": percent_values_gt_250(true_bg_trace_clipped),
+                            "percent_values_ge_70_le_180": percent_values_ge_70_le_180(true_bg_trace_clipped)
+                        })
                     except Exception as e:
-                        logger.debug("Exception occurred in computed summary metrics")
+                        logger.debug("Exception occurred in computed summary metrics. {}".format(e))
+                        summary_results.append({
+                            "sim_id": sim_id
+                        })
 
                 # Sanity debugging random stream sync
                 logger.debug("Final Random Int: {}".format(results_df.iloc[-1]["randint"]))
@@ -110,12 +138,13 @@ def run_simulations(sims, save_dir,
                 if save_results:
                     save_df(results_df, sim_id, save_dir)
 
-                all_results[sim_id] = results_df
+                full_results[sim_id] = results_df
 
         sim_ctr += 1
 
     logger.debug("Full run time: {:.2f}m".format((time.time() - run_start_time) / 60.0))
 
-    #os.rename(LOG_FILENAME, os.path.join(save_dir, LOG_FILENAME))
+    summary_results_df = pd.DataFrame(summary_results)
+    summary_results_df.set_index("sim_id", inplace=True)
 
-    return all_results
+    return full_results, summary_results_df

@@ -34,9 +34,15 @@ class BaseControllerClass(SimulationComponent):
 
     def get_info_stateless(self):
 
-        stateless_info = {
-            "config": self.controller_config.get_info_stateless()
-        }
+        if self.controller_config is not None:
+            stateless_info = {
+                "config": self.controller_config.get_info_stateless()
+            }
+        else:
+            stateless_info = {
+                "config": None
+            }
+
         return stateless_info
 
 
