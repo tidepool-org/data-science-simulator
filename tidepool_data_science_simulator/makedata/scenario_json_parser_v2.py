@@ -7,6 +7,9 @@ import json
 import os
 import datetime
 
+import logging
+logger = logging.getLogger(__name__)
+
 from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
@@ -33,7 +36,7 @@ from tidepool_data_science_simulator.models.controller import LoopController, Do
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 
-POINTER_OBJ_DIR = os.path.dirname(__file__) + "/../../scenario_configurations/tidepool_risk/"
+POINTER_OBJ_DIR = os.path.dirname(__file__) + "/../../scenario_configs/tidepool_risk_v2/"
 DATETIME_FORMAT = "%m/%d/%Y %H:%M:%S"
 
 CONTROLLER_MODEL_NAME_MAP = {
@@ -167,6 +170,7 @@ class ScenarioParserV2(SimulationParser):
             if k in override_obj:
                 if not isinstance(override_obj[k], dict):  # key is there and it's a leaf node
                     obj[k] = override_obj[k]
+                    # logger.debug("Applied override {}: {}".format(k, override_obj[k]))
                     num_overides_applied += 1
                 else:  # key is there and it's an object that should be explored for leaf overrides
                     num_overides_applied += self.resolve_override(v, override_obj[k])

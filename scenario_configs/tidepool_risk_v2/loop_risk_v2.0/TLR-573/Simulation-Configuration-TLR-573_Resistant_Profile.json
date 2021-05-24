@@ -1,161 +1,260 @@
 {
-    "metadata": {
-        "risk_id": "TLR-573",
-        "simulation_id": "TLR-573-Resistant",
-        "risk_description": "Metabolic settings are too aggressive",
-        "config_format_version": "v1.0"
-    },
-    "base_config": "reusable.simulations.base_resistant_v1",
-    "override_config": [
-        {
-            "sim_id": "pre-Loop-NoMitigations_ISF",
-            "patient": {
-              "patient_model": {
-                "metabolism_settings": {
-                  "insulin_sensitivity_factor": {
-                       "start_times": ["0:00:00"],
-                       "values":  [10]
-                  }
-                }
-              }
+  "metadata": {
+    "risk_id": "TLR-573",
+    "simulation_id": "TLR-573-Resistant",
+    "risk_description": "Metabolic settings are too aggressive",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop-NoMitigations_ISF",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                10
+              ]
             }
-        },
-        {
-            "sim_id": "pre-noLoop_ISF",
-            "patient": {
-              "patient_model": {
-                "metabolism_settings": {
-                  "insulin_sensitivity_factor": {
-                       "start_times": ["0:00:00"],
-                       "values":  [10]
-                  }
-                }
-              }
-            },
-            "controller": null
-        },
-        {
-            "sim_id": "post-Loop-WithMitigations_ISF",
-            "patient": {
-                "patient_model": {
-                  "metabolism_settings": {
-                    "insulin_sensitivity_factor": {
-                         "start_times": ["0:00:00"],
-                         "values":  [10]
-                    }
-                  }
-                },
-                "pump": {
-                  "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
-                }
-            },
-            "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
-        },
-        {
-            "sim_id": "pre-Loop-noMitigations_CIR",
-            "patient": {
-                "patient_model": {
-                  "metabolism_settings": {
-                    "carb_insulin_ratio": {
-                         "start_times": ["0:00:00"],
-                         "values":  [20]
-                    }
-                  }
-                }
-            }
-        },
-        {
-            "sim_id": "pre-noLoop-CIR",
-            "patient": {
-                "patient_model": {
-                  "metabolism_settings": {
-                    "carb_insulin_ratio": {
-                         "start_times": ["0:00:00"],
-                         "values":  [20]
-                    }
-                  }
-                }
-            },
-            "controller": null
-        },
-        {
-            "sim_id": "post-Loop-WithMitigations_CIR",
-            "patient": {
-                "patient_model": {
-                  "metabolism_settings": {
-                    "carb_insulin_ratio": {
-                         "start_times": ["0:00:00"],
-                         "values":  [20]
-                    }
-                  }
-                },
-              "pump": {
-                  "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
-              }
-            },
-            "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
-        },
-        {
-            "sim_id": "pre-Loop-noMitigations_SBR",
-            "patient": {
-              "patient_model": {
-                "metabolism_settings": {
-                  "basal_rate": {
-                         "start_times": ["0:00:00"],
-                         "values":  [1.6]
-                  }
-                }
-              }
-            }
-        },
-        {
-            "sim_id": "pre-noLoop_SBR",
-            "patient": {
-              "patient_model": {
-                "metabolism_settings": {
-                  "basal_rate": {
-                         "start_times": ["0:00:00"],
-                         "values":  [1.6]
-                  }
-                }
-              }
-            },
-            "controller": null
-        },
-        {
-            "sim_id": "post-Loop-WithMitigations_SBR",
-            "patient": {
-              "patient_model": {
-                "metabolism_settings": {
-                  "basal_rate": {
-                         "start_times": ["0:00:00"],
-                         "values":  [1.6]
-                  }
-                }
-              },
-              "pump": {
-                "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
-              }
-            },
-            "controller":"reusable.mitigations.guardrails.controller_settings_resistant_v1"
-        },
-        {
-            "sim_id": "pre-Loop-noMitigations_IM",
-            "controller": {
-              "settings": {
-                "model": "rapid_acting_child"
-              }
-            }
-        },
-        {
-            "sim_id": "post-Loop-WithMitigations_IM",
-            "controller": {
-                "settings": {
-                  "glucose_safety_limit": 75,
-                  "max_basal_rate": 1.75,
-                  "model": "rapid_acting_child"
-                }
-            }
+          }
         }
-    ]
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_ISF",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                10
+              ]
+            }
+          },
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 31
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.1
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_ISF",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                10
+              ]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1",
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 31
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.1
+            }
+          ]
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+    },
+    {
+      "sim_id": "pre-Loop-noMitigations_CIR",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "carb_insulin_ratio": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                20
+              ]
+            }
+          },
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 31
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop-CIR",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "carb_insulin_ratio": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                20
+              ]
+            }
+          },
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 31
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.1
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_CIR",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "carb_insulin_ratio": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                20
+              ]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1",
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 31
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.1
+            }
+          ]
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+    },
+    {
+      "sim_id": "pre-Loop-noMitigations_SBR",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                1.6
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_SBR",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                1.6
+              ]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_SBR",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                1.6
+              ]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+    },
+    {
+      "sim_id": "pre-Loop-noMitigations_IM",
+      "controller": {
+        "settings": {
+          "model": "rapid_acting_child"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_IM",
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_IM",
+      "controller": {
+        "settings": {
+          "glucose_safety_limit": 75,
+          "max_basal_rate": 1.75,
+          "model": "rapid_acting_child"
+        }
+      }
+    }
+  ]
 }
