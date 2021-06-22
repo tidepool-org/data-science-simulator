@@ -147,4 +147,7 @@ def run_simulations(sims, save_dir,
     summary_results_df = pd.DataFrame(summary_results)
     summary_results_df.set_index("sim_id", inplace=True)
 
+    if save_results:
+        summary_results_df.to_csv(os.path.join(save_dir, "summary_results_{}.csv".format(time.time())))
+
     return full_results, summary_results_df

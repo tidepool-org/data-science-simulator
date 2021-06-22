@@ -12,7 +12,7 @@ import copy
 from numpy.random import RandomState
 
 
-from tidepool_data_science_simulator.models.measures import Bolus, Carb
+from tidepool_data_science_simulator.models.state import VirtualPatientState, PumpState
 
 
 class SimulationComponent(object):
@@ -101,6 +101,31 @@ class Simulation(multiprocessing.Process):
         """
         Initialize the simulation
         """
+        for ((patient_dt, true_bg), (sensor_dt, sensor_bg)) in zip(self.virtual_patient.patient_config.glucose_history,
+            self.virtual_patient.sensor.sensor_bg_history):
+            assert patient_dt == sensor_dt
+
+            patient_state = VirtualPatientState(
+                bg=true_bg,
+                bg_prediction=None,
+                sensor_bg=sensor_bg,
+                sensor_bg_prediction=None,
+                iob=None,
+                iob_prediction=None,
+                sbr=None,
+                isf=None,
+                cir=None,
+                pump_state=PumpState(),
+                bolus=None,
+                carb=None,
+                actions=None
+            )
+            self.simulation_results[patient_dt] = SimulationState(
+                patient_state=patient_state,
+                controller_state=None,
+                randint=None
+            )
+
         # Setup steady state basal and t0 glucose
         self.virtual_patient.init()
 
@@ -209,11 +234,70 @@ class Simulation(multiprocessing.Process):
                 temp_basal_time_remaining = pump_state.get_temp_basal_minutes_left(
                     time
                 )
-                pump_sbr = pump_state.scheduled_basal_rate.value
-                pump_isf = pump_state.scheduled_insulin_sensitivity_factor.value
-                pump_cir = pump_state.scheduled_carb_insulin_ratio.value
+                pump_sbr = pump_state.get_schedule_basal_rate_value()
+                pump_isf = pump_state.get_scheduled_insulin_sensitivity_factor_value()
+                pump_cir = pump_state.get_scheduled_carb_insulin_ratio_value()
                 delivered_basal_insulin = pump_state.delivered_basal_insulin
                 undelivered_basal_insulin = pump_state.undelivered_basal_insulin
+
+            # Loop output
+            try:
+                loop_out = simulation_state.controller_state.pyloopkit_recommendations
+                loop_cob = loop_out["carbs_on_board"]
+            except AttributeError:
+                loop_cob = None
+
+            try:
+                pred_horizon_minutes = len(loop_out["predicted_glucose_values"]) * 5
+                final_predicted_glucose = loop_out["predicted_glucose_values"][-1]
+            except Exception as e:
+                pred_horizon_minutes = None
+                final_predicted_glucose = None
+
+            try:
+                insulin_effect_horizon_minutes = len(loop_out["insulin_effect_values"]) * 5
+                final_insulin_effect = loop_out["insulin_effect_values"][-1]
+            except Exception as e:
+                insulin_effect_horizon_minutes = None
+                final_insulin_effect = None
+
+            try:
+                carb_effect_horizon_minutes = len(loop_out["carb_effect_values"]) * 5
+                final_carb_effect = loop_out["carb_effect_values"][-1]
+            except Exception as e:
+                carb_effect_horizon_minutes = None
+                final_carb_effect = None
+
+            try:
+                counteraction_effect_horizon_minutes = len(loop_out["counteraction_effect_values"]) * 5
+                final_counteraction_effect = loop_out["counteraction_effect_values"][-1]
+            except Exception as e:
+                counteraction_effect_horizon_minutes = None
+                final_counteraction_effect = None
+
+            try:
+                momentum_effect_horizon_minutes = len(loop_out["momentum_effect_values"]) * 5
+                final_momentum_effect = loop_out["momentum_effect_values"][-1]
+            except Exception as e:
+                momentum_effect_horizon_minutes = None
+                final_momentum_effect = None
+
+            try:
+                rc_effect_horizon_minutes = len(loop_out["retrospective_effect_values"]) * 5
+                final_rc_effect = loop_out["retrospective_effect_values"][-1]
+            except Exception as e:
+                rc_effect_horizon_minutes = None
+                final_rc_effect = None
+
+            try:
+                loop_temp_basal_rec = loop_out["recommended_temp_basal"][0]
+            except:
+                loop_temp_basal_rec = None
+
+            try:
+                loop_bolus_rec = loop_out["recommended_bolus"][0]
+            except:
+                loop_bolus_rec = None
 
             row = {
                 "time": time,
@@ -222,9 +306,9 @@ class Simulation(multiprocessing.Process):
                 "iob": simulation_state.patient_state.iob,
                 "temp_basal": temp_basal_value,
                 "temp_basal_time_remaining": temp_basal_time_remaining,
-                "sbr": simulation_state.patient_state.sbr.value,
-                "cir": simulation_state.patient_state.cir.value,
-                "isf": simulation_state.patient_state.isf.value,
+                "sbr": simulation_state.patient_state.get_sbr_value(),
+                "cir": simulation_state.patient_state.get_cir_value(),
+                "isf": simulation_state.patient_state.get_isf_value(),
                 "pump_sbr": pump_sbr,
                 "pump_isf": pump_isf,
                 "pump_cir": pump_cir,
@@ -236,7 +320,16 @@ class Simulation(multiprocessing.Process):
                 "reported_carb_duration": pump_state.get_carb_duration(),
                 "delivered_basal_insulin": delivered_basal_insulin,
                 "undelivered_basal_insulin": undelivered_basal_insulin,
-                "randint": simulation_state.randint
+                "randint": simulation_state.randint,
+                "loop_final_glucose_pred": final_predicted_glucose,
+                "loop_final_insulin_effect": final_insulin_effect,
+                "loop_final_carb_effect": final_carb_effect,
+                "loop_final_counteraction_effect": final_counteraction_effect,
+                "loop_final_momentum_effect": final_momentum_effect,
+                "loop_final_rc_effect": final_rc_effect,
+                "loop_recommended_temp_basal_value": loop_temp_basal_rec,
+                "loop_recommended_bolus_value": loop_bolus_rec,
+                "loop_cob": loop_cob
             }
 
             # Controller stuff

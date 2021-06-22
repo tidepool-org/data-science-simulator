@@ -3,7 +3,7 @@ __author__ = "Cameron Summers"
 import copy
 
 from tidepool_data_science_simulator.models.measures import TempBasal, BasalRate
-
+from tidepool_data_science_simulator.models.state import PumpState
 from tidepool_data_science_simulator.makedata.scenario_parser import PumpConfig
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.models.events import TempBasalTimeline
@@ -333,68 +333,3 @@ class OmnipodMissingPulses(Omnipod):
         self.basal_undelivered_insulin_since_last_update = fractional_pulses_remaining * self.insulin_units_per_pulse
         self.current_cummulative_pulses = pulses_delivered
 
-
-class PumpState(object):
-    """
-    A class to house the state information for a pump
-    """
-
-    def __init__(
-            self,
-            scheduled_basal_rate,
-            scheduled_cir,
-            schedule_isf,
-            temp_basal_rate,
-            delivered_basal_insulin,
-            bolus,
-            carb,
-            undelivered_basal_insulin=0,
-    ):
-
-        self.scheduled_basal_rate = scheduled_basal_rate
-        self.scheduled_carb_insulin_ratio = scheduled_cir
-        self.scheduled_insulin_sensitivity_factor = schedule_isf
-        self.temp_basal_rate = temp_basal_rate
-        self.delivered_basal_insulin = delivered_basal_insulin
-        self.undelivered_basal_insulin = undelivered_basal_insulin
-        self.bolus = bolus
-        self.carb = carb
-
-    def get_carb_value(self):
-        value = None
-        if self.carb is not None:
-            value = self.carb.get_value()
-        return value
-
-    def get_bolus_value(self):
-        value = None
-        if self.bolus is not None:
-            value = self.bolus.get_value()
-        return value
-
-    def get_carb_duration(self):
-        value = None
-        if self.carb is not None:
-            value = self.carb.get_duration()
-        return value
-
-    def get_temp_basal_rate_value(self, default=None):
-        """
-        Get the value of the temp basal and return None if one is not set.
-
-        Returns
-        -------
-        float
-        """
-        value = default
-        if self.temp_basal_rate is not None:
-            value = self.temp_basal_rate.value
-
-        return value
-
-    def get_temp_basal_minutes_left(self, time, default=None):
-
-        value = default
-        if self.temp_basal_rate is not None:
-            value = self.temp_basal_rate.get_minutes_remaining(time)
-        return value

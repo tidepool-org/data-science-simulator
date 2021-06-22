@@ -265,6 +265,10 @@ class GlucoseTrace(object):
         if values is not None:
             self.bg_values = values
 
+    def __iter__(self):
+        for dt, bg_val in zip(self.datetimes, self.bg_values):
+            yield dt, bg_val
+
     def get_last(self):
         """
         Get most recent value.

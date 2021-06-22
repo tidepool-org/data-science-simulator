@@ -717,14 +717,12 @@ class SensoriCGM(SensorBase):
     """
     iCGM Sensor Model
     """
-    def __init__(self, time, sensor_config, random_state=None,
-                 sim_start_time=None, t0_error_bg=None):
+    def __init__(self, time, sensor_config, random_state=None, sim_start_time=None):
 
         super().__init__(time, sensor_config)
 
         self.name = "iCGM"
         self.sim_start_time = sim_start_time
-        self.t0_error_bg = t0_error_bg
 
         self.true_bg_history = []
 
@@ -772,46 +770,40 @@ class SensoriCGM(SensorBase):
 
         sensor_candidate_range = self.sensor_config.sensor_range
 
-        sensor_bg = true_bg
-        if self.sim_start_time is not None and time == self.sim_start_time:
-            sensor_bg = self.t0_error_bg
-            self.true_start_bg = true_bg
-            self.start_bg_with_offset = sensor_bg
-        # else:
-        # try:
-        #     probability_chain_for_plotting = []
-        #     icgm_transition_probabilities, icgm_losses = self.state.get_state_transition_probabilities(true_bg, sensor_candidate_range)
-        #
-        #     probability_chain_for_plotting.append(copy.copy(icgm_transition_probabilities))
-        #
-        #     for model in self.sensor_config.behavior_models:
-        #         behavior_probabilities = model.get_conditional_probabilities(
-        #             sensor_candidate_range,
-        #             true_bg_history=self.true_bg_history,
-        #             sensor_bg_history=self.sensor_bg_history.bg_values,
-        #             icgm_transition_probabilities=icgm_transition_probabilities,
-        #             icgm_losses=icgm_losses
-        #         )
-        #
-        #         icgm_transition_probabilities = np.multiply(icgm_transition_probabilities, behavior_probabilities)
-        #         probability_chain_for_plotting.append(copy.copy(icgm_transition_probabilities))
-        #
-        #     if np.sum(icgm_transition_probabilities) == 0:
-        #         raise Exception("Transition probabilities are zero.")
-        #
-        #     icgm_transition_probabilities /= np.sum(icgm_transition_probabilities)
-        #
-        #     do_plot_step_probs = kwargs.get("do_plot", False)
-        #     if do_plot_step_probs or np.isnan(icgm_transition_probabilities).any():
-        #         self.plot_internals(sensor_candidate_range,
-        #                             probability_chain_for_plotting,
-        #                             icgm_losses)
-        #
-        #     sensor_bg = self.random_state.choice(sensor_candidate_range, p=icgm_transition_probabilities)
-        #     self.state.update(time, true_bg, sensor_bg)
-        #
-        # except LegitimateNoniCGMSensor:
-        #     sensor_bg = np.nan
+        try:
+            probability_chain_for_plotting = []
+            icgm_transition_probabilities, icgm_losses = self.state.get_state_transition_probabilities(true_bg, sensor_candidate_range)
+
+            probability_chain_for_plotting.append(copy.copy(icgm_transition_probabilities))
+
+            for model in self.sensor_config.behavior_models:
+                behavior_probabilities = model.get_conditional_probabilities(
+                    sensor_candidate_range,
+                    true_bg_history=self.true_bg_history,
+                    sensor_bg_history=self.sensor_bg_history.bg_values,
+                    icgm_transition_probabilities=icgm_transition_probabilities,
+                    icgm_losses=icgm_losses
+                )
+
+                icgm_transition_probabilities = np.multiply(icgm_transition_probabilities, behavior_probabilities)
+                probability_chain_for_plotting.append(copy.copy(icgm_transition_probabilities))
+
+            if np.sum(icgm_transition_probabilities) == 0:
+                raise Exception("Transition probabilities are zero.")
+
+            icgm_transition_probabilities /= np.sum(icgm_transition_probabilities)
+
+            do_plot_step_probs = kwargs.get("do_plot", False)
+            if do_plot_step_probs or np.isnan(icgm_transition_probabilities).any():
+                self.plot_internals(sensor_candidate_range,
+                                    probability_chain_for_plotting,
+                                    icgm_losses)
+
+            sensor_bg = self.random_state.choice(sensor_candidate_range, p=icgm_transition_probabilities)
+            self.state.update(time, true_bg, sensor_bg)
+
+        except LegitimateNoniCGMSensor:
+            sensor_bg = np.nan
 
         self.current_sensor_bg = sensor_bg
         self.sensor_bg_history.append(self.time, self.current_sensor_bg)
@@ -836,6 +828,34 @@ class SensoriCGM(SensorBase):
     def set_random_values(self):
         # TODO
         return
+
+
+class SensoriCGMInitialOffset(SensoriCGM):
+    """
+    Inherit all behavior of iCGM sensor, except manually set the initial value of the sensor at
+    simulation start time.
+    """
+    def __init__(self, time, sensor_config, t0_error_bg, random_state=None, sim_start_time=None):
+        super().__init__(time, sensor_config, random_state, sim_start_time)
+        self.t0_error_bg = t0_error_bg
+
+    def update(self, time, **kwargs):
+
+        if self.sim_start_time is not None and time == self.sim_start_time:
+
+            self.time = time
+            true_bg = kwargs["patient_true_bg"]
+            self.true_bg_history.append(true_bg)
+
+            sensor_bg = self.t0_error_bg
+            self.true_start_bg = true_bg
+            self.start_bg_with_offset = sensor_bg
+
+            self.state.update(time, true_bg, sensor_bg)
+            self.current_sensor_bg = sensor_bg
+            self.sensor_bg_history.append(self.time, self.current_sensor_bg)
+        else:
+            super().update(time, **kwargs)
 
 
 class SensoriCGMModelOverlayBase():
@@ -906,7 +926,10 @@ class SensoriCGMModelOverlayV1(SensoriCGMModelOverlayBase):
         true_bg_history = kwargs["true_bg_history"]
 
         try:
-            mu = true_bg_history[-self.delay]
+            delay_idx = -1
+            if self.delay > 0:
+                delay_idx -= self.delay
+            mu = true_bg_history[delay_idx]
         except IndexError:
             mu = true_bg
 

@@ -337,7 +337,7 @@ class ScenarioParserV2(SimulationParser):
 
         return BolusTimeline(insulin_datetimes, insulin_events)
 
-    def build_sim_from_config(self, sim_config):
+    def build_components_from_config(self, sim_config, sensor=None, pump=None):
 
         sim_start_time_str = self.get_required_value(sim_config, "time_to_calculate_at", str)
         sim_start_time = datetime.datetime.strptime(sim_start_time_str, DATETIME_FORMAT)
@@ -348,12 +348,16 @@ class ScenarioParserV2(SimulationParser):
         self.patient_model = self.build_model_from_config(sim_start_time, sim_config["patient"]["patient_model"])
 
         self.sensor_glucose_history = self.build_glucose_history(sim_config["patient"]["sensor"]["glucose_history"])
-        self.patient_model_glucose_history = self.build_glucose_history(sim_config["patient"]["patient_model"]["glucose_history"])
+        self.patient_model_glucose_history = self.build_glucose_history(
+            sim_config["patient"]["patient_model"]["glucose_history"])
 
         controller = self.get_controller(sim_start_time, sim_config)
 
-        pump = ContinuousInsulinPump(time=sim_start_time, pump_config=self.get_pump_config())
-        sensor = IdealSensor(time=sim_start_time, sensor_config=self.get_sensor_config())
+        if pump is None:
+            pump = ContinuousInsulinPump(time=sim_start_time, pump_config=self.get_pump_config())
+
+        if sensor is None:
+            sensor = IdealSensor(time=sim_start_time, sensor_config=self.get_sensor_config())
 
         virtual_patient = VirtualPatient(
             sim_start_time,
@@ -362,6 +366,12 @@ class ScenarioParserV2(SimulationParser):
             metabolism_model=SimpleMetabolismModel,
             patient_config=self.get_patient_config(),
         )
+
+        return sim_start_time, duration_hrs, virtual_patient, controller
+
+    def build_sim_from_config(self, sim_config):
+
+        sim_start_time, duration_hrs, virtual_patient, controller = self.build_components_from_config(sim_config)
 
         sim = Simulation(sim_start_time,
                          duration_hrs=duration_hrs,
