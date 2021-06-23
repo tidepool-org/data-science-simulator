@@ -6,6 +6,9 @@ import datetime
 import time
 import json
 import copy
+import logging
+
+logger = logging.getLogger(__name__)
 
 from collections import Counter
 
@@ -15,7 +18,7 @@ from scipy.stats import norm
 
 import matplotlib.pyplot as plt
 
-from tidepool_data_science_simulator.models.sensor import SensorBase
+from tidepool_data_science_simulator.models.sensor import SensorBase, NoisySensor
 from tidepool_data_science_simulator.makedata.scenario_parser import SensorConfig, GlucoseTrace
 
 from tidepool_data_science_models.models.icgm_sensor_generator_functions import preprocess_data, calc_icgm_sc_table
@@ -717,12 +720,11 @@ class SensoriCGM(SensorBase):
     """
     iCGM Sensor Model
     """
-    def __init__(self, time, sensor_config, random_state=None, sim_start_time=None):
+    def __init__(self, time, sensor_config, random_state=None):
 
         super().__init__(time, sensor_config)
 
         self.name = "iCGM"
-        self.sim_start_time = sim_start_time
 
         self.true_bg_history = []
 
@@ -830,13 +832,40 @@ class SensoriCGM(SensorBase):
         return
 
 
+class NoisySensorInitialOffset(NoisySensor):
+    """
+    Noisy sensor that with ability to manually inject value at sim start time.
+    """
+    def __init__(self, time, sensor_config, t0_error_bg, random_state=None, sim_start_time=None):
+        super().__init__(time, sensor_config, random_state)
+        self.sim_start_time = sim_start_time
+        self.t0_error_bg = t0_error_bg
+
+    def update(self, time, **kwargs):
+
+        if self.sim_start_time is not None and time == self.sim_start_time:
+
+            self.time = time
+            true_bg = kwargs["patient_true_bg"]
+
+            sensor_bg = self.t0_error_bg
+            self.true_start_bg = true_bg
+            self.start_bg_with_offset = sensor_bg
+
+            self.current_sensor_bg = sensor_bg
+            self.sensor_bg_history.append(self.time, self.current_sensor_bg)
+        else:
+            super().update(time, **kwargs)
+
+
 class SensoriCGMInitialOffset(SensoriCGM):
     """
     Inherit all behavior of iCGM sensor, except manually set the initial value of the sensor at
     simulation start time.
     """
     def __init__(self, time, sensor_config, t0_error_bg, random_state=None, sim_start_time=None):
-        super().__init__(time, sensor_config, random_state, sim_start_time)
+        super().__init__(time, sensor_config, random_state)
+        self.sim_start_time = sim_start_time
         self.t0_error_bg = t0_error_bg
 
     def update(self, time, **kwargs):

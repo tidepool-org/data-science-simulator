@@ -36,7 +36,7 @@ class SimulationState(object):
     A class for holding the state of the simulation at any given time.
     """
 
-    def __init__(self, patient_state, controller_state, randint):
+    def __init__(self, patient_state, controller_state, randint, active):
         """
         Parameters
         ----------
@@ -47,6 +47,7 @@ class SimulationState(object):
         self.patient_state = patient_state
         self.controller_state = controller_state
         self.randint = randint
+        self.active = active
 
     def __repr__(self):
 
@@ -107,23 +108,14 @@ class Simulation(multiprocessing.Process):
 
             patient_state = VirtualPatientState(
                 bg=true_bg,
-                bg_prediction=None,
                 sensor_bg=sensor_bg,
-                sensor_bg_prediction=None,
-                iob=None,
-                iob_prediction=None,
-                sbr=None,
-                isf=None,
-                cir=None,
                 pump_state=PumpState(),
-                bolus=None,
-                carb=None,
-                actions=None
             )
             self.simulation_results[patient_dt] = SimulationState(
                 patient_state=patient_state,
                 controller_state=None,
-                randint=None
+                randint=None,
+                active=0,
             )
 
         # Setup steady state basal and t0 glucose
@@ -185,7 +177,8 @@ class Simulation(multiprocessing.Process):
         self.simulation_results[self.time] = SimulationState(
             patient_state=self.virtual_patient.get_state(),
             controller_state=self.controller.get_state(),
-            randint=self.random_state.randint(0, 1e6)
+            randint=self.random_state.randint(0, 1e6),
+            active=1
         )
 
     def is_finished(self):
@@ -301,6 +294,7 @@ class Simulation(multiprocessing.Process):
 
             row = {
                 "time": time,
+                "active": simulation_state.active,
                 "bg": simulation_state.patient_state.bg,
                 "bg_sensor": simulation_state.patient_state.sensor_bg,
                 "iob": simulation_state.patient_state.iob,

@@ -327,15 +327,11 @@ def transform_icgm_json_to_v2_parser():
             "upper_values": [100]
         }
 
-        if settings_export["controller"]["model"] not in list(CONTROLLER_MODEL_NAME_MAP.keys()):
-            settings_export["controller"]["model"] = "rapid_acting_adult"
-        else:
-            for model_name, params in CONTROLLER_MODEL_NAME_MAP.items():
-                if params == settings_export["controller"]["model"]:
-                    settings_export["controller"]["model"] = model_name
-
+        settings_export["controller"]["model"] = "rapid_acting_adult"
+        # settings_export["controller"]["retrospective_correction_enabled"] = False
         json_config_v2 = {
                              "sim_id": "iCGM_Positive_Bias_{}_age={}".format(patient_id, age),
+                             "patient_id": patient_id,
                              "time_to_calculate_at": start_time.strftime(date_str_format),
                              "duration_hours": 8,
                              "offset_applied_to_dates": 0,

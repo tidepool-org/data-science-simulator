@@ -92,19 +92,20 @@ def run_simulations(sims, save_dir,
             # Summarize, save, or plot results
             for sim_id, results_df in batch_results.items():
 
+                metrics_df = results_df[results_df["active"] == 1]
                 if compute_summary_metrics:
                     try:
-                        true_bg_trace_clipped = np.array([min(401, max(1, val)) for val in results_df['bg']])
+                        true_bg_trace_clipped = np.array([min(401, max(1, val)) for val in metrics_df['bg']])
                         lbgi, hbgi, brgi = blood_glucose_risk_index(true_bg_trace_clipped)
-                        dka_index_value = dka_index(results_df["iob"], results_df["sbr"].values[0])
-                        basal_delivered = results_df["delivered_basal_insulin"].sum()
-                        bolus_delivered = results_df["reported_bolus"].sum()
+                        dka_index_value = dka_index(metrics_df["iob"], metrics_df["sbr"].values[0])
+                        basal_delivered = metrics_df["delivered_basal_insulin"].sum()
+                        bolus_delivered = metrics_df["reported_bolus"].sum()
                         total_delivered = basal_delivered + bolus_delivered
                         summary_str = "Sim {}. \n\tMean BG: {} LBGI: {} HBGI: {} BRGI: {}\n\t Basal {}. Bolus {}. Total {}".format(sim_id, np.mean(true_bg_trace_clipped), lbgi, hbgi, brgi, basal_delivered, bolus_delivered, total_delivered)
                         logger.debug(summary_str)
 
-                        sensor_mard = np.mean(np.abs(results_df["bg"] - results_df["bg_sensor"]) / results_df["bg"])
-                        sensor_mbe = np.mean(results_df["bg_sensor"] - results_df["bg"])
+                        sensor_mard = np.mean(np.abs(metrics_df["bg"] - metrics_df["bg_sensor"]) / metrics_df["bg"])
+                        sensor_mbe = np.mean(metrics_df["bg_sensor"] - metrics_df["bg"])
                         logger.debug("Sensor Stats: MBE: {}. MARD: {}".format(sensor_mbe, sensor_mard))
 
                         summary_results.append({
