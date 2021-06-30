@@ -333,7 +333,7 @@ def transform_icgm_json_to_v2_parser():
                              "sim_id": "iCGM_Positive_Bias_{}_age={}".format(patient_id, age),
                              "patient_id": patient_id,
                              "time_to_calculate_at": start_time.strftime(date_str_format),
-                             "duration_hours": 8,
+                             "duration_hours": 8.0,
                              "offset_applied_to_dates": 0,
                              "patient": {
                                  "sensor": {

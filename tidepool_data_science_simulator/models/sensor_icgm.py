@@ -715,6 +715,58 @@ class iCGMState():
 
         return key
 
+class iCGMStateV2(iCGMState):
+
+    def __init__(self, time, num_initial_values, num_history_values, special_controls, initial_controls, do_look_ahead, look_ahead_min_prob, random_state):
+        super().__init__(time, num_initial_values, num_history_values, special_controls, initial_controls, do_look_ahead, look_ahead_min_prob, random_state)
+        self.criteria_to_key_map = {
+            "range": {
+                "D": ("<70", "<40"),
+                "E": ("70-180", "<40%"),
+                "F": (">180", "<40%"),
+                "AD_complement": ("<70", ">40"),
+                "BE_complement": ("70-180", ">40%"),
+                "CF_complement": (">180", ">40%"),
+            },
+            "overall": {
+                "G": "<20%",
+                "G_complement": ">20%",
+            },
+            "true_pos_rate": {
+                "J": "ok",
+                "J_complement": "extreme",
+            },
+            "true_neg_rate": {
+                "K": "ok",
+                "K_complement": "extreme"
+            }
+        }
+
+    def get_bg_range_error_key(self, true_bg, sensor_bg):
+        bg_range_key = self.get_bg_range_key(sensor_bg)
+
+        if bg_range_key == "<70":
+            bg_error = self.get_bg_abs_error(true_bg, sensor_bg)
+            if 0 <= bg_error < 40:
+                bg_error_key = "<40"
+            elif bg_error >= 40:
+                bg_error_key = ">40"
+            else:
+                raise Exception
+
+        else:
+            bg_error_percentage = self.get_bg_error_pecentage(true_bg, sensor_bg)
+
+            if 0 <= bg_error_percentage < 0.40:
+                bg_error_key = "<40%"
+            elif bg_error_percentage >= 0.40:
+                bg_error_key = ">40%"
+            else:
+                print(bg_error_percentage)
+                raise Exception
+
+        return bg_error_key
+
 
 class SensoriCGM(SensorBase):
     """
@@ -776,7 +828,7 @@ class SensoriCGM(SensorBase):
             probability_chain_for_plotting = []
             icgm_transition_probabilities, icgm_losses = self.state.get_state_transition_probabilities(true_bg, sensor_candidate_range)
 
-            probability_chain_for_plotting.append(copy.copy(icgm_transition_probabilities))
+            probability_chain_for_plotting.append(("icgm", copy.copy(icgm_transition_probabilities)))
 
             for model in self.sensor_config.behavior_models:
                 behavior_probabilities = model.get_conditional_probabilities(
@@ -788,7 +840,8 @@ class SensoriCGM(SensorBase):
                 )
 
                 icgm_transition_probabilities = np.multiply(icgm_transition_probabilities, behavior_probabilities)
-                probability_chain_for_plotting.append(copy.copy(icgm_transition_probabilities))
+                model_name = model.get_info_stateless()["name"]
+                probability_chain_for_plotting.append((model_name, copy.copy(icgm_transition_probabilities)))
 
             if np.sum(icgm_transition_probabilities) == 0:
                 raise Exception("Transition probabilities are zero.")
@@ -814,17 +867,28 @@ class SensoriCGM(SensorBase):
                        probability_chain_for_plotting,
                        icgm_losses):
 
-        fig, ax = plt.subplots(len(probability_chain_for_plotting) + 2, 1, figsize=(10, 10))
-        plt.tight_layout()
-        ax[0].plot(self.sensor_bg_history.bg_values, label="iCGM")
-        ax[0].plot(self.true_bg_history, label="true")
+        fig, ax = plt.subplots(len(probability_chain_for_plotting) + 1, 1, figsize=(14, 10))
+        # plt.axis('tight')
+        # plt.tight_layout()
+        fig.set_tight_layout({"pad": .5})
+
+        # iCGM transition probs
+        ax[0].plot(self.sensor_bg_history.bg_values, marker="*", label="iCGM")
+        ax[0].plot(self.true_bg_history, marker=".", label="true")
+        ax[0].set_ylabel("Simulated Glucose (mg/dL)")
         ax[0].set_xlabel("Time (5 min)")
         ax[0].legend()
-        for i, probs in enumerate(probability_chain_for_plotting):
+
+        # Behavior models
+        for i, (model_name, probs) in enumerate(probability_chain_for_plotting):
             ax[i+1].plot(sensor_candidate_range, probs)
-            ax[i+1].set_ylabel("iCGM Probabilities")
-        ax[-1].plot(sensor_candidate_range, icgm_losses)
-        ax[-1].set_ylabel("iCGM Losses")
+            ax[i+1].set_ylabel("Prob after {}".format(model_name))
+            ax[i+1].set_xlabel("Sensor Candidates (mg/dL)")
+
+        # # Losses
+        # ax[-1].plot(sensor_candidate_range, icgm_losses)
+        # ax[-1].set_ylabel("iCGM Losses")
+        # ax[-1].set_xlabel("Sensor Candidates")
         plt.show()
 
     def set_random_values(self):
@@ -929,7 +993,7 @@ class SensoriCGMModelOverlayNoiseBiasWorst(SensoriCGMModelOverlayBase):
     def get_info_stateless(self):
 
         return {
-            "type": "Bias-Noise-Worst-Case",
+            "name": "Bias-Noise-Worst-Case",
             "max_bias_percentage": self.max_bias_percentage
         }
 
@@ -1107,7 +1171,7 @@ class DexcomG6RateModel(SensoriCGMModelOverlayBase):
 
     def get_info_stateless(self):
         return {
-            "name": "DexcomRateModel"
+            "name": "DexcomG6RateModel"
         }
 
 
@@ -1184,7 +1248,7 @@ class DexcomG6ValueModel(SensoriCGMModelOverlayBase):
 
     def get_info_stateless(self):
         return {
-            "name": "DexcomRateModel"
+            "name": "DexcomG6ValueModel"
         }
 
 
@@ -1200,7 +1264,7 @@ def get_test_data():
         "/Users/csummers/Downloads/mean_shift_special_controls_not_passed_icgm-sensitivity-analysis-scenarios-2020-07-10-nogit.csv")[
                                                              "training_scenario_filename"]))))
 
-    scenarios_dir = "/Users/csummers/dev/data-science-simulator/data/raw/icgm-sensitivity-analysis-scenarios-2020-07-10"
+    scenarios_dir = "/Users/csummers/data/simulator/raw/icgm-sensitivity-analysis-scenarios-2020-07-10"
 
     # scenario_filename = "train_80a5c60283c2b095d69cca4f64c26e2564958a07e2f0e19fafd073ed47d2b5e7.csv_condition9.csv"
     scenario_filename = not_fitting_list_mean_shift_filelist[3]
@@ -1277,7 +1341,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(2, 1)
 
     behavior_model_compare = {
-        "dexcom_values_rates": [DexcomG6ValueModel(), DexcomG6RateModel()],
+        # "dexcom_values_rates": [DexcomG6ValueModel(), DexcomG6RateModel()],
         # "dexcom_values": [DexcomG6ValueModel()],
         # "dexcom_rates": [DexcomG6RateModel()],
         # "max_noise": [SensoriCGMModelOverlayNoiseBiasWorst(50)],

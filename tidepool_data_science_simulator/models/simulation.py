@@ -102,8 +102,8 @@ class Simulation(multiprocessing.Process):
         """
         Initialize the simulation
         """
-        for ((patient_dt, true_bg), (sensor_dt, sensor_bg)) in zip(self.virtual_patient.patient_config.glucose_history,
-            self.virtual_patient.sensor.sensor_bg_history):
+        for ((patient_dt, true_bg), (sensor_dt, sensor_bg)) in list(zip(self.virtual_patient.patient_config.glucose_history,
+            self.virtual_patient.sensor.sensor_bg_history)):
             assert patient_dt == sensor_dt
 
             patient_state = VirtualPatientState(

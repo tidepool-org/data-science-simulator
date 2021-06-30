@@ -44,13 +44,12 @@ def load_results(save_dir, ext="tsv", max_dfs=10):
             if re.search(".*.{}".format(ext), file):
 
                 filepath = os.path.join(root, file)
-                result_dict = load_result(filepath)
-                all_results.update(result_dict)
+                sim_id, result_df = load_result(filepath)
+
+                yield sim_id, result_df
 
                 if len(all_results) >= max_dfs:
                     break
-
-    return all_results
 
 
 def load_result(result_filepath, ext="tsv"):
@@ -68,7 +67,8 @@ def load_result(result_filepath, ext="tsv"):
     path, file = os.path.split(result_filepath)
     all_results[file] = df
 
-    return all_results
+    return file, df
+    # return all_results
 
 
 def get_sim_population_results(result_dir, num_vps=10, vp_list=None):

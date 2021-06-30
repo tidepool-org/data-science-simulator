@@ -39,7 +39,7 @@ from tidepool_data_science_simulator.utils import DATA_DIR
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 
-def generate_icgm_initial_positive_bias_simulations(json_sim_base_config, base_sim_seed):
+def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     """
     Generator simulations from a base configuration that have different true bg
     starting points and different t0 sensor error values.
@@ -160,14 +160,13 @@ def build_icgm_sim_generator(json_base_configs, sim_batch_size=30):
     """
     Build simulations for the FDA AI Letter iCGM sensitivity analysis.
     """
-
-    sim_ctr = 0
-    sims = {}
-
     for i, json_config in enumerate(json_base_configs, 1):
         logger.info("VP: {}. {} of {}".format(json_config["patient_id"], i, len(json_base_configs)))
 
-        for sim in generate_icgm_initial_positive_bias_simulations(json_config, base_sim_seed=i):
+        sim_ctr = 0
+        sims = {}
+
+        for sim in generate_icgm_point_error_simulations(json_config, base_sim_seed=i):
 
             sims[sim.sim_id] = sim
             sim_ctr += 1

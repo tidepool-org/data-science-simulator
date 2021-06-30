@@ -342,7 +342,7 @@ class ScenarioParserV2(SimulationParser):
         sim_start_time_str = self.get_required_value(sim_config, "time_to_calculate_at", str)
         sim_start_time = datetime.datetime.strptime(sim_start_time_str, DATETIME_FORMAT)
 
-        duration_hrs = self.get_required_value(sim_config, "duration_hours", int)
+        duration_hrs = self.get_required_value(sim_config, "duration_hours", float)
 
         self.pump_model = self.build_model_from_config(sim_start_time, sim_config["patient"]["pump"])
         self.patient_model = self.build_model_from_config(sim_start_time, sim_config["patient"]["patient_model"])
