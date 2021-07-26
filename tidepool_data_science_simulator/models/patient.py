@@ -289,9 +289,10 @@ class VirtualPatient(SimulationComponent):
 
         carb_amount = 0
         if carb is not None:
-            carb_amount = carb.value
+            carb_amount = carb.get_value()
+            carb_absorption_time = carb.get_duration()
 
-        return abs_insulin_amount, rel_insulin_amount, carb_amount
+        return abs_insulin_amount, rel_insulin_amount, carb_amount, carb_absorption_time
 
     def deliver_bolus(self, bolus):
         """
@@ -371,7 +372,7 @@ class VirtualPatient(SimulationComponent):
 
          predict the horizon for bg and insulin on board
         """
-        abs_insulin_amount, rel_insulin_amount, carb_amount = self.get_total_insulin_and_carb_amounts()
+        abs_insulin_amount, rel_insulin_amount, carb_amount, carb_absorb_minutes = self.get_total_insulin_and_carb_amounts()
 
         # Initialize zero change
         combined_delta_bg_pred = np.zeros(self.num_prediction_steps)
@@ -381,7 +382,7 @@ class VirtualPatient(SimulationComponent):
         if rel_insulin_amount != 0 or carb_amount > 0:  # NOTE: Insulin can be negative
             # This gives results for t=time -> t=time+prediction_horizon_hrs
             combined_delta_bg_pred, _ = self.run_metabolism_model(
-                rel_insulin_amount, carb_amount
+                rel_insulin_amount, carb_amount, carb_absorb_minutes
             )
 
         # Apply the absolute amount of insulin to get the insulin on board
@@ -389,7 +390,7 @@ class VirtualPatient(SimulationComponent):
             # TODO: Is it possible to avoid running this twice with a change in the
             #       metabolism model?
             _, iob_pred = self.run_metabolism_model(
-                abs_insulin_amount, carb_amount=0
+                abs_insulin_amount, carb_amount=0, carb_absorb_minutes=215  # carb has no effect
             )
 
         # Update bg prediction with delta bgs
@@ -411,7 +412,7 @@ class VirtualPatient(SimulationComponent):
 
         pass
 
-    def run_metabolism_model(self, insulin_amount, carb_amount):
+    def run_metabolism_model(self, insulin_amount, carb_amount, carb_absorp_minutes):
         """
         Get the predicted effects of insulin and carbs
 
@@ -432,7 +433,7 @@ class VirtualPatient(SimulationComponent):
         metabolism_model_instance = self.instantiate_metabolism_model()
 
         combined_delta_bg, t_min, insulin_amount, iob = metabolism_model_instance.run(
-            insulin_amount=insulin_amount, carb_amount=carb_amount, five_min=True,
+            insulin_amount=insulin_amount, carb_amount=carb_amount, carb_absorp_minutes=carb_absorp_minutes, five_min=True,
         )
 
         return combined_delta_bg, iob
