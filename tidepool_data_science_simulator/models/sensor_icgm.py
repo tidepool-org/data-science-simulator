@@ -110,7 +110,23 @@ iCGM_THRESHOLDS = {
     "K": 0.01,
 }
 
-G6_THRESHOLDS = {
+# Point sensor distribution estimates
+# Most values are from Pg 14 of Dexcom de novo
+# Table: "Percent and Point Accuracy by iCGM Glucose Range: Adults (N=159)
+G6_THRESHOLDS_DE_NOVO = {
+    "A": 0.885,
+    "B": 0.741,
+    "C": 0.855,
+    "D": 0.993,
+    "E": 0.993,
+    "F": 0.999,
+    "G": 0.895,  # Pg 16, "Percent of iCGM values within 20% of reference blood glucose"
+    "J": 0.01,  # Pg 25 - Not estimated yet
+    "K": 0.01,  # Pg 25 - Not estimated yet
+}
+
+# Estiamtes from Ed's code
+G6_THRESHOLDS_ED = {
     "A": 0.8540255821075945,
     "B": 0.7493381359722157,
     "C": 0.849952769987456,
@@ -1322,7 +1338,7 @@ if __name__ == "__main__":
 
     special_controls = {
         # "fda": iCGM_THRESHOLDS,
-        "g6": G6_THRESHOLDS,
+        "g6": G6_THRESHOLDS_ED,
         # "worst": {
         #     "A": 0.01,
         #     "B": 0.01,
