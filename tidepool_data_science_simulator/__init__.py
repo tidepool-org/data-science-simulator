@@ -36,6 +36,6 @@ if USE_LOCAL_PYLOOPKIT:
     logger.debug("========== Importing Local Pyloopkit ============")
     import sys
     this_dir = os.path.dirname(__file__)
-    local_pyloopkit_path = os.path.join("../../PyLoopKit/")  # Assume simulator and
+    local_pyloopkit_path = os.path.join(this_dir, "../../PyLoopKit/")  # Assume simulator and
     assert os.path.isdir(local_pyloopkit_path)
     sys.path.insert(0, local_pyloopkit_path)

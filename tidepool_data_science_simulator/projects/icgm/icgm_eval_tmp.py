@@ -9,12 +9,13 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.stats import lognorm, norm
 
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index, percent_values_ge_70_le_180
 from tidepool_data_science_metrics.insulin.insulin import dka_index, dka_risk_score
 
 from tidepool_data_science_simulator.models.sensor_icgm import (
-    DexcomG6ValueModel, iCGM_THRESHOLDS, iCGMState, iCGMStateV2
+    DexcomG6ValueModel, iCGM_THRESHOLDS, iCGMState, iCGMStateV2, G6_THRESHOLDS_DE_NOVO
 )
 from tidepool_data_science_simulator.projects.icgm.icgm_sensitivity_analysis_ai_letter_June2021 import get_initial_offset_sensor
 
@@ -612,62 +613,331 @@ def get_icgm_sim_summary_df(result_dir, save_dir):
     return sim_summary_df
 
 
-def compute_risk_results(sim_summary_df, save_dir):
+def get_cgm_range_prob(sbg):
+    cgm_range_prob = None
+    if sbg < 70:
+        cgm_range_prob = 0.065
+    elif 70 <= sbg <= 180:
+        cgm_range_prob = 0.54
+    elif sbg > 180:
+        cgm_range_prob = 0.388
 
-    def get_cgm_range_prob(sbg):
-        cgm_range_prob = None
-        if sbg < 70:
-            cgm_range_prob = 0.065
-        elif 70 <= sbg <= 180:
-            cgm_range_prob = 0.54
-        elif sbg > 180:
-            cgm_range_prob = 0.388
+    return cgm_range_prob
 
-        return cgm_range_prob
 
-    def get_p_error_given_range(sp_letter, lcb_95):
-        p_error = None
-        if sp_letter == "D":
-            p_error = prob - iCGM_THRESHOLDS["A"]
-        elif sp_letter == "E":
-            p_error = prob - iCGM_THRESHOLDS["B"]
-        elif sp_letter == "F":
-            p_error = prob - iCGM_THRESHOLDS["C"]
+# def get_cgm_range_prob_lognormal(cgm_val, do_fit=False):
+#
+#     fitted_params = (0.4017623645167624, 2.6904256164008924, 141.4181660742487)
+#
+#     if do_fit:
+#
+#         path_to_tp_data = "/Users/csummers/data/Loop Velocity Cap/PHI-2019-07-17-cgm-distributions-6500-6666.csv"
+#         data = pd.read_csv(path_to_tp_data)
+#         bg = data["mg/dL"]
+#
+#         fitted_params = lognorm.fit(bg)
+#         print(fitted_params)
+#
+#         plt.hist(bg)
+#         plt.figure()
+#         x = np.linspace(40, 400, 400)
+#         pdf_fitted = lognorm.pdf(x, *fitted_params)
+#
+#         plt.plot(x, pdf_fitted)
+#         plt.show()
+#
+#     x = np.linspace(40, 400, 400)
+#     prob = lognorm.pdf(cgm_val, *fitted_params)
+#
+#     return prob
+
+
+def get_p_error_given_range_normal(sp_letter, error_abs, error_percentage):
+
+    if sp_letter in ["A", "D", "AD_complement"]:
+        mu, sigma = 0, 10.4
+        mu, sigma = 0, 14.9
+        error = error_abs
+    elif sp_letter in ["B", "E", "BE_complement"]:
+        mu, sigma = 0, 14.4
+        mu, sigma = 0, 14.9
+        error = error_percentage * 100
+    elif sp_letter in ["C", "F", "CF_complement"]:
+        mu, sigma = 0, 11.6
+        mu, sigma = 0, 12.2
+        error = error_percentage * 100
+
+    prob = np.sum(norm.pdf(range(int(round(error)), int(round(error + 5))), mu, sigma)) * 2
+
+    return prob
+
+
+def plot_special_controls_dist():
+    overall_dist = []
+
+    ad_dist = []
+    be_dist = []
+    cf_dist = []
+
+    num_samples = 100000
+    # error_density = "uniform"
+    error_density = "normal"
+    # error_density = "linear"
+    # error_density = "pareto"
+
+    # p_range = "weighted"
+    p_range = "uniform"
+    if p_range == "uniform":
+        range_probs = [0.333, 0.333, 0.334]
+    elif p_range == "weighted":
+        range_probs = [0.07, 0.54, 0.39]
+    p_lt_70, p_70_180, p_gt_180 = range_probs
+
+    HIGH_ERROR_BOUND = 70
+
+    def get_error_size_bounds(size):
+        if size == "small":
+            low, high = 0, 15
+        elif size == "med":
+            low, high = 15, 40
+        elif size == "large":
+            low, high = 40, HIGH_ERROR_BOUND
+        return low, high
+
+    for i in range(num_samples):
+
+        cgm_range = np.random.choice([range(40, 70), range(70, 181), range(180, 401)], p=range_probs)
+        cgm_value = np.random.choice(cgm_range)
+
+        error_sizes = ["small", "med", "large"]
+        if cgm_value < 70:
+            abs_error_range = np.random.choice(error_sizes, p=[0.85, 0.13, 0.02])
+            low_bound, high_bound = get_error_size_bounds(abs_error_range)
+
+            if error_density == "uniform":
+                error = np.random.choice([-1, 1]) * np.random.uniform(low_bound, high_bound)
+            elif error_density == "normal":
+                error = np.random.choice([-1, 1]) * np.random.normal(0, 10.3)
+            elif error_density == "linear":
+                linear_weights = np.arange(high_bound, low_bound, -1)
+                linear_weights = linear_weights / sum(linear_weights)
+                error = np.random.choice([-1, 1]) * np.random.choice(range(low_bound, high_bound), p=linear_weights)
+            elif error_density == "pareto":
+                val = np.random.pareto(0.72)
+                while val > HIGH_ERROR_BOUND:
+                    val = np.random.pareto(0.72)
+                error = np.random.choice([-1, 1]) * val
+
+            true_value = max(cgm_value - error, 1)
+            percent_error = error / true_value
+
+            if true_value > 180:  # Special Control H
+                continue
+
+            ad_dist.append(error)
+        elif 70 <= cgm_value <= 180:
+            percent_error_range = np.random.choice(error_sizes, p=[0.70, 0.29, 0.01])
+            low_bound, high_bound = get_error_size_bounds(percent_error_range)
+            if error_density == "uniform":
+                percent_error = np.random.choice([-1, 1]) * np.random.uniform(low_bound, high_bound)
+            elif error_density == "normal":
+                percent_error = np.random.choice([-1, 1]) * np.random.normal(0, 14.3)
+            elif error_density == "linear":
+                linear_weights = np.arange(high_bound, low_bound, -1)
+                linear_weights = linear_weights / sum(linear_weights)
+                percent_error = np.random.choice([-1, 1]) * np.random.choice(range(low_bound, high_bound), p=linear_weights)
+            elif error_density == "pareto":
+                val = np.random.pareto(1.0)
+                while val > HIGH_ERROR_BOUND:
+                    val = np.random.pareto(1.0)
+                percent_error = np.random.choice([-1, 1]) * val
+
+            true_value = cgm_value / (1 + percent_error/100)
+            error = cgm_value - true_value
+
+            be_dist.append(percent_error)
+        elif cgm_value > 180:
+            percent_error_range = np.random.choice(error_sizes, p=[0.80, 0.19, 0.01])
+            low_bound, high_bound = get_error_size_bounds(percent_error_range)
+
+            if error_density == "uniform":
+                percent_error = np.random.choice([-1, 1]) * np.random.uniform(low_bound, high_bound)
+            elif error_density == "normal":
+                percent_error = np.random.choice([-1, 1]) * np.random.normal(0, 11.7)
+            elif error_density == "linear":
+                linear_weights = np.arange(high_bound, low_bound, -1)
+                linear_weights = linear_weights / sum(linear_weights)
+                percent_error = np.random.choice([-1, 1]) * np.random.choice(range(low_bound, high_bound), p=linear_weights)
+            elif error_density == "pareto":
+                val = np.random.pareto(1.0)
+                while val > HIGH_ERROR_BOUND:
+                    val = np.random.pareto(1.0)
+                percent_error = np.random.choice([-1, 1]) * val
+
+            true_value = cgm_value / (1 + percent_error/100)
+            error = cgm_value - true_value
+
+            if true_value < 70:  # Special Control I
+                continue
+
+            cf_dist.append(percent_error)
         else:
-            p_error = lcb_95
+            raise Exception()
 
-        return p_error
+        overall_dist.append(percent_error)
+
+    print("<70 percentage", len(ad_dist) / len(overall_dist))
+    print("70-180 percentage", len(be_dist) / len(overall_dist))
+    print(">180 percentage", len(cf_dist) / len(overall_dist))
+
+    a_score = len([v for v in ad_dist if np.abs(v) < 15]) / len(ad_dist)
+    d_score = len([v for v in ad_dist if np.abs(v) < 40]) / len(ad_dist)
+    ad_compl_score = len([v for v in ad_dist if np.abs(v) >= 40]) / len(ad_dist)
+    print("A", a_score)
+    print("D", d_score)
+    print("AD_complement", ad_compl_score)
+    print("AD mu={}. sigma={}".format(np.mean(ad_dist), np.std(ad_dist)))
+
+    b_score = len([v for v in be_dist if np.abs(v) < 15]) / len(be_dist)
+    e_score = len([v for v in be_dist if np.abs(v) < 40]) / len(be_dist)
+    be_compl_score = len([v for v in be_dist if np.abs(v) >= 40]) / len(be_dist)
+    print("B", b_score)
+    print("E", e_score)
+    print("BE_complement", be_compl_score)
+    print("BE mu={}. sigma={}".format(np.mean(be_dist), np.std(be_dist)))
+
+    c_score = len([v for v in cf_dist if np.abs(v) < 15]) / len(cf_dist)
+    f_score = len([v for v in cf_dist if np.abs(v) < 40]) / len(cf_dist)
+    cf_compl_score = len([v for v in cf_dist if np.abs(v) >= 40]) / len(cf_dist)
+    print("C", c_score)
+    print("F", f_score)
+    print("CF_complement", cf_compl_score)
+    print("CF mu={}. sigma={}".format(np.mean(cf_dist), np.std(cf_dist)))
+
+    g_score = len([v for v in overall_dist if np.abs(v) < 20]) / len(overall_dist)
+    print("Overall +/- 20%: {:.2f}".format(g_score))
+
+    fig, ax = plt.subplots(1, 4, figsize=(15, 10))
+    fig.suptitle("Histograms of {} Errors Sampled under iCGM Special Controls with {} Error Density and P(R) {}".format(num_samples, error_density.capitalize(), p_range.capitalize()))
+
+    ax[0].hist(ad_dist, density=True, bins=HIGH_ERROR_BOUND)
+    ax[0].set_title("iCGM<70 Error (P={}) Distribution\nSp.Ctrls A & D\n<15={:.1f}%. <40={:.1f}%. >40={:.1f}%".format(p_lt_70, a_score*100, d_score*100, ad_compl_score*100))
+    ax[0].set_xlabel("Abs Error")
+    ax[0].set_ylabel("Normalized Count")
+
+    ax[1].hist(be_dist, density=True, bins=HIGH_ERROR_BOUND)
+    ax[1].set_title("70 <= iCGM <= 180 (P={}) Error Distribution\nSp.Ctrls B & E\n<15%={:.1f}%. <40%={:.1f}%. >40%={:.1f}%".format(p_70_180, b_score * 100, e_score * 100, be_compl_score * 100))
+    ax[1].set_xlabel("Percent Error")
+
+    ax[2].hist(cf_dist, density=True, bins=HIGH_ERROR_BOUND)
+    ax[2].set_title("iCGM>180 (P={}) Error Distribution\nSp.Ctrls C & F\n<15%={:.1f}%. <40%={:.1f}%. >40%={:.1f}%".format(p_gt_180, c_score*100, f_score*100, cf_compl_score*100))
+    ax[2].set_xlabel("Percent Error")
+
+    ax[3].hist(overall_dist, density=True, bins=HIGH_ERROR_BOUND)
+    ax[3].set_xlabel("Percent Error")
+    ax[3].set_title("Overall Distribution, Sp. Ctrls G\n<20%={:.1f}%".format(g_score*100))
+
+    # x = np.linspace(-100, 100, 10000)
+    # for std in [10, 11, 12, 13, 14, 15, 16]:
+    #     pdf = norm.pdf(x, 0, std)
+    #     plt.plot(x, pdf, label="s={}".format(std))
+    #     a = np.sum(norm.pdf(range(-15, 15), 0, std))
+    #     d = np.sum(norm.pdf(range(-40, 40), 0, std))
+    #     print(std, a, d)
+    #
+    # pmf = []
+    # x_5s = range(-100, 100, 5)
+    # for error in x_5s:
+    #     prob = np.sum(norm.pdf(range(int(round(error)), int(round(error + 5))), 0, 15))
+    #     pmf.append(prob)
+    # print(sum(pmf))
+    # plt.figure()
+    # pdf = norm.pdf(range(-100, 100), 0, 15)
+    # plt.plot(range(-100, 100), pdf)
+    # print(sum(pdf))
+    #
+    # plt.plot(x_5s, pmf)
+
+    plt.legend()
+    plt.show()
+
+
+def get_p_error_given_range(sp_letter, source="fda"):
+
+    if source == "fda":
+        point_thresholds = iCGM_THRESHOLDS
+    elif source == "dexcomG6":
+        point_thresholds = G6_THRESHOLDS_DE_NOVO
+    else:
+        raise Exception
+
+    if sp_letter == "D":
+        p_error = iCGM_THRESHOLDS["D"]- iCGM_THRESHOLDS["A"]
+    elif sp_letter == "E":
+        p_error = iCGM_THRESHOLDS["E"] - iCGM_THRESHOLDS["B"]
+    elif sp_letter == "F":
+        p_error = iCGM_THRESHOLDS["F"]- iCGM_THRESHOLDS["C"]
+    elif sp_letter == "AD_complement":
+        p_error = 1 - point_thresholds["D"]
+    elif sp_letter == "BE_complement":
+        p_error = 1 - point_thresholds["E"]
+    elif sp_letter == "CF_complement":
+        p_error = 1 - point_thresholds["F"]
+    else:
+        p_error = point_thresholds[sp_letter]
+
+    return p_error
+
+
+def remove_H_I_special_controls_sims(sim_summary_df):
+    print("removing H & I sims...")
+
+    # Remove simulations that are disallowed by special controls H & I
+    sp_H_mask = (sim_summary_df["sbg"] < 70) & (sim_summary_df["tbg"] > 180)
+    sp_I_mask = (sim_summary_df["sbg"] > 180) & (sim_summary_df["tbg"] < 70)
+    sim_summary_df = sim_summary_df[~sp_H_mask]
+    sim_summary_df = sim_summary_df[~sp_I_mask]
+    return sim_summary_df
+
+
+def compute_risk_results(sim_summary_df, save_dir):
+    random_state = np.random.RandomState(0)
+    icgm_state = iCGMState(None, 1, 1, iCGM_THRESHOLDS, iCGM_THRESHOLDS, False, 0, random_state)
 
     p_corr_bolus = 0.01
     num_events_per_severity = defaultdict(int)
     risk_results_df = []
-    for sp_control, prob in iCGM_THRESHOLDS.items():
 
-        # if sp_letter in ["A", "B", "C"]:
-        #     continue
+    sim_summary_df = remove_H_I_special_controls_sims(sim_summary_df)
 
+    for sp_control, key in icgm_state.criteria_to_key_map["range"].items():
+        print(sp_control)
         # p_error_given_range = prob
-        p_error_given_range = get_p_error_given_range(sp_control, prob)
-
-        dexcom_g6_de_novo_sensor_N = [164, 159, 164+159]
-        # mu_for_N = compute_bionomial_95_LB_CI_moments(0.99, N_candidates=dexcom_g6_de_novo_sensor_N)
-
-        # With N, and mu, solve for std to get errors prob distribution
-        # Then integrate risk over error distribution to get p(severity=5, error=True)
+        p_error_given_range = get_p_error_given_range(sp_control, source="fda")
 
         letter_mask = sim_summary_df["special_control_letter"] == sp_control
         summary_df_letter = sim_summary_df[letter_mask]
 
         # Plot range, error sampling space with outcomes
         if 0:
-            plt.title("Special Control {}".format(sp_control))
+            plot_df = sim_summary_df
 
-            plt.scatter(summary_df_letter["tbg"], summary_df_letter["sbg"], c=summary_df_letter["risk_score"],
+            title = "Special Control {}".format(sp_control)
+            title = "P(S, Bolus=True | R, E)"
+            plt.title(title)
+
+            plt.scatter(plot_df["tbg"], plot_df["sbg"], c=plot_df["risk_score"],
                         cmap="Reds", vmin=0, vmax=4)
             plt.xlabel("True BG")
             plt.ylabel("Sensor BG")
-            plt.colorbar()
+            cbar = plt.colorbar()
+            cbar.ax.get_yaxis().labelpad = 15
+            cbar.ax.set_ylabel("Risk Severity", rotation=270)
             plt.show()
+
+        if len(summary_df_letter) == 0:
+            logger.info("No sims for {} control".format(sp_control))
+            continue
 
         sample_sbg = summary_df_letter["sbg"].values[0]
         total_sims = len(summary_df_letter)
@@ -677,22 +947,22 @@ def compute_risk_results(sim_summary_df, save_dir):
         for risk_score in range(5):
             count = sum(summary_df_letter["risk_score"] == risk_score)
             p_severity = count / total_sims
-
-            # if sp_control in ["AD_complement", "BE_complement", "CF_complement"]:
-            #     p_severity = 0.0
-
             p_range = get_cgm_range_prob(sample_sbg)
+
+            # Integrate over sensor error distribution
             prob = p_severity * p_corr_bolus * p_error_given_range * p_range
+
             n = 100000 * 365 * 288
             num_events = int(prob * n)
-            print("\n")
-            print(sp_control)
-            print("Total Sims: {}. P_severity: {} P_error_g_range: {}. Final Prob: {}".format(total_sims, p_severity, p_error_given_range, prob))
-            print("Risk Score: {}. Num Events {}".format(risk_score, num_events))
+            # print("\n")
+            # print(sp_control)
+            # print("Total Sims: {}. P_severity: {} P_error_g_range: {}. Final Prob: {}".format(total_sims, p_severity, p_error_given_range, prob))
+            # print("Risk Score: {}. Num Events {}".format(risk_score, num_events))
 
             risk_results_df.append({
                 "sp_control": sp_control,
-                "total_sims": total_sims,
+                "total_sims_control": total_sims,
+                "total_sims": count,
                 "p_severity": p_severity,
                 "p_corr_bolus": p_corr_bolus,
                 "p_error_given_range": p_error_given_range,
@@ -705,15 +975,52 @@ def compute_risk_results(sim_summary_df, save_dir):
     # assert num_criteria_met == len(result_generator)
 
     risk_results_df = pd.DataFrame(risk_results_df)
+    print(risk_results_df.groupby("risk_score").sum())
     risk_results_df.to_csv(os.path.join(save_dir, "risk_results.csv"))
 
-    # a = 1
-    # print(num_events_per_severity)
-    # for risk_score, count in num_events_per_severity.items():
-    #     print(risk_score, risk_table.get_probability_index(count))
+
+def compute_risk_results_per_sim(sim_summary_df, save_dir):
+    random_state = np.random.RandomState(0)
+    icgm_state = iCGMState(None, 1, 1, iCGM_THRESHOLDS, iCGM_THRESHOLDS, False, 0, random_state)
+
+    p_bolus = 0.01
+    total_trials = 288 * 365 * 100000
+    sim_prob_list = []
+    num_events_list = []
+
+    sim_summary_df = remove_H_I_special_controls_sims(sim_summary_df)
+
+    for i, row in sim_summary_df.iterrows():
+
+        letter = row["special_control_letter"]
+        cgm_val = row["sbg"]
+        true_bg = row["tbg"]
+        error_percentage = icgm_state.get_bg_error_pecentage(true_bg, cgm_val)
+        error_abs = icgm_state.get_bg_abs_error(true_bg, cgm_val)
+
+        p_range = get_cgm_range_prob(cgm_val)
+        # p_error_given_range = get_p_error_given_range(letter, source="fda")
+        p_error_given_range = get_p_error_given_range_normal(letter, error_abs=error_abs, error_percentage=error_percentage)
+        p_severity_given_control = 1.0 / len(sim_summary_df[sim_summary_df["special_control_letter"] == letter])
+
+        sim_prob = p_severity_given_control * p_error_given_range * p_range * p_bolus
+        num_events = sim_prob * total_trials
+
+        sim_prob_list.append(sim_prob)
+        num_events_list.append(num_events)
+
+    sim_summary_df["sim_prob"] = sim_prob_list
+    sim_summary_df["num_events"] = num_events_list
+
+    print(sim_summary_df.groupby("risk_score").sum())
 
 
 if __name__ == "__main__":
+
+    # get_p_error_given_range_normal("A", 0, do_fit=True)
+    # plot_special_controls_dist()
+
+    is_aws_env = False
 
     test_patient_result_dir = "/Users/csummers/data/simulator/processed/test_patient_jun24"
     test_patietn_no_RC_result_dir = "/Users/csummers/data/simulator/processed/icgm-sensitivity-analysis-results-2021-06-24/"
@@ -723,5 +1030,15 @@ if __name__ == "__main__":
     #     ("no_RC", test_patietn_no_RC_result_dir)
     # ])
 
-    sim_summary_df = get_icgm_sim_summary_df(test_patient_result_dir, save_dir="/Users/csummers/data/simulator/icgm/")
-    compute_risk_results(sim_summary_df, save_dir="/Users/csummers/data/simulator/icgm/")
+    save_dir = "/Users/csummers/data/simulator/icgm/"
+    results_dir = test_patient_result_dir
+    if is_aws_env:
+        save_dir = "/mnt/cameronsummers/data/simulator/"
+        results_dir = "/mnt/cameronsummers/data/simulator/processed/icgm-sensitivity-analysis-results-2021-06-23/"
+
+    # sim_summary_df = get_icgm_sim_summary_df(results_dir, save_dir=save_dir)
+    sim_summary_csv_path = os.path.join(save_dir, "sim_summary_df.csv")
+    sim_summary_df = pd.read_csv(sim_summary_csv_path)
+
+    # compute_risk_results(sim_summary_df, save_dir=save_dir)
+    compute_risk_results_per_sim(sim_summary_df, save_dir)
