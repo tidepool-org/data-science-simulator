@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "risk-id": "TLR-684",
+    "simulation_id": "TLR-684-Median",
+    "risk_description": "Fake carbs",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+       "patient": {
+       "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop",
+      "patient": {
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 15
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations",
+      "patient": {
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 15
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+    }
+  ]
+}
