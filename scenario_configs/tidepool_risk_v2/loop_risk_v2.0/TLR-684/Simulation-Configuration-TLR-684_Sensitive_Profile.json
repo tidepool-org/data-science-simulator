@@ -1,11 +1,11 @@
 {
   "metadata": {
     "risk-id": "TLR-684",
-    "simulation_id": "TLR-684-Resistant",
+    "simulation_id": "TLR-684-Sensitive",
     "risk_description": "Fake carbs",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.base_resistant_v1",
+  "base_config": "reusable.simulations.base_sensitive_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
@@ -47,10 +47,10 @@
               "value": 15
             }
           ],
-          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+      "controller": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
     }
   ]
 }
