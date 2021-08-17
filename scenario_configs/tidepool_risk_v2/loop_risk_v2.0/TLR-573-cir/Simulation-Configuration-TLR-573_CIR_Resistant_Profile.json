@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "risk_id": "TLR-573",
+        "risk_id": "TLR-573-CIR",
         "simulation_id": "TLR-573-CIR-Resistant",
         "risk_description": "Metabolic settings are too aggressive",
         "config_format_version": "v1.0"
@@ -43,9 +43,9 @@
                          "start_times": ["0:00:00"],
                          "values":  [5]
                     }
-                  }
-                },
+                  },
                   "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+                }
             },
             "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
         }

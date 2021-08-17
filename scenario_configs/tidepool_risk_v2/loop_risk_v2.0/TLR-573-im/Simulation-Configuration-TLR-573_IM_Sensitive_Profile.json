@@ -1,12 +1,12 @@
 {
     "metadata": {
-        "risk_id": "TLR-573",
-        "simulation_id": "TLR-573-Resistant",
+        "risk_id": "TLR-573-IM",
+        "simulation_id": "TLR-573-IM-sensitive",
         "risk_description": "Metabolic settings are too aggressive",
         "config_format_version": "v1.0"
     },
-    "base_config": "reusable.simulations.base_resistant_v1",
-    "override_config": [        
+    "base_config": "reusable.simulations.base_sensitive_v1",
+    "override_config": [
         {
             "sim_id": "pre-Loop-noMitigations_IM",
             "controller": {
@@ -19,9 +19,9 @@
             "sim_id": "post-Loop-WithMitigations_IM",
             "controller": {
                 "settings": {
-                  "glucose_safety_limit": 75,
-                  "max_basal_rate": 1.75,
-                  "model": "rapid_acting_child"
+                  "glucose_safety_limit": 80,
+                  "max_basal_rate": 0.9,
+                  "model": "rapid_acting_adult"
                 }
             }
         }

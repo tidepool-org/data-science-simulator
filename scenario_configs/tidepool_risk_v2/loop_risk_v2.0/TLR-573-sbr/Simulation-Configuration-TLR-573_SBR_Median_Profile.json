@@ -1,12 +1,12 @@
 {
     "metadata": {
-        "risk_id": "TLR-573",
+        "risk_id": "TLR-573-SBR",
         "simulation_id": "TLR-573-SBR-Resistant",
         "risk_description": "Metabolic settings are too aggressive",
         "config_format_version": "v1.0"
     },
     "base_config": "reusable.simulations.base_resistant_v1",
-    "override_config": [        
+    "override_config": [
         {
             "sim_id": "pre-Loop-noMitigations_SBR",
             "patient": {
@@ -50,6 +50,6 @@
               }
             },
             "controller":"reusable.mitigations.guardrails.controller_settings_resistant_v1"
-        }        
+        }
     ]
 }

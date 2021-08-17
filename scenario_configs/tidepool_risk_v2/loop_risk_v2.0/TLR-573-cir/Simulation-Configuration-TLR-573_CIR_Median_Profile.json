@@ -1,7 +1,7 @@
 {
     "metadata": {
-        "risk_id": "TLR-573",
-        "simulation_id": "TLR-573-CIR-median",
+        "risk_id": "TLR-573-CIR",
+        "simulation_id": "TLR-573-CIR-Median",
         "risk_description": "Metabolic settings are too aggressive",
         "config_format_version": "v1.0"
     },
@@ -10,7 +10,7 @@
         {
             "sim_id": "pre-Loop-noMitigations_CIR",
             "patient": {
-                "patient_model": {
+                "pump": {
                   "metabolism_settings": {
                     "carb_insulin_ratio": {
                          "start_times": ["0:00:00"],
@@ -23,7 +23,7 @@
         {
             "sim_id": "pre-noLoop-CIR",
             "patient": {
-                "patient_model": {
+                "pump": {
                   "metabolism_settings": {
                     "carb_insulin_ratio": {
                          "start_times": ["0:00:00"],
@@ -37,19 +37,17 @@
         {
             "sim_id": "post-Loop-WithMitigations_CIR",
             "patient": {
-                "patient_model": {
+                "pump": {
                   "metabolism_settings": {
                     "carb_insulin_ratio": {
                          "start_times": ["0:00:00"],
                          "values":  [6.5]
                     }
-                  }
-                },
-              "pump": {
+                  },
                   "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
-              }
-            },
-            "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
-        }
+                }
+              },
+           "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+            }
     ]
 }

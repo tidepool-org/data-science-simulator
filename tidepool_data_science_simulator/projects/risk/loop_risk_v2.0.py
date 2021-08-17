@@ -71,7 +71,8 @@ if __name__ == "__main__":
     for risk_name, scenario_json_name, sim_suite in sim_suite_generator:
 
         risk_result_dirpath = os.path.join(run_save_dir, risk_name)
-        os.mkdir(risk_result_dirpath)
+        if not os.path.exists(risk_result_dirpath):
+          os.mkdir(risk_result_dirpath)
 
         full_results_dict, summary_results_df = run_simulations(sim_suite,
                                                                 save_dir=risk_result_dirpath,
