@@ -9,8 +9,14 @@
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
-       "patient": {
-       "pump": {
+      "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+      },
+      "patient": {
+       "sensor": {
+         "glucose_history": "reusable.glucose.flat_250_12hr"
+       },
+        "pump": {
           "carb_entries": [
             {
               "type": "carb",
@@ -23,7 +29,13 @@
     },
     {
       "sim_id": "pre-NoLoop",
+      "patient_model": {
+        "glucose_history": "reusable.glucose.flat_250_12hr"
+      },
       "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
         "pump": {
           "carb_entries": [
             {
@@ -38,7 +50,13 @@
     },
     {
       "sim_id": "post-Loop-WithMitigations",
+      "patient_model":{
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+      },
       "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
         "pump": {
           "carb_entries": [
             {
