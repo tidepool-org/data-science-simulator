@@ -15,6 +15,14 @@
               }
             }
         },
+      {
+            "sim_id": "pre-Loop-noMitigations",
+            "controller": {
+              "settings": {
+                "model": "rapid_acting_child"
+              }
+            }
+        },
         {
             "sim_id": "post-Loop-WithMitigations",
             "controller": {
