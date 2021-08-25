@@ -10,6 +10,21 @@
         {
             "sim_id": "pre-Loop_NoMitigations",
             "patient": {
+                "patient_model": {
+                    "bolus_entries": [
+                        {
+                            "time": "8/15/2019 12:00:00",
+                            "value": 5.2
+                        }
+                    ],
+                    "carb_entries": [
+                        {
+                            "type": "carb",
+                            "start_time": "8/15/2019 12:00:00",
+                            "value": 25
+                        }
+                    ]
+                },
                 "pump": {
                     "bolus_entries": [
                         {
@@ -30,6 +45,21 @@
         {
             "sim_id": "pre-NoLoop",
             "patient": {
+                "patient_model": {
+                    "bolus_entries": [
+                        {
+                            "time": "8/15/2019 12:00:00",
+                            "value": 5.2
+                        }
+                    ],
+                    "carb_entries": [
+                        {
+                            "type": "carb",
+                            "start_time": "8/15/2019 12:00:00",
+                            "value": 25
+                        }
+                    ]
+                },
                 "pump": {
                     "bolus_entries": [
                         {
@@ -51,6 +81,21 @@
         {
             "sim_id": "post-Loop-WithMitigations",
             "patient": {
+                "patient_model": {
+                    "bolus_entries": [
+                        {
+                            "time": "8/15/2019 12:00:00",
+                            "value": 5.2
+                        }
+                    ],
+                    "carb_entries": [
+                        {
+                            "type": "carb",
+                            "start_time": "8/15/2019 12:00:00",
+                            "value": 25
+                        }
+                    ]
+                },
                 "pump": {
                     "bolus_entries": [
                         {
