@@ -10,6 +10,14 @@
         {
             "sim_id": "pre-Loop-NoMitigations",
             "patient": {
+                "patient_model": {
+                    "metabolism_settings": {
+                        "basal_rate": {
+                            "start_times": ["0:00:00"],
+                            "values": [1.8]
+                        }
+                    }
+                },
                 "pump": {
                     "metabolism_settings": {
                         "basal_rate": {
@@ -23,6 +31,14 @@
         {
             "sim_id": "pre-noLoop",
             "patient": {
+                "patient_model": {
+                    "metabolism_settings": {
+                        "basal_rate": {
+                            "start_times": ["0:00:00"],
+                            "values": [1.8]
+                        }
+                    }
+                },
                 "pump": {
                     "metabolism_settings": {
                         "basal_rate": {
@@ -37,6 +53,14 @@
         {
             "sim_id": "post-Loop-WithMitigations",
             "patient": {
+                "patient_model": {
+                    "metabolism_settings": {
+                        "basal_rates": {
+                            "start_times": ["0:00:00"],
+                            "values": [1.8]
+                        }
+                    }
+                },
                 "pump": {
                     "metabolism_settings": {
                         "basal_rate": {
