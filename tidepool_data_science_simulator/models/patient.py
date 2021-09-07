@@ -288,6 +288,7 @@ class VirtualPatient(SimulationComponent):
             abs_insulin_amount += delivered_bolus.value
 
         carb_amount = 0
+        carb_absorption_time = None
         if carb is not None:
             carb_amount = carb.get_value()
             carb_absorption_time = carb.get_duration()
@@ -412,7 +413,7 @@ class VirtualPatient(SimulationComponent):
 
         pass
 
-    def run_metabolism_model(self, insulin_amount, carb_amount, carb_absorp_minutes):
+    def run_metabolism_model(self, insulin_amount, carb_amount, carb_absorb_minutes):
         """
         Get the predicted effects of insulin and carbs
 
@@ -433,7 +434,7 @@ class VirtualPatient(SimulationComponent):
         metabolism_model_instance = self.instantiate_metabolism_model()
 
         combined_delta_bg, t_min, insulin_amount, iob = metabolism_model_instance.run(
-            insulin_amount=insulin_amount, carb_amount=carb_amount, carb_absorp_minutes=carb_absorp_minutes, five_min=True,
+            insulin_amount=insulin_amount, carb_amount=carb_amount, carb_absorb_minutes=carb_absorb_minutes, five_min=True,
         )
 
         return combined_delta_bg, iob
@@ -657,6 +658,12 @@ class VirtualPatientModel(VirtualPatient):
 
         correction_carb, correction_carb_estimate = self.get_correction_carb()
 
+        # Allow a manual entry instead of probabilistic meal
+        # sim_carb = self.carb_event_timeline.get_event(self.time)
+        # if sim_carb is not None:
+        #     meal_carb = sim_carb
+        #     meal_carb_estimate = self.pump.carb_event_timeline.get_event(self.time)
+
         total_carb = self.combine_carbs(meal_carb, correction_carb)
         total_carb_estimate = self.combine_carbs(meal_carb_estimate, correction_carb_estimate)
 
@@ -667,6 +674,11 @@ class VirtualPatientModel(VirtualPatient):
             carb_time = self.time + datetime.timedelta(minutes=self.random_values["prebolus_offset_minutes"])
             carb_time_reported = self.time + datetime.timedelta(minutes=self.random_values["carb_reported_minutes"])
             self.carb_event_timeline.add_event(carb_time, total_carb)  # Actual carbs go to patient predict
+
+            # Turns off reporting of correction carbs
+            # if correction_carb is not None and correction_carb == total_carb:
+            #     pass
+            # else:
             self.report_carb(total_carb_estimate, carb_time_reported)  # Reported carbs go to Loop
 
         return total_bolus, total_carb
