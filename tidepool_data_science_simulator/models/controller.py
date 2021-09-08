@@ -355,6 +355,49 @@ class LoopControllerDisconnector(LoopController):
             super().update(time, **kwargs)
 
 
+class LoopControllerDisconnectorOverrides(LoopController):
+    """
+    Loop controller that probabilistically loses connection disallowing
+    setting of temp basals.
+    """
+
+    def __init__(self, time, controller_config, disconnect_datetimes_dict):
+        super().__init__(time, controller_config)
+
+        self.name = "PyLoopkit v0.1 with Overrrides"
+        self.original_time = copy.copy(time)
+
+        self.disconnect_datetimes_dict = disconnect_datetimes_dict
+
+    def is_connected(self, time):
+        """
+        Determine probabilistically if Loop is connected
+
+        Returns
+        -------
+        bool
+        """
+        is_connected = True
+        if time in self.disconnect_datetimes_dict:
+            logger.debug("Loop disconnected at {}".format(time))
+            is_connected = False
+
+        return is_connected
+
+    def update(self, time, **kwargs):
+        """
+        Update the state of the controller and do actions.
+
+        Parameters
+        ----------
+        time: datetime
+        kwargs: VirtualPatient
+        """
+        self.time = time
+        if self.is_connected(time):
+            super().update(time, **kwargs)
+
+
 class ControllerState(object):
 
     def __init__(self,

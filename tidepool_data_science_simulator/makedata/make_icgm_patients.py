@@ -336,6 +336,7 @@ def transform_icgm_json_to_v2_parser():
                              "duration_hours": 8.0,
                              "offset_applied_to_dates": 0,
                              "patient": {
+                                 "age": age,
                                  "sensor": {
                                      "glucose_history": glucose_history
                                  },

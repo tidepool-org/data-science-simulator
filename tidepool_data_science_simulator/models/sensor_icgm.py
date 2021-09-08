@@ -922,6 +922,32 @@ class NoisySensorInitialOffset(NoisySensor):
             super().update(time, **kwargs)
 
 
+class NoisySensorOverrides(NoisySensor):
+    """
+    Noisy sensor that with ability to manually inject value at sim start time.
+    """
+
+    def __init__(self, time, sensor_config, random_state=None, overrides_datetime_value_dict=None):
+        super().__init__(time, sensor_config, random_state)
+        self.overrides_datetime_value_dict = overrides_datetime_value_dict
+
+    def update(self, time, **kwargs):
+
+        if time in self.overrides_datetime_value_dict:
+
+            self.time = time
+            true_bg = kwargs["patient_true_bg"]
+
+            sensor_bg = self.overrides_datetime_value_dict[time]
+            self.true_start_bg = true_bg
+            self.start_bg_with_offset = sensor_bg
+
+            self.current_sensor_bg = sensor_bg
+            self.sensor_bg_history.append(self.time, self.current_sensor_bg)
+        else:
+            super().update(time, **kwargs)
+
+
 class SensoriCGMInitialOffset(SensoriCGM):
     """
     Inherit all behavior of iCGM sensor, except manually set the initial value of the sensor at

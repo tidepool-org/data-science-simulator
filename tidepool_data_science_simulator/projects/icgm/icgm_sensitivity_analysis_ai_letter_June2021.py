@@ -20,11 +20,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
-from tidepool_data_science_simulator.models.controller import LoopController
+from tidepool_data_science_simulator.models.controller import LoopControllerDisconnectorOverrides
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.models.sensor_icgm import (
     NoisySensorInitialOffset, SensoriCGMInitialOffset, CLEAN_INITIAL_CONTROLS, iCGM_THRESHOLDS, SensoriCGMModelOverlayV1,
+    NoisySensorOverrides
 )
 
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
@@ -50,7 +51,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     error_glucose_values = [v for v in true_glucose_start_values[::-1]]
 
     # true_glucose_start_values = [90]  # testing
-    # error_glucose_values = [160]
+    # error_glucose_values = [300]
 
     random_state = RandomState(base_sim_seed)
 
@@ -60,7 +61,16 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             new_sim_base_config = copy.deepcopy(json_sim_base_config)
 
             new_sim_base_config["controller"]["settings"]["max_physiologic_slope"] = 4  # add in velocity cap
+
+            # ======== Max Basal Rate Guardrail Logic ========
             # new_sim_base_config["controller"]["settings"]["max_basal_rate"] = 1e6  # testing diff between basal/bolus rec
+
+            cir = new_sim_base_config["patient"]["patient_model"]["metabolism_settings"]["carb_insulin_ratio"]["values"][0]
+            basal = new_sim_base_config["patient"]["patient_model"]["metabolism_settings"]["basal_rate"]["values"][0]
+            max_basal_guardrail = max(basal, 70/cir)
+            new_sim_base_config["controller"]["settings"]["max_basal_rate"] = max_basal_guardrail
+            logger.info("Max basal guardrail: {}. Basal {}. CIR {}. Mult: {}".format(max_basal_guardrail, basal, cir, max_basal_guardrail/basal))
+            # ===========================
 
             glucose_history_values = {i: true_start_glucose for i in range(num_history_values)}
 
@@ -75,10 +85,13 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
 
             sim_parser = ScenarioParserV2()
 
-            sensor = get_initial_offset_sensor_noisy(t0_init=t0 - datetime.timedelta(minutes=len(glucose_history_values) * 5.0),
-                                               t0=t0,
+            sensor = get_sensor_with_overrides(t0_init=t0 - datetime.timedelta(minutes=len(glucose_history_values) * 5.0),
                                                random_state=random_state,
-                                               initial_error_value=initial_error_value)
+                                               overrides_datetime_value_dict={
+                                                   t0 - datetime.timedelta(minutes=0): initial_error_value
+                                                   # t0 - datetime.timedelta(minutes=15) + datetime.timedelta(minutes=5 * i): 200# + 25*i
+                                                   #  for i in range(1, 5)
+                                               })
             # Update state through time until t0 according to behavior model
             for dt, true_bg in zip(glucose_datetimes, glucose_history_values.values()):
                 sensor.update(dt, patient_true_bg=true_bg, patient_true_bg_prediction=[])
@@ -87,9 +100,8 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
 
             virtual_patient.sensor = sensor
 
-            def does_accept_bolus_recommendation(self, bolus):
-                return self.time == t0
-            virtual_patient.does_accept_bolus_recommendation = types.MethodType(does_accept_bolus_recommendation, virtual_patient)
+            virtual_patient.patient_config.recommendation_accept_prob = 0.0  # Makes temp basal only
+            virtual_patient.patient_config.min_bolus_rec_threshold = 2.0
 
             sim = Simulation(sim_start_time,
                              duration_hrs=duration_hrs,
@@ -104,54 +116,17 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             yield sim
 
 
-def get_ideal_sensor(t0, sim_parser):
-
-    ideal_sensor_config = SensorConfig(sensor_bg_history=sim_parser.patient_glucose_history)
-    sensor = IdealSensor(time=t0, sensor_config=ideal_sensor_config)
-    return sensor
-
-
-def get_initial_offset_sensor_noisy(t0_init, t0, random_state, initial_error_value):
+def get_sensor_with_overrides(t0_init, random_state, overrides_datetime_value_dict):
 
     sensor_config = SensorConfig(sensor_bg_history=GlucoseTrace())
     sensor_config.std_dev = 3.0
 
-    sensor = NoisySensorInitialOffset(
+    sensor = NoisySensorOverrides(
         time=t0_init,
-        t0_error_bg=initial_error_value,
         sensor_config=sensor_config,
         random_state=random_state,
-        sim_start_time=t0)
-    sensor.name = "NoisySensor_{}".format(initial_error_value)
-
-    return sensor
-
-
-def get_initial_offset_sensor(t0_init, t0, random_state, initial_error_value):
-    """
-    Get iCGM sensor that has a manually specified error at t0 of simulation.
-    """
-
-    sensor_config = SensorConfig(sensor_bg_history=GlucoseTrace())
-    sensor_config.history_window_hrs = 24 * 10
-
-    sensor_config.behavior_models = [
-        SensoriCGMModelOverlayV1(bias=0, sigma=2, delay=0, spurious_value_prob=0.0, num_consecutive_spurious=1),
-    ]
-
-    sensor_config.sensor_range = range(40, 401)
-    sensor_config.special_controls = iCGM_THRESHOLDS
-    sensor_config.initial_controls = CLEAN_INITIAL_CONTROLS
-    sensor_config.do_look_ahead = True
-    sensor_config.look_ahead_min_prob = 0.7
-
-    sensor = SensoriCGMInitialOffset(
-                        time=t0_init,
-                        t0_error_bg=initial_error_value,
-                        sensor_config=sensor_config,
-                        random_state=random_state,
-                        sim_start_time=t0)
-    sensor.name = "iCGM_{}".format(initial_error_value)
+        overrides_datetime_value_dict=overrides_datetime_value_dict)
+    sensor.name = "NoisySensorOverrides"
 
     return sensor
 
@@ -179,6 +154,47 @@ def build_icgm_sim_generator(json_base_configs, sim_batch_size=30):
         yield sims
 
 
+def plot_patient_population(json_base_configs):
+    """
+    Plot metabolic settings and ages for icgm patients
+    """
+
+    isfs = []
+    cirs = []
+    basals = []
+    ages = []
+    for config in json_base_configs:
+        isf = config["patient"]["patient_model"]["metabolism_settings"]["insulin_sensitivity_factor"]["values"][0]
+        cir = config["patient"]["patient_model"]["metabolism_settings"]["carb_insulin_ratio"]["values"][0]
+        basal = config["patient"]["patient_model"]["metabolism_settings"]["basal_rate"]["values"][0]
+        age = config["patient"]["age"]
+        ages.append(age)
+
+        isfs.append(isf)
+        cirs.append(cir)
+        basals.append(basal)
+
+    fig, ax = plt.subplots(1, 4, figsize=(20, 8))
+    fig.suptitle("Patient Population")
+    ax[0].scatter(isfs, cirs)
+    ax[0].set_xlabel("Insulin Sensitivity Factor (mg/dL/U)")
+    ax[0].set_ylabel("Carb Ratio (g/U)")
+
+    ax[1].scatter(cirs, basals)
+    ax[1].set_xlabel("Carb Ratio (g/U)")
+    ax[1].set_ylabel("Basal Rate (U/hr)")
+
+    ax[2].scatter(isfs, basals)
+    ax[2].set_xlabel("Insulin Sensitivity Factor (mg/dL/U)")
+    ax[2].set_ylabel("Basal Rate (U/hr)")
+
+    ax[3].hist(ages, bins=20)
+    ax[3].set_xlabel("Age (yrs)")
+    ax[3].set_ylabel("Count")
+
+    plt.show()
+
+
 if __name__ == "__main__":
 
     today_timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -192,6 +208,8 @@ if __name__ == "__main__":
         sim_batch_size = 1
 
         json_base_configs = transform_icgm_json_to_v2_parser()
+
+        # plot_patient_population(json_base_configs)
         sim_batch_generator = build_icgm_sim_generator(json_base_configs, sim_batch_size=sim_batch_size)
 
         start_time = time.time()

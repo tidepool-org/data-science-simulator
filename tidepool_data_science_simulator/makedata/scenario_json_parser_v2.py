@@ -32,7 +32,9 @@ from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor
-from tidepool_data_science_simulator.models.controller import LoopController, DoNothingController
+from tidepool_data_science_simulator.models.controller import (
+    LoopController, DoNothingController, LoopControllerDisconnectorOverrides
+)
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 
@@ -498,6 +500,15 @@ class ScenarioParserV2(SimulationParser):
             )
 
             controller = LoopController(sim_start_time, controller_config)
+
+            TMP_MAX_BASAL_RC_TEST = True  # Hack for max basal + signal loss iCGM test
+            if TMP_MAX_BASAL_RC_TEST:
+                disconnect_datetimes_dict = {
+                    sim_start_time + datetime.timedelta(minutes=i * 5)
+                    for i in range(1, 6)
+                }
+                controller = LoopControllerDisconnectorOverrides(sim_start_time, controller_config,
+                                                                 disconnect_datetimes_dict=disconnect_datetimes_dict)
 
         return controller
 

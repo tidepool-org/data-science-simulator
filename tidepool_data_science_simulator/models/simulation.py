@@ -237,7 +237,7 @@ class Simulation(multiprocessing.Process):
             try:
                 loop_out = simulation_state.controller_state.pyloopkit_recommendations
                 loop_cob = loop_out["carbs_on_board"]
-            except AttributeError:
+            except (AttributeError, TypeError):
                 loop_cob = None
 
             try:

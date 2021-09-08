@@ -95,7 +95,7 @@ class iCGMEvaluator(object):
         if np.isnan(true_bg_trace).any():
             raise ValueError("NaNs not handled here. TODO")
 
-    def bootstrap_95_lower_confidence_bound(self, value_list):
+    def bootstrap_95_lower_confidence_bound(self, value_list, percentile=2.5):
         """
         Compute the 95% lower confidence bound using the Bootstrap method.
 
@@ -122,7 +122,7 @@ class iCGMEvaluator(object):
             mean_estimate = np.mean(sensors_sample)
             bootstrapped_means.append(mean_estimate)
 
-        return np.percentile(bootstrapped_means, 5)
+        return np.percentile(bootstrapped_means, percentile), bootstrapped_means
 
     def does_sensor_batch_meet_special_controls(self, true_bg_trace, sensor_batch_bg_array):
         """
