@@ -252,3 +252,15 @@ if __name__ == "__main__":
 
     # Compute the risk table
     # compute_risk_stats(summary_df_positive_bias_sims)
+
+    # AWS call for getting sims with insulin delivered
+    import glob, re
+    import pandas as pd
+    sim_files = glob.glob("/mnt/cameronsummers/data/simulator/processed/icgm-sensitivity-analysis-results-2021-08-09/*.tsv")
+    bolus_delivered_df = pd.DataFrame([{
+        "sim_id": re.search("(icgm_.*vp_.+).tsv", f).groups()[0],
+        "total_true_bolus": pd.read_csv(f, sep="\t")["true_bolus"].sum(),
+        "vp_id": re.search("vp_(.+)_tbg", f).groups()[0],
+        "tbg": re.search("tbg=(\d+)", f).groups()[0],
+        "sbg": re.search("sbg=(\d+)", f).groups()[0],
+    } for f in sim_files[:100]])

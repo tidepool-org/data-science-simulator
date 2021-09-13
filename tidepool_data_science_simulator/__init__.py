@@ -33,7 +33,7 @@ USE_LOCAL_PYLOOPKIT = False
 
 if USE_LOCAL_PYLOOPKIT:
     logger = logging.getLogger(__name__)
-    logger.debug("========== Importing Local Pyloopkit ============")
+    logger.debug("\n\n\n\t========== Importing Local Pyloopkit ============\n\n\n")
     import sys
     this_dir = os.path.dirname(__file__)
     local_pyloopkit_path = os.path.join(this_dir, "../../PyLoopKit/")  # Assume simulator and

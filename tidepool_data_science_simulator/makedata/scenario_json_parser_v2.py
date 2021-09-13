@@ -501,14 +501,14 @@ class ScenarioParserV2(SimulationParser):
 
             controller = LoopController(sim_start_time, controller_config)
 
-            TMP_MAX_BASAL_RC_TEST = True  # Hack for max basal + signal loss iCGM test
-            if TMP_MAX_BASAL_RC_TEST:
-                disconnect_datetimes_dict = {
-                    sim_start_time + datetime.timedelta(minutes=i * 5)
-                    for i in range(1, 6)
-                }
-                controller = LoopControllerDisconnectorOverrides(sim_start_time, controller_config,
-                                                                 disconnect_datetimes_dict=disconnect_datetimes_dict)
+            # TMP_MAX_BASAL_RC_TEST = True  # Hack for max basal + signal loss iCGM test
+            # if TMP_MAX_BASAL_RC_TEST:
+            #     disconnect_datetimes_dict = {
+            #         sim_start_time + datetime.timedelta(minutes=i * 5)
+            #         for i in range(1, 6)
+            #     }
+            #     controller = LoopControllerDisconnectorOverrides(sim_start_time, controller_config,
+            #                                                      disconnect_datetimes_dict=disconnect_datetimes_dict)
 
         return controller
 

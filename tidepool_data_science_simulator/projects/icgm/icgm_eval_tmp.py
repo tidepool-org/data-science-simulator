@@ -512,6 +512,36 @@ def remove_H_I_special_controls_sims(sim_summary_df):
     return sim_summary_df
 
 
+def zero_risk_score_for_zero_bolus(sim_summary_df, bolus_delivered_df):
+    """
+    Ensure risk scores are zero for simulations where no insulin was delivered. Most will already
+    be zero because the sim LBGI is not high. This mostly affects sims with very low starting glucose, e.g. 40.
+    """
+    bolus_delivered_df = remove_H_I_special_controls_sims(bolus_delivered_df)
+    bolus_delivered_df = bolus_delivered_df[["sim_id", "total_true_bolus", "vp_id"]]
+    bolus_delivered_df["sim_id"] = bolus_delivered_df["sim_id"].apply(lambda x: x + ".tsv")
+
+    sim_summary_df = sim_summary_df.merge(bolus_delivered_df, how="inner", on="sim_id")
+
+    # print(sim_summary_df.head())
+
+    # sim_summary_df[
+    #     (sim_summary_df["risk_score"] == 3) &
+    #    (sim_summary_df["total_true_bolus"] == 0.0) &
+    #     (sim_summary_df["sbg"] == sim_summary_df["tbg"])
+    # ]
+
+    baseline_df = sim_summary_df[sim_summary_df["sbg"] == sim_summary_df["tbg"]]
+
+    sim_summary_df[sim_summary_df["tbg"] == sim_summary_df["sbg"]]["risk_score"] = 0
+
+    # from collections import Counter
+    # logger.info("Num risk scores changes: {}".format(num_changed))
+    # logger.info("Initial Scores Count: {}".format(Counter(changed)))
+
+    return sim_summary_df
+
+
 def plot_tbg_given_sbg(tbg_given_sbg_dist, error_model):
     """
     Plot entire tbg-sbg space with colored probabilities.
@@ -624,11 +654,13 @@ def compute_risk_results_sampling(sim_summary_df, save_dir, p_bolus,
         plt.show()
 
         plt.figure()
+        bins = range(40, 405, 5)
         plt.hist(sbg_samples, bins=bins)
         plt.title("Sampled Sensor BG Distribution")
         plt.xlabel("BG (mg/dL)")
         plt.ylabel("Count")
         # plt.savefig(os.path.join(save_dir, "Sensor_BG_Dist_errors={}_bgs={}_{}".format(error_model, bg_model, description)))
+        bins = range(0, 75, 5)
         plot_error_distributions(ad_dist, be_dist, cf_dist, overall_dist,
                                  n_bins=bins,
                                  error_model=error_model,
@@ -657,7 +689,7 @@ def plot_lognormal_cgm_dist():
     plt.show()
 
 
-def plot_individual_user_risk(sim_summary_df):
+def plot_individual_user_risk_bolus_only(sim_summary_df):
     sim_summary_df["user_id"] = sim_summary_df["sim_id"].apply(lambda x: re.search("vp_(.+)_tbg", x).groups()[0])
     df_user_risk = sim_summary_df[["user_id", "risk_score"]].groupby(["user_id", "risk_score"]).size().reset_index(
         name='counts')
@@ -696,6 +728,84 @@ def plot_individual_user_risk(sim_summary_df):
         plt.xlabel(factor_description)
 
     plt.show()
+
+
+def get_severity_idx(severity_lbgi):
+    table_severity_indices = {
+        (0.0, 2.5): 0,
+        (2.5, 5.0): 1,
+        (5.0, 10.0): 2,
+        (10.0, 20.0): 3,
+        (20.0, np.inf): 4
+    }
+    for bounds in table_severity_indices.keys():
+        if bounds[0] <= severity_lbgi < bounds[1]:
+            return table_severity_indices[bounds]
+
+    raise Exception("Severity not in indices.")
+
+
+
+def get_icgm_sim_summary_df(result_dir, save_dir):
+
+    # evaluator = iCGMEvaluator(iCGM_THRESHOLDS, bootstrap_num_values=5000)
+    # evaluator.bootstrap_95_lower_confidence_bound([0] * 5 + [99] * 95)
+
+    random_state = np.random.RandomState(0)
+    icgm_state = iCGMState(None, 1, 1, iCGM_THRESHOLDS, iCGM_THRESHOLDS, False, 0, random_state)
+    # icgm_state = iCGMStateV2(None, 1, 1, iCGM_THRESHOLDS, iCGM_THRESHOLDS, False, 0, random_state)
+
+    max_dfs = np.inf
+    logger.info("Loading sims generator...")
+    result_generator = load_results(result_dir, ext="tsv", max_dfs=max_dfs)
+
+    sims_by_special_control = {special_control_letter: defaultdict(int) for special_control_letter, prob in iCGM_THRESHOLDS.items()}
+    sims_risk_scores = {}
+
+    num_criteria_met = 0
+    sim_summary_df = []
+    logger.info("Processing sims...")
+    num_sims_processed = 1
+    for sim_id, result_df in result_generator:
+        if num_sims_processed % 1000 == 0:
+            logger.info("Num sims processed {}.".format(num_sims_processed))
+        start_row_mask = result_df.index == datetime.datetime.strptime("8/15/2019 12:00:00", "%m/%d/%Y %H:%M:%S")
+        tbg = result_df[start_row_mask]["bg"].values[0]
+        sbg = result_df[start_row_mask]["bg_sensor"].values[0]
+
+        active_sim_ask = result_df["active"] == 1
+        true_bg = result_df[active_sim_ask]['bg']
+        true_bg[true_bg < 1] = 1
+        lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(true_bg)
+
+        range_key = icgm_state.get_bg_range_key(sbg)
+        error_key = icgm_state.get_bg_range_error_key(tbg, sbg)
+
+        for special_control_letter, criteria in icgm_state.criteria_to_key_map["range"].items():
+
+            if (range_key, error_key) == criteria:
+                risk_score = get_severity_idx(lbgi_icgm)
+                sims_by_special_control[special_control_letter][risk_score] += 1
+                sims_risk_scores[sim_id] = (risk_score, tbg, sbg)
+                num_criteria_met += 1
+
+                sim_summary_df.append({
+                    "sim_id": sim_id,
+                    "special_control_letter": special_control_letter,
+                    "sbg": sbg,
+                    "tbg": tbg,
+                    "risk_score": risk_score,
+                    "range_key": range_key,
+                    "error_key": error_key,
+                    "lbgi": lbgi_icgm
+                })
+
+        num_sims_processed += 1
+
+    sim_summary_df = pd.DataFrame(sim_summary_df)
+    sim_summary_df.to_csv(os.path.join(save_dir, "sim_summary_df.csv"))
+
+    return sim_summary_df
 
 
 if __name__ == "__main__":
@@ -743,7 +853,9 @@ if __name__ == "__main__":
         sim_summary_df = pd.read_csv(sim_summary_csv_path)
         sim_summary_df = remove_H_I_special_controls_sims(sim_summary_df)
 
-        plot_individual_user_risk(sim_summary_df)
+        # bolus_delivered_df = pd.read_csv("/Users/csummers/data/simulator/icgm/post_mitigation_bolus_sims_Aug2021_total_bolus.csv")
+        # sim_summary_df = zero_risk_score_for_zero_bolus(sim_summary_df, bolus_delivered_df)
+        # plot_individual_user_risk_bolus_only(sim_summary_df)
 
         for error_model in error_models:
             for bg_model in bg_models:
