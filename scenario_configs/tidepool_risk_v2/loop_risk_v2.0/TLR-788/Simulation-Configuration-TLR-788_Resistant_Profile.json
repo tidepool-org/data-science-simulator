@@ -11,45 +11,127 @@
             "sim_id": "pre-Loop-NoMitigations",
             "patient": {
               "patient_model": {
+                "carb_entries": [
+                  {
+                    "type": "carb",
+                    "start_time": "8/15/2019 12:00:00",
+                    "value": 31
+                  }
+                ],
+                "bolus_entries": [
+                  {
+                    "time": "8/15/2019 12:00:00",
+                    "value": 3.1
+                  }
+                ]
+              },
+              "pump": {
                 "metabolism_settings": {
                   "insulin_sensitivity_factor": {
-                       "start_times": ["0:00:00"],
-                       "values":  [10]
-                  }
+                    "start_times": ["00:00:00"],
+                            "values": [10]
+                        }
+                    },
+                  "carb_entries": [
+                      {
+                          "type": "carb",
+                          "start_time": "8/15/2019 12:00:00",
+                          "value": 31
+                      }
+                  ],
+                  "bolus_entries": [
+                      {
+                          "time": "8/15/2019 12:00:00",
+                          "value": 3.1
+                      }
+                  ]
                 }
-              }
             }
-        },
-        {
+            },
+      {
             "sim_id": "pre-noLoop",
             "patient": {
               "patient_model": {
+                "carb_entries": [
+                  {
+                    "type": "carb",
+                    "start_time": "8/15/2019 12:00:00",
+                    "value": 31
+                  }
+                ],
+                "bolus_entries": [
+                  {
+                    "time": "8/15/2019 12:00:00",
+                    "value": 3.1
+                  }
+                ]
+              },
+              "pump": {
                 "metabolism_settings": {
                   "insulin_sensitivity_factor": {
-                       "start_times": ["0:00:00"],
-                       "values":  [10]
-                  }
+                    "start_times": ["00:00:00"],
+                            "values": [10]
+                        }
+                    },
+                  "carb_entries": [
+                      {
+                          "type": "carb",
+                          "start_time": "8/15/2019 12:00:00",
+                          "value": 31
+                      }
+                  ],
+                  "bolus_entries": [
+                      {
+                          "time": "8/15/2019 12:00:00",
+                          "value": 3.1
+                      }
+                  ]
                 }
-              }
             },
             "controller": null
-        },
-        {
+            },
+      {
             "sim_id": "post-Loop-WithMitigations",
             "patient": {
-                "patient_model": {
-                  "metabolism_settings": {
-                    "insulin_sensitivity_factor": {
-                         "start_times": ["0:00:00"],
-                         "values":  [10]
-                    }
+              "patient_model": {
+                "carb_entries": [
+                  {
+                    "type": "carb",
+                    "start_time": "8/15/2019 12:00:00",
+                    "value": 31
                   }
-                },
-                "pump": {
-                  "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+                ],
+                "bolus_entries": [
+                  {
+                    "time": "8/15/2019 12:00:00",
+                    "value": 3.1
+                  }
+                ]
+              },
+              "pump": {
+                "metabolism_settings": {
+                  "insulin_sensitivity_factor": {
+                    "start_times": ["00:00:00"],
+                            "values": [10]
+                        }
+                    },
+                  "carb_entries": [
+                      {
+                          "type": "carb",
+                          "start_time": "8/15/2019 12:00:00",
+                          "value": 31
+                      }
+                  ],
+                  "bolus_entries": [
+                      {
+                          "time": "8/15/2019 12:00:00",
+                          "value": 3.1
+                      }
+                  ],
+                "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
                 }
             },
-            "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
-        }
+        "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+            }
     ]
 }

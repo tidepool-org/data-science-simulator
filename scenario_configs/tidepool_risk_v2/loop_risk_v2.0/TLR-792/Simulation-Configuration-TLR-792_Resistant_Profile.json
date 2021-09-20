@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "risk_id": "TLR-792",
+    "simulation_id": "TLR-792-Resistant",
+    "risk_description": "Safety setting too aggressive: Glucose Safety Limit",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop-noMitigations",
+      "controller": {
+        "settings": {
+          "glucose_safety_limit": 54
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop",
+      "controller": {
+        "settings": {
+          "glucose_safety_limit": 54
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations",
+      "patient": {
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+    }
+  ]
+}

@@ -14,7 +14,7 @@
       "target_range": {
         "start_times": ["0:00:00"],
         "lower_values": [70],
-        "upper_values": [100]
+        "upper_values": [90]
       }
     },
     "patient_model": {
