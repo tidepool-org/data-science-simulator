@@ -23,13 +23,12 @@
     },
     {
       "sim_id": "pre-NoLoop",
-      "duration_hours": 0.5,
       "patient": {
         "pump": {
           "metabolism_settings": {
             "basal_rate": {
-              "start_times": ["0:00:00"],
-              "values": [6.2]
+              "start_times": ["0:00:00", "12:00:00", "12:30:00"],
+              "values": [0.3, 5.3, 0.3]
             }
           }
         }
