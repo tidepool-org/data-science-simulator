@@ -9,6 +9,7 @@
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
@@ -32,6 +33,7 @@
     },
     {
       "sim_id": "pre-NoLoop",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
@@ -56,6 +58,7 @@
     },
     {
       "sim_id": "post-Loop-WithMitigations",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",

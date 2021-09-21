@@ -1,22 +1,21 @@
 {
   "metadata": {
-    "risk-id": "TLR-731",
-    "simulation_id": "TLR-731-Sensitive",
-    "risk_description": "Accidental cancellation of bolus",
+    "risk-id": "TLR-555",
+    "simulation_id": "TLR-555-sensitive",
+    "risk_description": "Manual bolus error with automation on",
     "config_format_version": "v1.0"
   },
   "base_config": "reusable.simulations.base_sensitive_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
-      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.83
+              "value": 3.3
             }
           ]
         },
@@ -25,7 +24,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.83
+              "value": 3.3
             }
           ]
         }
@@ -33,14 +32,13 @@
     },
     {
       "sim_id": "pre-NoLoop",
-      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.83
+              "value": 3.3
             }
           ]
         },
@@ -49,7 +47,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.83
+              "value": 3.3
             }
           ]
         }
@@ -57,15 +55,14 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations",
-      "duration_hours": 23.0,
+      "sim_id": "post-Loop_WithMitigations",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.83
+              "value": 3.3
             }
           ]
         },
@@ -74,7 +71,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.83
+              "value": 3.3
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"

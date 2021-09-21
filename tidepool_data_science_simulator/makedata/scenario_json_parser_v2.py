@@ -231,12 +231,15 @@ class ScenarioParserV2(SimulationParser):
                     raise Exception("Setting schedule times out of order: {} and {}".format(time_obj, prev_time))
 
                 start_times.append(time_obj)
-                duration_minutes = self.times_to_minutes(prev_time, time_obj)
+                prev_dt = datetime.datetime.combine(datetime.datetime.today(), prev_time)
+                time_dt = datetime.datetime.combine(datetime.datetime.today(), time_obj)
+                duration_minutes = self.times_to_minutes(prev_dt, time_dt)
                 durations_minutes.append(duration_minutes)
 
                 prev_time = time_obj
 
-            durations_minutes.append(self.times_to_minutes(time_obj, first_time))
+            first_dt = datetime.datetime.combine(datetime.datetime.today() + datetime.timedelta(days=1), first_time)
+            durations_minutes.append(self.times_to_minutes(time_dt, first_dt))
 
         else:
             start_times = [first_time]
