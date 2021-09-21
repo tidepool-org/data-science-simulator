@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "risk-id": "TLR-688",
-    "simulation_id": "TLR-688-median",
-    "risk_description": "Color contrast insufficient",
+    "risk-id": "TLR-627",
+    "simulation_id": "TLR-627-median",
+    "risk_description": "Mistakes low glucose for high, boluses",
     "config_format_version": "v1.0"
   },
   "base_config": "reusable.simulations.base_median_v1",
@@ -11,32 +11,22 @@
       "sim_id": "pre-Loop_NoMitigations",
       "patient": {
         "patient_model": {
-          "carb_entries": [
-            {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
-            }
-          ],
+          "glucose_history": "reusable.glucose.flat_70_12hr",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.8
+              "value": 2.2
             }
           ]
         },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
         "pump": {
-          "carb_entries": [
-            {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
-            }
-          ],
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.8
+              "value": 2.2
             }
           ]
         }
@@ -46,32 +36,22 @@
       "sim_id": "pre-NoLoop",
       "patient": {
         "patient_model": {
-          "carb_entries": [
-            {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
-            }
-          ],
+          "glucose_history": "reusable.glucose.flat_70_12hr",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.8
+              "value": 2.2
             }
           ]
         },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
         "pump": {
-          "carb_entries": [
-            {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
-            }
-          ],
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.8
+              "value": 2.2
             }
           ]
         }
@@ -82,32 +62,22 @@
       "sim_id": "post-Loop_WithMitigations",
       "patient": {
         "patient_model": {
-          "carb_entries": [
-            {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
-            }
-          ],
+          "glucose_history": "reusable.glucose.flat_70_12hr",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.8
+              "value": 2.2
             }
           ]
         },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
         "pump": {
-          "carb_entries": [
-            {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
-            }
-          ],
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 0.8
+              "value": 2.2
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
