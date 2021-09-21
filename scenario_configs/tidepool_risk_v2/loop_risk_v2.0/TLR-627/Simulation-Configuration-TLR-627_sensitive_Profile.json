@@ -1,0 +1,89 @@
+{
+  "metadata": {
+    "risk-id": "TLR-627",
+    "simulation_id": "TLR-627-sensitive",
+    "risk_description": "Mistakes low glucose for high, boluses",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_70_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.9
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.9
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_70_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.9
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.9
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_70_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.9
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.9
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
+    }
+  ]
+}

@@ -1,11 +1,11 @@
 {
   "metadata": {
     "risk-id": "TLR-688",
-    "simulation_id": "TLR-688-median",
+    "simulation_id": "TLR-688-sensitive",
     "risk_description": "Color contrast insufficient",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.base_median_v1",
+  "base_config": "reusable.simulations.base_sensitive_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
@@ -15,7 +15,7 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
+              "value": 7.5
             }
           ],
           "bolus_entries": [
@@ -30,7 +30,7 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
+              "value": 7.5
             }
           ],
           "bolus_entries": [
@@ -50,7 +50,7 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
+              "value": 7.5
             }
           ],
           "bolus_entries": [
@@ -65,7 +65,7 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
+              "value": 7.5
             }
           ],
           "bolus_entries": [
@@ -86,7 +86,7 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
+              "value": 7.5
             }
           ],
           "bolus_entries": [
@@ -101,7 +101,7 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 6.5
+              "value": 7.5
             }
           ],
           "bolus_entries": [
@@ -110,10 +110,10 @@
               "value": 0.8
             }
           ],
-          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      "controller": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
     }
   ]
 }
