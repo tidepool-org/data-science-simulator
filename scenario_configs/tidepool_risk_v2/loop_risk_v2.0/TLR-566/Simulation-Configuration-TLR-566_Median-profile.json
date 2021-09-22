@@ -1,0 +1,83 @@
+{
+  "metadata": {
+    "risk-id": "TLR-566",
+    "simulation_id": "TLR-566-median",
+    "risk_description": "Carb entry at significantly different time from consumption",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 3.3
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 13:00:00",
+              "value": 3.3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 3.3
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 13:00:00",
+              "value": 3.3
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 3.3
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 13:00:00",
+              "value": 3.3
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+    }
+  ]
+}
