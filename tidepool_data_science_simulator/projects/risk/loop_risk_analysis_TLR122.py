@@ -55,7 +55,7 @@ def risk_analysis_tlr122_pump_session_gap():
         sim_id = "tlr122_duration_{}_reported_{}".format(pump_session_gap_hrs, do_report_manual_bolus)
         print("Running: {}".format(sim_id))
 
-        sim_num_hours = 24
+        sim_num_hours = 23
 
         t0, patient_config = get_canonical_risk_patient_config()
         t0, pump_config = get_canonical_risk_pump_config()
