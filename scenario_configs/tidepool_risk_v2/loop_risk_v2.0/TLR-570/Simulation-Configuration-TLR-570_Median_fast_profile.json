@@ -1,0 +1,89 @@
+{
+  "metadata": {
+    "risk-id": "TLR-570",
+    "simulation_id": "TLR-570-fastcarb-median",
+    "risk_description": "Carb absorption different from physiological",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "duration": 30.0,
+              "value": 15
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "duration": 120.0,
+              "value": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "duration": 30.0,
+              "value": 15
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "duration": 120.0,
+              "value": 15
+            }
+          ]
+        },
+        "controller": null
+      }
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "duration": 30.0,
+              "value": 15
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "duration": 120.0,
+              "value": 15
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+    }
+  ]
+}
