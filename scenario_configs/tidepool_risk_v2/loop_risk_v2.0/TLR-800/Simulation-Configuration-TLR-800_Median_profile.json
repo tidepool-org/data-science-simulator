@@ -24,6 +24,35 @@
           "model": "walsh"
         }
       }
+    },
+    {
+      "sim_id": "pre-NoLoop",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        },
+        "pump": {
+        "carb_entries": "reusable.carb_doses.median_profile_v1",
+        "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+      }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        },
+        "pump": {
+        "carb_entries": "reusable.carb_doses.median_profile_v1",
+        "bolus_entries": "reusable.insulin_doses.median_profile_v1",
+        "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+      }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
     }
   ]
 }
