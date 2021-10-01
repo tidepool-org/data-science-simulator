@@ -12,14 +12,19 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 6.2
+            }
+          ]
         },
         "pump": {
           "carb_entries": [
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 61
+              "value": 62
             }
           ],
           "bolus_entries": [
@@ -36,14 +41,19 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 6.2
+            }
+          ]
         },
         "pump": {
           "carb_entries": [
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 61
+              "value": 62
             }
           ],
           "bolus_entries": [
@@ -57,18 +67,23 @@
       "controller": null
     },
     {
-      "sim_id": "pre-NoLoop",
+      "sim_id": "post-Loop_WithMitigations",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 6.2
+            }
+          ]
         },
         "pump": {
           "carb_entries": [
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 61
+              "value": 62
             }
           ],
           "bolus_entries": [

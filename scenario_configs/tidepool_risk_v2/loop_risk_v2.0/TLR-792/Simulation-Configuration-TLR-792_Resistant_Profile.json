@@ -17,11 +17,6 @@
     },
     {
       "sim_id": "pre-noLoop",
-      "controller": {
-        "settings": {
-          "glucose_safety_limit": 54
-        }
-      },
       "controller": null
     },
     {

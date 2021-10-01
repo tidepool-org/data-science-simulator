@@ -14,7 +14,7 @@ from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG i
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
 )
-from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, TempBasalTimeline, ActionTimeline
+from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, TempBasalTimeline, ActionTimeline, VirtualPatientDeleteLoopData
 from tidepool_data_science_simulator.models.measures import (
     Carb,
     Bolus,
@@ -42,6 +42,7 @@ DATETIME_FORMAT = "%m/%d/%Y %H:%M:%S"
 CONTROLLER_MODEL_NAME_MAP = {
     "rapid_acting_adult": [360, 75],
     "rapid_acting_child": [360, 65],
+    "walsh": [120, 15]
 }
 
 

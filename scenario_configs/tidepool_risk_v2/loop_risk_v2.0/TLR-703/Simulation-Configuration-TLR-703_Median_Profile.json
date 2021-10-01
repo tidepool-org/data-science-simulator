@@ -10,15 +10,6 @@
     {
       "sim_id": "pre-Loop_NoMitigations",
       "patient": {
-        "patient_model": {
-          "carb_entries": [
-            {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 15
-            }
-          ]
-        },
         "pump": {
           "carb_entries": [
             {
@@ -33,15 +24,6 @@
     {
       "sim_id": "pre-NoLoop",
       "patient": {
-        "patient_model": {
-          "carb_entries": [
-            {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 15
-            }
-          ]
-        },
         "pump": {
           "carb_entries": [
             {
@@ -57,15 +39,6 @@
     {
       "sim_id": "post-Loop_WithMitigations",
       "patient": {
-        "patient_model": {
-          "carb_entries": [
-            {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 15
-            }
-          ]
-        },
         "pump": {
           "carb_entries": [
             {
