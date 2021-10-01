@@ -9,6 +9,7 @@
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
+      "duration_hours": 23.0,
       "controller": {
         "settings": {
           "max_basal_rate": 0.15
@@ -17,10 +18,12 @@
     },
     {
       "sim_id": "pre-noLoop",
+      "duration_hours": 23.0,
       "controller": null
     },
     {
       "sim_id": "post-Loop_WithMitigations",
+      "duration_hours": 23.0,
       "patient": {
         "pump": {
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"

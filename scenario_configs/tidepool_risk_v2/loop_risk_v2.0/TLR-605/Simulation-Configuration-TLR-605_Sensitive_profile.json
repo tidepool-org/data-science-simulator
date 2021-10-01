@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "risk_id": "TLR-703",
-    "simulation_id": "TLR-703-Sensitive",
-    "risk_description": "Watch accidental carb entry",
+    "risk-id": "TLR-605",
+    "simulation_id": "TLR-605-sensitive",
+    "risk_description": "Pairs to wrong pump",
     "config_format_version": "v1.0"
   },
   "base_config": "reusable.simulations.base_sensitive_v1",
@@ -10,12 +10,11 @@
     {
       "sim_id": "pre-Loop_NoMitigations",
       "patient": {
-        "pump": {
-          "carb_entries": [
+        "patient_model": {
+          "bolus_entries": [
             {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 15
+              "time": "8/15/2019 12:00:00",
+              "value": 3.3
             }
           ]
         }
@@ -24,29 +23,28 @@
     {
       "sim_id": "pre-NoLoop",
       "patient": {
-        "pump": {
-          "carb_entries": [
+        "patient_model": {
+          "bolus_entries": [
             {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 15
+              "time": "8/15/2019 12:00:00",
+              "value": 3.3
             }
           ]
         }
-      },
-      "controller": null
+      }
     },
     {
       "sim_id": "post-Loop_WithMitigations",
       "patient": {
-        "pump": {
-          "carb_entries": [
+        "patient_model": {
+          "bolus_entries": [
             {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 15
+              "time": "8/15/2019 12:00:00",
+              "value": 3.3
             }
-          ],
+          ]
+        },
+        "pump": {
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       },

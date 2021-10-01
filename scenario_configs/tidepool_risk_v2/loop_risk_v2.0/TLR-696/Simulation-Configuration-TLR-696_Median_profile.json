@@ -46,7 +46,13 @@
       "sim_id": "post-Loop-WithMitigations",
       "patient": {
         "pump": {
-          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1",
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00"],
+              "values": [10]
+            }
+          }
         }
       },
       "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"

@@ -15,7 +15,7 @@ TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/t
 RESULTS_SAVE_DIR = os.path.join(DATA_DIR, "results/tidepool_loop_risk_v2.0")
 directory = max(RESULTS_SAVE_DIR)
 
-# concatenate files
+# concatenate csv files
 for root, subdirectories in os.walk(directory):
     for subdirectory in subdirectories:
         joined_files = os.path.join(subdirectory, "summary_results*.csv")

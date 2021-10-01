@@ -26,7 +26,7 @@
       }
     },
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-NoLoop",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_54_12hr",
@@ -45,7 +45,7 @@
       "controller": null
     },
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "post-Loop_WithMitigations",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_54_12hr",

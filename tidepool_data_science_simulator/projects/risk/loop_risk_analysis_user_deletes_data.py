@@ -24,7 +24,7 @@ from tidepool_data_science_simulator.utils import timing
 
 
 @timing
-def risk_analysis_tlr337_user_delete_data(scenario_csv_filepath):
+def risk_analysis_user_delete_data(scenario_csv_filepath):
     """
     Compare loop running with an action and without that action.
 
@@ -121,4 +121,4 @@ if __name__ == "__main__":
         scenario_csv_filepath = os.path.join(
             scenarios_folder_path, file_name
         )
-        risk_analysis_tlr337_user_delete_data(scenario_csv_filepath)
+        risk_analysis_user_delete_data(scenario_csv_filepath)

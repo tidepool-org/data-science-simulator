@@ -10,6 +10,14 @@
     {
       "sim_id": "pre-Loop_NoMitigations",
       "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 4.2
+            }
+          ]
+        },
         "pump": {
           "bolus_entries": [
             {
@@ -21,8 +29,16 @@
       }
     },
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-NoLoop",
       "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 4.2
+            }
+          ]
+        },
         "pump": {
           "bolus_entries": [
             {
@@ -35,8 +51,16 @@
       "controller": null
     },
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "post-Loop_WithMitigations",
       "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 4.2
+            }
+          ]
+        },
         "pump": {
           "bolus_entries": [
             {
