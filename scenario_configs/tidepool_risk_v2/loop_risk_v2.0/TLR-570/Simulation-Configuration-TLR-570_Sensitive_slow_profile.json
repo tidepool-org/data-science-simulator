@@ -1,36 +1,34 @@
 {
   "metadata": {
     "risk-id": "TLR-570",
-    "simulation_id": "TLR-570-fastcarb-median",
+    "simulation_id": "TLR-570-slowcarb-sensitive",
     "risk_description": "Carb absorption different from physiological",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.base_median_v1",
+  "base_config": "reusable.simulations.base_sensitive_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
       "patient": {
         "patient_model": {
-          "glucose_history": "reusable.glucose.flat_54_12hr",
           "carb_entries": [
             {
               "start_time": "8/15/2019 12:00:00",
-              "value": 15,
-              "duration": 30
+              "value": 25,
+              "duration": 300
             }
-          ]
+          ],
+          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
         },
         "pump": {
           "carb_entries": [
             {
               "start_time": "8/15/2019 12:00:00",
-              "value": 15,
-              "duration": 120
+              "value": 25,
+              "duration": 240
             }
-          ]
-        },
-        "sensor": {
-          "glucose_history": "reusable.glucose.flat_54_12hr"
+          ],
+          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
         }
       }
       },
@@ -38,26 +36,24 @@
       "sim_id": "pre-NoLoop",
       "patient": {
         "patient_model": {
-          "glucose_history": "reusable.glucose.flat_54_12hr",
           "carb_entries": [
             {
               "start_time": "8/15/2019 12:00:00",
-              "value": 15,
-              "duration": 30
+              "value": 25,
+              "duration": 300
             }
-          ]
+          ],
+          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
         },
         "pump": {
           "carb_entries": [
             {
               "start_time": "8/15/2019 12:00:00",
-              "value": 15,
-              "duration": 120
+              "value": 25,
+              "duration": 240
             }
-          ]
-        },
-        "sensor": {
-          "glucose_history": "reusable.glucose.flat_54_12hr"
+          ],
+          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
         }
       },
       "controller": null
@@ -66,30 +62,28 @@
       "sim_id": "post-Loop_WithMitigations",
       "patient": {
         "patient_model": {
-          "glucose_history": "reusable.glucose.flat_54_12hr",
           "carb_entries": [
             {
               "start_time": "8/15/2019 12:00:00",
-              "value": 15,
-              "duration": 30
+              "value": 25,
+              "duration": 300
             }
-          ]
+          ],
+          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
         },
         "pump": {
           "carb_entries": [
             {
               "start_time": "8/15/2019 12:00:00",
-              "value": 15,
-              "duration": 120
+              "value": 25,
+              "duration": 240
             }
           ],
-          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
-        },
-        "sensor": {
-          "glucose_history": "reusable.glucose.flat_54_12hr"
+          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      "controller": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
       }
   ]
 }
