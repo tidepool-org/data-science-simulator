@@ -18,9 +18,9 @@ from tidepool_data_science_simulator.run import run_simulations
 
 
 THIS_DIR = os.path.abspath(__file__)
-TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2.0/")
+TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/")
 
-RESULTS_SAVE_DIR = os.path.join(DATA_DIR, "results/tidepool_loop_risk_v2.0")
+RESULTS_SAVE_DIR = os.path.join(DATA_DIR, "results/tidepool_loop_risk_v2_0")
 
 
 @timing

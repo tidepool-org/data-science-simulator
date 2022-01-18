@@ -9,10 +9,10 @@ import glob
 import os
 from tidepool_data_science_simulator.utils import  PROJECT_ROOT_DIR, DATA_DIR
 
-# locate files - can be obsolete if i can just import the correct variable from loop_risk_v2.0
+# locate files - can be obsolete if i can just import the correct variable from loop_risk_v2_0
 THIS_DIR = os.path.abspath(__file__)
-TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2.0/")
-RESULTS_SAVE_DIR = os.path.join(DATA_DIR, "results/tidepool_loop_risk_v2.0")
+TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/")
+RESULTS_SAVE_DIR = os.path.join(DATA_DIR, "results/tidepool_loop_risk_v2_0")
 directory = max(RESULTS_SAVE_DIR)
 
 # concatenate csv files
