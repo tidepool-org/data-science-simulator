@@ -86,10 +86,13 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 * Control randomness via config seed(s) (size: small)
 * Speed up Pyloopkit, possible in this code base (size: medium to large)
 
-## Tidepool Data Science Team
+## Tidepool Data Science Team, Risk Assessment Team
 |Name (with github link)    |  [Tidepool Slack](https://tidepoolorg.slack.com/)   |  
 |---------|-----------------|
 |[Ed Nykaza](https://github.com/[ed-nykaza])| @ed        |
 |[Jason Meno](https://github.com/[jameno]) |  @jason    |
 |[Cameron Summers](https://github.com/[scaubrey]) |  @Cameron Summers    |
+|[Anna Quinlan] (https://github.com/novalegra) |
+|[Eden Grown-Haeberli] (https://github.com/edengh) |
+|[Shawn Foster] (https://github.com/ihadanidea) | @shawn |
 
