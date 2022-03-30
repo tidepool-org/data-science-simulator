@@ -233,12 +233,15 @@ class ScenarioParserV2(SimulationParser):
                     raise Exception("Setting schedule times out of order: {} and {}".format(time_obj, prev_time))
 
                 start_times.append(time_obj)
-                duration_minutes = self.times_to_minutes(prev_time, time_obj)
+                prev_dt = datetime.datetime.combine(datetime.datetime.today(), prev_time)
+                time_dt = datetime.datetime.combine(datetime.datetime.today(), time_obj)
+                duration_minutes = self.times_to_minutes(prev_dt, time_dt)
                 durations_minutes.append(duration_minutes)
 
                 prev_time = time_obj
 
-            durations_minutes.append(self.times_to_minutes(time_obj, first_time))
+            first_dt = datetime.datetime.combine(datetime.datetime.today() + datetime.timedelta(days=1), first_time)
+            durations_minutes.append(self.times_to_minutes(time_dt, first_dt))
 
         else:
             start_times = [first_time]
@@ -344,7 +347,7 @@ class ScenarioParserV2(SimulationParser):
         sim_start_time_str = self.get_required_value(sim_config, "time_to_calculate_at", str)
         sim_start_time = datetime.datetime.strptime(sim_start_time_str, DATETIME_FORMAT)
 
-        duration_hrs = self.get_required_value(sim_config, "duration_hours", float)
+        duration_hrs = self.get_required_value(sim_config, "duration_hours", int)
 
         self.pump_model = self.build_model_from_config(sim_start_time, sim_config["patient"]["pump"])
         self.patient_model = self.build_model_from_config(sim_start_time, sim_config["patient"]["patient_model"])

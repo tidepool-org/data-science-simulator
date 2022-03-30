@@ -91,6 +91,29 @@ def get_cgm_value_prob_linear(sbg):
     return cgm_range_prob
 
 
+def special_controls_fit_normal_sigma_binary_search(special_controls_probs):
+
+    primary_constraint, secondary_constraint, secondary_constraint_complement = special_controls_probs
+
+    epsilon = 1e-3
+    high = 1e2
+    low = 1e-3
+    sigma = high
+    while True:
+        prob_mass_within_15 = sum(norm.pdf(range(-15, 16), 0.0, sigma))
+        if np.abs(prob_mass_within_15 - primary_constraint) < epsilon:
+            break
+
+        if prob_mass_within_15 < primary_constraint:
+            high = sigma
+            sigma = (sigma - low) / 2.0
+        else:
+            low = sigma
+            sigma = (high - sigma) / 2.0 + sigma
+
+    return sigma
+
+
 def get_cgm_range_prob_linear(sbg):
     """
     Probability of a bg range with linear model.
@@ -419,7 +442,7 @@ def get_p_error_given_cgm_value(sbg_value, tbg_values, error_model="uniform", bg
         elif error_model == "normal":
             if bg_model == "uniform":
                 tbg_prob_dist = norm.pdf(errors_abs, 0, 9.5)
-                tbg_prob_dist = norm.pdf(errors, 0, 10.3)
+                # tbg_prob_dist = norm.pdf(errors, 0, 10.3)
             elif bg_model == "lognormal":
                 tbg_prob_dist = norm.pdf(errors_abs, 0, 9.2)
     elif 70 <= sbg_value <= 180:
@@ -644,7 +667,7 @@ def compute_risk_results_sampling(sim_summary_df, save_dir, p_bolus,
 
     scores = score_distributions(ad_dist, be_dist, cf_dist, overall_dist)
 
-    if 1:
+    if 0:
         bins = range(0, 75, 5)
         fig, ax = plt.subplots(2)
         ax[0].hist(be_dist, bins=bins)
@@ -686,6 +709,50 @@ def plot_lognormal_cgm_dist():
 
     plt.hist(bg_dist, bins=36)
     plt.title("")
+    plt.show()
+
+
+def plot_individual_user_risk_temp_basal(sim_summary_df):
+
+    sim_summary_df["user_id"] = sim_summary_df["sim_id"].apply(lambda x: re.search("vp_(.+)_tbg", x).groups()[0])
+    df_user_risk = sim_summary_df[["user_id", "risk_score"]].groupby(["user_id", "risk_score"]).size().reset_index(
+        name='counts')
+    json_base_configs = transform_icgm_json_to_v2_parser()
+
+    risk_metric = []
+    ages = []
+    brs = []
+    isfs = []
+    cirs = []
+    settings_factor = []
+    for c in json_base_configs:
+        isf = c["patient"]["patient_model"]["metabolism_settings"]["insulin_sensitivity_factor"]["values"][0]
+        br = c["patient"]["patient_model"]["metabolism_settings"]["basal_rate"]["values"][0]
+        cir = c["patient"]["patient_model"]["metabolism_settings"]["carb_insulin_ratio"]["values"][0]
+
+        brs.append(br)
+        isfs.append(isf)
+        cirs.append(cir)
+        settings_factor.append(isf / (cir))
+        ages.append(c["patient"]["age"])
+        cnt_risk5 = df_user_risk[(df_user_risk["user_id"] == c["patient_id"]) & (df_user_risk["risk_score"] == 4)]["counts"].values[0]
+        risk_metric.append(cnt_risk5)
+
+    factors = [
+        ("Basal Rate", brs),
+        ("CIR", cirs),
+        ("ISF", isfs),
+        ("CIR / Basal ISF", settings_factor),
+        ("Age", ages)
+    ]
+
+    for factor_description, factor_data in factors:
+        plt.figure()
+        plt.scatter(factor_data, risk_metric)
+        plt.title("Risk Factors for Patient Population (Temp Basal Case)")
+        plt.ylabel("Count of Risk=5")
+        plt.xlabel(factor_description)
+
     plt.show()
 
 
@@ -810,6 +877,8 @@ def get_icgm_sim_summary_df(result_dir, save_dir):
 
 if __name__ == "__main__":
 
+    # sigma = special_controls_fit_normal_sigma_binary_search(special_controls_probs=[0.85, 0.13, .02])
+
     # get_p_error_given_range_normal("A", 0, do_fit=True)
     # plot_special_controls_dist(error_model="uniform", bg_model="uniform")
     # plot_lognormal_cgm_dist()
@@ -833,19 +902,21 @@ if __name__ == "__main__":
     # sim_summary_df = get_icgm_sim_summary_df(results_dir, save_dir=save_dir)
 
     sim_result_collections = [
-        ("Pre-mitigation", "sim_summary_df_Jun6_2021"),
+        # ("Pre-mitigation", "sim_summary_df_Jun6_2021"),
         # ("Post-mitigation", "sim_summary_df_MITIGATED_Aug12_2021")
+        ("Temp_Basal_Pre-mitigation", "sim_summary_df_TempBasal_Sep09_2021"),
     ]
     error_models = [
-        # "uniform",
+        "uniform",
         "normal",
     ]
     bg_models = [
         "uniform",
-        # "lognormal"
+        "lognormal"
     ]
 
-    p_bolus = 0.02
+    p_hazard, hazard_descr = 2 / 288.0, "p_loop_disconnected"  # For temp basal this is P(is_loop_disconnected=True)
+    # p_hazard, hazard_descr = 6 / 288.0, "p_bolus"  # P(bolus=True)
     data = []
     for description, sim_summary_csv_name in sim_result_collections:
         sim_summary_csv_path = os.path.join(save_dir, sim_summary_csv_name + ".csv")
@@ -855,16 +926,18 @@ if __name__ == "__main__":
 
         # bolus_delivered_df = pd.read_csv("/Users/csummers/data/simulator/icgm/post_mitigation_bolus_sims_Aug2021_total_bolus.csv")
         # sim_summary_df = zero_risk_score_for_zero_bolus(sim_summary_df, bolus_delivered_df)
+
         # plot_individual_user_risk_bolus_only(sim_summary_df)
+        # plot_individual_user_risk_temp_basal(sim_summary_df)
 
         for error_model in error_models:
             for bg_model in bg_models:
                 logger.info("Running {}. error_model={}, bg_model={}".format(sim_summary_csv_path, error_model, bg_model))
                 num_events, scores = compute_risk_results_sampling(sim_summary_df, save_dir,
-                                              p_bolus=p_bolus,
-                                              error_model=error_model,
-                                              bg_model=bg_model,
-                                              description=description)
+                                                                   p_bolus=p_hazard,
+                                                                   error_model=error_model,
+                                                                   bg_model=bg_model,
+                                                                   description=description)
 
                 num_events.update({
                     "description": description,
@@ -875,6 +948,6 @@ if __name__ == "__main__":
                 data.append(num_events)
 
     df = pd.DataFrame(data)
-    df.to_csv(os.path.join(save_dir, "Expected_Events_p_bolus={}.csv".format(p_bolus)))
+    df.to_csv(os.path.join(save_dir, "Expected_Events_{}={}.csv".format(hazard_descr, p_hazard)))
     logger.info(df)
 
