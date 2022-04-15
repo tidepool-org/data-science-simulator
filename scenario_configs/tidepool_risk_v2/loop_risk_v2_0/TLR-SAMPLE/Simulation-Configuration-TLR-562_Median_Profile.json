@@ -14,6 +14,23 @@
                 "carb_entries": "reusable.carb_doses.median_profile_v1"
             }
         }
+        },
+        {
+            "sim_id": "pre-noLoop",
+            "patient": {
+                "patient_model": {
+                    "carb_entries": "reusable.carb_doses.median_profile_v1"
+                }
+            },
+            "controller": null
+        },
+        {
+            "sim_id": "post-Loop_noMitigations",
+            "patient": {
+                "patient_model": {
+                    "carb_entries": "reusable.carb_doses.median_profile_v1"
+                }
+            }
         }
     ]
 }
