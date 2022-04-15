@@ -1,0 +1,71 @@
+{
+  "metadata": {
+    "risk-id": "TLR-806_240",
+    "simulation_id": "TLR-806_240-median",
+    "risk_description": "SBR of 0 - 240 m",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-LoopNoMitigations",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "4:00:00"
+              ],
+              "values": [
+                0.0,
+                0.5
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "4:00:00"
+              ],
+              "values": [
+                0.0,
+                0.5
+              ]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-LoopWithMitigations",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "4:00:00"
+              ],
+              "values": [
+                0.0,
+                0.5
+              ]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+    }
+  ]
+}
