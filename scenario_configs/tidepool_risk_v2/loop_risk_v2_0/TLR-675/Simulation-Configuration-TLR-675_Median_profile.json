@@ -1,0 +1,121 @@
+{
+    "metadata": {
+      "risk-id": "TLR-675",
+      "simulation_id": "TLR-675-median",
+      "risk_description": "Bolus needed higher than max",
+      "config_format_version": "v1.0"
+    },
+    "base_config": "reusable.simulations.base_median_v1",
+    "override_config": [
+        {
+        "sim_id": "pre-Loop-NoMitigations",
+        "patient": {
+        "patient_model": {
+            "carb_entries": [
+                {
+                    "start_time": "8/15/2019 12:00:00",
+                    "type": "carb",
+                    "value": 100
+                }
+            ],
+            "bolus_entries": [
+                {
+                    "time": "8/15/2019 12:00:00",
+                    "value": 6.7
+                }
+            ]
+        },
+        "pump":{
+            "carb_entries": [
+                {
+                    "start_time":"8/15/2019 12:00:00",
+                    "type":"carb",
+                    "value":100
+                }
+            ],
+            "bolus_entries":[
+                {
+                    "time":"8/15/2019 12:00:00",
+                    "value":6.7
+                }
+            ]
+        }
+    }
+    },
+
+    {
+        "sim_id": "pre-NoLoop",
+        "patient": {
+        "patient_model": {
+            "carb_entries": [
+                {
+                    "start_time": "8/15/2019 12:00:00",
+                    "type": "carb",
+                    "value": 100
+                }
+            ],
+            "bolus_entries": [
+                {
+                    "time": "8/15/2019 12:00:00",
+                    "value": 6.7
+                }
+            ]
+        },
+        "pump":{
+            "carb_entries": [
+                {
+                    "start_time":"8/15/2019 12:00:00",
+                    "type":"carb",
+                    "value":100
+                }
+            ],
+            "bolus_entries":[
+                {
+                    "time":"8/15/2019 12:00:00",
+                    "value":6.7
+                }
+            ]
+        }
+    },
+    "controller": null
+    },
+
+    {
+        "sim_id": "post-Loop-WithMitigations",
+        "patient": {
+        "patient_model": {
+            "carb_entries": [
+                {
+                    "start_time": "8/15/2019 12:00:00",
+                    "type": "carb",
+                    "value": 100
+                }
+            ],
+            "bolus_entries": [
+                {
+                    "time": "8/15/2019 12:00:00",
+                    "value": 6.7
+                }
+            ]
+        },
+        "pump":{
+            "carb_entries": [
+                {
+                    "start_time":"8/15/2019 12:00:00",
+                    "type":"carb",
+                    "value":100
+                }
+            ],
+            "bolus_entries":[
+                {
+                    "time":"8/15/2019 12:00:00",
+                    "value":6.7
+                }
+            ],
+            "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+    },
+    "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+    }
+    ]
+}
