@@ -8,23 +8,49 @@
     "base_config": "reusable.simulations.base_median_v1",
     "override_config": [
         {
-            "sim_id": "pre-Loop-noMitigations",
-            "controller": {
+          "sim_id": "pre-Loop-noMitigations",
+          "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+            }
+          },
+           "controller": {
               "settings": {
                 "model": "rapid_acting_child"
               }
             }
         },
       {
-            "sim_id": "pre-Loop-noMitigations",
-            "controller": {
-              "settings": {
-                "model": "rapid_acting_child"
-              }
+            "sim_id": "pre-NoLoop",
+        "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
             }
+          },
+            "controller": null
         },
         {
             "sim_id": "post-Loop-WithMitigations",
+          "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+            }
+          },
             "controller": {
                 "settings": {
                   "glucose_safety_limit": 75,
