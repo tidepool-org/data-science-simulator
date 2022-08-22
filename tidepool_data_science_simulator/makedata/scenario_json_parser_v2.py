@@ -42,7 +42,8 @@ DATETIME_FORMAT = "%m/%d/%Y %H:%M:%S"
 CONTROLLER_MODEL_NAME_MAP = {
     "rapid_acting_adult": [360, 75],
     "rapid_acting_child": [360, 65],
-    "walsh": [120, 15]
+    "walsh": [120, 15],
+    "fiasp": [360, 55]
 }
 
 
