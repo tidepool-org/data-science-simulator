@@ -31,15 +31,22 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
     risk_dirs = [risk_dir for risk_dir in os.listdir(TIDEPOOL_RISK_SCENARIOS_DIR) if "TLR-" in risk_dir]
     for risk_dir_name in risk_dirs:
 
-        # if "596" not in risk_dir_name:
-        #     continue
+        # for use in filtering to just one risk. If wanting to run all of them, comment out lines 35-37
+        if "791" not in risk_dir_name:
+            continue
+        print("!!!"+risk_dir_name)
 
         risk_dir_path = os.path.join(scenario_json_filepath, risk_dir_name)
         scenario_json_filenamess = [filename for filename in os.listdir(risk_dir_path) if ".json" in filename]
 
         for scenario_json_name in scenario_json_filenamess:
+            #for use in filtering to just one file in a folder. If wanting to run all files, comment out lines 44-46
+            # if "Child" not in scenario_json_name:
+            #    continue
+            #print("!!!"+scenario_json_name)
             scenario_json_path = os.path.join(risk_dir_path, scenario_json_name)
             parser = ScenarioParserV2(path_to_json_config=scenario_json_path)
+            print(scenario_json_path)
             sim_suite = parser.get_sims(override_json_save_dir=override_config_save_dir)
             yield risk_dir_name, scenario_json_name, sim_suite
 

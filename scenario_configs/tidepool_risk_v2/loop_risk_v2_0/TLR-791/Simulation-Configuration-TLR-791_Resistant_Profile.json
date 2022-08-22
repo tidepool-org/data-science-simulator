@@ -1,26 +1,60 @@
 {
     "metadata": {
         "risk_id": "TLR-791",
-        "simulation_id": "TLR-791-Resistant",
+        "simulation_id": "TLR-791-resistant",
         "risk_description": "Metabolic settings are too aggressive",
         "config_format_version": "v1.0"
     },
     "base_config": "reusable.simulations.base_resistant_v1",
     "override_config": [
         {
-            "sim_id": "pre-Loop-noMitigations",
-            "controller": {
+          "sim_id": "pre-Loop-noMitigations",
+          "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+            }
+          },
+           "controller": {
               "settings": {
                 "model": "rapid_acting_child"
               }
             }
         },
+      {
+            "sim_id": "pre-NoLoop",
+        "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+            }
+          },
+            "controller": null
+        },
         {
             "sim_id": "post-Loop-WithMitigations",
+          "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+            }
+          },
             "controller": {
                 "settings": {
                   "glucose_safety_limit": 75,
-                  "max_basal_rate": 1.75,
+                  "max_basal_rate": 2.8,
                   "model": "rapid_acting_child"
                 }
             }
