@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "risk_id": "TLR-795",
+    "simulation_id": "TLR-795-adolescent",
+    "risk_description": "Safety settings too aggressive: Max basal",
+    "config_format_version": "1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop-NoMitigations",
+      "controller": {
+          "settings": {
+            "max_basal_rate": 19
+          }
+        }
+    },
+    {
+      "sim_id": "pre-NoLoop",
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations",
+      "patient": {
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+      },
+        "controller": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+    }
+  ]
+}

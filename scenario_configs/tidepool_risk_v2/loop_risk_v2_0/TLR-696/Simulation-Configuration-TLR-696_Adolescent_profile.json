@@ -1,0 +1,61 @@
+{
+  "metadata": {
+    "risk-id": "TLR-696",
+    "simulation_id": "TLR-696-adolescent",
+    "risk_description": "Incorrect settings change",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                1
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                1
+              ]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations",
+      "patient": {
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1",
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00"],
+              "values": [10]
+            }
+          }
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+    }
+  ]
+}

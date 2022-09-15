@@ -289,14 +289,14 @@ class ScenarioParserV2(SimulationParser):
 
         float(carb_ratio)
 
-        if not 0 < carb_ratio <= 100:
+        if not 0 < carb_ratio <= 150:
             raise ValueError("Value {} exceeds expected range, likely an error.".format(carb_ratio))
 
     def validate_insulin_sensitivity(self, insulin_sensitivity):
 
         float(insulin_sensitivity)
 
-        if not 0 < insulin_sensitivity <= 1000:
+        if not 0 < insulin_sensitivity <= 1200:
             raise ValueError("Value {} exceeds expected range, likely an error.".format(insulin_sensitivity))
 
     def validate_target_range(self, lower_val, upper_val):
