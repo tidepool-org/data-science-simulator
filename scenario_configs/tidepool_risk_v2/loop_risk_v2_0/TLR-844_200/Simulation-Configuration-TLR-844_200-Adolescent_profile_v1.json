@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "risk-id": "TLR-844_200",
+    "simulation_id": "TLR-844_200-adolescent",
+    "risk_description": "Too-aggressive override 200",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_130_adolescent_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      6
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      2
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      3.8
+    ]
+  }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      6
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      2
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      3.8
+    ]
+  }
+          }
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [6
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      2
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      3.8
+    ]
+  }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+    }
+  ]
+}

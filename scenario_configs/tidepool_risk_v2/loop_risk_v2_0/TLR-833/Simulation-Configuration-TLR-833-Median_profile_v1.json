@@ -1,0 +1,89 @@
+{
+  "metadata": {
+    "risk-id": "TLR-833",
+    "simulation_id": "TLR-833-median",
+    "risk_description": "User doesn’t suspend for water use",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.5
+            }
+          ],
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.8
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.5
+            }
+          ],
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.8
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.5
+            }
+          ],
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.8
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        }
+      },
+      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+    }
+  ]
+}

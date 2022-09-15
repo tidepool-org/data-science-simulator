@@ -19,7 +19,7 @@
     },
     "patient_model": {
       "metabolism_settings": "reusable.metabolism_settings.adolescent_v1",
-      "glucose_history": "reusable.glucose.flat_100_12hr",
+      "glucose_history": "reusable.glucose.flat_110_12hr",
       "bolus_entries": [],
       "carb_entries": []
     }
