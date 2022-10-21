@@ -122,7 +122,10 @@ class Simulation(multiprocessing.Process):
         self.virtual_patient.init()
 
         # Set any temp basals at t=0
-        self.controller.update(self.time, virtual_patient=self.virtual_patient)
+        print(f'initial loop at {self.time}')
+        loop_algorithm_output = self.controller.get_loop_recommendations(self.time, virtual_patient=self.virtual_patient)
+        if loop_algorithm_output:
+            self.controller.apply_loop_recommendations(self.virtual_patient, loop_algorithm_output)
 
         # Store info at t=0
         self.store_state()
@@ -140,7 +143,19 @@ class Simulation(multiprocessing.Process):
 
         # Get and set on patient the next action from controller,
         #   e.g. temp basal, at time
-        self.controller.update(time, virtual_patient=self.virtual_patient)
+        print(f'running loop at {self.time}')
+        loop_algorithm_output = self.controller.get_loop_recommendations(time, virtual_patient=self.virtual_patient)
+
+        # See if the patient accepted a recommended bolus for this time step
+        bolus = self.virtual_patient.bolus_event_timeline.get_event(time)
+        if bolus and bolus.value == 'accept_recommendation':
+            pass
+            # bolus.value = loop_algorithm_output.bolus_recommendation
+            # self.virtual_patient.deliver_bolus(bolus)
+
+        if loop_algorithm_output:
+            self.controller.apply_loop_recommendations(self.virtual_patient, loop_algorithm_output)
+
 
     def step(self):
         """

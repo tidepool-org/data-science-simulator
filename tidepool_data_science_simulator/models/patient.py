@@ -282,7 +282,8 @@ class VirtualPatient(SimulationComponent):
 
         bolus, carb = self.get_user_inputs()
 
-        if bolus is not None:
+        # accept_recommendation boluses will be handled after forecast generation
+        if bolus is not None and bolus.value != 'accept_recommendation':
             delivered_bolus = self.deliver_bolus(bolus)
             rel_insulin_amount += delivered_bolus.value
             abs_insulin_amount += delivered_bolus.value
@@ -307,6 +308,7 @@ class VirtualPatient(SimulationComponent):
         -------
         Bolus
         """
+
         if isinstance(bolus, ManualBolus):
             bolus = self.deliver_manual_bolus(bolus)
         else:
