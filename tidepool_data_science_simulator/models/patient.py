@@ -131,6 +131,12 @@ class VirtualPatient(SimulationComponent):
         if self.pump is not None:
             pump_state = self.pump.get_state()
 
+        # Do not report bolus acceptance events here; they will be added to actual timeline
+        # at the next step
+        bolus = self.bolus_event_timeline.get_event(self.time)
+        if bolus and bolus.value == 'accept_recommendation':
+            bolus = None
+
         patient_state = VirtualPatientState(
             bg=self.bg_current,
             bg_prediction=self.bg_prediction,
@@ -142,7 +148,7 @@ class VirtualPatient(SimulationComponent):
             isf=self.patient_config.insulin_sensitivity_schedule.get_state(),
             cir=self.patient_config.carb_ratio_schedule.get_state(),
             pump_state=pump_state,
-            bolus=self.bolus_event_timeline.get_event(self.time),
+            bolus=bolus,
             carb=self.carb_event_timeline.get_event(self.time),
             actions=self.patient_config.action_timeline.get_event(self.time)
         )
