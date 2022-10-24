@@ -131,6 +131,12 @@ class VirtualPatient(SimulationComponent):
         if self.pump is not None:
             pump_state = self.pump.get_state()
 
+        # Do not report bolus acceptance events here; they will be added to actual timeline
+        # at the next step
+        bolus = self.bolus_event_timeline.get_event(self.time)
+        if bolus and bolus.value == 'accept_recommendation':
+            bolus = None
+
         patient_state = VirtualPatientState(
             bg=self.bg_current,
             bg_prediction=self.bg_prediction,
@@ -142,7 +148,7 @@ class VirtualPatient(SimulationComponent):
             isf=self.patient_config.insulin_sensitivity_schedule.get_state(),
             cir=self.patient_config.carb_ratio_schedule.get_state(),
             pump_state=pump_state,
-            bolus=self.bolus_event_timeline.get_event(self.time),
+            bolus=bolus,
             carb=self.carb_event_timeline.get_event(self.time),
             actions=self.patient_config.action_timeline.get_event(self.time)
         )
@@ -282,7 +288,8 @@ class VirtualPatient(SimulationComponent):
 
         bolus, carb = self.get_user_inputs()
 
-        if bolus is not None:
+        # accept_recommendation boluses will be handled after forecast generation
+        if bolus is not None and bolus.value != 'accept_recommendation':
             delivered_bolus = self.deliver_bolus(bolus)
             rel_insulin_amount += delivered_bolus.value
             abs_insulin_amount += delivered_bolus.value
@@ -307,6 +314,7 @@ class VirtualPatient(SimulationComponent):
         -------
         Bolus
         """
+
         if isinstance(bolus, ManualBolus):
             bolus = self.deliver_manual_bolus(bolus)
         else:
@@ -455,7 +463,7 @@ class VirtualPatient(SimulationComponent):
 
         return metabolism_model_instance
 
-    def does_accept_bolus_recommendation(self, bolus):
+    def does_accept_bolus_recommendation(self, recommended_bolus):
         """
         This models in a basic way whether a patient accepts a recommended bolus or not. Overrides
         of this function should consider the size of the bolus and other state info
@@ -471,11 +479,19 @@ class VirtualPatient(SimulationComponent):
         bool
             True if patient accepts
         """
+
+        # See if the patient accepted a recommended bolus for this time step
+        configured_bolus = self.bolus_event_timeline.get_event(self.time)
+        if configured_bolus and configured_bolus.value == 'accept_recommendation':
+            # Remove the placeholder bolus; actual bolus will be added to patient and pump model for next timestep
+            self.bolus_event_timeline.remove_event(self.time)
+            return True
+
         does_accept = False
         u = self.random_values["uniform"][0]
 
         if u <= self.patient_config.recommendation_accept_prob and \
-                bolus.value >= self.patient_config.min_bolus_rec_threshold and \
+                recommended_bolus.value >= self.patient_config.min_bolus_rec_threshold and \
                 self.has_eaten_recently(within_time_minutes=self.patient_config.recommendation_meal_attention_time_minutes):
             does_accept = True
 
