@@ -463,7 +463,7 @@ class VirtualPatient(SimulationComponent):
 
         return metabolism_model_instance
 
-    def does_accept_bolus_recommendation(self, bolus):
+    def does_accept_bolus_recommendation(self, recommended_bolus):
         """
         This models in a basic way whether a patient accepts a recommended bolus or not. Overrides
         of this function should consider the size of the bolus and other state info
@@ -481,8 +481,8 @@ class VirtualPatient(SimulationComponent):
         """
 
         # See if the patient accepted a recommended bolus for this time step
-        bolus = self.bolus_event_timeline.get_event(self.time)
-        if bolus and bolus.value == 'accept_recommendation':
+        configured_bolus = self.bolus_event_timeline.get_event(self.time)
+        if configured_bolus and configured_bolus.value == 'accept_recommendation':
             # Remove the placeholder bolus; actual bolus will be added to patient and pump model for next timestep
             self.bolus_event_timeline.remove_event(self.time)
             return True
@@ -491,7 +491,7 @@ class VirtualPatient(SimulationComponent):
         u = self.random_values["uniform"][0]
 
         if u <= self.patient_config.recommendation_accept_prob and \
-                bolus.value >= self.patient_config.min_bolus_rec_threshold and \
+                recommended_bolus.value >= self.patient_config.min_bolus_rec_threshold and \
                 self.has_eaten_recently(within_time_minutes=self.patient_config.recommendation_meal_attention_time_minutes):
             does_accept = True
 
