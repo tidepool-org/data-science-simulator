@@ -473,6 +473,14 @@ class VirtualPatient(SimulationComponent):
         bool
             True if patient accepts
         """
+
+        # See if the patient accepted a recommended bolus for this time step
+        bolus = self.bolus_event_timeline.get_event(self.time)
+        if bolus and bolus.value == 'accept_recommendation':
+            # Remove the placeholder bolus; actual bolus will be added to patient and pump model for next timestep
+            self.bolus_event_timeline.remove_event(self.time)
+            return True
+
         does_accept = False
         u = self.random_values["uniform"][0]
 

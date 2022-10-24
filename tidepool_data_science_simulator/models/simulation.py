@@ -146,13 +146,6 @@ class Simulation(multiprocessing.Process):
         print(f'running loop at {self.time}')
         loop_algorithm_output = self.controller.get_loop_recommendations(time, virtual_patient=self.virtual_patient)
 
-        # See if the patient accepted a recommended bolus for this time step
-        bolus = self.virtual_patient.bolus_event_timeline.get_event(time)
-        if bolus and bolus.value == 'accept_recommendation':
-            pass
-            # bolus.value = loop_algorithm_output.bolus_recommendation
-            # self.virtual_patient.deliver_bolus(bolus)
-
         if loop_algorithm_output:
             self.controller.apply_loop_recommendations(self.virtual_patient, loop_algorithm_output)
 
