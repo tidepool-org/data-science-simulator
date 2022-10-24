@@ -109,6 +109,12 @@ class EventTimeline(object):
     def is_event_valid(self, event):
         return isinstance(event, self.event_type)
 
+    def remove_event(self, time):
+        """
+        Removes the event at the given time.
+        """
+        self.events.pop(time)
+
     def get_event(self, time):
         """
         Get the event at the given time. If no event, returns None

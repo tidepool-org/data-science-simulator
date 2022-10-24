@@ -9,7 +9,7 @@ import logging
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus, TempBasal
 
-from pyloopkit.loop_data_manager import update
+from pyloopkit.loop_data_manager import update as loop_predict
 
 from tidepool_data_science_simulator import USE_LOCAL_PYLOOPKIT
 
@@ -59,9 +59,9 @@ class DoNothingController(BaseControllerClass):
     def get_state(self):
         return None
 
-    def update(self, time, **kwargs):
-        # Do nothing
+    def get_loop_recommendations(self, time, **kwargs):
         pass
+
 
 
 class LoopController(BaseControllerClass):
@@ -196,19 +196,18 @@ class LoopController(BaseControllerClass):
 
         return loop_inputs_dict
 
-    def update(self, time, **kwargs):
+    def get_loop_recommendations(self, time, **kwargs):
         """
-        Using the virtual patient state, get the next action and apply it to patient,
-        e.g. via pump.
+        Get recommendations from the pyloopkit algorithm, based on 
+        virtual_patient dosing and glucose.
         """
         self.time = time
 
         virtual_patient = kwargs["virtual_patient"]
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
-            loop_algorithm_output = update(loop_inputs_dict)
-
-            self.apply_loop_recommendations(virtual_patient, loop_algorithm_output)
+            loop_algorithm_output = loop_predict(loop_inputs_dict)
+            return loop_algorithm_output
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
         """
