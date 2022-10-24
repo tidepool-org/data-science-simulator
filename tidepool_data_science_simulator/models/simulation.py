@@ -122,7 +122,9 @@ class Simulation(multiprocessing.Process):
         self.virtual_patient.init()
 
         # Set any temp basals at t=0
-        self.controller.update(self.time, virtual_patient=self.virtual_patient)
+        loop_algorithm_output = self.controller.get_loop_recommendations(self.time, virtual_patient=self.virtual_patient)
+        if loop_algorithm_output:
+            self.controller.apply_loop_recommendations(self.virtual_patient, loop_algorithm_output)
 
         # Store info at t=0
         self.store_state()
@@ -140,7 +142,11 @@ class Simulation(multiprocessing.Process):
 
         # Get and set on patient the next action from controller,
         #   e.g. temp basal, at time
-        self.controller.update(time, virtual_patient=self.virtual_patient)
+        loop_algorithm_output = self.controller.get_loop_recommendations(time, virtual_patient=self.virtual_patient)
+
+        if loop_algorithm_output:
+            self.controller.apply_loop_recommendations(self.virtual_patient, loop_algorithm_output)
+
 
     def step(self):
         """
