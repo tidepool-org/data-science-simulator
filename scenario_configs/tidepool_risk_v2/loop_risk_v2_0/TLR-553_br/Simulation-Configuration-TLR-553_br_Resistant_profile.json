@@ -1,21 +1,21 @@
 {
   "metadata": {
     "risk-id": "TLR-553",
-    "simulation_id": "TLR-553-adolescent",
+    "simulation_id": "TLR-553-resistant",
     "risk_description": "Carb entry higher than carbs consumed",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.base_adolescent_v1",
+  "base_config": "reusable.simulations.base_resistant_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
       "patient": {
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 25
+              "value": "accept_recommendation"
             }
           ]
         },
@@ -24,13 +24,7 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 120
-            }
-          ],
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 25
+              "value": 62
             }
           ]
         }
@@ -40,11 +34,11 @@
       "sim_id": "pre-NoLoop",
       "patient": {
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 25
+              "value": 6.2
             }
           ]
         },
@@ -53,13 +47,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 120
+              "value": 62
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 25
+              "value": 6.2
             }
           ]
         }
@@ -70,11 +64,11 @@
       "sim_id": "post-Loop_WithMitigations",
       "patient": {
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 25
+              "value": "accept_recommendation"
             }
           ]
         },
@@ -83,19 +77,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 120
+              "value": 62
             }
           ],
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 25
-            }
-          ],
-          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
     }
   ]
 }

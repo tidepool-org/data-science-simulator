@@ -15,7 +15,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 25
+              "value": "accept_recommendation"
             }
           ]
         },
@@ -25,12 +25,6 @@
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
               "value": 120
-            }
-          ],
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 25
             }
           ]
         }
@@ -74,7 +68,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 25
+              "value": "accept_recommendation"
             }
           ]
         },
@@ -84,12 +78,6 @@
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
               "value": 120
-            }
-          ],
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 25
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
