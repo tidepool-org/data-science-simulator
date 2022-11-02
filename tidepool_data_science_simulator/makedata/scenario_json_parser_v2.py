@@ -32,7 +32,7 @@ from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
-from tidepool_data_science_simulator.models.controller import LoopController, DoNothingController
+from tidepool_data_science_simulator.models.controller import AutomationControlTimeline, LoopController, DoNothingController, AutomationControl
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 
@@ -341,6 +341,20 @@ class ScenarioParserV2(SimulationParser):
 
         return BolusTimeline(insulin_datetimes, insulin_events)
 
+    def automation_control_entries_to_timeline(self, automation_control_entries):
+
+        automation_control_datetimes = []
+        automation_control_events = []
+        for entry in automation_control_entries:
+            entry_time = datetime.datetime.strptime(entry["time"], DATETIME_FORMAT)
+            dosing_enabled = entry["dosing_enabled"]
+            automation_control_obj = AutomationControl(dosing_enabled, entry_time)
+
+            automation_control_datetimes.append(entry_time)
+            automation_control_events.append(automation_control_obj)
+
+        return AutomationControlTimeline(automation_control_datetimes, automation_control_events)
+
     def build_components_from_config(self, sim_config, sensor=None, pump=None):
 
         sim_start_time_str = self.get_required_value(sim_config, "time_to_calculate_at", str)
@@ -486,6 +500,9 @@ class ScenarioParserV2(SimulationParser):
 
             controller_settings = sim_config["controller"]["settings"]
 
+            automation_control_entries = sim_config["controller"]["automation_control_timeline"]
+            automation_control_timeline = self.automation_control_entries_to_timeline(automation_control_entries)
+
             # Get model parameters from passed string in config
             model_name = controller_settings["model"]
             if model_name not in CONTROLLER_MODEL_NAME_MAP:
@@ -501,7 +518,7 @@ class ScenarioParserV2(SimulationParser):
                 controller_settings=controller_settings
             )
 
-            controller = LoopController(sim_start_time, controller_config)
+            controller = LoopController(sim_start_time, controller_config, automation_control_timeline)
 
         return controller
 
