@@ -183,7 +183,7 @@ class ScenarioParserV2(SimulationParser):
         """
         Return True if the value matches the pattern for designating a file for a config.
         """
-        return (isinstance(value, str) and self.pointer_keyword in value)
+        return isinstance(value, str) and self.pointer_keyword in value
 
     def load_pointer(self, pointer_string):
         """
@@ -202,7 +202,7 @@ class ScenarioParserV2(SimulationParser):
         elif os.path.isfile(csv_path):
             obj = pd.read_csv(csv_path).to_dict()
         else:
-            raise Exception("Could not load pointer file {}/{}".format(folder_path,filename_no_ext))
+            raise Exception("Could not load pointer file {}/{}".format(folder_path, filename_no_ext))
 
         return obj
 
