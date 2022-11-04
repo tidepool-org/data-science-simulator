@@ -50,11 +50,17 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": "accept_recommendation"
+              "value": 3.3
             }
           ]
         },
         "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.3
+            }
+          ],
           "carb_entries": [
             {
               "type": "carb",

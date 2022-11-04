@@ -9,25 +9,13 @@
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
-      "controller": {
-        "automation_control_timeline": [
-          {
-            "dosing_enabled": false,
-            "time": "8/15/2019 12:00:00"
-          },
-          {
-            "dosing_enabled": true,
-            "time": "8/15/2019 12:05:00"
-          }
-        ]
-    },
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": "accept_recommendation"
+              "value": 6.8
             }
           ]
         },
@@ -38,8 +26,14 @@
               "start_time": "8/15/2019 12:00:00",
               "value": 86
             }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 6.8
+            }
           ]
-      }
+        }
       }
     },
     {
@@ -50,22 +44,22 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 6.6
+              "value": 6.8
             }
           ]
         },
         "pump": {
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 6.6
-            }
-          ],
           "carb_entries": [
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
               "value": 86
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 6.8
             }
           ]
         }
@@ -73,14 +67,14 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop_WithMitigations",
+      "sim_id": "post-Loop-WithMitigations",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": "accept_recommendation"
+              "value": 6.8
             }
           ]
         },
@@ -92,21 +86,17 @@
               "value": 86
             }
           ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 6.8
+            }
+          ],
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1",
-        "automation_control_timeline": [
-          {
-            "dosing_enabled": false,
-            "time": "8/15/2019 12:00:00"
-          },
-          {
-            "dosing_enabled": true,
-            "time": "8/15/2019 12:05:00"
-          }
-        ]
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
       }
     }
   ]
