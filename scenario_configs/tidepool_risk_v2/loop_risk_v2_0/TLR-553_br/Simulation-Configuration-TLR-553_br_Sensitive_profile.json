@@ -27,7 +27,19 @@
               "value": 50
             }
           ]
-        }
+        },
+        "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:05:00"
+          }
+        ]
+      }
       }
     },
     {
@@ -77,7 +89,19 @@
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_v1",
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:05:00"
+          }
+        ]
+      }
     }
   ]
 }
