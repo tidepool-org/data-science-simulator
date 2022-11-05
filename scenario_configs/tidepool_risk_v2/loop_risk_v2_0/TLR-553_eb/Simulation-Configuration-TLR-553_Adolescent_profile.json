@@ -34,6 +34,18 @@
             }
           ]
         }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:05:00"
+          }
+        ]
       }
     },
     {
@@ -96,7 +108,17 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1",
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:05:00"
+          }
+        ]
       }
     }
   ]
