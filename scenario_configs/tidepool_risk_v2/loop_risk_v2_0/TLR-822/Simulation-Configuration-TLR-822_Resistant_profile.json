@@ -15,11 +15,11 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.1
+              "value": 3
             },
             {
               "time": "8/15/2019 12:05:00",
-              "value": 3.1
+              "value": 3
             }
           ]
         },
@@ -39,11 +39,11 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.1
+              "value": 3
             },
             {
               "time": "8/15/2019 12:05:00",
-              "value": 3.1
+              "value": 3
             }
           ]
         }
@@ -100,11 +100,11 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.1
+              "value": "accept_recommendation"
             },
             {
               "time": "8/15/2019 12:05:00",
-              "value": 3.1
+              "value": "accept_recommendation"
             }
           ]
         },
@@ -121,20 +121,12 @@
               "value": 31
             }
           ],
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 3.1
-            },
-            {
-              "time": "8/15/2019 12:05:00",
-              "value": 3.1
-            }
-          ],
           "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
     }
   ]
 }

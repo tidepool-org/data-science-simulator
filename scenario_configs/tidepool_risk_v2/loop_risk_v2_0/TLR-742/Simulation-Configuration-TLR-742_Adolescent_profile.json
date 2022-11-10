@@ -15,7 +15,7 @@
           "bolus_entries": [
           {
             "time": "8/15/2019 12:00:00",
-            "value": 13.13
+            "value": 18.13
           }
             ]
         },
@@ -24,7 +24,7 @@
           "bolus_entries":[
           {
             "time": "8/15/2019 12:00:00",
-            "value": 13.13
+            "value": 18.13
           }
             ]
         }
@@ -62,7 +62,7 @@
           "bolus_entries": [
           {
             "time": "8/15/2019 12:00:00",
-            "value": 13.13
+            "value": 14.58
           }
             ]
         },
@@ -71,13 +71,15 @@
           "bolus_entries":[
           {
             "time": "8/15/2019 12:00:00",
-            "value": 13.13
+            "value": 14.58
           }
             ],
           "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
     }
   ]
 }

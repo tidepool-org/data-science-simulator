@@ -1,7 +1,7 @@
 {
   "metadata": {
     "risk_id": "TLR-736",
-    "simulation_id": "TLR-736-Median-360",
+    "simulation_id": "TLR-736-Median-180",
     "risk_description": "Bolus is initiated by user but delivery is delayed",
     "config_format_version": "v1.0"
   },
@@ -12,14 +12,19 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 15:00:00",
+              "value": 3.9
+            }
+          ]
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
           "bolus_entries": [
             {
-              "time": "8/15/2019 18:00:00",
-              "value": 3.3
+              "time": "8/15/2019 12:00:00",
+              "value": 3.9
             }
           ]
         }
@@ -30,13 +35,18 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 15:00:00",
+              "value": 3.3
+            }
+          ]
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
           "bolus_entries": [
             {
-              "time": "8/15/2019 18:00:00",
+              "time": "8/15/2019 12:00:00",
               "value": 3.3
             }
           ]
@@ -49,20 +59,27 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 15:00:00",
+              "value": 3.2
+            }
+          ]
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
           "bolus_entries": [
             {
-              "time": "8/15/2019 18:00:00",
-              "value": 3.3
+              "time": "8/15/2019 12:00:00",
+              "value": 3.2
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
     }
   ]
 }

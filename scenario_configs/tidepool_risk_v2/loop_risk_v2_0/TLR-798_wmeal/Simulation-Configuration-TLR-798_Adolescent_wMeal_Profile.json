@@ -12,7 +12,12 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
         },
         "pump": {
           "target_range": {
@@ -20,8 +25,7 @@
             "lower_values": [87],
             "upper_values": [90]
           },
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
         }
       }
     },
@@ -49,15 +53,21 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
         },
         "pump": {
           "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1",
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
     }
   ]
 }
