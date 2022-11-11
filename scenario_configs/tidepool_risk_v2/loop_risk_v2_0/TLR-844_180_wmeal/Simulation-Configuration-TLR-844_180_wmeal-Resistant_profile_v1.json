@@ -59,7 +59,7 @@
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
-          "bolus_entries": "reusable.insulin_dose.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.resistant_profile_v1",
           "metabolism_settings": {
             "insulin_sensitivity_factor": {
     "start_times": [
