@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "risk-id": "TLR-844_170_corr",
-    "simulation_id": "TLR-844_170_corr-sensitive",
-    "risk_description": "Too-aggressive override 170",
+    "risk-id": "TLR-844_200_corr",
+    "simulation_id": "TLR-844_200_corr-median",
+    "risk_description": "Too-aggressive override 200",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.preset_130_sensitive_v1",
+  "base_config": "reusable.simulations.preset_130_median_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
@@ -29,7 +29,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      25
     ]
   },
   "carb_insulin_ratio": {
@@ -37,7 +37,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      6.7
     ]
   },
   "basal_rate": {
@@ -45,7 +45,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      1.0
     ]
   }
           }
@@ -63,7 +63,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.16
+              "value": 2.8
             }
           ]
         },
@@ -71,7 +71,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.16
+              "value": 2.8
             }
           ],
           "metabolism_settings": {
@@ -80,7 +80,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      25
     ]
   },
   "carb_insulin_ratio": {
@@ -88,7 +88,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      6.7
     ]
   },
   "basal_rate": {
@@ -96,7 +96,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      1.0
     ]
   }
           }
@@ -125,8 +125,7 @@
     "start_times": [
       "00:00:00"
     ],
-    "values": [
-      70.58
+    "values": [25
     ]
   },
   "carb_insulin_ratio": {
@@ -134,7 +133,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      6.7
     ]
   },
   "basal_rate": {
@@ -142,11 +141,11 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      1.0
     ]
   }
           },
-          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
         }
       },
       "controller": {

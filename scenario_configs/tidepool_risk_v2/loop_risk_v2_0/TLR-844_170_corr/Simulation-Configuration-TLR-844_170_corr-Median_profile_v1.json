@@ -9,10 +9,10 @@
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
-      "sensor": {
-        "glucose_history": "reusable.glucose.flat_250_12hr"
-      },
       "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
         "patient_model": {
           "bolus_entries": [
             {
@@ -53,10 +53,10 @@
     },
     {
       "sim_id": "pre-noLoop",
-      "sensor": {
-        "glucose_history": "reusable.glucose.flat_250_12hr"
-      }
       "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
         "patient_model": {
           "bolus_entries": [
             {
@@ -104,10 +104,10 @@
     },
     {
       "sim_id": "post-Loop-WithMitigations",
-      "sensor": {
-        "glucose_history": "reusable.glucose.flat_250_12hr"
-      },
       "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
         "patient_model": {
           "bolus_entries": [
             {

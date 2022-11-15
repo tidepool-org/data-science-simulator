@@ -1,9 +1,9 @@
 {
   "metadata": {
-    "risk-id": "TLR-844_170_corr",
-    "simulation_id": "TLR-844_170_corr-sensitive",
-    "risk_description": "Too-aggressive override 170",
-    "config_format_version": "v1.0"
+    "risk-id": "TLR-844_200_corr",
+    "simulation_id": "TLR-844_200_corr-sensitive",
+    "risk_description": "Too-aggressive override 200",
+    "config_format_version": "v0.6"
   },
   "base_config": "reusable.simulations.preset_130_sensitive_v1",
   "override_config": [
@@ -29,7 +29,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      60
     ]
   },
   "carb_insulin_ratio": {
@@ -37,7 +37,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      7.5
     ]
   },
   "basal_rate": {
@@ -45,7 +45,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      0.6
     ]
   }
           }
@@ -80,7 +80,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      60
     ]
   },
   "carb_insulin_ratio": {
@@ -88,7 +88,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      7.5
     ]
   },
   "basal_rate": {
@@ -96,7 +96,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      0.6
     ]
   }
           }
@@ -125,8 +125,7 @@
     "start_times": [
       "00:00:00"
     ],
-    "values": [
-      70.58
+    "values": [60
     ]
   },
   "carb_insulin_ratio": {
@@ -134,7 +133,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      7.5
     ]
   },
   "basal_rate": {
@@ -142,7 +141,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      0.6
     ]
   }
           },

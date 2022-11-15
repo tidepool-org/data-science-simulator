@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "risk-id": "TLR-844_170_corr",
-    "simulation_id": "TLR-844_170_corr-sensitive",
-    "risk_description": "Too-aggressive override 170",
+    "risk-id": "TLR-844_190_corr",
+    "simulation_id": "TLR-844_190_corr-sensitive",
+    "risk_description": "Too-aggressive override 190",
     "config_format_version": "v1.0"
   },
   "base_config": "reusable.simulations.preset_130_sensitive_v1",
@@ -13,15 +13,13 @@
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
         },
-        "patient_model": {
-          "glucose_history": "reusable.glucose.flat_250_12hr",
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": "accept_recommendation"
-            }
-          ]
-        },
+        "glucose_history": "reusable.glucose.flat_250_12hr",
+        "bolus_entries": [
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": "accept_recommendation"
+          }
+        ],
         "pump": {
           "metabolism_settings": {
             "insulin_sensitivity_factor": {
@@ -29,7 +27,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      63.15
     ]
   },
   "carb_insulin_ratio": {
@@ -37,7 +35,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      7.89
     ]
   },
   "basal_rate": {
@@ -45,7 +43,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      0.57
     ]
   }
           }
@@ -80,7 +78,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      63.15
     ]
   },
   "carb_insulin_ratio": {
@@ -88,7 +86,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      7.89
     ]
   },
   "basal_rate": {
@@ -96,7 +94,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      0.57
     ]
   }
           }
@@ -125,8 +123,7 @@
     "start_times": [
       "00:00:00"
     ],
-    "values": [
-      70.58
+    "values": [63.15
     ]
   },
   "carb_insulin_ratio": {
@@ -134,7 +131,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      7.89
     ]
   },
   "basal_rate": {
@@ -142,7 +139,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      0.57
     ]
   }
           },

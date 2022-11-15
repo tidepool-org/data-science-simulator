@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "risk-id": "TLR-844_170_corr",
-    "simulation_id": "TLR-844_170_corr-sensitive",
-    "risk_description": "Too-aggressive override 170",
+    "risk-id": "TLR-844_180",
+    "simulation_id": "TLR-844_180-median",
+    "risk_description": "Too-aggressive override 180",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.preset_130_sensitive_v1",
+  "base_config": "reusable.simulations.preset_130_median_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
@@ -13,7 +13,7 @@
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
         },
-        "patient_model": {
+        "patient_history": {
           "glucose_history": "reusable.glucose.flat_250_12hr",
           "bolus_entries": [
             {
@@ -29,7 +29,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      27.77
     ]
   },
   "carb_insulin_ratio": {
@@ -37,7 +37,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      7.22
     ]
   },
   "basal_rate": {
@@ -45,7 +45,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      1.53
     ]
   }
           }
@@ -63,7 +63,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.16
+              "value": 2.8
             }
           ]
         },
@@ -71,7 +71,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.16
+              "value": 2.8
             }
           ],
           "metabolism_settings": {
@@ -80,7 +80,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      27.77
     ]
   },
   "carb_insulin_ratio": {
@@ -88,7 +88,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      7.22
     ]
   },
   "basal_rate": {
@@ -96,7 +96,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      1.53
     ]
   }
           }
@@ -110,15 +110,13 @@
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
         },
-        "patient_model": {
-          "glucose_history": "reusable.glucose.flat_250_12hr",
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": "accept_recommendation"
-            }
-          ]
-        },
+        "glucose_history": "reusable.glucose.flat_250_12hr",
+        "bolus_entries": [
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": "accept_recommendation"
+          }
+        ],
         "pump": {
           "metabolism_settings": {
             "insulin_sensitivity_factor": {
@@ -126,7 +124,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      27.77
     ]
   },
   "carb_insulin_ratio": {
@@ -134,7 +132,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      7.22
     ]
   },
   "basal_rate": {
@@ -142,14 +140,14 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      1.53
     ]
   }
           },
-          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
         }
       },
-      "controller": {
+     "controller": {
         "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
       }
     }

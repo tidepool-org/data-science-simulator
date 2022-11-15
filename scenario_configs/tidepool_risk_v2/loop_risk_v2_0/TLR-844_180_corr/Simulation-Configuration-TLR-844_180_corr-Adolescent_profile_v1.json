@@ -1,11 +1,11 @@
 {
   "metadata": {
-    "risk-id": "TLR-844_170_corr",
-    "simulation_id": "TLR-844_170_corr-sensitive",
-    "risk_description": "Too-aggressive override 170",
+    "risk-id": "TLR-844_180",
+    "simulation_id": "TLR-844_180-adolescent",
+    "risk_description": "Too-aggressive override 180",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.preset_130_sensitive_v1",
+  "base_config": "reusable.simulations.preset_130_adolescent_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
@@ -29,7 +29,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      6.66
     ]
   },
   "carb_insulin_ratio": {
@@ -37,7 +37,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      2.22
     ]
   },
   "basal_rate": {
@@ -45,7 +45,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      3.42
     ]
   }
           }
@@ -63,7 +63,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.16
+              "value": 11.66
             }
           ]
         },
@@ -71,7 +71,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.16
+              "value": 11.66
             }
           ],
           "metabolism_settings": {
@@ -80,7 +80,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      6.66
     ]
   },
   "carb_insulin_ratio": {
@@ -88,7 +88,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      2.22
     ]
   },
   "basal_rate": {
@@ -96,7 +96,7 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      3.42
     ]
   }
           }
@@ -108,10 +108,9 @@
       "sim_id": "post-Loop-WithMitigations",
       "patient": {
         "sensor": {
-          "glucose_history": "reusable.glucose.flat_250_12hr"
+          "glucose.history": "reusable.glucose.flat_250_12hr"
         },
         "patient_model": {
-          "glucose_history": "reusable.glucose.flat_250_12hr",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
@@ -126,7 +125,7 @@
       "00:00:00"
     ],
     "values": [
-      70.58
+      6.66
     ]
   },
   "carb_insulin_ratio": {
@@ -134,7 +133,7 @@
       "00:00:00"
     ],
     "values": [
-      8.82
+      2.22
     ]
   },
   "basal_rate": {
@@ -142,11 +141,11 @@
       "00:00:00"
     ],
     "values": [
-      3.23
+      3.42
     ]
   }
           },
-          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
         }
       },
       "controller": {
