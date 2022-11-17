@@ -108,7 +108,7 @@
       "sim_id": "post-Loop-WithMitigations",
       "patient": {
         "sensor": {
-          "glucose.history": "reusable.glucose.flat_250_12hr"
+          "glucose_history": "reusable.glucose.flat_250_12hr"
         },
         "patient_model": {
           "bolus_entries": [

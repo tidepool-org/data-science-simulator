@@ -13,13 +13,15 @@
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
         },
-        "glucose_history": "reusable.glucose.flat_250_12hr",
-        "bolus_entries": [
-          {
-            "time": "8/15/2019 12:00:00",
-            "value": "accept_recommendation"
-          }
-        ],
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
         "pump": {
           "metabolism_settings": {
             "insulin_sensitivity_factor": {
