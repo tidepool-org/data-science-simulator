@@ -113,7 +113,9 @@
                     "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
                 }
             },
-            "controller": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+            "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+      }
         }
     ]
 }

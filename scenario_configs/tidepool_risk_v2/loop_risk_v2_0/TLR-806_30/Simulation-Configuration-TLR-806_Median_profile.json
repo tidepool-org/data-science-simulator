@@ -65,7 +65,9 @@
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
     }
   ]
 }
