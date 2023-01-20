@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "risk-id": "TLR-872_corr",
+    "simulation_id": "TLR-872_corr-median",
+    "risk_description": "MTB needed and not used",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.4
+            }
+          ],
+          "metabolism_settings": "reusable.metabolism_settings.median_preset_70_v1"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.4
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.4
+            }
+          ],
+          "metabolism_settings": "reusable.metabolism_settings.median_preset_70_v1"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.4
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.9
+            }
+          ],
+          "metabolism_settings": "reusable.metabolism_settings.median_preset_70_v1"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.9
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
+    }
+]
+}

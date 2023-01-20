@@ -31,8 +31,8 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
     risk_dirs = [risk_dir for risk_dir in os.listdir(TIDEPOOL_RISK_SCENARIOS_DIR) if "TLR-" in risk_dir]
     for risk_dir_name in risk_dirs:
 
-        # for use in filtering to just one risk. If wanting to run all of them, comment out lines 35-37
-        if "846" not in risk_dir_name:
+        # for u!se in filtering to just one risk. If wanting to run all of them, comment out lines 35-37
+        if "SAMPLE" not in risk_dir_name:
             continue
         print("!!!"+risk_dir_name)
 

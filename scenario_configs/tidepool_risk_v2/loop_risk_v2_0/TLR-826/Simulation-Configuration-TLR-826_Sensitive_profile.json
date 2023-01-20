@@ -9,17 +9,29 @@
   "override_config": [
     {
       "sim_id": "pre-LoopNoMitigations",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ]
+    },
       "patient": {
         "patient_model": {
           "bolus_entries": [
             {
-              "time": "8/15/2019 11:00:00",
+              "time": "8/15/2019 12:00:00",
               "value": 3.3
             }
           ],
           "carb_entries": [
             {
-              "start_time": "8/15/2019 11:00:00",
+              "start_time": "8/15/2019 12:00:00",
               "type": "carb",
               "value": 25
             }
@@ -28,13 +40,13 @@
         "pump": {
           "bolus_entries": [
             {
-              "time": "8/15/2019 11:00:00",
+              "time": "8/15/2019 12:00:00",
               "value": 3.3
             }
           ],
           "carb_entries": [
             {
-              "start_time": "8/15/2019 11:00:00",
+              "start_time": "8/15/2019 12:00:00",
               "type": "carb",
               "value": 50
             }
@@ -48,13 +60,13 @@
         "patient_model": {
           "bolus_entries": [
             {
-              "time": "8/15/2019 11:00:00",
+              "time": "8/15/2019 12:00:00",
               "value": 3.3
             }
           ],
           "carb_entries": [
             {
-              "start_time": "8/15/2019 11:00:00",
+              "start_time": "8/15/2019 12:00:00",
               "type": "carb",
               "value": 25
             }
@@ -63,13 +75,13 @@
         "pump": {
           "bolus_entries": [
             {
-              "time": "8/15/2019 11:00:00",
+              "time": "8/15/2019 12:00:00",
               "value": 3.3
             }
           ],
           "carb_entries": [
             {
-              "start_time": "8/15/2019 11:00:00",
+              "start_time": "8/15/2019 12:00:00",
               "type": "carb",
               "value": 50
             }
@@ -80,17 +92,30 @@
     },
     {
       "sim_id": "post-LoopWithMitigations",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ],
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
+    },
       "patient": {
         "patient_model": {
           "bolus_entries": [
             {
-              "time": "8/15/2019 11:00:00",
+              "time": "8/15/2019 12:00:00",
               "value": 3.3
             }
           ],
           "carb_entries": [
             {
-              "start_time": "8/15/2019 11:00:00",
+              "start_time": "8/15/2019 12:00:00",
               "type": "carb",
               "value": 25
             }
@@ -99,22 +124,19 @@
         "pump": {
           "bolus_entries": [
             {
-              "time": "8/15/2019 11:00:00",
+              "time": "8/15/2019 12:00:00",
               "value": 3.3
             }
           ],
           "carb_entries": [
             {
-              "start_time": "8/15/2019 11:00:00",
+              "start_time": "8/15/2019 12:00:00",
               "type": "carb",
               "value": 50
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
-      },
-      "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
       }
     }
   ]
