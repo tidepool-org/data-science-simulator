@@ -1,0 +1,118 @@
+{
+  "metadata": {
+    "risk-id": "TLR-889-2_meal",
+    "simulation_id": "TLR-889-2_meal-sensitive500",
+    "risk_description": "0.5U minimum bolus, bolus accepted",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive500_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations500",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 12.4
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.5
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 12.4
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.2
+            }
+          ]
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop500",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 12.4
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.5
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 12.4
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.2
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations500",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 12.4
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.5
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 12.4
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.2
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive500_v1"
+      }
+    }
+]
+}

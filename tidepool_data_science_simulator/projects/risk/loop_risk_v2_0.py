@@ -32,7 +32,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
     for risk_dir_name in risk_dirs:
 
         # for u!se in filtering to just one risk. If wanting to run all of them, comment out lines 35-37
-        if "880_19" not in risk_dir_name:
+        if "890-2" not in risk_dir_name:
             continue
         print("!!!"+risk_dir_name)
 
@@ -41,7 +41,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
 
         for scenario_json_name in scenario_json_filenamess:
             # for use in filtering to just one file in a folder. If wanting to run all files, comment out lines 44-46
-            # if "Adolescent" not in scenario_json_name:
+            #if "stress" not in scenario_json_name:
             #    continue
             # print("!!!"+scenario_json_name)
             scenario_json_path = os.path.join(risk_dir_path, scenario_json_name)
