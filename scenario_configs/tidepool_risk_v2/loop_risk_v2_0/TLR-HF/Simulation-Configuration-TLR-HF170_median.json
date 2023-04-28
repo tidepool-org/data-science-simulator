@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "risk-id": "TLR-HF-170",
+    "simulation_id": "TLR-HF170-median",
+    "risk_description": "HF Task 170",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_170_5h_median_v1",
+  "override_config": [
+    {
+      "sim_id": "post-Loop-WithMitigations_HF170",
+      "duration_hours": 6.0,
+      "patient": {
+        "sensor": {
+          "name": "NoisySensor"
+        },
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "08/15/2019 13:00:00",
+              "value": 45
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:05:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 13:00:00",
+              "value": 45
+            }
+          ]
+        }
+        }
+      }
+]
+}
