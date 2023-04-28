@@ -11,9 +11,6 @@
       "sim_id": "post-Loop-WithMitigations_HF170",
       "duration_hours": 6.0,
       "patient": {
-        "sensor": {
-          "name": "NoisySensor"
-        },
         "patient_model": {
           "carb_entries": [
             {
