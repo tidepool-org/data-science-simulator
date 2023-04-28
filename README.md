@@ -1,7 +1,7 @@
 # Tidepool Data Science Simulator
 
 #### -- Project Status: Active
-#### -- Project Disclaimer: This work is Pre-Production
+#### -- Project Disclaimer: This work is in Production
 
 ## Project Objective
 The purpose of this project is to enable simulation of patient
@@ -11,11 +11,9 @@ is to support many activities such as Tidepool
 Loop performance analysis and evaluation of algorithms for 
 settings optimization.
 
-## Definition of Done
-The current phase of this project will be done when the code base has been
- tested thoroughly and the current FDA
-risk analysis and iCGM risk sensitivity analysis have been
-implemented in this environment.
+## Ongoing development
+This project supports ongoing risk assessment for Tidepool Loop. Changes (including exploring proposed changes) to the
+algorithm and new features all may require new development.
 
 ## Project Description
 During refactoring of the FDA risk analysis it became clear that
@@ -35,8 +33,7 @@ The refactored code on which this is based is in `/notebooks/TEMPLATE_Run_Risk_S
 * Pytest for testing
 * Travis for continuous integration testing
 * Black for code style
-* Flake8 for linting
-* [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation
+* JSLint for linting
 * Numpy docstring format 
 
 
@@ -57,8 +54,9 @@ that was created from the environmental.yml file (hint: environment name is at t
 1. Run `deactivate` to stop the environment.
 
 ## Getting Started with this project
-1. Current FDA scenarios are being kept `/data/raw/fda_risk_scenarios` within this repo.
-2. Current demo use cases are the `/src`.
+1. Current FDA scenarios are being kept `scenario_configs/tidepool_risk_v2/loop_risk_v2_0` within this repo.
+2. Exploratory iCGM sensitivity analyses are located in `tidepool_data_science_simulator/projects/icgm` within this repo.
+3. Analysess of proposed Tidepool Loop therapy settings guardrails are located in `tidepool_data_science_simulator/projects/loop_guardrails` within this repo.
 
 ## Contributing Guide
 1. All are welcome to contribute to this project.
@@ -80,16 +78,22 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 
 * Integrate iCGM sensor and analysis scenarios (size: medium)
 * Testing and cleanup (size: medium to large)
-* Decouple input scenario format from Loop (size: medium)
 * Integrate visuals and metrics repos (size: small)
 * Surface all parameters for configuration (size: small)
 * Control randomness via config seed(s) (size: small)
 * Speed up Pyloopkit, possible in this code base (size: medium to large)
 
-## Tidepool Data Science Team
-|Name (with github link)    |  [Tidepool Slack](https://tidepoolorg.slack.com/)   |  
-|---------|-----------------|
-|[Ed Nykaza](https://github.com/[ed-nykaza])| @ed        |
-|[Jason Meno](https://github.com/[jameno]) |  @jason    |
-|[Cameron Summers](https://github.com/[scaubrey]) |  @Cameron Summers    |
+## Current Tidepool Contributors
+|Name (with github link)    |
+|---------|
+|[Shawn Foster] (https://github.com/[ihadanidea]) |
+|[Pete Schwamb] (https://github.com/[ps2])  |
 
+## Previous Tidepool Contributors
+|Name (with github link)     |
+|----------|
+|[Ed Nykaza](https://github.com/[ed-nykaza])|
+|[Jason Meno](https://github.com/[jameno]) |
+|[Cameron Summers](https://github.com/[scaubrey]) |
+|[Anna Quinlan] (https://github.com/[novalegra]) |
+|[Eden Grown-Haeberli] (https://github.com/[edengh])  |
