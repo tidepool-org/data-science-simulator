@@ -1,0 +1,113 @@
+{
+  "metadata": {
+    "risk-id": "TLR-848",
+    "simulation_id": "TLR-848-median",
+    "risk_description": "User does not suspend when removing pump",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_median",
+      "duration_hours": 8.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+            "time": "8/15/2019 12:00:00",
+            "value": 0.5
+          }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "14:00:00"],
+              "values": [0.5, 0.0, 0.5]
+            }
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 14:00:00"
+          }
+        ]
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_median",
+      "duration_hours": 8.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+            "time": "8/15/2019 12:00:00",
+            "value": 0.5
+          }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "14:00:00"],
+              "values": [0.5, 0.0, 0.5]
+            }
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_median",
+      "duration_hours": 8.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+            "time": "8/15/2019 12:00:00",
+            "value": 0.5
+          }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "14:00:00"],
+              "values": [0.5, 0.0, 0.5]
+            }
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 14:00:00"
+          }
+        ],
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
+    }
+]
+}
