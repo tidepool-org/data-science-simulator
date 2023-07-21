@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "risk-id": "TLR-844_190",
-    "simulation_id": "TLR-844_190-median",
+    "risk-id": "TLR-844_190_corr",
+    "simulation_id": "TLR-844_190_corr-median",
     "risk_description": "Too-aggressive override 190",
     "config_format_version": "v1.0"
   },
@@ -106,7 +106,9 @@
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
     }
   ]
 }

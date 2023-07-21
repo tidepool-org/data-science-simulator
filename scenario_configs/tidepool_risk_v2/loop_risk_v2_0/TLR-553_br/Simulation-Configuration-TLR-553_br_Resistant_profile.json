@@ -9,6 +9,18 @@
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:05:00"
+          }
+        ]
+    },
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
@@ -43,17 +55,17 @@
           ]
         },
         "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 6.2
+            }
+          ],
           "carb_entries": [
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
               "value": 62
-            }
-          ],
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 6.2
             }
           ]
         }
@@ -83,7 +95,19 @@
           "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_v1",
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:05:00"
+          }
+        ]
+      }
     }
   ]
 }

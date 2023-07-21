@@ -18,7 +18,7 @@
       }
     },
     "patient_model": {
-      "metabolism_settings": "reusable.metabolism_settings.adolescent_v1",
+      "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_130_v1",
       "glucose_history": "reusable.glucose.flat_110_12hr",
       "bolus_entries": [],
       "carb_entries": []
@@ -26,6 +26,7 @@
   },
   "controller": {
     "id": "pyloopkit_v1",
-    "settings": "reusable.loop_settings.default_v1"
+    "settings": "reusable.loop_settings.default_v1",
+    "automation_control_timeline": []
   }
 }

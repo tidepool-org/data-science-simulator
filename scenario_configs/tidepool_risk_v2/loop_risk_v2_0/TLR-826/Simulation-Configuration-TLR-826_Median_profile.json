@@ -9,6 +9,18 @@
   "override_config": [
     {
       "sim_id": "pre-LoopNoMitigations",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ]
+    },
       "patient": {
         "patient_model": {
           "bolus_entries": [
@@ -80,6 +92,19 @@
     },
     {
       "sim_id": "post-LoopWithMitigations",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 16:00:00"
+          }
+        ],
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+    },
       "patient": {
         "patient_model": {
           "bolus_entries": [
@@ -112,8 +137,7 @@
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
         }
-      },
-      "controller": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
     }
   ]
 }

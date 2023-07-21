@@ -12,10 +12,12 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
-        },
-        "pump": {
-          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
         }
       }
     },
@@ -37,14 +39,20 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
         },
         "pump": {
-          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1",
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
     }
   ]
 }

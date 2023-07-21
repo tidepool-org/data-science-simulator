@@ -22,7 +22,14 @@
               "start_times": ["0:00:00"],
               "values": [8]
             }
-          }
+          },
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
         },
         "pump": {
           "metabolism_settings": {
@@ -34,7 +41,8 @@
               "start_times": ["0:00:00"],
               "values": [8]
             }
-          }
+          },
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1"
           }
       }
       },
@@ -53,7 +61,9 @@
               "start_times": ["0:00:00"],
               "values": [8]
             }
-          }
+          },
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
         },
         "pump": {
           "metabolism_settings": {
@@ -65,7 +75,9 @@
               "start_times": ["0:00:00"],
               "values": [8]
             }
-          }
+          },
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
           }
       },
       "controller": null
@@ -85,7 +97,14 @@
               "start_times": ["0:00:00"],
               "values": [8]
             }
-          }
+          },
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
         },
         "pump": {
           "metabolism_settings": {
@@ -98,10 +117,13 @@
               "values": [8]
             }
           },
-          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1",
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1"
           }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
       }
   ]
 }

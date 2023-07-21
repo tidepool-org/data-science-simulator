@@ -125,7 +125,9 @@
           "glucose_history": "reusable.glucose.warmup_1hr_110base_12hr"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+      }
     }
   ]
 }

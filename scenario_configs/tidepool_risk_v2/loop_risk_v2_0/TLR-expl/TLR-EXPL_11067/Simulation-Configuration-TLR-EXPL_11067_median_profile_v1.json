@@ -1,0 +1,34 @@
+{
+  "metadata": {
+    "risk-id": "TLR-EXPL_11067",
+    "simulation_id": "TLR-EXPL_11067-median",
+    "risk_description": "Exploration 110 67-77",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_110_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "target_range": {
+            "start_times": [
+              "0:00:00"
+            ],
+            "lower_values": [
+              67
+            ],
+            "upper_values": [
+              77
+            ]
+          }
+        }
+      }
+    }
+]
+}

@@ -1,0 +1,160 @@
+{
+  "metadata": {
+    "risk-id": "TLR-847_corr",
+    "simulation_id": "TLR-847_corr-sensitive",
+    "risk_description": "Override configured too short",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_70_sensitive_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "metabolism_settings":
+            {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      171.43, 120
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      21.43, 15
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      0.21, 0.3
+    ]
+  }
+          }
+          }
+        }
+      },
+    {
+      "sim_id": "pre-noLoop",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.82
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.82
+            }
+          ],
+          "metabolism_settings":
+            {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      171.43, 120
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      21.43, 15
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      0.21, 0.3
+    ]
+  }
+          }
+          }
+        },
+      "controller": null
+      },
+    {
+      "sim_id": "post-Loop-WithMitigations",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "metabolism_settings":
+            {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      171.43, 120
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      21.43, 15
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      0.21, 0.3
+    ]
+  }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+          }
+        },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
+      }
+      }
+  ]
+}

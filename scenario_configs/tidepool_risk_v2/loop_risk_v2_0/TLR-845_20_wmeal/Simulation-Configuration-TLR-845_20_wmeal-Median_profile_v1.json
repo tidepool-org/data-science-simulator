@@ -1,0 +1,138 @@
+{
+  "metadata": {
+    "risk-id": "TLR-845_20_wmeal",
+    "simulation_id": "TLR-845_20_wmeal-median",
+    "risk_description": "Insufficient override 20",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_80_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      250
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      65
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      0.1
+    ]
+  }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1",
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      250
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      65
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      0.1
+    ]
+  }
+          }
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [250
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      65
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      0.1
+    ]
+  }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
+    }
+  ]
+}

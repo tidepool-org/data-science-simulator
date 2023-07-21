@@ -26,12 +26,6 @@
               "start_time": "8/15/2019 12:00:00",
               "value": 62
             }
-          ],
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 6.2
-            }
           ]
         }
       }
@@ -54,12 +48,6 @@
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
               "value": 62
-            }
-          ],
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 6.2
             }
           ]
         }
@@ -86,16 +74,12 @@
               "value": 62
             }
           ],
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 6.2
-            }
-          ],
           "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
       },
-      "controller": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
     }
   ]
 }

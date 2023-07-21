@@ -1,0 +1,153 @@
+{
+  "metadata": {
+    "risk-id": "TLR-847_wmeal",
+    "simulation_id": "TLR-847_wmeal-adolescent",
+    "risk_description": "Override configured too short",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_70_adolescent_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "metabolism_settings":
+            {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      17.14, 12
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      5.71, 4
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      1.33, 1.9
+    ]
+  }
+          }
+          }
+        }
+      },
+    {
+      "sim_id": "pre-noLoop",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 12.25
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 12.25
+            }
+          ],
+          "metabolism_settings":
+            {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      17.14, 12
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      5.71, 4
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      1.33, 1.9
+    ]
+  }
+          }
+          }
+        },
+      "controller": null
+      },
+    {
+      "sim_id": "post-Loop-WithMitigations",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "metabolism_settings":
+            {
+            "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      17.14, 12
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      5.71, 4
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "14:00:00"
+    ],
+    "values": [
+      1.33, 1.9
+    ]
+  }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+          }
+        },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+      }
+      }
+  ]
+}

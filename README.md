@@ -1,7 +1,6 @@
 # Tidepool Data Science Simulator
 
 #### -- Project Status: Active
-#### -- Project Disclaimer: This work is Pre-Production
 
 ## Project Objective
 The purpose of this project is to enable simulation of patient
@@ -9,13 +8,9 @@ metabolism and the interactions of controllers such as Tidepool Loop.
 The current phase is for supporting FDA risk analysis. The longer term goal
 is to support many activities such as Tidepool
 Loop performance analysis and evaluation of algorithms for 
-settings optimization.
-
-## Definition of Done
-The current phase of this project will be done when the code base has been
- tested thoroughly and the current FDA
-risk analysis and iCGM risk sensitivity analysis have been
-implemented in this environment.
+settings optimization. As Tidepool Loop continues active development, additional
+features and algorithm improvements, in exploration and in production,
+development of this project will continue.
 
 ## Project Description
 During refactoring of the FDA risk analysis it became clear that
@@ -35,8 +30,7 @@ The refactored code on which this is based is in `/notebooks/TEMPLATE_Run_Risk_S
 * Pytest for testing
 * Travis for continuous integration testing
 * Black for code style
-* Flake8 for linting
-* [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation
+* JSLint for linting
 * Numpy docstring format 
 
 
@@ -57,8 +51,9 @@ that was created from the environmental.yml file (hint: environment name is at t
 1. Run `deactivate` to stop the environment.
 
 ## Getting Started with this project
-1. Current FDA scenarios are being kept `/data/raw/fda_risk_scenarios` within this repo.
-2. Current demo use cases are the folder `tidepool_data_science_simulator/`.
+The risk scenarios are modeled with JSON config files, which are then fed into the simulator 
+to create glucose and insulin traces and the associated risk scores. Current configs are located
+`scenario_configs/tidepool_risk_v2/loop_risk_v2_0`. 
 
 ## Contributing Guide
 1. All are welcome to contribute to this project.
@@ -73,9 +68,6 @@ or `project_data_figure-2020-04-25-v-0-1-0.png`.
 
 NOTE: PHI data is never stored in github and the .gitignore file includes this requirement as well.
 
-## Featured Notebooks/Analysis/Deliverables
-* 
-
 ## Important TODOs
 
 * Integrate iCGM sensor and analysis scenarios (size: medium)
@@ -83,13 +75,7 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 * Integrate visuals and metrics repos (size: small)
 * Surface all parameters for configuration (size: small)
 * Control randomness via config seed(s) (size: small)
-* ~~Decouple input scenario format from Loop (size: medium)~~
-* ~~Speed up Pyloopkit, possible in this code base (size: medium to large)~~
-
-## Tidepool Data Science Team
-|Name (with github link)    |  [Tidepool Slack](https://tidepoolorg.slack.com/)   |  
-|---------|-----------------|
-|[Ed Nykaza](https://github.com/[ed-nykaza])| @ed        |
-|[Jason Meno](https://github.com/[jameno]) |  @jason    |
-|[Cameron Summers](https://github.com/[scaubrey]) |  @Cameron Summers    |
+* Integrate NoisySensor selection in JSON config (size: small)
+* Model Coastal pump delivery and support pump selection via JSON config (size: medium to large)
+* Model autobolusing at varying percentages of recommended bolus (size: medium)
 

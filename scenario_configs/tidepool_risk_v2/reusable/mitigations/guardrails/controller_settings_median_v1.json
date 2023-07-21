@@ -1,6 +1,4 @@
 {
-  "settings": {
-    "glucose_safety_limit": 75,
-    "max_basal_rate": 1.75
-  }
+"glucose_safety_limit": 75,
+"max_basal_rate": 1.75
 }

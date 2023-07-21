@@ -5,6 +5,7 @@ import copy
 from numpy.random import RandomState
 
 import logging
+from tidepool_data_science_simulator.models.events import EventTimeline
 
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus, TempBasal
@@ -63,6 +64,22 @@ class DoNothingController(BaseControllerClass):
         pass
 
 
+class AutomationControl(object):
+    """
+    Class for configuration entry controlling automation/dosing
+    """
+
+    def __init__(self, dosing_enabled, time):
+
+        self.dosing_enabled = dosing_enabled
+        self.time = time
+
+
+class AutomationControlTimeline(EventTimeline):
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = AutomationControl
+
 
 class LoopController(BaseControllerClass):
     """
@@ -74,18 +91,20 @@ class LoopController(BaseControllerClass):
     def __str__(self):
         return "PyLoopkit_v0.1"
 
-    def __init__(self, time, controller_config):
+    def __init__(self, time, controller_config, automation_control_timeline=AutomationControlTimeline([], [])):
 
         self.name = "PyLoopkit v0.1"
         self.time = time
         self.controller_config = copy.deepcopy(controller_config)
         self.recommendations = None
+        self.open_loop = False
 
         self.bolus_event_timeline = controller_config.bolus_event_timeline
         self.temp_basal_event_timeline = controller_config.temp_basal_event_timeline
         self.carb_event_timeline = controller_config.carb_event_timeline
+        self.automation_control_timeline = automation_control_timeline
 
-        self.num_hours_history = 8  # how many hours of recent events to pass to Loop
+        self.num_hours_history = 8  # how many hours of recent events to pass to Pyloopkit
 
     def get_state(self):
 
@@ -198,10 +217,15 @@ class LoopController(BaseControllerClass):
 
     def get_loop_recommendations(self, time, **kwargs):
         """
-        Get recommendations from the pyloopkit algorithm, based on 
+        Get recommendations from the pyloopkit algorithm, based on
         virtual_patient dosing and glucose.
         """
         self.time = time
+
+        automation_control_event = self.automation_control_timeline.get_event(time)
+
+        if automation_control_event is not None:
+            self.open_loop = not automation_control_event.dosing_enabled
 
         virtual_patient = kwargs["virtual_patient"]
         if virtual_patient.pump is not None:
@@ -223,7 +247,7 @@ class LoopController(BaseControllerClass):
 
         if bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation(bolus_rec):
             self.set_bolus_recommendation_event(virtual_patient, bolus_rec)
-        elif temp_basal_rec is not None:
+        elif not self.open_loop and temp_basal_rec is not None:
             if temp_basal_rec.scheduled_duration_minutes == 0 and temp_basal_rec.value == 0:
                 # In pyloopkit this is a "cancel"
                 virtual_patient.pump.deactivate_temp_basal()
