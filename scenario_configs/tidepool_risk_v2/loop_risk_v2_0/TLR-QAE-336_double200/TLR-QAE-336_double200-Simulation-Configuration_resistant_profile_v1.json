@@ -1,0 +1,100 @@
+{
+  "metadata": {
+    "risk-id": "TLR-QAE-336_insertion01",
+    "simulation_id": "TLR-QAE-336_insertion01-resistant",
+    "risk_description": "Exploration carb entry error",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_01_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 20
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+          },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 200
+            }
+          ]
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 20
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 20
+            }
+          ]
+          },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 200
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 20
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+          },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 200
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+      }
+    }
+]
+}

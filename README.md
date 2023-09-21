@@ -79,3 +79,16 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 * Model Coastal pump delivery and support pump selection via JSON config (size: medium to large)
 * Model autobolusing at varying percentages of recommended bolus (size: medium)
 
+## Tidepool Contributors
+
+|Name (with github link)    |  [Tidepool Slack](https://tidepoolorg.slack.com/)   |  
+|---------|-----------------|
+|[Ed Nykaza](https://github.com/[ed-nykaza])|        |
+|[Jason Meno](https://github.com/[jameno]) |      |
+|[Ed Nykaza](https://github.com/[ed-nykaza])|        |
+|[Jason Meno](https://github.com/[jameno]) |     |
+|[Cameron Summers](https://github.com/[scaubrey]) |  @Cameron Summers    |
+|[Anna Quinlan](https://github.com/[novalegra]) |     |
+|[Eden Grown-Haeberli](https://github.com/[edengh]) |     |
+|[Pete Schwamb](https://github.com/[ps2]) |  @Pete  |
+|[Shawn Foster](https://github.com/[ihadanidea]) |  @Shawn  |
