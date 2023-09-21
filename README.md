@@ -57,7 +57,7 @@ that was created from the environmental.yml file (hint: environment name is at t
 1. Run `deactivate` to stop the environment.
 
 ## Getting Started with this project
-1. Current FDA scenarios are being kept `/data/raw/fda_risk_scenarios` within this repo.
+1. Current FDA scenarios are stored in `scenario_configs/tidepool_risk_v2/loop_risk_v2_0' within this repo.
 2. Current demo use cases are the `/src`.
 
 ## Contributing Guide
@@ -89,7 +89,12 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 ## Tidepool Data Science Team
 |Name (with github link)    |  [Tidepool Slack](https://tidepoolorg.slack.com/)   |  
 |---------|-----------------|
-|[Ed Nykaza](https://github.com/[ed-nykaza])| @ed        |
-|[Jason Meno](https://github.com/[jameno]) |  @jason    |
+|[Ed Nykaza](https://github.com/[ed-nykaza])|        |
+|[Jason Meno](https://github.com/[jameno]) |     |
 |[Cameron Summers](https://github.com/[scaubrey]) |  @Cameron Summers    |
+|[Anna Quinlan](https://github.com/[novalegra]) |     |
+|[Eden Grown-Haeberli](https://github.com/[edengh]) |     |
+|[Pete Schwamb](https://github.com/[ps2]) |  @Pete  |
+|[Shawn Foster](https://github.com/[ihadanidea]) |  @Shawn  |
+
 
