@@ -32,7 +32,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
     for risk_dir_name in risk_dirs:
 
         # for u!se in filtering to just one risk. If wanting to run all of them, comment out lines 35-37
-        if "TLR-916" not in risk_dir_name:
+        if ("TLR-579") not in risk_dir_name:
             continue
         print("!!!"+risk_dir_name)
 

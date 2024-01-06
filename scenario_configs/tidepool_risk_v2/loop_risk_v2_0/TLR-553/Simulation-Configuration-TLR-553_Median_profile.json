@@ -8,37 +8,14 @@
   "base_config": "reusable.simulations.base_median_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations",
-      "patient": {
-        "patient_model": {
-          "carb_entries": "reusable.carb_doses.median_profile_v1"
-        },
-        "pump": {
-          "carb_entries": [
-            {
-              "type": "carb",
-              "start_time": "8/15/2019 12:00:00",
-              "value": 86
-            }
-          ],
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 6.6
-            }
-          ]
-        }
-      }
-    },
-    {
-      "sim_id": "pre-NoLoop",
+      "sim_id": "pre-Loop_NoMitigations_t1_median",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 6.6
+              "value": 7.8
             }
           ]
         },
@@ -53,7 +30,36 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 6.6
+              "value": 7.8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 7.8
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 86
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 7.8
             }
           ]
         }
@@ -61,10 +67,16 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations",
+      "sim_id": "post-Loop-WithMitigations_t1_median",
       "patient": {
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.median_profile_v1"
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": [
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 7.8
+          }
+        ]
         },
         "pump": {
           "carb_entries": [
@@ -77,7 +89,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 6.6
+              "value": 6.4
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"

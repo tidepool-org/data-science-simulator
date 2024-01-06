@@ -8,14 +8,14 @@
   "base_config": "reusable.simulations.base_sensitive_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-Loop_NoMitigations_t1_sensitive",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.3
+              "value": 3.8
             }
           ],
           "metabolism_settings": {
@@ -42,14 +42,14 @@
     }
     },
     {
-      "sim_id": "pre-NoLoop",
+      "sim_id": "pre-NoLoop_t1_sensitive",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.3
+              "value": 3.8
             }
           ],
           "metabolism_settings": {
@@ -77,14 +77,14 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop_WithMitigations",
+      "sim_id": "post-Loop_WithMitigations_t1_sensitive",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.3
+              "value": 3.0
             }
           ],
           "metabolism_settings": {
