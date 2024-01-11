@@ -1,0 +1,133 @@
+{
+  "metadata": {
+    "risk-id": "TLR-607",
+    "simulation_id": "TLR-607-sensitive",
+    "risk_description": "Dynamic carb absorption without glucose sensor data",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.warmup_1hr_110base_12hr",
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 11:00:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 11:00:00",
+              "value": 1.65
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 11:00:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 11:00:00",
+              "value": 1.65
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.warmup_1hr_110base_12hr"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.warmup_1hr_110base_12hr",
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 11:00:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 11:00:00",
+              "value": 1.65
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 11:00:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 11:00:00",
+              "value": 1.65
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.warmup_1hr_110base_12hr"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.warmup_1hr_110base_12hr",
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 11:00:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 11:00:00",
+              "value": 1.65
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 11:00:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 11:00:00",
+              "value": 1.65
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.warmup_1hr_110base_12hr"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_sensitive_v1"
+      }
+    }
+  ]
+}
