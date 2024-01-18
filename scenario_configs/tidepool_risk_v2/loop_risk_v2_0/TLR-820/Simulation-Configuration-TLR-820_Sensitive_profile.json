@@ -8,13 +8,17 @@
   "base_config": "reusable.simulations.base_sensitive_v1",
   "override_config": [
     {
-      "sim_id": "pre-LoopNoMitigations",
+      "sim_id": "pre-LoopNoMitigations_t1_sensitive",
       "patient": {
         "patient_model": {
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.8
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:00:30",
+              "value": 1.9
             }
           ],
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1"
@@ -22,8 +26,8 @@
         "pump": {
           "bolus_entries": [
             {
-              "time": "8/15/2019 12:00:00",
-              "value": 3.8
+              "time": "8/15/2019 12:00:30",
+              "value": 1.9
             }
           ],
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1"
@@ -31,13 +35,17 @@
       }
     },
     {
-      "sim_id": "pre-NoLoop",
+      "sim_id": "pre-NoLoop_t1_sensitive",
       "patient": {
         "patient_model": {
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.3
+              "value": 1.65
+            },
+            {
+              "time": "8/15/2019 12:00:30",
+              "value": 1.65
             }
           ],
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1"
@@ -46,7 +54,11 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.3
+              "value": 1.65
+            },
+            {
+              "time": "8/15/2019 12:00:30",
+              "value": 1.65
             }
           ],
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1"
@@ -55,13 +67,17 @@
       "controller": null
     },
     {
-      "sim_id": "post-LoopWithMitigations",
+      "sim_id": "post-LoopWithMitigations_t1_sensitive",
       "patient": {
         "patient_model": {
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:00:30",
+              "value": 1.5
             }
           ],
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1"
@@ -69,8 +85,8 @@
         "pump": {
           "bolus_entries": [
             {
-              "time": "8/15/2019 12:00:00",
-              "value": 3
+              "time": "8/15/2019 12:00:30",
+              "value": 1.5
             }
           ],
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",

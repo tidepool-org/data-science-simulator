@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.preset_130_adolescent_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-Loop_NoMitigations_t1_adolescent",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
@@ -21,37 +21,12 @@
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "metabolism_settings": {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      7.05
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      2.35
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      3.23
-    ]
-  }
-          }
+          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_170_v1"
         }
       }
     },
     {
-      "sim_id": "pre-noLoop",
+      "sim_id": "pre-noLoop_t1_adolescent",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
@@ -60,38 +35,13 @@
         "pump": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
           "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1",
-          "metabolism_settings": {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      7.05
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      2.35
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      3.23
-    ]
-  }
-          }
+          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_170_v1"
         }
       },
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations",
+      "sim_id": "post-Loop-WithMitigations_t1_adolescent",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
@@ -104,37 +54,12 @@
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "metabolism_settings": {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      7.05
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      2.35
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      3.23
-    ]
-  }
-          },
+          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_170_v1",
           "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
       }
     }
   ]

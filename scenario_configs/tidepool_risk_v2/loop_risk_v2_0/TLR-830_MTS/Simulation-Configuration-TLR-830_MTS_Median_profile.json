@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.base_median_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop-NoMitigations",
+      "sim_id": "pre-Loop-NoMitigations_t1_median",
       "patient": {
         "pump": {
           "metabolism_settings": {
@@ -67,7 +67,7 @@
       }
     },
     {
-      "sim_id": "pre-NoLoop",
+      "sim_id": "pre-NoLoop_t1_median",
       "patient": {
         "pump": {
           "metabolism_settings": {
@@ -122,7 +122,7 @@
       "controller": null
     },
     {
-      "sim_id": "pre-Loop-WithMitigations",
+      "sim_id": "pre-Loop-WithMitigations_t1_median",
       "patient": {
         "pump": {
           "metabolism_settings": {

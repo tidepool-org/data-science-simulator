@@ -1,0 +1,101 @@
+{
+  "metadata": {
+    "risk-id": "TLR-820",
+    "simulation_id": "TLR-820-resistant",
+    "risk_description": "Insulin delivery without user command",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_resistant_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-LoopNoMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:00:30",
+              "value": 12.95
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:30",
+              "value": 12.95
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 10.85
+            },
+            {
+              "time": "8/15/2019 12:00:30",
+              "value": 10.85
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 10.85
+            },
+            {
+              "time": "8/15/2019 12:00:30",
+              "value": 10.85
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-LoopWithMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:00:30",
+              "value": 10.6
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:30",
+              "value": 10.6
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_v1"
+      }
+    }
+  ]
+}
