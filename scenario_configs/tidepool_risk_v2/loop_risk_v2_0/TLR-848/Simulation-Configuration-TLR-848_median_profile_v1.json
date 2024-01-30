@@ -8,8 +8,8 @@
   "base_config": "reusable.simulations.base_median_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations_median",
-      "duration_hours": 8.0,
+      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
@@ -45,8 +45,8 @@
       }
     },
     {
-      "sim_id": "pre-noLoop_median",
-      "duration_hours": 8.0,
+      "sim_id": "pre-noLoop_t1_median",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
@@ -71,8 +71,8 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_median",
-      "duration_hours": 8.0,
+      "sim_id": "post-Loop-WithMitigations_t1_median",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",

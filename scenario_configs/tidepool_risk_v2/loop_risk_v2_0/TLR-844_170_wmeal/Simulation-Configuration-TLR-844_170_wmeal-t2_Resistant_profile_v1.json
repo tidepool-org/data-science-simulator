@@ -30,11 +30,21 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.t2_resistant_profile_v1"
+          "bolus_entries": [
+            {
+              "time": "8/19/2019 12:00:00",
+              "value": 23.31
+            }
+          ]
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/19/2019 12:00:00",
+              "value": 23.31
+            }
+          ],
           "metabolism_settings": "reusable.metabolism_settings.t2_resistant_preset_170_v1"
         }
       },
