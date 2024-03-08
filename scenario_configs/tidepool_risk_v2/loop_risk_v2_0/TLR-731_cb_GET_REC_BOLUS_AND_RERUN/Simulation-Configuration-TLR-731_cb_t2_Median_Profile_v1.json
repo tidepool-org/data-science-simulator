@@ -26,7 +26,7 @@
       }
     },
     {
-      "sim_id": "pre-noLoop_median_t2_median",
+      "sim_id": "pre-noLoop_median_21_median",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_250_12hr",

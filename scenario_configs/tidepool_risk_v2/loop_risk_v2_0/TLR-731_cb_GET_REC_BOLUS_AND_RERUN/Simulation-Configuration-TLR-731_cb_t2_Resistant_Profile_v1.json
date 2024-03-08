@@ -19,7 +19,6 @@
               "value": "accept_recommendation"
             }
           ]
-        }
         },
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
@@ -27,14 +26,14 @@
       }
     },
     {
-      "sim_id": "pre-noLoop_resistant_t2_resistant",
+      "sim_id": "pre-noLoop_resistant_21_resistant",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_250_12hr",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 5.75
+              "value": 3.4
             }
           ]
         },
@@ -42,7 +41,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 5.75
+              "value": 3.4
             }
           ]
         },

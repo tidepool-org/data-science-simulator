@@ -26,14 +26,14 @@
       }
     },
     {
-      "sim_id": "pre-noLoop_sensitive_t2_sensitive",
+      "sim_id": "pre-noLoop_sensitive_21_sensitive",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_250_12hr",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.02
+              "value": 3.4
             }
           ]
         },
@@ -41,7 +41,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.02
+              "value": 3.4
             }
           ]
         },
