@@ -12,7 +12,7 @@
       "duration_hours": 23.0,
       "patient": {
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.t2_adolescent_preset_20_v1"
+          "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_20_v1"
         }
       }
     },
@@ -21,7 +21,7 @@
       "duration_hours": 23.0,
       "patient": {
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.t2_adolescent_preset_20_v1"
+          "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_20_v1"
         }
       },
       "controller": null
@@ -31,7 +31,7 @@
       "duration_hours": 23.0,
       "patient": {
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.t2_adolescent_preset_20_v1",
+          "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_20_v1",
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
         }
       },
