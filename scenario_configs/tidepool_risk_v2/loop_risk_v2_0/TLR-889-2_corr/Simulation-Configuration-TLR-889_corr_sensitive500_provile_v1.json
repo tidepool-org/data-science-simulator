@@ -7,7 +7,7 @@
   },
   "base_config": "reusable.simulations.base_sensitive500_v1",
   "override_config": [
-    {"sim_id": "pre-Loop_NoMitigations500",
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive500",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_160_12hr",
@@ -31,7 +31,7 @@
         }
       }
     },
-    {"sim_id": "pre-noLoop500",
+    {"sim_id": "pre-noLoop_t1_sensitive500",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_160_12hr",
@@ -56,7 +56,7 @@
       },
       "controller": null
     },
-    {"sim_id": "post-Loop-WithMitigations500",
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive500",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_160_12hr",

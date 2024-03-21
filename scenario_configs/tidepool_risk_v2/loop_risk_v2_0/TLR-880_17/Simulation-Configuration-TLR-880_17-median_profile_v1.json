@@ -7,7 +7,7 @@
   },
   "base_config": "reusable.simulations.preset_200_median_v1",
   "override_config": [
-    {"sim_id": "pre-Loop_NoMitigations",
+    {"sim_id": "pre-Loop_NoMitigations_t1_median",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {
@@ -24,17 +24,27 @@
         }
       }
     },
-    {"sim_id": "pre-noLoop",
+    {"sim_id": "pre-noLoop_t1_median",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 7.02
+            }
+          ],
           "glucose_history": "reusable.glucose.sim_historical_data_12hr"
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 7.02
+            }
+          ],
           "metabolism_settings": "reusable.metabolism_settings.median_preset_180_v1"
         },
         "sensor": {
@@ -43,7 +53,7 @@
       }
     },
     {
-      "sim_id": "post-Loop-WithMitigations",
+      "sim_id": "post-Loop-WithMitigations_t1_median",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {

@@ -7,7 +7,7 @@
   },
   "base_config": "reusable.simulations.base_resistant_v1",
   "override_config": [
-    {"sim_id": "pre-Loop_NoMitigations_01_resistant",
+    {"sim_id": "pre-Loop_NoMitigations_t1_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": [
@@ -35,7 +35,7 @@
         }
       }
     },
-    {"sim_id": "pre-noLoop_resistant",
+    {"sim_id": "pre-noLoop_t1_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": [
@@ -64,7 +64,7 @@
       },
       "controller": null
     },
-    {"sim_id": "post-Loop-WithMitigations_resistant",
+    {"sim_id": "post-Loop-WithMitigations_t1_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": [

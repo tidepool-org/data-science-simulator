@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.base_resistant_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations_resistant",
+      "sim_id": "pre-Loop_NoMitigations_t2_resistant",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {
@@ -44,7 +44,7 @@
       }
     },
     {
-      "sim_id": "pre-noLoop_resistant",
+      "sim_id": "pre-noLoop_t2_resistant",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {
@@ -81,7 +81,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_resistant",
+      "sim_id": "post-Loop-WithMitigations_t2_resistant",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {

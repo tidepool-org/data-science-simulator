@@ -7,7 +7,7 @@
   },
   "base_config": "reusable.simulations.base_adolescent_v1",
   "override_config": [
-    {"sim_id": "pre-Loop_NoMitigations_01_adolescent",
+    {"sim_id": "pre-Loop_NoMitigations_t1_adolescent",
       "patient": {
         "patient_model": {
           "carb_entries": [
@@ -35,7 +35,7 @@
         }
       }
     },
-    {"sim_id": "pre-noLoop_adolescent",
+    {"sim_id": "pre-noLoop_t1_adolescent",
       "patient": {
         "patient_model": {
           "carb_entries": [
@@ -64,7 +64,7 @@
       },
       "controller": null
     },
-    {"sim_id": "post-Loop-WithMitigations_adolescent",
+    {"sim_id": "post-Loop-WithMitigations_t1_adolescent",
       "patient": {
         "patient_model": {
           "carb_entries": [

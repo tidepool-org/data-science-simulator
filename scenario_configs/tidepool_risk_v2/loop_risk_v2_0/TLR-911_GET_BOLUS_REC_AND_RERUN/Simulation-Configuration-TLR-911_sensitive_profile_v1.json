@@ -1,0 +1,149 @@
+{
+  "metadata": {
+    "risk-id": "TLR-911",
+    "simulation_id": "TLR-911-sensitive",
+    "risk_description": "Double carb entry multiple caregivers",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:15:00",
+              "value": 0.95
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 25
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:15:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:15:00",
+              "value": 0.95
+            }
+          ]
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.9
+            },
+            {
+              "time": "8/15/2019 12:15:00",
+              "value": 1.9
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 25
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:15:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.9
+            },
+            {
+              "time": "8/15/2019 12:15:00",
+              "value": 1.9
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:15:00",
+              "value": 0.95
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 25
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:15:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:15:00",
+              "value": 0.95
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
+      }
+    }
+]
+}

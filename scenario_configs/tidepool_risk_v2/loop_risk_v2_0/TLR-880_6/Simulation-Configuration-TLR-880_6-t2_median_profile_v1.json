@@ -1,0 +1,75 @@
+{
+  "metadata": {
+    "risk-id": "TLR-880_6",
+    "simulation_id": "TLR-880_6-median",
+    "risk_description": "Override guardrails too restrictive",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_preset_20_4h_median_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_20_2h_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.17
+            }
+          ],
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.17
+            }
+          ],
+          "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_20_2h_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        }
+      }
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_20_2h_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_v1"
+      }
+    }
+]
+}

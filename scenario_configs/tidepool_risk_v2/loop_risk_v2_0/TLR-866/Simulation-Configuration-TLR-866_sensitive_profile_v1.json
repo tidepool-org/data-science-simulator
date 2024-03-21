@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.base_sensitive_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-Loop_NoMitigations_t1_median",
       "duration_hours": 23.0,
       "controller": {
         "automation_control_timeline": [
@@ -42,7 +42,7 @@
       }
     },
     {
-      "sim_id": "pre-noLoop",
+      "sim_id": "pre-noLoop_t1_median",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {
@@ -65,7 +65,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations",
+      "sim_id": "post-Loop-WithMitigations_t1_median",
       "duration_hours": 23.0,
       "controller": {
         "automation_control_timeline": [

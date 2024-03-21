@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.base_median_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-Loop_NoMitigations_t1_median",
       "controller": {
         "automation_control_timeline": [
           {
@@ -57,7 +57,7 @@
       }
     },
     {
-      "sim_id": "pre-noLoop",
+      "sim_id": "pre-noLoop_t1_median",
       "controller": null,
       "patient": {
         "sensor": {
@@ -89,7 +89,7 @@
       }
     },
     {
-      "sim_id": "post-Loop-WithMitigations",
+      "sim_id": "post-Loop-WithMitigations_t1_median",
       "controller": {
         "automation_control_timeline": [
           {

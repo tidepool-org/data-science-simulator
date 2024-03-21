@@ -1,0 +1,79 @@
+{
+  "metadata": {
+    "risk-id": "TLR-846_wmeal",
+    "simulation_id": "TLR-846_wmeal-resistant",
+    "risk_description": "Override too long",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_preset_70_2hr_resistant_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.t2_resistant_preset_70_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t2_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 9.07
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 9.07
+            }
+          ],
+          "metabolism_settings": "reusable.metabolism_settings.t2_resistant_preset_70_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.t2_resistant_preset_70_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_v1"
+      }
+    }
+  ]
+}

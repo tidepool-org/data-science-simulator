@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.preset_70_resistant_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-Loop_NoMitigations_t1_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
@@ -21,38 +21,12 @@
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
-          "metabolism_settings":
-            {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      70, 49
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      20, 10
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      0.40, 0.8
-    ]
-  }
-          }
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_70_2hrs_v1"
           }
         }
       },
     {
-      "sim_id": "pre-noLoop",
+      "sim_id": "pre-noLoop_t1_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
@@ -70,39 +44,13 @@
               "value": 2.10
             }
           ],
-          "metabolism_settings":
-            {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      70, 49
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      20, 10
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      0.40, 0.8
-    ]
-  }
-          }
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_70_2hrs_v1"
           }
         },
       "controller": null
       },
     {
-      "sim_id": "post-Loop-WithMitigations",
+      "sim_id": "post-Loop-WithMitigations_t1_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
@@ -115,33 +63,7 @@
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
-          "metabolism_settings":
-            {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      70, 49
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      20, 10
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      0.40, 0.8
-    ]
-  }
-          },
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_70_2hrs_v1",
           "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
           }
         },
