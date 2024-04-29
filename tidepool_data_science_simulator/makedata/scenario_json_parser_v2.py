@@ -21,6 +21,9 @@ from tidepool_data_science_simulator.models.measures import (
     BasalRate,
     CarbInsulinRatio,
     InsulinSensitivityFactor,
+    GlucoseSensitivityFactor,
+    BasalBloodGlucose,
+    InsulinProductionRate,
     TargetRange,
     GlucoseTrace,
 )
@@ -313,6 +316,37 @@ class ScenarioParserV2(SimulationParser):
     def validate_carb_entry(self):
         pass
 
+    def validate_glucose_sensitivity_factor(self, glucose_sensitivity_factor):
+        """
+        Validate a basal secretion rate in the config.
+        """
+        if not isinstance(glucose_sensitivity_factor, float) and \
+            not isinstance(glucose_sensitivity_factor, int):
+            raise ValueError("Value type should be float or int")
+
+        if not 0 <= glucose_sensitivity_factor <= 500:
+            raise ValueError("Value {} exceeds expected range, likely an error.".format(glucose_sensitivity_factor))
+        
+    def validate_basal_blood_glucose(self, basal_blood_glucose):
+        """
+        Validate a basal secretion rate in the config.
+        """
+        if not isinstance(basal_blood_glucose, float):
+            raise ValueError("Value type should be float")
+
+        if not 0 <= basal_blood_glucose <= 500:
+            raise ValueError("Value {} exceeds expected range, likely an error.".format(basal_blood_glucose))
+
+    def validate_insulin_production_rate(self, insulin_production_rate):
+        """
+        Validate a basal secretion rate in the config.
+        """
+        if not isinstance(insulin_production_rate, float):
+            raise ValueError("Value type should be float")
+
+        if not 0 <= insulin_production_rate <= 5:
+            raise ValueError("Value {} exceeds expected range, likely an error.".format(insulin_production_rate))
+            
     def carb_entries_to_timeline(self, carb_entries):
 
         carb_datetimes = []
@@ -378,6 +412,7 @@ class ScenarioParserV2(SimulationParser):
         if sensor is None:
             sensor = IdealSensor(time=sim_start_time, sensor_config=self.get_sensor_config())
 
+        # TODO: The JSON parser is not flexible enough to accomodate different VirtualPatient models
         virtual_patient = VirtualPatient(
             sim_start_time,
             pump=pump,
@@ -409,7 +444,7 @@ class ScenarioParserV2(SimulationParser):
 
         basal_rate_schedule = metabolism_settings["basal_rate"]
         basal_start_times, basal_durations_minutes, basal_values = self.get_scalar_setting_schedule_info(basal_rate_schedule, self.validate_basal_rate)
-
+                
         model["basal_rate_schedule"] = BasalSchedule24hr(
             sim_start_time,
             start_times=basal_start_times,
@@ -440,9 +475,11 @@ class ScenarioParserV2(SimulationParser):
             duration_minutes=carb_ratio_durations_minutes
         )
 
+        # Insulin sensitivity schedule
         insulin_sensitivity_schedule = metabolism_settings["insulin_sensitivity_factor"]
         insulin_sensitivity_start_times, insulin_sensitivity_durations_minutes, insulin_sensitivity_values = \
             self.get_scalar_setting_schedule_info(insulin_sensitivity_schedule, self.validate_insulin_sensitivity)
+        
         model["insulin_sensitivity_schedule"] = SettingSchedule24Hr(
             sim_start_time,
             "Insulin Sensitivity",
@@ -452,6 +489,72 @@ class ScenarioParserV2(SimulationParser):
                 for value, units in zip(insulin_sensitivity_values, ["mg/dL / U"] * len(insulin_sensitivity_values))
             ],
             duration_minutes=insulin_sensitivity_durations_minutes
+        )
+
+        # Type 2 insulin model
+        # Sets to default Type 1 if these parameters are not specified in the config file to maintain backward compatibility with 
+        # older config files.
+        if "glucose_sensitivity_factor" in metabolism_settings:
+            glucose_sensitivity_factor_schedule = metabolism_settings["glucose_sensitivity_factor"]
+            glucose_sensitivity_factor_start_times, glucose_sensitivity_factor_duration_minutes, glucose_sensitivity_factor_values = \
+                self.get_scalar_setting_schedule_info(glucose_sensitivity_factor_schedule, self.validate_glucose_sensitivity_factor)
+            
+        else:
+            glucose_sensitivity_factor_start_times = [datetime.time(0, 0)]
+            glucose_sensitivity_factor_duration_minutes = [1440]
+            glucose_sensitivity_factor_values = [0.0]
+            
+        model["glucose_sensitivity_factor_schedule"] = SettingSchedule24Hr(
+            sim_start_time,
+            "Glucose Sensitivity Factor",
+            start_times=glucose_sensitivity_factor_start_times,
+            values=[
+                GlucoseSensitivityFactor(value, units)
+                for value, units in zip(glucose_sensitivity_factor_values, ["U / mg/dL"] * len(glucose_sensitivity_factor_values))
+            ],
+            duration_minutes=glucose_sensitivity_factor_duration_minutes
+        )
+
+        if "basal_blood_glucose" in metabolism_settings:
+            basal_blood_glucose_schedule = metabolism_settings["basal_blood_glucose"]
+            basal_blood_glucose_start_times, basal_blood_glucose_duration_minutes, basal_blood_glucose_values = \
+                self.get_scalar_setting_schedule_info(basal_blood_glucose_schedule, self.validate_basal_blood_glucose)
+            
+        else:
+            basal_blood_glucose_start_times = [datetime.time(0, 0)]
+            basal_blood_glucose_duration_minutes = [1440]
+            basal_blood_glucose_values = [100.0]
+
+        model["basal_blood_glucose_schedule"] = SettingSchedule24Hr(
+            sim_start_time,
+            "Basal Blood Glucose",
+            start_times=basal_blood_glucose_start_times,
+            values=[
+                BasalBloodGlucose(value, units)
+                for value, units in zip(basal_blood_glucose_values, ["mg/dL"] * len(basal_blood_glucose_values))
+            ],
+            duration_minutes=basal_blood_glucose_duration_minutes
+        )
+
+        if "insulin_production_rate" in metabolism_settings:
+            insulin_production_rate_schedule = metabolism_settings["insulin_production_rate"]
+            insulin_production_rate_start_times, insulin_production_rate_duration_minutes, insulin_production_rate_values = \
+                self.get_scalar_setting_schedule_info(insulin_production_rate_schedule, self.validate_insulin_production_rate)
+            
+        else:
+            insulin_production_rate_start_times = [datetime.time(0, 0)]
+            insulin_production_rate_duration_minutes = [1440]
+            insulin_production_rate_values = [0.0]
+
+        model["insulin_production_rate_schedule"] = SettingSchedule24Hr(
+            sim_start_time,
+            "Insulin Production Rate",
+            start_times=insulin_production_rate_start_times,
+            values=[
+                InsulinProductionRate(value, units)
+                for value, units in zip(insulin_production_rate_values, ["U/min"] * len(insulin_production_rate_values))
+            ],
+            duration_minutes=insulin_production_rate_duration_minutes
         )
 
         # Specific to pump
@@ -474,6 +577,7 @@ class ScenarioParserV2(SimulationParser):
                 duration_minutes=target_range_durations_minutes
             )
 
+        
         carb_entries = model_config["carb_entries"]
         model["carb_timeline"] = self.carb_entries_to_timeline(carb_entries)
 
@@ -532,6 +636,9 @@ class ScenarioParserV2(SimulationParser):
             basal_schedule=self.patient_model["basal_rate_schedule"],
             carb_ratio_schedule=self.patient_model["carb_ratio_schedule"],
             insulin_sensitivity_schedule=self.patient_model["insulin_sensitivity_schedule"],
+            glucose_sensitivity_factor_schedule=self.patient_model["glucose_sensitivity_factor_schedule"],
+            basal_blood_glucose_schedule=self.patient_model["basal_blood_glucose_schedule"],
+            insulin_production_rate_schedule=self.patient_model["insulin_production_rate_schedule"],
             glucose_history=self.patient_model_glucose_history,
             carb_event_timeline=self.patient_model["carb_timeline"],
             bolus_event_timeline=self.patient_model["bolus_timeline"],

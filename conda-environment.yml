@@ -3,26 +3,26 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - black==19.10b0
-  - coverage==5.1
-  - flake8==3.7.9
-  - matplotlib==3.2.1
-  - mypy==0.770
-  - numpy==1.18.1
-  - pandas==1.0.3
-  - pip==20.0.2
-  - plotly==4.6.0
-  - plotly-orca==1.3.1
-  - pre-commit==2.2.0
-  - pytest==5.4.1
-  - python==3.8.*
-  - python-dotenv==0.13.0
-  - requests==2.23.0
-  - scipy==1.4.1
-  - seaborn=0.11.1
+  - python==3.12
+  - black
+  - coverage
+  - flake8
+  - matplotlib
+  - mypy
+  - numpy
+  - pandas
+  - pip
+  - plotly
+  - plotly-orca
+  - pre-commit
+  - pytest
+  - python-dotenv
+  - requests
+  - scipy
+  - seaborn
   - pip:
     - pip-chill==1.0.0
     - python-dotenv==0.13.0
-    - git+https://github.com/tidepool-org/data-science-models@master
-    - git+https://github.com/tidepool-org/Pyloopkit@cas/delivered_units_fix
-    - git+https://github.com/tidepool-org/data-science-metrics@cas/quadratic
+    - git+https://github.com/tidepool-org/data-science-models@mjc/t2_model
+    - git+https://github.com/tidepool-org/Pyloopkit@mjc/t2_model
+    - git+https://github.com/tidepool-org/data-science-metrics@mjc/t2_model

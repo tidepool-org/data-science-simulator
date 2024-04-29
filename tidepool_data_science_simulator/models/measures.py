@@ -228,6 +228,29 @@ class InsulinSensitivityFactor(Measure):
     def __init__(self, value, units):
         super().__init__(value, units)
 
+class GlucoseSensitivityFactor(Measure):
+    """
+    Glucose Sensitivity Factor
+    """
+
+    def __init__(self, value, units):
+        super().__init__(value, units)
+
+class BasalBloodGlucose(Measure):
+    """
+    Basal Blood Glucose
+    """
+
+    def __init__(self, value, units):
+        super().__init__(value, units)
+
+class InsulinProductionRate(Measure):
+    """
+    Insulin Production Rate
+    """
+
+    def __init__(self, value, units):
+        super().__init__(value, units)
 
 class TargetRange(MeasureRange):
     """

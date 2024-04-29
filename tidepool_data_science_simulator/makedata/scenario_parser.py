@@ -365,6 +365,9 @@ class PatientConfig(object):
         basal_schedule,
         carb_ratio_schedule,
         insulin_sensitivity_schedule,
+        glucose_sensitivity_factor_schedule,
+        basal_blood_glucose_schedule,
+        insulin_production_rate_schedule,
         glucose_history,
         carb_event_timeline,
         bolus_event_timeline,
@@ -397,7 +400,9 @@ class PatientConfig(object):
         self.basal_schedule = basal_schedule
         self.carb_ratio_schedule = carb_ratio_schedule
         self.insulin_sensitivity_schedule = insulin_sensitivity_schedule
-
+        self.glucose_sensitivity_factor_schedule = glucose_sensitivity_factor_schedule
+        self.basal_blood_glucose_schedule = basal_blood_glucose_schedule
+        self.insulin_production_rate_schedule = insulin_production_rate_schedule
         self.bolus_event_timeline = bolus_event_timeline
         self.carb_event_timeline = carb_event_timeline
         self.action_timeline = action_timeline
