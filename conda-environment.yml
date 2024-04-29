@@ -25,4 +25,4 @@ dependencies:
     - python-dotenv==0.13.0
     - git+https://github.com/tidepool-org/data-science-models@mjc/t2_model
     - git+https://github.com/tidepool-org/Pyloopkit@mjc/t2_model
-    - git+https://github.com/tidepool-org/data-science-metrics@mjc/t2_model
+    - git+https://github.com/tidepool-org/data-science-metrics
