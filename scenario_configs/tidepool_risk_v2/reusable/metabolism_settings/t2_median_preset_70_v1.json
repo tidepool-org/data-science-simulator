@@ -1,26 +1,50 @@
 {
-  "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      35.71
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      21.43
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      0.93
-    ]
-  }
+    "insulin_sensitivity_factor": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            35.71
+        ]
+    },
+    "carb_insulin_ratio": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            21.43
+        ]
+    },
+    "basal_rate": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            0.93
+        ]
+    },
+    "glucose_sensitivity_factor": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            0.0007
+        ]
+    },
+    "basal_blood_glucose": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            110.0
+        ]
+    },
+    "insulin_production_rate": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            0.0
+        ]
+    }
 }
