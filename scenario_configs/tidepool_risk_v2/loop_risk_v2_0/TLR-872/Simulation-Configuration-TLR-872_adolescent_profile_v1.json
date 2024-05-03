@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.base_adolescent_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-Loop_NoMitigations_t1_adolescent",
       "patient": {
         "patient_model": {
           "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_70_v1"
@@ -16,7 +16,7 @@
       }
     },
     {
-      "sim_id": "pre-noLoop",
+      "sim_id": "pre-noLoop_t1_adolescent",
       "patient": {
         "patient_model": {
           "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_70_v1"
@@ -25,7 +25,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations",
+      "sim_id": "post-Loop-WithMitigations_t1_adolescent",
       "patient": {
         "patient_model": {
           "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_70_v1"
