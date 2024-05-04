@@ -74,7 +74,7 @@
               "value": 2.65
             }
           ],
-          "target_range": "reusable.mitigations.guardrails.target_range_t2_resistant_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
       },
       "controller": {

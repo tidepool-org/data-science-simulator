@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.t2_sensitive_v1",
   "override_config": [
     {
-      "sim_id": "pre-LoopNoMitigation_t2_sensitive",
+      "sim_id": "pre-LoopNoMitigations_t2_sensitive",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
@@ -40,7 +40,7 @@
       }
     },
     {
-      "sim_id": "pre-NoLoopMitigation_t2_sensitive",
+      "sim_id": "pre-NoLoop_t2_sensitive",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
@@ -83,7 +83,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-LoopWithMitigation_t2_sensitive",
+      "sim_id": "post-LoopWithMitigations_t2_sensitive",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
