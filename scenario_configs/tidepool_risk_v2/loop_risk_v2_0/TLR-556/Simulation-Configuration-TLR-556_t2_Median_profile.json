@@ -61,7 +61,7 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings.t2_median_v1"
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_v1"
       }
     }
     ]

@@ -24,7 +24,9 @@
         }
         },
       "controller": {
-        "glucose_safety_limit": 0
+        "settings": {
+          "glucose_safety_limit": 0
+        }
       }
     },
     {

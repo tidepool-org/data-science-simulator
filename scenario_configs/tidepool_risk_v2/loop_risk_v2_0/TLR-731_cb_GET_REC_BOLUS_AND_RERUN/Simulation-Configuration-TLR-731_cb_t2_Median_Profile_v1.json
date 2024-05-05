@@ -16,7 +16,15 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": "accept_recommendation"
+              "value": 1.7
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.7
             }
           ]
         },
@@ -26,14 +34,14 @@
       }
     },
     {
-      "sim_id": "pre-noLoop_median_21_median",
+      "sim_id": "pre-noLoop_t2_median",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_250_12hr",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.4
+              "value": 1.7
             }
           ]
         },
@@ -41,7 +49,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 3.4
+              "value": 1.7
             }
           ]
         },
@@ -59,11 +67,17 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": "accept_recommendation"
+              "value": 1.7
             }
           ]
         },
         "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.7
+            }
+          ],
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
         },
         "sensor": {
