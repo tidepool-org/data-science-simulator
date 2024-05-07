@@ -55,13 +55,7 @@
                       "value": 21.7
                     }
                   ],
-                  "carb_entries": [
-                    {
-                      "type": "carb",
-                      "start_time": "8/15/2019 12:00:00",
-                      "value": 31
-                    }
-                  ]
+                  "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
               }
             },
             "controller": null

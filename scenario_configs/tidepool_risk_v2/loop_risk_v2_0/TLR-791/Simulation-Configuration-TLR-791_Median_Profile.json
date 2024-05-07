@@ -12,7 +12,7 @@
           "patient": {
             "patient_model": {
               "carb_entries": "reusable.carb_doses.median_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+              "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
             },
             "pump": {
               "carb_entries": "reusable.carb_doses.median_profile_v1",
@@ -33,8 +33,7 @@
               "bolus_entries": "reusable.insulin_doses.median_profile_v1"
             },
             "pump": {
-              "carb_entries": "reusable.carb_doses.median_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+              "carb_entries": "reusable.carb_doses.median_profile_v1"
             }
           },
             "controller": null
@@ -44,11 +43,10 @@
           "patient": {
             "patient_model": {
               "carb_entries": "reusable.carb_doses.median_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+              "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
             },
             "pump": {
-              "carb_entries": "reusable.carb_doses.median_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+              "carb_entries": "reusable.carb_doses.median_profile_v1"
             }
           },
             "controller": {

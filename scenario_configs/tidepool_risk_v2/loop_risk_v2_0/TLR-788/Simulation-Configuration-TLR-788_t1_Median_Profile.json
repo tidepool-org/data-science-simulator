@@ -23,7 +23,7 @@
                 "metabolism_settings": {
                   "insulin_sensitivity_factor": {
                     "start_times": ["00:00:00"],
-                            "values": [10]
+                            "values": [25]
                         }
                     },
                   "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
@@ -41,7 +41,7 @@
                 "metabolism_settings": {
                   "insulin_sensitivity_factor": {
                     "start_times": ["00:00:00"],
-                            "values": [10]
+                            "values": [25]
                         }
                     },
                   "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
@@ -66,7 +66,7 @@
                 "metabolism_settings": {
                   "insulin_sensitivity_factor": {
                     "start_times": ["00:00:00"],
-                            "values": [10]
+                            "values": [25]
                         }
                     },
                   "carb_entries": "reusable.carb_doses.t2_median_profile_v1",

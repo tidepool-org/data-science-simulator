@@ -16,7 +16,7 @@
               "start_times": [
                 "0:00:00"
               ],
-              "values": [1.55]
+              "values": [0.42]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
@@ -35,7 +35,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [1.55]
+              "values": [0.42]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
@@ -55,7 +55,7 @@
               "start_times": [
                 "0:00:00"
               ],
-              "values": [1.55]
+              "values": [0.42]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
@@ -69,7 +69,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [1.55]
+              "values": [0.42]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
@@ -91,7 +91,7 @@
               "start_times": [
                 "0:00:00"
               ],
-              "values": [1.55]
+              "values": [0.42]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
@@ -110,11 +110,11 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [1.55]
+              "values": [0.42]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [12]
+              "values": [60]
             }
           },
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1",

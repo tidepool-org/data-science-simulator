@@ -12,11 +12,10 @@
           "patient": {
             "patient_model": {
               "carb_entries": "reusable.carb_doses.resistant_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+              "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
             },
             "pump": {
-              "carb_entries": "reusable.carb_doses.resistant_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+              "carb_entries": "reusable.carb_doses.resistant_profile_v1"
             }
           },
            "controller": {
@@ -44,11 +43,10 @@
           "patient": {
             "patient_model": {
               "carb_entries": "reusable.carb_doses.resistant_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+              "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
             },
             "pump": {
-              "carb_entries": "reusable.carb_doses.resistant_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.resistant_profile_v1"
+              "carb_entries": "reusable.carb_doses.resistant_profile_v1"
             }
           },
             "controller": {
