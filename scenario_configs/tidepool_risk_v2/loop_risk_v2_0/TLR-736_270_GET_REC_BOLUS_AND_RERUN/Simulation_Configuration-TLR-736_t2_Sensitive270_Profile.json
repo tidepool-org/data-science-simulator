@@ -15,18 +15,12 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 16:30:00",
-              "value": 3.1
+              "value": "accept_recommendation"
             }
           ]
         },
         "pump": {
-          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 3.1
-            }
-          ]
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1"
         }
       }
     },
@@ -62,18 +56,12 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 16:30:00",
-              "value": 2.35
+              "value": "accept_recommendation"
             }
           ]
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 2.35
-            }
-          ],
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       },
