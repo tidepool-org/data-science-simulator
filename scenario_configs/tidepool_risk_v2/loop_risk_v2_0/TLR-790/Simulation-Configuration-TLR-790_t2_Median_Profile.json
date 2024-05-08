@@ -14,7 +14,7 @@
                 "metabolism_settings": {
                   "basal_rate": {
                          "start_times": ["0:00:00"],
-                         "values":  [2.66]
+                         "values":  [1.7]
                   }
                 }
               }
@@ -27,7 +27,7 @@
                 "metabolism_settings": {
                   "basal_rate": {
                          "start_times": ["0:00:00"],
-                         "values":  [2.66]
+                         "values":  [1.7]
                   }
                 }
               }
@@ -41,7 +41,7 @@
                 "metabolism_settings": {
                   "basal_rate": {
                          "start_times": ["0:00:00"],
-                         "values":  [2.66]
+                         "values":  [1.7]
                   }
                 },
                 "target_range": "reusable.mitigations.guardrails.target_range_median_v1"

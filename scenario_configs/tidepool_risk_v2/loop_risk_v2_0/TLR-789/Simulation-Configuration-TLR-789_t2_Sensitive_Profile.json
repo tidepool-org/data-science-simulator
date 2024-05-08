@@ -26,7 +26,7 @@
                   "0:00:00"
                 ],
                 "values": [
-                  35
+                  15.0
                 ]
               }
             },
@@ -41,7 +41,7 @@
                "bolus_entries": [
                  {
                    "time": "8/15/2019 12:00:00",
-                   "value": 1.76
+                   "value": 4.13
                  }
                ],
                "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1"
@@ -50,13 +50,13 @@
                   "metabolism_settings": {
                     "carb_insulin_ratio": {
                          "start_times": ["0:00:00"],
-                         "values":  [35]
+                         "values":  [15]
                     }
                   },
                 "bolus_entries": [
                     {
                       "time": "8/15/2019 12:00:00",
-                      "value": 1.76
+                      "value": 4.13
                     }
                   ],
                   "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1"
@@ -80,7 +80,7 @@
                 "metabolism_settings": {
                  "carb_insulin_ratio": {
                          "start_times": ["0:00:00"],
-                         "values":  [35]
+                         "values":  [15]
                     }
                   },
                   "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",

@@ -2,7 +2,7 @@
   "metadata": {
     "risk-id": "TLR-604",
     "simulation_id": "TLR-604-sensitive",
-    "risk_description": "Wrong time zone set",
+    "risk_description": "Paired with incorrect pump",
     "config_format_version": "v1.0"
   },
   "base_config": "reusable.simulations.t2_sensitive_v1",
@@ -16,11 +16,11 @@
               "start_times": [
                 "0:00:00"
               ],
-              "values": [0.18]
+              "values": [0.85]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [56]
+              "values": [20]
             }
           },
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
@@ -35,11 +35,11 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [0.18]
+              "values": [0.85]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [56]
+              "values": [20]
             }
           },
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1"
@@ -55,11 +55,11 @@
               "start_times": [
                 "0:00:00"
               ],
-              "values": [0.18]
+              "values": [0.85]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [56]
+              "values": [20]
             }
           },
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
@@ -69,11 +69,11 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [0.18]
+              "values": [0.85]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [56]
+              "values": [20]
             }
           },
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
@@ -91,11 +91,11 @@
               "start_times": [
                 "0:00:00"
               ],
-              "values": [0.18]
+              "values": [0.85]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [56]
+              "values": [20]
             }
           },
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
@@ -110,11 +110,11 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [0.18]
+              "values": [0.85]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [56]
+              "values": [20]
             }
           },
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1",

@@ -5,7 +5,7 @@
     "risk_description": "User-created changes to Loop algorithm components",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.resistant_resistant_v1",
+  "base_config": "reusable.simulations.base_resistant_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations_t2_resistant",

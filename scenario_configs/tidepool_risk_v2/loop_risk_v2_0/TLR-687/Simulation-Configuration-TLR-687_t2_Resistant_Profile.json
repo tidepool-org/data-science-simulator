@@ -15,7 +15,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 10.98
+              "value": 7.65
             }
           ]
         },
@@ -24,7 +24,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 10.98
+              "value": 7.65
             }
           ]
         }
@@ -38,7 +38,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 10.98
+              "value": 7.65
             }
           ]
         },
@@ -47,7 +47,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 10.98
+              "value": 7.65
             }
           ]
         }
@@ -55,14 +55,14 @@
        "controller": null
     },
     {
-      "sim_id": "pre-Loop_NoMitigations_t2_resistant",
+      "sim_id": "post-Loop-WithMitigations_t2_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 10.98
+              "value": 7.65
             }
           ]
         },
@@ -71,7 +71,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 10.98
+              "value": 7.65
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"

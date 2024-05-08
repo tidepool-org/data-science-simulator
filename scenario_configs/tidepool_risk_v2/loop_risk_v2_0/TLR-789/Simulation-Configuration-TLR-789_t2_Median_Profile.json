@@ -23,7 +23,7 @@
                   "metabolism_settings": {
                     "carb_insulin_ratio": {
                          "start_times": ["0:00:00"],
-                         "values":  [35]
+                         "values":  [10]
                     }
                   },
                   "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
@@ -37,7 +37,7 @@
                 "bolus_entries": [
                   {
                     "time": "8/15/2019 12:00:00",
-                    "value": 1.84
+                    "value": 6.9
                   }
                 ],
                 "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
@@ -46,13 +46,13 @@
                   "metabolism_settings": {
                     "carb_insulin_ratio": {
                          "start_times": ["0:00:00"],
-                         "values":  [35]
+                         "values":  [10]
                     }
                   },
                 "bolus_entries": [
                     {
                       "time": "8/15/2019 12:00:00",
-                      "value": 1.84
+                      "value": 6.9
                     }
                   ],
                   "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
@@ -76,7 +76,7 @@
                 "metabolism_settings": {
                  "carb_insulin_ratio": {
                          "start_times": ["0:00:00"],
-                         "values":  [35]
+                         "values":  [10]
                     }
                   },
                   "carb_entries": "reusable.carb_doses.t2_median_profile_v1",

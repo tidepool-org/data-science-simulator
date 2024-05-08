@@ -11,7 +11,7 @@
       "sim_id": "pre-NoLoop_t2_sensitive",
       "patient": {
         "patient_model":{
-          "glucose_history": "reusable.glucose.flat_127_12hr",
+          "glucose_history": "reusable.glucose.flat_113_12hr",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
@@ -20,7 +20,7 @@
           ]
         },
         "sensor": {
-          "glucose_history": "reusable.glucose.flat_127_12hr"
+          "glucose_history": "reusable.glucose.flat_113_12hr"
         }
       }
     },
@@ -28,7 +28,7 @@
       "sim_id": "post-LoopWithMitigations_t2_sensitive",
       "patient": {
         "patient_model": {
-          "glucose_history": "reusable.glucose.flat_127_12hr",
+          "glucose_history": "reusable.glucose.flat_113_12hr",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
@@ -37,7 +37,7 @@
           ]
         },
         "sensor": {
-          "glucose_history": "reusable.glucose.flat_127_12hr"
+          "glucose_history": "reusable.glucose.flat_113_12hr"
         }
       },
       "controller": null
@@ -46,7 +46,7 @@
       "sim_id": "pre-LoopNoMitigations_t2_sensitive",
       "patient": {
         "patient_model": {
-          "glucose_history": "reusable.glucose.flat_127_12hr",
+          "glucose_history": "reusable.glucose.flat_113_12hr",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
@@ -55,7 +55,7 @@
           ]
         },
         "sensor": {
-          "glucose_history": "reusable.glucose.flat_127_12hr"
+          "glucose_history": "reusable.glucose.flat_113_12hr"
         },
         "pump": {
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"

@@ -17,8 +17,8 @@
               "value": "accept_recommendation"
             },
             {
-              "time": "8/15/2019 12:00:30",
-              "value": 12.95
+              "time": "8/15/2019 12:10:00",
+              "value": 7.6
             }
           ],
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
@@ -26,8 +26,8 @@
         "pump": {
           "bolus_entries": [
             {
-              "time": "8/15/2019 12:00:30",
-              "value": 12.95
+              "time": "8/15/2019 12:10:00",
+              "value": 7.6
             }
           ],
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
@@ -41,11 +41,11 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 10.85
+              "value": 7.6
             },
             {
-              "time": "8/15/2019 12:00:30",
-              "value": 10.85
+              "time": "8/15/2019 12:10:00",
+              "value": 7.6
             }
           ],
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
@@ -54,11 +54,11 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 10.85
+              "value": 7.6
             },
             {
-              "time": "8/15/2019 12:00:30",
-              "value": 10.85
+              "time": "8/15/2019 12:10:00",
+              "value": 7.6
             }
           ],
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
@@ -76,8 +76,8 @@
               "value": "accept_recommendation"
             },
             {
-              "time": "8/15/2019 12:00:30",
-              "value": 10.6
+              "time": "8/15/2019 12:10:00",
+              "value": 7.6
             }
           ],
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
@@ -85,8 +85,8 @@
         "pump": {
           "bolus_entries": [
             {
-              "time": "8/15/2019 12:00:30",
-              "value": 10.6
+              "time": "8/15/2019 12:10:00",
+              "value": 7.6
             }
           ],
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",

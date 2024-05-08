@@ -2,7 +2,7 @@
   "metadata": {
     "risk-id": "TLR-604",
     "simulation_id": "TLR-604-median",
-    "risk_description": "Wrong time zone set",
+    "risk_description": "Paired with incorrect pump",
     "config_format_version": "v1.0"
   },
   "base_config": "reusable.simulations.t2_median_v1",
@@ -16,17 +16,17 @@
               "start_times": [
                 "0:00:00"
               ],
-              "values": [0.42]
+              "values": [2.2]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [12]
+              "values": [10]
             }
           },
           "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
           "bolus_entries": [
             {
-              "time": "8/15/2019 12:00:00",
+              "time": "8/15/2019 10:00:00",
               "value": "accept_recommendation"
             }
           ]
@@ -35,11 +35,11 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [0.42]
+              "values": [2.2]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [12]
+              "values": [10]
             }
           },
           "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
@@ -55,11 +55,11 @@
               "start_times": [
                 "0:00:00"
               ],
-              "values": [0.42]
+              "values": [2.2]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [12]
+              "values": [10]
             }
           },
           "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
@@ -69,11 +69,11 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [0.42]
+              "values": [2.2]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [12]
+              "values": [10]
             }
           },
           "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
@@ -91,17 +91,17 @@
               "start_times": [
                 "0:00:00"
               ],
-              "values": [0.42]
+              "values": [2.2]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
-              "values": [12]
+              "values": [10]
             }
           },
           "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
           "bolus_entries": [
             {
-              "time": "8/15/2019 12:00:00",
+              "time": "8/15/2019 10:00:00",
               "value": "accept_recommendation"
             }
           ]
@@ -110,7 +110,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [0.42]
+              "values": [2.2]
             },
             "carb_insulin_ratio": {
               "start_times": ["0:00:00"],
