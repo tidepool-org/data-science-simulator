@@ -9,6 +9,7 @@
   "override_config": [
     {
       "sim_id": "pre-LoopNoMitigations_t1_adolescent",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
@@ -20,6 +21,7 @@
     },
     {
       "sim_id": "pre-NoLoop_t1_adolescent",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
@@ -32,6 +34,7 @@
     },
     {
       "sim_id": "post-LoopWithMitigations_t1_adolescent",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
