@@ -15,11 +15,17 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 16:30:00",
-              "value": "accept_recommendation"
+              "value": 8.25
             }
           ]
         },
         "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 8.25
+            }
+          ],
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
         }
       }
@@ -32,7 +38,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 16:30:00",
-              "value": 10.85
+              "value": 8.25
             }
           ]
         },
@@ -41,7 +47,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 10.85
+              "value": 8.25
             }
           ]
         }
@@ -56,12 +62,18 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 16:30:00",
-              "value": "accept_recommendation"
+              "value": 8.25
             }
           ]
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 8.25
+            }
+          ],
           "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
       },
