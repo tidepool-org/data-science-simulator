@@ -39,7 +39,12 @@
               "time": "8/15/2019 12:00:00",
               "value": 0.1
             }
-          ]
+          ],
+          "target_range": {
+            "start_times": ["00:00:00"],
+            "lower_values": [100],
+            "upper_values": [105]
+          }
         }
       }
     },
@@ -75,7 +80,12 @@
               "time": "8/15/2019 12:00:00",
               "value": 0.1
             }
-          ]
+          ],
+          "target_range": {
+            "start_times": ["00:00:00"],
+            "lower_values": [100],
+            "upper_values": [105]
+          }
         }
       },
       "controller": null

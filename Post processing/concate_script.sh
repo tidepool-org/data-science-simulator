@@ -2,5 +2,5 @@
 
 for d in */
 do
-    ( cd "$d" && awk '(NR ==1) || (FNR > 1)' *.csv > combined_results.csv )
+    ( cd "$d" && awk '(NR ==1) || (FNR > 1)' *.csv > Risk_Results.csv )
 done
