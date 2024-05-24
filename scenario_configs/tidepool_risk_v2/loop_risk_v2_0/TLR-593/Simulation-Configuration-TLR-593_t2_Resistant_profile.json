@@ -12,7 +12,7 @@
       "duration_hours": 23.0,
       "controller": {
         "settings": {
-          "max_basal_rate": 1.13
+          "max_basal_rate": 1.1
         }
       }
     },

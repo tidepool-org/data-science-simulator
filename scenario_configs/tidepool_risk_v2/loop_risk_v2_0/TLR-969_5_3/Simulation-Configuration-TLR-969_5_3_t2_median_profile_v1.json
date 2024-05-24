@@ -54,7 +54,7 @@
               "value": 69
             }
           ],
-          "bolus_entries": "reusable.insulin_doses_t2_median_profile_v1"
+          "bolus_entries": "reusable.insulin_doses.t2_median_profile_v1"
         }
       }
     },

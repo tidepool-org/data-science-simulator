@@ -51,7 +51,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-NoLoop_t1_median",
+      "sim_id": "post-Loop-WithMitigations_t1_median",
       "patient": {
         "patient_model": {
           "bolus_entries": [

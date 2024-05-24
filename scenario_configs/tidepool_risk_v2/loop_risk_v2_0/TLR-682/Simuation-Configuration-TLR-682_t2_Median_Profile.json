@@ -21,7 +21,7 @@
                         {
                             "type": "carb",
                             "start_time": "8/15/2019 12:00:00",
-                            "value": 17.5
+                            "value": 50.0
                         }
                     ]
                 },
@@ -36,7 +36,7 @@
                         {
                             "type": "carb",
                             "start_time": "8/15/2019 12:00:00",
-                            "value": 17.5
+                            "value": 50.0
                         }
                     ]
                 }
@@ -56,7 +56,7 @@
                         {
                             "type": "carb",
                             "start_time": "8/15/2019 12:00:00",
-                            "value": 17.5
+                            "value": 50.0
                         }
                     ]
                 },
@@ -71,7 +71,7 @@
                         {
                             "type": "carb",
                             "start_time": "8/15/2019 12:00:00",
-                            "value": 17.5
+                            "value": 50.0
                         }
                     ]
                 }
@@ -92,7 +92,7 @@
                         {
                             "type": "carb",
                             "start_time": "8/15/2019 12:00:00",
-                            "value": 17.5
+                            "value": 50.0
                         }
                     ]
                 },
@@ -107,7 +107,7 @@
                         {
                             "type": "carb",
                             "start_time": "8/15/2019 12:00:00",
-                            "value": 17.5
+                            "value": 50.0
                         }
                     ],
                     "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
