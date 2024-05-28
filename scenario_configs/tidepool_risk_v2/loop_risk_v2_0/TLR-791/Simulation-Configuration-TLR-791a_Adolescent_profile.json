@@ -1,54 +1,61 @@
-
 {
-  "metadata": {
-    "risk-id": "TLR-FDA",
-    "simulation_id": "TLR-FDA-median",
-    "risk_description": "Insulin Model selection adolescent Adult",
-    "config_format_version": "v1.0"
-  },
-  "base_config": "reusable.simulations.base_adolescent_v1",
-  "override_config": [
-    {
-      "sim_id": "pre-Loop_NoMitigations",
-      "patient": {
-        "patient_model": {
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
-        },
-        "pump": {
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
-        }
-      }
+    "metadata": {
+        "risk_id": "TLR-791",
+        "simulation_id": "TLR-791-Median",
+        "risk_description": "Metabolic settings are too aggressive",
+        "config_format_version": "v1.0"
     },
-    {
-      "sim_id": "pre-noLoop",
-      "patient": {
-        "patient_model": {
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
+    "base_config": "reusable.simulations.base_adolescent_v1",
+    "override_config": [
+        {
+          "sim_id": "pre-Loop-noMitigations_t1_adolescent",
+          "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+            }
+          },
+           "controller": {
+              "settings": {
+                "model": "rapid_acting_child"
+              }
+            }
         },
-        "pump": {
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
-        }
-      },
-      "controller": null
-    },
-    {
-      "sim_id": "post-Loop-WithMitigations",
-      "patient": {
-        "patient_model": {
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
+      {
+            "sim_id": "pre-NoLoop_t1_adolescent",
+        "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
+            }
+          },
+            "controller": null
         },
-        "pump": {
-          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1",
-          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        {
+            "sim_id": "post-Loop-WithMitigations_t1_adolescent",
+          "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+            }
+          },
+            "controller": {
+                "settings": {
+                  "glucose_safety_limit": 75,
+                  "max_basal_rate": 3.8,
+                  "model": "rapid_acting_adult"
+                }
+            }
         }
-      },
-      "controller": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
-    }
-  ]
+    ]
 }

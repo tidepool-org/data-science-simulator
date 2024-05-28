@@ -5,10 +5,10 @@
     "risk_description": "Dynamic carb absorption without glucose sensor data",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.base_median_v1",
+  "base_config": "reusable.simulations.t2_median_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "sim_id": "pre-Loop_NoMitigations_t2_median",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.warmup_1hr_110base_12hr",
@@ -16,13 +16,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 43
+              "value": 69
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 3.3
+              "value": 2.3
             }
           ]
         },
@@ -31,13 +31,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 43
+              "value": 69
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 3.3
+              "value": 2.3
             }
           ]
         },
@@ -47,7 +47,7 @@
       }
     },
     {
-      "sim_id": "pre-NoLoop_t1_median",
+      "sim_id": "pre-NoLoop_t2_median",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.warmup_1hr_110base_12hr",
@@ -55,13 +55,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 43
+              "value": 69
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 3.3
+              "value": 2.3
             }
           ]
         },
@@ -70,13 +70,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 43
+              "value": 69
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 3.3
+              "value": 2.3
             }
           ]
         },
@@ -87,7 +87,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop_WithMitigations_t1_median",
+      "sim_id": "post-Loop_WithMitigations_t2_median",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.warmup_1hr_110base_12hr",
@@ -95,13 +95,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 43
+              "value": 69
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 3.3
+              "value": 2.3
             }
           ]
         },
@@ -110,13 +110,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 43
+              "value": 69
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 3.3
+              "value": 2.3
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
@@ -126,7 +126,7 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_v1"
       }
     }
   ]

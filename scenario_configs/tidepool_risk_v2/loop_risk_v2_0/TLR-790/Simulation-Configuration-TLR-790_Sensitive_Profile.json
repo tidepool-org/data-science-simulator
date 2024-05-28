@@ -8,7 +8,7 @@
     "base_config": "reusable.simulations.base_sensitive_v1",
     "override_config": [
         {
-            "sim_id": "pre-Loop-noMitigations",
+            "sim_id": "pre-Loop-noMitigations_t1_sensitive",
             "patient": {
               "pump": {
                 "metabolism_settings": {
@@ -21,7 +21,7 @@
             }
         },
         {
-            "sim_id": "pre-noLoop",
+            "sim_id": "pre-noLoop_t1_sensitive",
             "patient": {
               "pump": {
                 "metabolism_settings": {
@@ -35,7 +35,7 @@
             "controller": null
         },
         {
-            "sim_id": "post-Loop-WithMitigations",
+            "sim_id": "post-Loop-WithMitigations_t1_sensitive",
             "patient": {
               "pump": {
                 "metabolism_settings": {

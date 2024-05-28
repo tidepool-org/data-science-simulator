@@ -304,6 +304,7 @@ class Simulation(multiprocessing.Process):
                 "bg": simulation_state.patient_state.bg,
                 "bg_sensor": simulation_state.patient_state.sensor_bg,
                 "iob": simulation_state.patient_state.iob,
+                "ei": simulation_state.patient_state.ei,
                 "temp_basal": temp_basal_value,
                 "temp_basal_time_remaining": temp_basal_time_remaining,
                 "sbr": simulation_state.patient_state.get_sbr_value(),

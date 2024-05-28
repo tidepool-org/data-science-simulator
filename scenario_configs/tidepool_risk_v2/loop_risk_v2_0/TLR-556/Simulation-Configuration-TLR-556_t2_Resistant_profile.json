@@ -57,7 +57,7 @@
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
-          "target_range": "reusable.mitigations.guardrails.target_range.resistant_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
       },
       "controller": {

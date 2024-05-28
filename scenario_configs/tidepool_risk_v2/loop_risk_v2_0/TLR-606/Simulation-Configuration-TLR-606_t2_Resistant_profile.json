@@ -41,11 +41,11 @@
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
-          "target_range": "reusable.mitigations.guardrails.target_range.resistant_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
     },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings.t2_resistant_v1"
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_v1"
       }
     }
   ]

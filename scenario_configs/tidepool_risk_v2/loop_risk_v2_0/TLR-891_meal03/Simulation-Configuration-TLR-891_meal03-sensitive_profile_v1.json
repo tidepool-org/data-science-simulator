@@ -7,7 +7,7 @@
   },
   "base_config": "reusable.simulations.base_sensitive_v1",
   "override_config": [
-    {"sim_id": "pre-Loop_NoMitigations meal 03",
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {
@@ -43,7 +43,7 @@
       }
     },
     {
-      "sim_id": "pre-Loop_NoMitigations meal 03",
+      "sim_id": "pre-Loop_NoMitigations_t1_sensitive",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {
@@ -80,7 +80,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop_WithMitigations meal 03",
+      "sim_id": "post-Loop_WithMitigations_t1_sensitive",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {

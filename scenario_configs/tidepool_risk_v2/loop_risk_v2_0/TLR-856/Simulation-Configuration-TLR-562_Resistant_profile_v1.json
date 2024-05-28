@@ -8,102 +8,27 @@
   "base_config": "reusable.simulations.base_resistant_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-Loop_NoMitigations_t1_resistant",
       "patient": {
         "pump": {
-          "metabolism_settings": {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      37.69
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      7.69
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      1.04
-    ]
-  }
-          }
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_130_v1"
         }
       }
     },
     {
-      "sim_id": "pre-noLoop",
+      "sim_id": "pre-noLoop_t1_resistant",
       "patient": {
         "pump": {
-          "metabolism_settings": {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      37.69
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      7.69
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      1.04
-    ]
-  }
-          }
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_130_v1"
         }
       },
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations",
+      "sim_id": "post-Loop-WithMitigations_t1_resistant",
       "patient": {
         "pump": {
-          "metabolism_settings": {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      37.69
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      7.69
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00"
-    ],
-    "values": [
-      1.04
-    ]
-  }
-          },
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_130_v1",
           "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
       },

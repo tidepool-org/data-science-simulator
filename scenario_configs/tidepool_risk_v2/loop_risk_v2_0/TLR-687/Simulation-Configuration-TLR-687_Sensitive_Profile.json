@@ -55,7 +55,7 @@
        "controller": null
     },
     {
-      "sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "sim_id": "post-Loop-WithMitigations_t1_sensitive",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",

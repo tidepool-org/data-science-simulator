@@ -16,13 +16,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 25
+              "value": 62
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 1.65
+              "value": 2.06
             }
           ]
         },
@@ -31,13 +31,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 25
+              "value": 62
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 1.65
+              "value": 2.06
             }
           ]
         },
@@ -55,13 +55,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 25
+              "value": 62
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 1.65
+              "value": 2.06
             }
           ]
         },
@@ -70,13 +70,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 25
+              "value": 62
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 1.65
+              "value": 2.06
             }
           ]
         },
@@ -95,13 +95,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 25
+              "value": 62
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 1.65
+              "value": 2.06
             }
           ]
         },
@@ -110,13 +110,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 11:00:00",
-              "value": 25
+              "value": 62
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 11:00:00",
-              "value": 1.65
+              "value": 2.06
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"

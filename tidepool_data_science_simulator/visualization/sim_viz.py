@@ -83,35 +83,36 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
         ax[1].stem(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["true_bolus"],
                    linefmt='{}-'.format(sim_color),
                    label="{} {}".format("true bolus", sim_id),
-                   markerfmt='{}P'.format(sim_color),
-                   use_line_collection=True)
+                   markerfmt='{}P'.format(sim_color))
         ax[1].stem(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["reported_bolus"],
                    linefmt='{}--'.format(sim_color),
                    markerfmt='{}X'.format(sim_color),
-                   label="{} {}".format("reported bolus", sim_id),
-                   use_line_collection=True)
+                   label="{} {}".format("reported bolus", sim_id))
         ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["iob"],
                    label="{} {}".format("iob", sim_id),
+                   color=sim_color,
+                   alpha=0.5)
+        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["ei"] * 12,
+                   label="{} {}".format("ei", sim_id),
+                   linestyle="dashed",
                    color=sim_color,
                    alpha=0.5)
         ax[1].set_ylim((0, 8))
 
         if len(all_results) <= n_sims_max_legend:
-            ax[1].legend(prop={'size': 6})
+            ax[1].legend(prop={'size': 12})
 
         # ======== Carbs ============
         ax[2].stem(ctrl_result_df.index.to_pydatetime(),
                    ctrl_result_df["true_carb_value"],
                    linefmt='{}-'.format(sim_color),
                    label="{} {}".format("true carb", sim_id),
-                   markerfmt='{}P'.format(sim_color),
-                   use_line_collection=True)
+                   markerfmt='{}P'.format(sim_color))
         ax[2].stem(ctrl_result_df.index.to_pydatetime(),
                    ctrl_result_df["reported_carb_value"],
                    linefmt='{}--'.format(sim_color),
                    markerfmt='{}X'.format(sim_color),
-                   label="{} {}".format("reported carb", sim_id),
-                   use_line_collection=True)
+                   label="{} {}".format("reported carb", sim_id))
         ax[2].set_title("Carb Events")
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")

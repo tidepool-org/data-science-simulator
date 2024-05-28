@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.preset_70_sensitive_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-Loop_NoMitigations_t1_sensitive",
       "patient": {
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
@@ -23,38 +23,12 @@
           ]
         },
         "pump": {
-          "metabolism_settings":
-            {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      171.43, 120
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      21.43, 15
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      0.21, 0.3
-    ]
-  }
-          }
-          }
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_70_2hrs_v1"
         }
+      }
       },
     {
-      "sim_id": "pre-noLoop",
+      "sim_id": "pre-noLoop_t1_sensitive",
       "patient": {
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
@@ -75,39 +49,13 @@
               "value": 0.82
             }
           ],
-          "metabolism_settings":
-            {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      171.43, 120
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      21.43, 15
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      0.21, 0.3
-    ]
-  }
-          }
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_70_2hrs_v1"
           }
         },
       "controller": null
       },
     {
-      "sim_id": "post-Loop-WithMitigations",
+      "sim_id": "post-Loop-WithMitigations_t1_sensitive",
       "patient": {
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
@@ -122,33 +70,7 @@
           ]
         },
         "pump": {
-          "metabolism_settings":
-            {
-            "insulin_sensitivity_factor": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      171.43, 120
-    ]
-  },
-  "carb_insulin_ratio": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      21.43, 15
-    ]
-  },
-  "basal_rate": {
-    "start_times": [
-      "00:00:00", "14:00:00"
-    ],
-    "values": [
-      0.21, 0.3
-    ]
-  }
-          },
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_70_2hrs_v1",
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
           }
         },

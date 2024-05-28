@@ -51,7 +51,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-NoLoop_t1_adolescent",
+      "sim_id": "post-Loop-WithMitigations_t1_adolescent",
       "patient": {
         "patient_model": {
           "bolus_entries": [

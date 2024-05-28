@@ -54,12 +54,15 @@ class VirtualPatient(SimulationComponent):
 
         self.bg_history = self.patient_config.glucose_history
         self.iob_history = []  # TODO: make trace obj, not list
-
+        self.ei_history = []
+        
         self.bg_prediction = None
         self.iob_prediction = None
+        self.ei_prediction = None
 
         self.bg_current = None
         self.iob_current = None
+        self.ei_current = None
         self.sbr_iob = None
 
         self.carb_event_timeline = patient_config.carb_event_timeline
@@ -103,9 +106,12 @@ class VirtualPatient(SimulationComponent):
 
         # Only use iob up to t=time-1 since we account for basal insulin at t=0
         self.iob_init = np.append(iob_steady_state[1:], 0)
-        self.iob_current = self.iob_init[0]
 
         self.sbr_iob = iob_steady_state[0]
+
+        # Placeholder first value for current endogenous insulin
+        self.ei_init = np.zeros_like(self.iob_init)
+        # self.ei_current = self.ei_prediction[0]
 
         # Initialize the pump for t=0
         self.pump.init()
@@ -116,6 +122,8 @@ class VirtualPatient(SimulationComponent):
         # Set current values at t=0
         self.bg_current = self.bg_prediction[0]
         self.iob_current = self.iob_prediction[0]
+        self.ei_current = self.ei_prediction[0]
+
 
     def get_state(self):
         """
@@ -144,6 +152,8 @@ class VirtualPatient(SimulationComponent):
             sensor_bg_prediction=sensor_state.sensor_bg_prediction,
             iob=self.iob_current,
             iob_prediction=self.iob_prediction,
+            ei_prediction=self.ei_prediction,
+            ei=self.ei_current,
             sbr=self.patient_config.basal_schedule.get_state(),
             isf=self.patient_config.insulin_sensitivity_schedule.get_state(),
             cir=self.patient_config.carb_ratio_schedule.get_state(),
@@ -236,9 +246,11 @@ class VirtualPatient(SimulationComponent):
         """
         self.bg_current = self.bg_prediction[0]
         self.iob_current = self.iob_prediction[0]
+        self.ei_current = self.ei_prediction[0]
 
         self.bg_history.append(time, self.bg_current)
         self.iob_history.append(self.iob_current)
+        self.ei_history.append(self.ei_current)
 
     def get_steady_state_basal_iob(self, basal_rate):
         """
@@ -386,24 +398,26 @@ class VirtualPatient(SimulationComponent):
         iob_pred = np.zeros(self.num_prediction_steps)
 
         # Apply insulin and carbs to get change in bg relative to endogenous glucose production
-        if rel_insulin_amount != 0 or carb_amount > 0:  # NOTE: Insulin can be negative
+        # if rel_insulin_amount != 0 or carb_amount > 0:  # NOTE: Insulin can be negative
             # This gives results for t=time -> t=time+prediction_horizon_hrs
-            combined_delta_bg_pred, _ = self.run_metabolism_model(
-                rel_insulin_amount, carb_amount
-            )
+        combined_delta_bg_pred, _, ei_pred = self.run_metabolism_model(
+            rel_insulin_amount, carb_amount
+        )
 
         # Apply the absolute amount of insulin to get the insulin on board
         if abs_insulin_amount != 0:
             # TODO: Is it possible to avoid running this twice with a change in the
             #       metabolism model?
-            _, iob_pred = self.run_metabolism_model(
+            _, iob_pred, _ = self.run_metabolism_model(
                 abs_insulin_amount, carb_amount=0
             )
 
         # Update bg prediction with delta bgs
         if self.bg_prediction is None:  # At initialization t=0
             self.bg_prediction = self.bg_current + np.cumsum(combined_delta_bg_pred)
-            self.iob_prediction = self.iob_init + iob_pred
+            self.iob_prediction = self.iob_init + iob_pred            
+            self.ei_prediction = self.ei_init + ei_pred
+
         else:
             # Get shifted predictions for the next time
             bg_pred_prev_shifted = np.append(
@@ -416,6 +430,9 @@ class VirtualPatient(SimulationComponent):
                 self.iob_prediction[1:], 0
             )
             self.iob_prediction = iob_pred + iob_pred_shifted
+
+            ei_pred_shifted = np.append(self.ei_prediction[1:], 0 )
+            self.ei_prediction = ei_pred + ei_pred_shifted
 
         pass
 
@@ -438,12 +455,13 @@ class VirtualPatient(SimulationComponent):
         """
 
         metabolism_model_instance = self.instantiate_metabolism_model()
+        bg_current = self.bg_current
 
-        combined_delta_bg, t_min, insulin_amount, iob = metabolism_model_instance.run(
-            insulin_amount=insulin_amount, carb_amount=carb_amount, five_min=True,
+        combined_delta_bg, t_min, insulin_amount, iob, ei = metabolism_model_instance.run(
+            insulin_amount=insulin_amount, carb_amount=carb_amount, blood_glucose=bg_current, five_min=True,
         )
 
-        return combined_delta_bg, iob
+        return combined_delta_bg, iob, ei
 
     def instantiate_metabolism_model(self):
         """
@@ -456,9 +474,16 @@ class VirtualPatient(SimulationComponent):
 
         isf = self.patient_config.insulin_sensitivity_schedule.get_state()
         cir = self.patient_config.carb_ratio_schedule.get_state()
+        gsf = self.patient_config.glucose_sensitivity_factor_schedule.get_state()
+        bbg = self.patient_config.basal_blood_glucose_schedule.get_state()
+        ipr = self.patient_config.insulin_production_rate_schedule.get_state()
 
         metabolism_model_instance = self.metabolism_model(
-            insulin_sensitivity_factor=isf.value, carb_insulin_ratio=cir.value
+            insulin_sensitivity_factor=isf.value, 
+            carb_insulin_ratio=cir.value, 
+            glucose_sensitivity_factor=gsf.value, 
+            basal_blood_glucose=bbg.value,
+            insulin_production_rate=ipr.value
         )
 
         return metabolism_model_instance

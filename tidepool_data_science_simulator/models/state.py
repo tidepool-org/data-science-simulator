@@ -14,6 +14,7 @@ class VirtualPatientState(object):
         self.sensor_bg_prediction = kwargs.get("sensor_bg_prediction")
         self.iob = kwargs.get("iob")
         self.iob_prediction = kwargs.get("iob_prediction")
+        self.ei = kwargs.get("ei")
         self.pump_state = kwargs.get("pump_state")
         self.sbr = kwargs.get("sbr")
         self.isf = kwargs.get("isf")

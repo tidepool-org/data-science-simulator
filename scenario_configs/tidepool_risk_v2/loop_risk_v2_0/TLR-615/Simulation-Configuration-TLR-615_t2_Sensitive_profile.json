@@ -51,7 +51,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-NoLoop_t2_sensitive",
+      "sim_id": "post-Loop-WithMitigations_t2_sensitive",
       "patient": {
         "patient_model": {
           "bolus_entries": [

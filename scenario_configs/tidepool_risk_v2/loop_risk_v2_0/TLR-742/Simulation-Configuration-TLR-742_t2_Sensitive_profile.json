@@ -15,7 +15,7 @@
           "bolus_entries": [
           {
             "time": "8/15/2019 12:00:00",
-            "value": 3.73
+            "value": 2.69
           }
             ]
         },
@@ -24,7 +24,7 @@
           "bolus_entries":[
           {
             "time": "8/15/2019 12:00:00",
-            "value": 3.73
+            "value": 2.69
           }
             ]
         }
@@ -38,7 +38,7 @@
           "bolus_entries": [
           {
             "time": "8/15/2019 12:00:00",
-            "value": 3.32
+            "value": 2.69
           }
             ]
         },
@@ -47,7 +47,7 @@
           "bolus_entries":[
           {
             "time": "8/15/2019 12:00:00",
-            "value": 3.32
+            "value": 2.69
           }
             ]
         }
@@ -62,7 +62,7 @@
           "bolus_entries": [
           {
             "time": "8/15/2019 12:00:00",
-            "value": 2.98
+            "value": 2.69
           }
             ]
         },
@@ -71,7 +71,7 @@
           "bolus_entries":[
           {
             "time": "8/15/2019 12:00:00",
-            "value": 2.98
+            "value": 2.69
           }
             ],
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"

@@ -6,6 +6,7 @@
     "config_format_version": "v1.0"
   },
   "base_config": "reusable.simulations.t2_median_v1",
+  "duration_hours": 23.0,
   "override_config": [
     {
       "sim_id": "pre-LoopNoMitigations_t2_median",
@@ -20,6 +21,7 @@
     },
     {
       "sim_id": "pre-NoLoop_t2_median",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
@@ -32,6 +34,7 @@
     },
     {
       "sim_id": "post-LoopWithMitigations_t2_median",
+      "duration_hours": 23.0,
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_median_profile_v1"

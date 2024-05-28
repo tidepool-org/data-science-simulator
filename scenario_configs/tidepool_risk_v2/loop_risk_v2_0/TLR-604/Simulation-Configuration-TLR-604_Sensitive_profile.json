@@ -2,7 +2,7 @@
   "metadata": {
     "risk-id": "TLR-604",
     "simulation_id": "TLR-604-sensitive",
-    "risk_description": "Wrong time zone set",
+    "risk_description": "Paired with incorrect pump",
     "config_format_version": "v1.0"
   },
   "base_config": "reusable.simulations.base_sensitive_v1",

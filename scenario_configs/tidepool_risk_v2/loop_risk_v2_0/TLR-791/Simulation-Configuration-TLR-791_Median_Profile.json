@@ -8,11 +8,11 @@
     "base_config": "reusable.simulations.base_median_v1",
     "override_config": [
         {
-          "sim_id": "pre-Loop-noMitigations",
+          "sim_id": "pre-Loop-noMitigations_t1_median",
           "patient": {
             "patient_model": {
               "carb_entries": "reusable.carb_doses.median_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+              "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
             },
             "pump": {
               "carb_entries": "reusable.carb_doses.median_profile_v1",
@@ -26,29 +26,27 @@
             }
         },
       {
-            "sim_id": "pre-NoLoop",
+            "sim_id": "pre-NoLoop_t1_median",
         "patient": {
             "patient_model": {
               "carb_entries": "reusable.carb_doses.median_profile_v1",
               "bolus_entries": "reusable.insulin_doses.median_profile_v1"
             },
             "pump": {
-              "carb_entries": "reusable.carb_doses.median_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+              "carb_entries": "reusable.carb_doses.median_profile_v1"
             }
           },
             "controller": null
         },
         {
-            "sim_id": "post-Loop-WithMitigations",
+            "sim_id": "post-Loop-WithMitigations_t1_median",
           "patient": {
             "patient_model": {
               "carb_entries": "reusable.carb_doses.median_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+              "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
             },
             "pump": {
-              "carb_entries": "reusable.carb_doses.median_profile_v1",
-              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+              "carb_entries": "reusable.carb_doses.median_profile_v1"
             }
           },
             "controller": {
