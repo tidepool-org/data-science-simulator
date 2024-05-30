@@ -51,9 +51,8 @@ that was created from the environmental.yml file (hint: environment name is at t
 1. Run `deactivate` to stop the environment.
 
 ## Getting Started with this project
-The risk scenarios are modeled with JSON config files, which are then fed into the simulator 
-to create glucose and insulin traces and the associated risk scores. Current configs are located
-`scenario_configs/tidepool_risk_v2/loop_risk_v2_0`. 
+1. Current FDA scenarios are stored in `scenario_configs/tidepool_risk_v2/loop_risk_v2_0' within this repo.
+2. Current demo use cases are the `/src`.
 
 ## Contributing Guide
 1. All are welcome to contribute to this project.
@@ -84,11 +83,10 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 |Name (with github link)    |  [Tidepool Slack](https://tidepoolorg.slack.com/)   |  
 |---------|-----------------|
 |[Ed Nykaza](https://github.com/[ed-nykaza])|        |
-|[Jason Meno](https://github.com/[jameno]) |      |
-|[Ed Nykaza](https://github.com/[ed-nykaza])|        |
 |[Jason Meno](https://github.com/[jameno]) |     |
 |[Cameron Summers](https://github.com/[scaubrey]) |  @Cameron Summers    |
 |[Anna Quinlan](https://github.com/[novalegra]) |     |
 |[Eden Grown-Haeberli](https://github.com/[edengh]) |     |
 |[Pete Schwamb](https://github.com/[ps2]) |  @Pete  |
 |[Shawn Foster](https://github.com/[ihadanidea]) |  @Shawn  |
+
