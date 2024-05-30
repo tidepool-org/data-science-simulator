@@ -1,0 +1,26 @@
+{
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      7.06
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      2.35
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00"
+    ],
+    "values": [
+      3.23
+    ]
+  }
+}

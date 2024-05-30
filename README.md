@@ -71,9 +71,6 @@ or `project_data_figure-2020-04-25-v-0-1-0.png`.
 
 NOTE: PHI data is never stored in github and the .gitignore file includes this requirement as well.
 
-## Featured Notebooks/Analysis/Deliverables
-* 
-
 ## Important TODOs
 
 * Integrate iCGM sensor and analysis scenarios (size: medium)
@@ -82,6 +79,9 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 * Surface all parameters for configuration (size: small)
 * Control randomness via config seed(s) (size: small)
 * Speed up Pyloopkit, possible in this code base (size: medium to large)
+
+## Tidepool Contributors
+
 
 ## Current Tidepool Contributors
 |Name (with github link)    |
