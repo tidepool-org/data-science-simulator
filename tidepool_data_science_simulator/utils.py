@@ -1,7 +1,17 @@
 __author__ = "Cameron Summers"
 
+import pdb
+import os
+import datetime as dt
 import time
 import numpy as np
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+PROJECT_ROOT_DIR = os.path.join(os.path.dirname(__file__), "../")
+DATA_DIR = os.path.join(os.path.expanduser("~"), "data/simulator/")
 
 
 def get_bernoulli_trial_uniform_step_prob(num_trials, prob_of_occurring):
@@ -96,14 +106,34 @@ def timing(f):
     """
     Util decorator for timing functions
     """
-    def wrap(*args):
+    def wrap(*args, **kwargs):
         time1 = time.time()
-        ret = f(*args)
+        ret = f(*args, **kwargs)
         time2 = time.time()
-        print(
+        logger.debug(
             "{:s} function took {:.3f} ms".format(f.__name__, (time2 - time1) * 1000.0)
         )
 
         return ret
 
     return wrap
+
+
+def save_df(df_results, analysis_name, save_dir, save_type="tsv"):
+    utc_string = dt.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S")
+    filename = "{}".format(analysis_name, utc_string)
+    path = os.path.join(save_dir, filename)
+    if "tsv" in save_type:
+        df_results.to_csv("{}.tsv".format(path), sep="\t")
+    else:
+        df_results.to_csv("{}.csv".format(path))
+    logger.debug("Saving sim to {}...".format(path))
+
+
+def get_sim_results_save_dir(description):
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    utc_string = dt.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S")
+    results_dir = "../data/results/simulations/{}/{}".format(description, utc_string)
+    abs_path = os.path.join(this_dir, results_dir)
+    os.makedirs(abs_path)
+    return abs_path

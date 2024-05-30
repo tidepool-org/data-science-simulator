@@ -1,7 +1,6 @@
 # Tidepool Data Science Simulator
 
 #### -- Project Status: Active
-#### -- Project Disclaimer: This work is Pre-Production
 
 ## Project Objective
 The purpose of this project is to enable simulation of patient
@@ -9,13 +8,9 @@ metabolism and the interactions of controllers such as Tidepool Loop.
 The current phase is for supporting FDA risk analysis. The longer term goal
 is to support many activities such as Tidepool
 Loop performance analysis and evaluation of algorithms for 
-settings optimization.
-
-## Definition of Done
-The current phase of this project will be done when the code base has been
- tested thoroughly and the current FDA
-risk analysis and iCGM risk sensitivity analysis have been
-implemented in this environment.
+settings optimization. As Tidepool Loop continues active development, additional
+features and algorithm improvements, in exploration and in production,
+development of this project will continue.
 
 ## Project Description
 During refactoring of the FDA risk analysis it became clear that
@@ -35,8 +30,7 @@ The refactored code on which this is based is in `/notebooks/TEMPLATE_Run_Risk_S
 * Pytest for testing
 * Travis for continuous integration testing
 * Black for code style
-* Flake8 for linting
-* [Sphinx](https://www.sphinx-doc.org/en/master/) for documentation
+* JSLint for linting
 * Numpy docstring format 
 
 
@@ -73,20 +67,19 @@ or `project_data_figure-2020-04-25-v-0-1-0.png`.
 
 NOTE: PHI data is never stored in github and the .gitignore file includes this requirement as well.
 
-## Featured Notebooks/Analysis/Deliverables
-* 
-
 ## Important TODOs
 
 * Integrate iCGM sensor and analysis scenarios (size: medium)
 * Testing and cleanup (size: medium to large)
-* Decouple input scenario format from Loop (size: medium)
 * Integrate visuals and metrics repos (size: small)
 * Surface all parameters for configuration (size: small)
 * Control randomness via config seed(s) (size: small)
-* Speed up Pyloopkit, possible in this code base (size: medium to large)
+* Integrate NoisySensor selection in JSON config (size: small)
+* Model Coastal pump delivery and support pump selection via JSON config (size: medium to large)
+* Model autobolusing at varying percentages of recommended bolus (size: medium)
 
-## Tidepool Data Science Team
+## Tidepool Contributors
+
 |Name (with github link)    |  [Tidepool Slack](https://tidepoolorg.slack.com/)   |  
 |---------|-----------------|
 |[Ed Nykaza](https://github.com/[ed-nykaza])|        |
@@ -96,5 +89,4 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 |[Eden Grown-Haeberli](https://github.com/[edengh]) |     |
 |[Pete Schwamb](https://github.com/[ps2]) |  @Pete  |
 |[Shawn Foster](https://github.com/[ihadanidea]) |  @Shawn  |
-
 

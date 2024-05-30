@@ -1,0 +1,28 @@
+name: tidepool-data-science-simulator
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - black
+  - coverage
+  - flake8
+  - matplotlib
+  - mypy
+  - numpy
+  - pandas
+  - pip
+  - plotly
+  - plotly-orca
+  - pre-commit
+  - pytest
+  - python
+  - python-dotenv
+  - requests
+  - scipy
+  - seaborn
+  - pip:
+    - pip-chill
+    - python-dotenv
+    - -e file:/Users/mconn/tidepool/repositories/data-science-models
+    - -e file:/Users/mconn/tidepool/repositories/PyLoopKit
+    - -e file:/Users/mconn/tidepool/repositories/data-science-metrics

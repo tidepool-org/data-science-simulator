@@ -1,0 +1,4 @@
+{
+  "t0_delay_minutes": 30,
+  "action": "virtualPatientDeleteLoopData"
+}
