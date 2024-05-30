@@ -1,0 +1,20 @@
+{
+  "max_basal_rate": 35,
+  "max_bolus": 30,
+  "glucose_safety_limit": 70,
+  "model": "rapid_acting_adult",
+  "momentum_data_interval": 15,
+  "dynamic_carb_absorption_enabled": true,
+  "retrospective_correction_integration_interval": 30,
+  "recency_interval": 15,
+  "retrospective_correction_grouping_interval": 30,
+  "rate_rounder": 0.05,
+  "insulin_delay": 10,
+  "carb_delay": 10,
+  "default_absorption_times": [
+    120.0,
+    180.0,
+    240.0
+  ],
+  "retrospective_correction_enabled": true
+}

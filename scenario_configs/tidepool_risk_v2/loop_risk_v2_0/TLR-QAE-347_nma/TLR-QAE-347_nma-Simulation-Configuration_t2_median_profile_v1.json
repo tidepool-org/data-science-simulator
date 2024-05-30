@@ -1,0 +1,1541 @@
+{
+  "metadata": {
+    "risk-id": "TLR-QAE-247_cc",
+    "simulation_id": "TLR-QAE-247_cc-base_median",
+    "risk_description": "",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_median_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/17/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/17/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/17/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/18/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/18/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/18/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/19/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/19/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/19/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/22/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/22/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/22/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/23/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/23/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/23/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/24/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/24/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/24/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/25/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/25/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/25/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/26/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/26/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/26/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/27/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/27/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/27/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/28/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/28/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/29/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/29/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/29/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/30/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/30/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/30/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/31/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/31/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/31/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/01/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/01/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/01/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/02/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/02/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "09/02/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "09/03/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/03/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/03/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/04/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/04/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/04/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/05/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/05/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/05/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/06/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/06/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/06/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/07/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/07/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/07/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/08/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/08/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/08/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/08/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/09/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/09/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/09/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/10/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/10/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/10/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/11/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/11/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/11/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/12/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/12/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/12/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/13/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/13/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/13/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/14/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/14/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/14/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/15/2019 09:00:00",
+              "value": 69
+            }
+          ]
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_T1_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/17/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/17/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/17/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/18/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/18/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/18/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/19/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/19/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/19/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/20/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/21/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/22/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/22/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/22/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/23/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/23/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/23/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/24/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/24/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/24/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/25/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/25/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/25/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/26/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/26/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/26/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/27/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/27/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/27/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/28/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/28/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/29/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/29/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/29/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/30/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/30/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/30/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/31/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/31/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/31/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/01/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/01/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/01/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/02/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/02/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "09/02/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "09/03/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/03/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/03/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/04/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/04/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/04/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/05/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/05/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/05/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/06/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/06/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/06/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/07/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/07/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/07/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/08/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/08/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/08/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/08/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/09/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/09/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/09/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/10/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/10/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/10/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/11/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/11/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/11/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/12/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/12/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/12/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/13/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/13/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/13/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/14/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/14/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/14/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "9/15/2019 09:00:00",
+              "value": 69
+            }
+          ]
+        }
+      }
+    },
+    {"sim_id": "post-Loop-WithMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 18:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 09:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 12:00:00",
+              "value": 69
+            },
+            {
+              "type": "carb",
+              "start_time": "8/16/2019 12:00:00",
+              "value": 69
+            },
+            {
+            "type": "carb",
+            "start_time": "8/16/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/17/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/17/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/17/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/18/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/18/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/18/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/19/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/19/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/19/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/20/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/20/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/20/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/20/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/20/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/20/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/21/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/21/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/21/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/21/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/21/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/21/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/22/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/22/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/22/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/23/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/23/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/23/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/24/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/24/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/24/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/25/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/25/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/25/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/26/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/26/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/26/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/27/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/27/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/27/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/28/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/28/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/29/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/29/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/29/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/30/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/30/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/30/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/31/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/31/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "8/31/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/01/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/01/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/01/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/02/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/02/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "09/02/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "09/03/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/03/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/03/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/04/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/04/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/04/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/05/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/05/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/05/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/06/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/06/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/06/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/07/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/07/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/07/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/08/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/08/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/08/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/08/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/09/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/09/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/09/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/10/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/10/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/10/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/11/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/11/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/11/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/12/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/12/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/12/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/13/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/13/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/13/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/14/2019 09:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/14/2019 12:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/14/2019 18:00:00",
+            "value": 69
+          },
+            {
+            "type": "carb",
+            "start_time": "9/15/2019 09:00:00",
+            "value": 69
+          }
+          ]
+        },
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_v1"
+      }
+    }
+]
+}
