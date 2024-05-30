@@ -78,11 +78,10 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 * Integrate visuals and metrics repos (size: small)
 * Surface all parameters for configuration (size: small)
 * Control randomness via config seed(s) (size: small)
-* Integrate NoisySensor selection in JSON config (size: small)
-* Model Coastal pump delivery and support pump selection via JSON config (size: medium to large)
-* Model autobolusing at varying percentages of recommended bolus (size: medium)
+* Speed up Pyloopkit, possible in this code base (size: medium to large)
 
 ## Tidepool Contributors
+
 
 ## Current Tidepool Contributors
 |Name (with github link)    |
@@ -98,4 +97,3 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 |[Cameron Summers](https://github.com/[scaubrey]) |
 |[Anna Quinlan] (https://github.com/[novalegra]) |
 |[Eden Grown-Haeberli] (https://github.com/[edengh])  |
-
