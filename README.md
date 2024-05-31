@@ -86,8 +86,9 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 ## Current Tidepool Contributors
 |Name (with github link)    |
 |---------|
-|[Shawn Foster] (https://github.com/[ihadanidea]) |
-|[Pete Schwamb] (https://github.com/[ps2])  |
+|[Mark Connolly](https://github.com/[markjudeconnolly]) |
+|[Shawn Foster](https://github.com/[ihadanidea]) |
+|[Pete Schwamb](https://github.com/[ps2])  |
 
 ## Previous Tidepool Contributors
 |Name (with github link)     |
@@ -95,5 +96,5 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 |[Ed Nykaza](https://github.com/[ed-nykaza])|
 |[Jason Meno](https://github.com/[jameno]) |
 |[Cameron Summers](https://github.com/[scaubrey]) |
-|[Anna Quinlan] (https://github.com/[novalegra]) |
-|[Eden Grown-Haeberli] (https://github.com/[edengh])  |
+|[Anna Quinlan](https://github.com/[novalegra]) |
+|[Eden Grown-Haeberli](https://github.com/[edengh])  |
