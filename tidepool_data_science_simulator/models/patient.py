@@ -308,6 +308,7 @@ class VirtualPatient(SimulationComponent):
 
         carb_amount = 0
         carb_absorb_minutes = 180
+        
         if carb is not None:
             carb_amount = carb.value
             carb_absorb_minutes = carb.duration_minutes
