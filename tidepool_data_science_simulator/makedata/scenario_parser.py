@@ -8,6 +8,7 @@ into a normalized format for the simulation.
 import pandas as pd
 import numpy as np
 import copy
+import datetime
 
 from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
 from tidepool_data_science_simulator.models.simulation import (
@@ -20,6 +21,9 @@ from tidepool_data_science_simulator.models.measures import (
     BasalRate,
     CarbInsulinRatio,
     InsulinSensitivityFactor,
+    GlucoseSensitivityFactor,
+    BasalBloodGlucose,
+    InsulinProductionRate,
     TargetRange,
     GlucoseTrace,
 )
@@ -176,7 +180,7 @@ class ScenarioParserCSV(SimulationParser):
                 "carb_ratio_minutes", [1440]
             ),  # TODO: hack
         )
-
+        
         self.patient_insulin_sensitivity_schedule = SettingSchedule24Hr(
             time,
             "Insulin Sensitivity",
@@ -192,6 +196,83 @@ class ScenarioParserCSV(SimulationParser):
                 "sensitivity_ratio_minutes", [1440]
             ),  # TODO: hack
         )
+
+        ########
+        # Adding parameters for the T2 model which will default to 0 if they're not 
+        # specified to maintain backward compatibility
+        ########
+
+        # Glucose Sensitivity Factor
+        if self.tmp_dict.get("glucose_sensitivity_factor_start_times") is None:
+            start_times=[datetime.time(0, 0)]
+            values=[GlucoseSensitivityFactor(0.0, 'U / mg/dL / min')]
+        else:
+            start_times=self.tmp_dict.get("glucose_sensitivity_factor_start_times")
+            values=[
+                    GlucoseSensitivityFactor(value, units)
+                    for value, units in zip(
+                        self.tmp_dict.get("actual_glucose_sensitivity_factor"),
+                        self.tmp_dict.get("sensitivity_glucose_sensitivity_factor"),
+                    )
+            ]
+    
+        self.patient_glucose_sensitivity_factor_schedule = SettingSchedule24Hr(
+            time,
+            "Glucose Sensitivity Factor",
+            start_times=start_times,
+            values=values,
+            duration_minutes=self.tmp_dict.get(
+                "glucose_sensitivity_factor_minutes", [1440]
+            ),  # TODO: hack
+        )
+
+        # Basal Blood Glucose
+        if self.tmp_dict.get("basal_blood_glucose_start_times") is None:
+            start_times=[datetime.time(0, 0)]
+            values=[BasalBloodGlucose(0.0, 'U / mg/dL / min')]
+        else:
+            start_times=self.tmp_dict.get("basal_blood_glucose_start_times")
+            values=[
+                    BasalBloodGlucose(value, units)
+                    for value, units in zip(
+                        self.tmp_dict.get("actual_basal_blood_glucose"),
+                        self.tmp_dict.get("sensitivity_basal_blood_glucose"),
+                    )
+            ]
+          
+        self.patient_basal_blood_glucose_schedule = SettingSchedule24Hr(
+            time,
+            "Basal Blood Glucose",
+            start_times=start_times,
+            values=values,
+            duration_minutes=self.tmp_dict.get(
+                "basal_blood_glucose_minutes", [1440]
+            ),  # TODO: hack
+        )
+
+        # Insulin Production Rate
+        if self.tmp_dict.get("insulin_production_rate_start_times") is None:
+            start_times=[datetime.time(0, 0)]
+            values=[BasalBloodGlucose(0.0, 'U / mg/dL / min')]
+        else:
+            start_times=self.tmp_dict.get("insulin_production_rate_start_times")
+            values=[
+                    BasalBloodGlucose(value, units)
+                    for value, units in zip(
+                        self.tmp_dict.get("actual_insulin_production_rate"),
+                        self.tmp_dict.get("sensitivity_insulin_production_rate"),
+                    )
+            ]
+        self.patient_insulin_production_rate_schedule = SettingSchedule24Hr(
+            time,
+            "Insulin Production Rate",
+            start_times=start_times,
+            values=values,
+            duration_minutes=self.tmp_dict.get(
+                "insulin_production_rate_minutes", [1440]
+            ),  # TODO: hack
+        )
+        ########
 
         self.patient_target_range_schedule = TargetRangeSchedule24hr(
             time,
@@ -286,6 +367,11 @@ class ScenarioParserCSV(SimulationParser):
             basal_schedule=self.patient_basal_schedule,
             carb_ratio_schedule=self.patient_carb_ratio_schedule,
             insulin_sensitivity_schedule=self.patient_insulin_sensitivity_schedule,
+
+            glucose_sensitivity_factor_schedule=self.patient_glucose_sensitivity_factor_schedule,
+            basal_blood_glucose_schedule=self.patient_basal_blood_glucose_schedule,
+            insulin_production_rate_schedule=self.patient_insulin_production_rate_schedule,
+
             carb_event_timeline=self.patient_carb_events,
             bolus_event_timeline=self.patient_bolus_events,
             glucose_history=copy.deepcopy(self.patient_glucose_history),
