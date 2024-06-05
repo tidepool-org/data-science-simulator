@@ -28,6 +28,10 @@ from tidepool_data_science_simulator.models.measures import (
     GlucoseTrace,
 )
 
+# Todo move these to a separate class
+SINGLE_SETTING_START_TIME = datetime.time(hour=0, minute=0, second=0)
+SINGLE_SETTING_DURATION = 1440
+DATETIME_DEFAULT = datetime.datetime(year=2019, month=8, day=15, hour=12, minute=0, second=0)
 
 class SimulationParser(object):
 
@@ -253,11 +257,11 @@ class ScenarioParserCSV(SimulationParser):
         # Insulin Production Rate
         if self.tmp_dict.get("insulin_production_rate_start_times") is None:
             start_times=[datetime.time(0, 0)]
-            values=[BasalBloodGlucose(0.0, 'U / mg/dL / min')]
+            values=[InsulinProductionRate(0.0, 'U / mg/dL / min')]
         else:
             start_times=self.tmp_dict.get("insulin_production_rate_start_times")
             values=[
-                    BasalBloodGlucose(value, units)
+                    InsulinProductionRate(value, units)
                     for value, units in zip(
                         self.tmp_dict.get("actual_insulin_production_rate"),
                         self.tmp_dict.get("sensitivity_insulin_production_rate"),
@@ -451,13 +455,13 @@ class PatientConfig(object):
         basal_schedule,
         carb_ratio_schedule,
         insulin_sensitivity_schedule,
-        glucose_sensitivity_factor_schedule,
-        basal_blood_glucose_schedule,
-        insulin_production_rate_schedule,
         glucose_history,
         carb_event_timeline,
         bolus_event_timeline,
         action_timeline,
+        glucose_sensitivity_factor_schedule=None,
+        basal_blood_glucose_schedule=None,
+        insulin_production_rate_schedule=None,
     ):
         """
         Configuration object for virtual patient.
@@ -482,6 +486,33 @@ class PatientConfig(object):
         bolus_event_timeline: BolusTimeline
             Timeline of true bolus events
         """
+
+        if not glucose_sensitivity_factor_schedule:
+            glucose_sensitivity_factor_schedule=SettingSchedule24Hr(
+                DATETIME_DEFAULT,
+                "GSF",
+                start_times=[SINGLE_SETTING_START_TIME],
+                values=[GlucoseSensitivityFactor(0.0, "U / md/dL / min")],
+                duration_minutes=[SINGLE_SETTING_DURATION]
+            )
+
+        if not basal_blood_glucose_schedule:
+            basal_blood_glucose_schedule=SettingSchedule24Hr(
+                DATETIME_DEFAULT,
+                "BBG",
+                start_times=[SINGLE_SETTING_START_TIME],
+                values=[BasalBloodGlucose(0.0, "md/dL / min")],
+                duration_minutes=[SINGLE_SETTING_DURATION]
+            )
+
+        if not insulin_production_rate_schedule:
+            insulin_production_rate_schedule=SettingSchedule24Hr(
+                DATETIME_DEFAULT,
+                "IPR",
+                start_times=[SINGLE_SETTING_START_TIME],
+                values=[InsulinProductionRate(0.0, "U / min")],
+                duration_minutes=[SINGLE_SETTING_DURATION]
+            )
 
         self.basal_schedule = basal_schedule
         self.carb_ratio_schedule = carb_ratio_schedule

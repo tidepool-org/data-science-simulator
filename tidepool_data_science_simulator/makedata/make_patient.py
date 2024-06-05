@@ -158,27 +158,6 @@ def get_canonical_risk_patient_config(t0=DATETIME_DEFAULT, start_glucose_value=1
             values=[InsulinSensitivityFactor(150.0, "md/dL / U")],
             duration_minutes=[SINGLE_SETTING_DURATION]
         ),
-        glucose_sensitivity_factor_schedule=SettingSchedule24Hr(
-            t0,
-            "GSF",
-            start_times=[SINGLE_SETTING_START_TIME],
-            values=[GlucoseSensitivityFactor(150.0, "U / md/dL / min")],
-            duration_minutes=[SINGLE_SETTING_DURATION]
-        ),
-        basal_blood_glucose_schedule=SettingSchedule24Hr(
-            t0,
-            "BBG",
-            start_times=[SINGLE_SETTING_START_TIME],
-            values=[BasalBloodGlucose(150.0, "md/dL")],
-            duration_minutes=[SINGLE_SETTING_DURATION]
-        ),
-        insulin_production_rate_schedule=SettingSchedule24Hr(
-            t0,
-            "IPR",
-            start_times=[SINGLE_SETTING_START_TIME],
-            values=[InsulinProductionRate(0, "U / min")],
-            duration_minutes=[SINGLE_SETTING_DURATION]
-        ),
         glucose_history=true_bg_history,
         carb_event_timeline=patient_carb_timeline,
         bolus_event_timeline=patient_bolus_timeline,
