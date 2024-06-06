@@ -4,7 +4,7 @@
             "00:00:00"
         ],
         "values": [
-            25.0
+            30.0
         ]
     },
     "carb_insulin_ratio": {
@@ -12,7 +12,7 @@
             "00:00:00"
         ],
         "values": [
-            15.0
+            20.0
         ]
     },
     "basal_rate": {
@@ -22,9 +22,9 @@
             "13:00:00"
         ],
         "values": [
-            1.33,
+            0.85,
             0,
-            1.33
+            0.85
         ]
     },
     "glucose_sensitivity_factor": {
@@ -32,7 +32,7 @@
             "00:00:00"
         ],
         "values": [
-            0.0007
+            0.001289
         ]
     },
     "basal_blood_glucose": {
@@ -40,7 +40,7 @@
             "00:00:00"
         ],
         "values": [
-            110.0
+            130.0
         ]
     },
     "insulin_production_rate": {

@@ -20,7 +20,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [0.65]
+              "values": [0.42]
             }
           }
         }
@@ -39,7 +39,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [0.65]
+              "values": [0.42]
             }
           }
         }
@@ -59,7 +59,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00"],
-              "values": [0.65]
+              "values": [0.42]
             }
           }
         }
