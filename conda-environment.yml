@@ -23,6 +23,6 @@ dependencies:
   - pip:
     - pip-chill==1.0.0
     - python-dotenv==0.13.0
-    - git+https://github.com/tidepool-org/data-science-models@mjc/t2_model
+    - git+https://github.com/tidepool-org/data-science-models@dev
     - git+https://github.com/tidepool-org/Pyloopkit@mjc/t2_model
     - git+https://github.com/tidepool-org/data-science-metrics
