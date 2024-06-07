@@ -1,4 +1,4 @@
-name: tidepool-data-science-simulator
+name: tidepool-data-science-simulator-dev
 channels:
   - defaults
   - conda-forge
