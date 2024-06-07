@@ -8,6 +8,7 @@ into a normalized format for the simulation.
 import pandas as pd
 import numpy as np
 import copy
+import datetime
 
 from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
 from tidepool_data_science_simulator.models.simulation import (
@@ -20,10 +21,17 @@ from tidepool_data_science_simulator.models.measures import (
     BasalRate,
     CarbInsulinRatio,
     InsulinSensitivityFactor,
+    GlucoseSensitivityFactor,
+    BasalBloodGlucose,
+    InsulinProductionRate,
     TargetRange,
     GlucoseTrace,
 )
 
+# Todo move these to a separate class
+SINGLE_SETTING_START_TIME = datetime.time(hour=0, minute=0, second=0)
+SINGLE_SETTING_DURATION = 1440
+DATETIME_DEFAULT = datetime.datetime(year=2019, month=8, day=15, hour=12, minute=0, second=0)
 
 class SimulationParser(object):
 
@@ -176,7 +184,7 @@ class ScenarioParserCSV(SimulationParser):
                 "carb_ratio_minutes", [1440]
             ),  # TODO: hack
         )
-
+        
         self.patient_insulin_sensitivity_schedule = SettingSchedule24Hr(
             time,
             "Insulin Sensitivity",
@@ -192,6 +200,83 @@ class ScenarioParserCSV(SimulationParser):
                 "sensitivity_ratio_minutes", [1440]
             ),  # TODO: hack
         )
+
+        ########
+        # Adding parameters for the T2 model which will default to 0 if they're not 
+        # specified to maintain backward compatibility
+        ########
+
+        # Glucose Sensitivity Factor
+        if self.tmp_dict.get("glucose_sensitivity_factor_start_times") is None:
+            start_times=[datetime.time(0, 0)]
+            values=[GlucoseSensitivityFactor(0.0, 'U / mg/dL / min')]
+        else:
+            start_times=self.tmp_dict.get("glucose_sensitivity_factor_start_times")
+            values=[
+                    GlucoseSensitivityFactor(value, units)
+                    for value, units in zip(
+                        self.tmp_dict.get("actual_glucose_sensitivity_factor"),
+                        self.tmp_dict.get("sensitivity_glucose_sensitivity_factor"),
+                    )
+            ]
+    
+        self.patient_glucose_sensitivity_factor_schedule = SettingSchedule24Hr(
+            time,
+            "Glucose Sensitivity Factor",
+            start_times=start_times,
+            values=values,
+            duration_minutes=self.tmp_dict.get(
+                "glucose_sensitivity_factor_minutes", [1440]
+            ),  # TODO: hack
+        )
+
+        # Basal Blood Glucose
+        if self.tmp_dict.get("basal_blood_glucose_start_times") is None:
+            start_times=[datetime.time(0, 0)]
+            values=[BasalBloodGlucose(0.0, 'U / mg/dL / min')]
+        else:
+            start_times=self.tmp_dict.get("basal_blood_glucose_start_times")
+            values=[
+                    BasalBloodGlucose(value, units)
+                    for value, units in zip(
+                        self.tmp_dict.get("actual_basal_blood_glucose"),
+                        self.tmp_dict.get("sensitivity_basal_blood_glucose"),
+                    )
+            ]
+          
+        self.patient_basal_blood_glucose_schedule = SettingSchedule24Hr(
+            time,
+            "Basal Blood Glucose",
+            start_times=start_times,
+            values=values,
+            duration_minutes=self.tmp_dict.get(
+                "basal_blood_glucose_minutes", [1440]
+            ),  # TODO: hack
+        )
+
+        # Insulin Production Rate
+        if self.tmp_dict.get("insulin_production_rate_start_times") is None:
+            start_times=[datetime.time(0, 0)]
+            values=[InsulinProductionRate(0.0, 'U / mg/dL / min')]
+        else:
+            start_times=self.tmp_dict.get("insulin_production_rate_start_times")
+            values=[
+                    InsulinProductionRate(value, units)
+                    for value, units in zip(
+                        self.tmp_dict.get("actual_insulin_production_rate"),
+                        self.tmp_dict.get("sensitivity_insulin_production_rate"),
+                    )
+            ]
+        self.patient_insulin_production_rate_schedule = SettingSchedule24Hr(
+            time,
+            "Insulin Production Rate",
+            start_times=start_times,
+            values=values,
+            duration_minutes=self.tmp_dict.get(
+                "insulin_production_rate_minutes", [1440]
+            ),  # TODO: hack
+        )
+        ########
 
         self.patient_target_range_schedule = TargetRangeSchedule24hr(
             time,
@@ -286,6 +371,11 @@ class ScenarioParserCSV(SimulationParser):
             basal_schedule=self.patient_basal_schedule,
             carb_ratio_schedule=self.patient_carb_ratio_schedule,
             insulin_sensitivity_schedule=self.patient_insulin_sensitivity_schedule,
+
+            glucose_sensitivity_factor_schedule=self.patient_glucose_sensitivity_factor_schedule,
+            basal_blood_glucose_schedule=self.patient_basal_blood_glucose_schedule,
+            insulin_production_rate_schedule=self.patient_insulin_production_rate_schedule,
+
             carb_event_timeline=self.patient_carb_events,
             bolus_event_timeline=self.patient_bolus_events,
             glucose_history=copy.deepcopy(self.patient_glucose_history),
@@ -365,13 +455,13 @@ class PatientConfig(object):
         basal_schedule,
         carb_ratio_schedule,
         insulin_sensitivity_schedule,
-        glucose_sensitivity_factor_schedule,
-        basal_blood_glucose_schedule,
-        insulin_production_rate_schedule,
         glucose_history,
         carb_event_timeline,
         bolus_event_timeline,
         action_timeline,
+        glucose_sensitivity_factor_schedule=None,
+        basal_blood_glucose_schedule=None,
+        insulin_production_rate_schedule=None,
     ):
         """
         Configuration object for virtual patient.
@@ -396,6 +486,33 @@ class PatientConfig(object):
         bolus_event_timeline: BolusTimeline
             Timeline of true bolus events
         """
+
+        if not glucose_sensitivity_factor_schedule:
+            glucose_sensitivity_factor_schedule=SettingSchedule24Hr(
+                DATETIME_DEFAULT,
+                "GSF",
+                start_times=[SINGLE_SETTING_START_TIME],
+                values=[GlucoseSensitivityFactor(0.0, "U / md/dL / min")],
+                duration_minutes=[SINGLE_SETTING_DURATION]
+            )
+
+        if not basal_blood_glucose_schedule:
+            basal_blood_glucose_schedule=SettingSchedule24Hr(
+                DATETIME_DEFAULT,
+                "BBG",
+                start_times=[SINGLE_SETTING_START_TIME],
+                values=[BasalBloodGlucose(0.0, "md/dL / min")],
+                duration_minutes=[SINGLE_SETTING_DURATION]
+            )
+
+        if not insulin_production_rate_schedule:
+            insulin_production_rate_schedule=SettingSchedule24Hr(
+                DATETIME_DEFAULT,
+                "IPR",
+                start_times=[SINGLE_SETTING_START_TIME],
+                values=[InsulinProductionRate(0.0, "U / min")],
+                duration_minutes=[SINGLE_SETTING_DURATION]
+            )
 
         self.basal_schedule = basal_schedule
         self.carb_ratio_schedule = carb_ratio_schedule

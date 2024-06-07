@@ -13,7 +13,8 @@ from tidepool_data_science_simulator.models.simulation import (
 from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, ActionTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import PumpConfig, PatientConfig, SensorConfig
 from tidepool_data_science_simulator.models.measures import (
-    InsulinSensitivityFactor, CarbInsulinRatio, BasalRate, TargetRange, GlucoseTrace, Bolus, Carb
+    InsulinSensitivityFactor, GlucoseSensitivityFactor, BasalBloodGlucose, InsulinProductionRate,
+    CarbInsulinRatio, BasalRate, TargetRange, GlucoseTrace, Bolus, Carb
 )
 from tidepool_data_science_simulator.models.pump import OmnipodMissingPulses, Omnipod, ContinuousInsulinPump
 from tidepool_data_science_simulator.models.patient import VirtualPatient, VirtualPatientModel

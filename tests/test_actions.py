@@ -105,3 +105,4 @@ def test_virtual_patient_delete_with_scenario_file():
 
     assert len(vp.pump.temp_basal_event_timeline.get_recent_event_times(after_action_time, num_hours_history=0.5)) != 0
     assert len(vp.pump.bolus_event_timeline.get_recent_event_times(after_action_time, num_hours_history=0.5)) != 0
+
