@@ -9,6 +9,7 @@
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations_t2_median",
+
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
@@ -27,13 +28,14 @@
       },
     {
       "sim_id": "pre-noLoop_t2_median",
+
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 4.10
+              "value": 1.61
             }
           ]
         },
@@ -41,7 +43,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 4.10
+              "value": 1.61
             }
           ],
           "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_70_2hrs_v1"
@@ -51,6 +53,7 @@
       },
     {
       "sim_id": "post-Loop-WithMitigations_t2_median",
+
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_median_profile_v1",

@@ -9,6 +9,7 @@
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations_t2_sensitive",
+
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
@@ -27,13 +28,14 @@
       },
     {
       "sim_id": "pre-noLoop_t2_sensitive",
+
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 2.17
+              "value": 1.44
             }
           ]
         },
@@ -42,7 +44,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 2.17
+              "value": 1.44
             }
           ],
           "metabolism_settings": "reusable.metabolism_settings.t2_sensitive_preset_70_2hrs_v1"
@@ -52,6 +54,7 @@
       },
     {
       "sim_id": "post-Loop-WithMitigations_t2_sensitive",
+
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",

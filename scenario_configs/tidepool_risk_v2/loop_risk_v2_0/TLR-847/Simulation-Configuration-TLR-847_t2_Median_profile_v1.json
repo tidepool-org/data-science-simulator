@@ -9,6 +9,7 @@
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations_t2_median",
+
       "patient": {
         "pump": {
           "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_70_2hrs_v1"
@@ -17,6 +18,7 @@
       },
     {
       "sim_id": "pre-noLoop_t2_median",
+
       "patient": {
         "pump": {
           "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_70_2hrs_v1"
@@ -26,6 +28,7 @@
       },
     {
       "sim_id": "post-Loop-WithMitigations_t2_median",
+
       "patient": {
         "pump": {
           "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_70_2hrs_v1",
