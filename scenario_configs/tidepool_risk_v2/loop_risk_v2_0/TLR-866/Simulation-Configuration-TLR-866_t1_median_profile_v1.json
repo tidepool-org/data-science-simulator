@@ -27,7 +27,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [1.33, 0.66, 1.33]
+              "values": [0.85, 0.42, 0.85]
             }
           }
         },
@@ -35,7 +35,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [1.33, 0.66, 1.33]
+              "values": [0.85, 0.42, 0.85]
             }
           }
         }
@@ -49,7 +49,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [1.33, 0.66, 1.33]
+              "values": [0.85, 0.42, 0.85]
             }
           }
         },
@@ -57,7 +57,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [1.33, 0.66, 1.33]
+              "values": [0.85, 0.42, 0.85]
             }
           }
         }
@@ -78,14 +78,14 @@
             "time": "8/15/2019 16:00:00"
           }
         ],
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_v1"
     },
       "patient": {
         "patient_model": {
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [1.33, 0.66, 1.33]
+              "values": [0.85, 0.42, 0.85]
             }
           }
         },
@@ -93,10 +93,10 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [1.33, 0.66, 1.33]
+              "values": [0.85, 0.42, 0.85]
             }
           },
-          "target_range": "reusable.mitigations.guardrails.target_range_t2_median_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
         }
       }
     }

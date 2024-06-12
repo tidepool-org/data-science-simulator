@@ -30,7 +30,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.68
+              "value": "accept_recommendation"
             }
           ]
         }
@@ -48,22 +48,27 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.68
+              "value": 1.17
             }
           ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [0.4, 1.4, 0.4]
+              "values": [0.3, 1.05, 0.3]
             }
           }
         },
         "pump": {
-          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.17
+            }
+          ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [0.4, 1.4, 0.4]
+              "values": [0.3, 1.05, 0.3]
             }
           }
         }
@@ -96,30 +101,24 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.68
+              "value": "accept_recommendation"
             }
           ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [0.4, 1.4, 0.4]
+              "values": [0.3, 1.05, 0.3]
             }
           }
         },
         "pump": {
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 1.68
-            }
-          ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [0.4, 1.4, 0.4]
+              "values": [0.3, 1.05, 0.3]
             }
           },
-          "target_range": "reusable.mitigations.guardrails.target_range_t2_sensitive_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       }
     }
