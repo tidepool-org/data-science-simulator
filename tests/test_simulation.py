@@ -40,7 +40,7 @@ def test_basic_simulation():
 
     true_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(20.0, "U", 180)])
     patient_config.carb_event_timeline = true_carb_timeline
-    reported_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 240)])
+    reported_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(22.0, "U", 240)])
     pump_config.carb_event_timeline = reported_carb_timeline
 
     new_target_range_schedule = \
@@ -77,9 +77,10 @@ def test_basic_simulation():
     sim.run()
     sim_results_df = sim.get_results_df()
 
+    plot_sim_results({sim_id: sim_results_df})
+
     assert abs(target - sim_results_df["bg"].tolist()[-1]) < 10
 
-    # plot_sim_results({sim_id: sim_results_df})
 
 
 if __name__ == "__main__":
