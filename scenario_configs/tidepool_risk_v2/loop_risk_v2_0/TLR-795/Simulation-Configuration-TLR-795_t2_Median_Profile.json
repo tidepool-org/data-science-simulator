@@ -11,7 +11,7 @@
       "sim_id": "pre-Loop-NoMitigations_t2_median",
       "controller": {
           "settings": {
-            "max_basal_rate": 13.3
+            "max_basal_rate": 8.5
           }
         }
     },

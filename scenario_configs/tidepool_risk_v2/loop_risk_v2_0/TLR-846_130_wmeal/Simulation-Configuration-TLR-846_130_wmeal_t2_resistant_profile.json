@@ -26,14 +26,14 @@
       }
     },
     {
-      "sim_id": "pre-noLoop_t2_median",
+      "sim_id": "pre-noLoop_t2_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 2.31
+              "value": 5.85
             }
           ]
         },
@@ -42,7 +42,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 2.31
+              "value": 5.85
             }
           ],
           "metabolism_settings": "reusable.metabolism_settings.t2_resistant_preset_130_v1"
@@ -51,7 +51,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t2_median",
+      "sim_id": "post-Loop-WithMitigations_t2_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
