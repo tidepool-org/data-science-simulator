@@ -218,12 +218,20 @@ def get_icgm_patient_settings_objects():
     settings_export_json = json.load(open(ICGM_SETTINGS_FILEPATH, "r"))
 
     icgm_patients = []
-    for settings in settings_export_json:
-        patient_obj = iCGMPatientSettings(settings)
-        icgm_patients.append(patient_obj)
+    for idx, settings in enumerate(settings_export_json):
+        print(f"Processing settings {idx}: {settings}")
+
+        # Check the keys available in settings
+        print(f"Keys in settings: {settings.keys()}")
+
+        try:
+            patient_obj = iCGMPatientSettings(settings)
+            icgm_patients.append(patient_obj)
+            print(f"Successfully created iCGMPatientSettings instance for {settings['patient_id']}")
+        except Exception as e:
+            print(f"Failed to create iCGMPatientSettings instance: {e}")
 
     return icgm_patients
-
 
 def get_old_icgm_tidepool_patient_files_dict():
     """
