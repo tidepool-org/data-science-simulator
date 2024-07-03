@@ -30,10 +30,11 @@ RAW_DATA_DIR = os.path.join(DATA_DIR, "raw/")
 ICGM_SCENARIOS_DIR = os.path.join(DATA_DIR, "raw/icgm-sensitivity-analysis-scenarios-2020-07-10/")
 PROCESSED_DATA_DIR = os.path.join(DATA_DIR, "processed/")
 
-ICGM_SETTINGS_FILEPATH = os.path.join(PROCESSED_DATA_DIR, "icgm", "icgm_patient_settings.json")
+ICGM_SETTINGS_FILEPATH = os.path.join(PROCESSED_DATA_DIR, "icgm/", "icgm_patient_settings.json")
 
 logger = logging.getLogger(__name__)
 
+os.makedirs(os.path.dirname(ICGM_SETTINGS_FILEPATH), exist_ok=True)
 
 def sample_weight_kg_by_age(age, random_state):
     """
@@ -106,16 +107,19 @@ def sample_total_daily_dose_by_age(age, random_state):
 
 
 class iCGMPatientSettings():
+    class iCGMPatientSettings():
 
-    def __init__(self, settings_export):
-        self.settings_export = settings_export
-        self.basal_rate = float(settings_export["pump"]["basal_schedule"]["schedule"][0]["setting"])
-        self.cir = float(settings_export["pump"]["carb_ratio_schedule"]["schedule"][0]["setting"])
-        self.isf = float(settings_export["pump"]["insulin_sensitivity_schedule"]["schedule"][0]["setting"])
+        def __init__(self, settings_export):
+            self.settings_export = settings_export
+            self.basal_rate = float(settings_export["pump"]["basal_schedule"]["schedule"][0]["setting"])
+            self.cir = float(settings_export["pump"]["carb_ratio_schedule"]["schedule"][0]["setting"])
+            self.isf = float(settings_export["pump"]["insulin_sensitivity_schedule"]["schedule"][0]["setting"])
+            self.age = settings_export["controller"]["age"]  # Assuming age is directly accessible here
 
-        self.age = settings_export["controller"]["age"]
+            self.patient_id = settings_export["patient_id"]
 
-        self.patient_id = settings_export["patient_id"]
+        def get_age(self):
+            return self.age
 
 
 def get_icgm_patient_config(icgm_patient_obj, random_state, t0=DATETIME_DEFAULT):
@@ -242,8 +246,8 @@ def get_old_icgm_tidepool_patient_files_dict():
 
     patient_scenario_dict = defaultdict(dict)
     for filename in all_scenario_files:
-        vp_id = re.search("train_(.*)\.csv.+", filename).groups()[0]
-        bg_condition = re.search("condition(\d)", filename).groups()[0]
+        vp_id = re.search("train_(.*)\\.csv.+", filename).groups()[0]
+        bg_condition = re.search("condition(\\d)", filename).groups()[0]
         patient_scenario_dict[vp_id][bg_condition] = filename
 
     return patient_scenario_dict

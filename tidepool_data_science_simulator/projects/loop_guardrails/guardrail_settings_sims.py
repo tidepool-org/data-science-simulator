@@ -116,7 +116,6 @@ def build_gsl_tr_lower_sims(test_run=True):
                                                              risk_level=0,
                                                              t0=t0
                                                              )
-
         # Setup sensor config
         t0, sensor_config = get_canonical_sensor_config()
         sensor_config.std_dev = 2.0
