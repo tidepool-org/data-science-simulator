@@ -296,9 +296,13 @@ class LoopController(BaseControllerClass):
         """
 
         autobolus = None
-        autobolus_value = loop_algorithm_output.get('recommended_autobolus')[0]  # TODO: potential error here
-        if autobolus_value > 0:
-            autobolus = Bolus(autobolus_value, "U")
+        autobolus_value_array = loop_algorithm_output.get('recommended_autobolus')
+
+        if autobolus_value_array:
+            autobolus_value = autobolus_value_array[0]
+
+            if autobolus_value > 0:
+                autobolus = Bolus(autobolus_value, "U")
 
         return autobolus
     
