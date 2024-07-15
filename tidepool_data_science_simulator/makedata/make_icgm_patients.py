@@ -107,19 +107,97 @@ def sample_total_daily_dose_by_age(age, random_state):
 
 
 class iCGMPatientSettings():
-    class iCGMPatientSettings():
 
-        def __init__(self, settings_export):
-            self.settings_export = settings_export
-            self.basal_rate = float(settings_export["pump"]["basal_schedule"]["schedule"][0]["setting"])
-            self.cir = float(settings_export["pump"]["carb_ratio_schedule"]["schedule"][0]["setting"])
-            self.isf = float(settings_export["pump"]["insulin_sensitivity_schedule"]["schedule"][0]["setting"])
-            self.age = settings_export["controller"]["age"]  # Assuming age is directly accessible here
+    def __init__(self, settings_export):
+        self.settings_export = settings_export
+        self.basal_rate = float(settings_export["pump"]["basal_schedule"]["schedule"][0]["setting"])
+        self.cir = float(settings_export["pump"]["carb_ratio_schedule"]["schedule"][0]["setting"])
+        self.isf = float(settings_export["pump"]["insulin_sensitivity_schedule"]["schedule"][0]["setting"])
+        self.age = settings_export["controller"]["age"]  # Assuming age is directly accessible here
 
-            self.patient_id = settings_export["patient_id"]
+        self.patient_id = settings_export["patient_id"]
 
-        def get_age(self):
-            return self.age
+    def get_age(self):
+        return self.age
+    def get_basal_rate(self):
+        return self.basal_rate
+
+    def get_carb_insulin_ratio(self):
+        return self.cir
+
+    def get_insulin_sensitivity_factor(self):
+        return self.isf
+
+    def get_age(self):
+        return self.age
+
+    def get_patient_id(self):
+        return self.patient_id
+
+    def sample_total_daily_dose_by_age(self, random_state):
+        """
+        Get total units given in a day based on Tidepool blog post. Initially just
+        returning the median, but once we get the distributions can sample from them.
+        https://www.tidepool.org/blog/lets-talk-about-your-insulin-pump-data
+        Returns
+        -------
+            float: Number of units
+        """
+
+        tdd_units = None
+        if 0 <= self.age < 6:
+            tdd_units = 15
+        elif 6 <= self.age < 9:
+            tdd_units = 18
+        elif 9 <= self.age < 12:
+            tdd_units = 28
+        elif 12 <= self.age < 15:
+            tdd_units = 46
+        elif 15 <= self.age < 18:
+            tdd_units = 50
+        elif 18 <= self.age < 21:
+            tdd_units = 42
+        elif 21 <= self.age < 25:
+            tdd_units = 44
+        elif 25 <= self.age < 30:
+            tdd_units = 45
+        elif 30 <= self.age < 35:
+            tdd_units = 39
+        elif 35 <= self.age < 40:
+            tdd_units = 45
+        elif 40 <= self.age < 50:
+            tdd_units = 40
+        elif 50 <= self.age < 60:
+            tdd_units = 41
+        elif 60 <= self.age < 70:
+            tdd_units = 37
+        elif 70 <= self.age:
+            tdd_units = 27
+
+        return tdd_units
+
+    def sample_weight_kg_by_age(self, random_state):
+        """
+        Get a weight using CDC growth data tables by age.
+        https://www.cdc.gov/growthcharts/percentile_data_files.htm
+        """
+        df = pd.read_csv(os.path.join(RAW_DATA_DIR, "WTAGE.csv"))
+
+        percentile = random_state.uniform()
+        Z = st.norm.ppf(percentile)
+
+        age = self.age  # Ages in data only go 2 to 20, assume everybody over 20 follows similar distribution
+        if self.age > 20:
+            age = 20
+
+        # Since things are months based, just take the first row matching the year.
+        weight_stats_row = df[df["Agemos"].astype(int) == age * 12].iloc[0]
+        M, S, L = weight_stats_row[["M", "S", "L"]].values
+
+        # As per instructions on CDC website for recovering weight from params
+        weight_kg = M * (1.0 + L * S * Z) ** (1/L)
+
+        return weight_kg
 
 
 def get_icgm_patient_config(icgm_patient_obj, random_state, t0=DATETIME_DEFAULT):
