@@ -17,7 +17,7 @@ def get_canonical_controller_config(t0=DATETIME_DEFAULT):
         "retrospective_correction_integration_interval": True,
         "minimum_autobolus": 0.0,
         "maximum_autobolus": 0.0,
-        "autobolus_multiplier": None,
+        "partial_application_factor": None,
         "recency_interval": 15,
         "retrospective_correction_grouping_interval": 30,
         "rate_rounder": 0.05,

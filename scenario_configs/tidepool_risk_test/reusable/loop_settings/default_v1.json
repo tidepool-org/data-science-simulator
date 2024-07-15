@@ -10,7 +10,7 @@
   "retrospective_correction_grouping_interval": 30,
   "maximum_autobolus": 0.2,
   "minimum_autobolus": 0.0,
-  "autobolus_multiplier": 0.7,
+  "partial_application_factor": 0.7,
   "rate_rounder": 0.05,
   "insulin_delay": 10,
   "carb_delay": 10,
