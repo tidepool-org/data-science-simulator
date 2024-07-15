@@ -193,5 +193,5 @@ if __name__ == "__main__":
                     save_results=save_results,
                     num_procs=10)
 
-    plot_sim_results(all_results)
+    plot_sim_results(all_results[0])
 
