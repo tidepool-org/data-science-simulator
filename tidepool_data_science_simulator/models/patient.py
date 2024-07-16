@@ -525,6 +525,11 @@ class VirtualPatient(SimulationComponent):
 
         return does_accept
 
+    def does_accept_autobolus_recommendation(self, recommended_autobolus):
+        if self.patient_config.autobolus_enabled:
+            return True
+        return False
+        
     def has_eaten_recently(self, within_time_minutes):
         recent_carb_events = self.carb_event_timeline.get_recent_event_times(self.time, num_hours_history=within_time_minutes / 60)
 
