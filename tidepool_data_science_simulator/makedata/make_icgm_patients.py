@@ -365,7 +365,6 @@ def export_icgm_scenario_metadata_from_scenario_files():
 
     json.dump(scenario_metadata, open(ICGM_SETTINGS_FILEPATH, "w"), indent=4)
 
-
 def transform_icgm_json_to_v2_parser():
 
     settings_export_json = json.load(open(ICGM_SETTINGS_FILEPATH, "r"))

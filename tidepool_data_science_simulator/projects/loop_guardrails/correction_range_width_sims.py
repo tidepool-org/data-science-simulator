@@ -24,7 +24,7 @@ from tidepool_data_science_simulator.models.measures import TargetRange
 
 from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_sensor_config, \
-    get_pump_config_from_patient, get_variable_risk_patient_config, get_pump_config_from_aace_settings
+    get_pump_config_from_patient, compute_aace_settings_tmp, get_variable_risk_patient_config, get_pump_config_from_aace_settings, BasalRate, CarbInsulinRatio, InsulinSensitivityFactor
 from tidepool_data_science_simulator.makedata.make_icgm_patients import (
     get_patients_by_age, get_icgm_patient_config, get_icgm_patient_settings_objects
 )
@@ -42,7 +42,7 @@ def get_new_random_state(seed=SEED):
     return RandomState(seed)
 
 
-def build_corr_width(test_run=True):
+def build_corr_width(test_run=False):
     """Create sims for analyzing various correction range widths
     with varying levels of deviation from true in settings"""
 
@@ -159,13 +159,46 @@ def build_corr_width(test_run=True):
         return sims
 
 def adjust_pump_settings(pump_config, lower_deviation, upper_deviation):
-    # This function should adjust the pump settings based on the deviation
-    # You'll need to implement this based on your specific pump configuration
-    # For example:
-    pump_config.basal_rate *= np.random.uniform(lower_deviation, upper_deviation)
-    pump_config.carb_ratio *= np.random.uniform(lower_deviation, upper_deviation)
-    pump_config.correction_factor *= np.random.uniform(lower_deviation, upper_deviation)
+    # debugging assistance
+    print("BasalSchedule24hr methods:", dir(pump_config.basal_schedule))
+    print("Carb Ratio Schedule methods:", dir(pump_config.carb_ratio_schedule))
+    print("Insulin Sensitivity Schedule methods:", dir(pump_config.insulin_sensitivity_schedule))
+
+    # Adjust basal rate
+    basal_state = pump_config.basal_schedule.get_state()
+    if isinstance(basal_state, list) and basal_state and isinstance(basal_state[0], BasalRate):
+        adjusted_basal_rates = [
+            BasalRate(rate.value * np.random.uniform(lower_deviation, upper_deviation), rate.units)
+            for rate in basal_state
+        ]
+        pump_config.basal_schedule.set_state(adjusted_basal_rates)
+    else:
+        print(f"Unexpected basal state type: {type(basal_state)}")
+
+    # Adjust carb ratio
+    carb_ratio_state = pump_config.carb_ratio_schedule.get_state()
+    if isinstance(carb_ratio_state, list) and carb_ratio_state and isinstance(carb_ratio_state[0], CarbInsulinRatio):
+        adjusted_carb_ratios = [
+            CarbInsulinRatio(ratio.value * np.random.uniform(lower_deviation, upper_deviation), ratio.units)
+            for ratio in carb_ratio_state
+        ]
+        pump_config.carb_ratio_schedule.set_state(adjusted_carb_ratios)
+    else:
+        print(f"Unexpected carb ratio state type: {type(carb_ratio_state)}")
+
+    # Adjust insulin sensitivity factor
+    isf_state = pump_config.insulin_sensitivity_schedule.get_state()
+    if isinstance(isf_state, list) and isf_state and isinstance(isf_state[0], InsulinSensitivityFactor):
+        adjusted_isfs = [
+            InsulinSensitivityFactor(isf.value * np.random.uniform(lower_deviation, upper_deviation), isf.units)
+            for isf in isf_state
+        ]
+        pump_config.insulin_sensitivity_schedule.set_state(adjusted_isfs)
+    else:
+        print(f"Unexpected insulin sensitivity factor state type: {type(isf_state)}")
+
     return pump_config
+
 
 if __name__ == "__main__":
     test_run = True
@@ -181,9 +214,15 @@ if __name__ == "__main__":
         logger.error("No simulations were created. Check the build_corr_width function.")
     else:
         logger.info(f"Starting to run {len(sims)} sims.")
-        all_results = run_simulations(sims,
-                                      save_dir=results_dir,
-                                      save_results=save_results,
-                                      num_procs=10)
+        all_results, metrics = run_simulations(sims,
+                                               save_dir=results_dir,
+                                               save_results=save_results,
+                                               num_procs=10)
 
-        plot_sim_results(all_results)
+        # If all_results is not a dictionary, transform it into one
+        if not isinstance(all_results, dict):
+            all_results_dict = {sim.sim_id: result for sim, result in zip(sims.values(), all_results)}
+        else:
+            all_results_dict = all_results
+
+        plot_sim_results(all_results_dict)
