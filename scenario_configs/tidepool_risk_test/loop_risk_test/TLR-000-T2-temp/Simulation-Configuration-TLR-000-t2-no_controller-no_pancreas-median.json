@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "risk-id": "TLR-000-base",
+    "simulation_id": "TLR-000-T2-test",
+    "risk_description": "Baseline profile run",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_test_simulation_no_controller_v1",
+  "override_config": [
+    {"sim_id": "no-controller-no_pancreas",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_110_12hr",
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.t2_test_template_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.t2_test_pump_basal_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_110_12hr"
+        }
+      }
+    }
+  ]
+}

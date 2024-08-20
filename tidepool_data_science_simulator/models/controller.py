@@ -242,11 +242,15 @@ class LoopController(BaseControllerClass):
         virtual_patient
         loop_algorithm_output
         """
-        bolus_rec = self.get_recommended_bolus(loop_algorithm_output)
         temp_basal_rec = self.get_recommended_temp_basal(loop_algorithm_output)
+
+        bolus_rec = self.get_recommended_bolus(loop_algorithm_output=loop_algorithm_output)
+        autobolus_rec = self.get_recommended_autobolus(loop_algorithm_output=loop_algorithm_output)
 
         if bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation(bolus_rec):
             self.set_bolus_recommendation_event(virtual_patient, bolus_rec)
+        elif autobolus_rec is not None:
+            self.set_bolus_recommendation_event(virtual_patient, autobolus_rec)
         elif not self.open_loop and temp_basal_rec is not None:
             if temp_basal_rec.scheduled_duration_minutes == 0 and temp_basal_rec.value == 0:
                 # In pyloopkit this is a "cancel"
@@ -278,6 +282,30 @@ class LoopController(BaseControllerClass):
 
         return bolus
 
+    def get_recommended_autobolus(self, loop_algorithm_output):
+        """
+        Extract autobolus recommendation from pyloopkit recommendations output.
+
+        Parameters
+        ----------
+        loop_algorithm_output: dict
+
+        Returns
+        -------
+        Bolus
+        """
+
+        autobolus = None
+        autobolus_value_array = loop_algorithm_output.get('recommended_autobolus')
+
+        if autobolus_value_array:
+            autobolus_value = autobolus_value_array[0]
+
+            if autobolus_value > 0:
+                autobolus = Bolus(autobolus_value, "U")
+
+        return autobolus
+    
     def get_recommended_temp_basal(self, loop_algorithm_output):
         """
         Extract temp basal from pyloopkit recommendations output.
