@@ -247,9 +247,11 @@ class Simulation(multiprocessing.Process):
                 loop_cob = None
 
             try:
+                glucose_prediction_horizon = loop_out["predicted_glucose_values"]
                 pred_horizon_minutes = len(loop_out["predicted_glucose_values"]) * 5
                 final_predicted_glucose = loop_out["predicted_glucose_values"][-1]
             except Exception as e:
+                glucose_prediction_horizon = None
                 pred_horizon_minutes = None
                 final_predicted_glucose = None
 
@@ -322,6 +324,7 @@ class Simulation(multiprocessing.Process):
                 "delivered_basal_insulin": delivered_basal_insulin,
                 "undelivered_basal_insulin": undelivered_basal_insulin,
                 "randint": simulation_state.randint,
+                "glucose_prediction_horizon": glucose_prediction_horizon,
                 "loop_final_glucose_pred": final_predicted_glucose,
                 "loop_final_insulin_effect": final_insulin_effect,
                 "loop_final_carb_effect": final_carb_effect,
