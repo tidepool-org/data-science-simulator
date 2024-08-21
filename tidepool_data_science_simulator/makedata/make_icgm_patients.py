@@ -242,8 +242,8 @@ def get_old_icgm_tidepool_patient_files_dict():
 
     patient_scenario_dict = defaultdict(dict)
     for filename in all_scenario_files:
-        vp_id = re.search("train_(.*)\.csv.+", filename).groups()[0]
-        bg_condition = re.search("condition(\d)", filename).groups()[0]
+        vp_id = re.search(r"train_(.*)\.csv.+", filename).groups()[0]
+        bg_condition = re.search(r"condition(\d)", filename).groups()[0]
         patient_scenario_dict[vp_id][bg_condition] = filename
 
     return patient_scenario_dict
