@@ -605,7 +605,10 @@ class ScenarioParserV2(SimulationParser):
 
             controller_settings = sim_config["controller"]["settings"]
 
-            automation_control_entries = sim_config["controller"]["automation_control_timeline"]
+            automation_control_entries = []
+            if "automation_control_timeline" in sim_config["controller"].keys():
+                automation_control_entries = sim_config["controller"]["automation_control_timeline"]
+
             automation_control_timeline = self.automation_control_entries_to_timeline(automation_control_entries)
 
             # Get model parameters from passed string in config
