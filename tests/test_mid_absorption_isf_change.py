@@ -1,4 +1,4 @@
-__author__ = "Cameron Summers"
+__author__ = "Mark Connolly"
 
 import datetime
 
@@ -24,14 +24,11 @@ from tidepool_data_science_simulator.models.measures import Bolus, Carb, TargetR
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 
 
-def test_basic_simulation():
-    """
-    Make sure Loop can bring a person close to their target range over 24 hours.
-    """
-    target = 120
+def test_isf_change_midabsorption():
+
     isf_settings = [150, 15]
-    isf_times = [datetime.time(0, 0, 0), datetime.time(20, 0, 0)]
-    isf_durations = [20*60, 4*60]
+    isf_times = [datetime.time(0, 0, 0), datetime.time(16, 0, 0)]
+    isf_durations = [16*60, 8*60]
 
     t0, patient_config = get_canonical_risk_patient_config(start_glucose_value=100)
     t0, sensor_config = get_canonical_sensor_config(start_value=100)
@@ -56,7 +53,7 @@ def test_basic_simulation():
             duration_minutes=isf_durations
         )
     
-    # pump_config.insulin_sensitivity_schedule = new_sensitivity_schedule
+    pump_config.insulin_sensitivity_schedule = new_sensitivity_schedule
     
     new_basal_schedule = \
         BasalSchedule24hr(
@@ -95,9 +92,10 @@ def test_basic_simulation():
     plot_sim_results({sim_id: sim_results_df})
 
     # assert abs(target - sim_results_df["bg"].tolist()[-1]) < 10
+    assert 1
 
 
 
 if __name__ == "__main__":
 
-    test_basic_simulation()
+    test_isf_change_midabsorption()
