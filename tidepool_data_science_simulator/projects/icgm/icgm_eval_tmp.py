@@ -45,14 +45,14 @@ def compute_sim_summary_stats(result_dir):
 
         filename_icgm, df_results = load_result(sim_json_info["result_path"])
         # filename_icgm, df_results = list(df_results_dict.items())[0]
-        true_bg = df_results['bg']
+        true_bg = np.array(df_results['bg'])
         true_bg[true_bg < 1] = 1
         lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(true_bg)
         dkai_icgm = dka_index(df_results['iob'], df_results["sbr"])
 
         filename_ideal, df_results_ideal = load_result(sim_json_info_match["result_path"])
         # filename_ideal, df_results_ideal = list(df_results_ideal_dict.items())[0]
-        true_bg = df_results_ideal["bg"]
+        true_bg = np.array(df_results_ideal["bg"])
         true_bg[true_bg < 1] = 1
         lbgi_ideal, hbgi_ideal, brgi_ideal = blood_glucose_risk_index(true_bg)
         dkai_ideal = dka_index(df_results_ideal['iob'], df_results_ideal["sbr"])
@@ -94,7 +94,7 @@ def compute_sim_summary_stats(result_dir):
 
     summary_result_filepath = "./result_summary_{}.csv".format(datetime.datetime.now().isoformat())
     summary_df.to_csv(summary_result_filepath, sep="\t")
-    logger.info("Saved summary results to", summary_result_filepath)
+    logger.info("Saved summary results to %s", summary_result_filepath)
 
     return summary_result_filepath
 
@@ -388,7 +388,7 @@ class PositiveBiasiCGMRequirements():
 
 def score_risk_table(summary_df):
 
-    dexcom_value_model = DexcomG6ValueModel(concurrency_table="TP_iCGM")
+    dexcom_value_model = DexcomG6ValueModel(concurrency_table="Coastal")
 
     summary_df["vp_id"] = summary_df["sim_id"].apply(lambda sim_id: re.search(r"(vp.*).bg=\d", sim_id).groups()[0])
 
@@ -400,43 +400,20 @@ def score_risk_table(summary_df):
     lbgi_band = []
 
     total_sims = 0
-    for (low_true, high_true), (low_icgm, high_icgm) in [
-        ((40, 60), (40, 60)),
-        ((40, 60), (61, 80)),
-        ((40, 60), (81, 120)),
+    bg_ranges = ((0, 40),(40, 60),(61, 80), (81, 120), 
+                 (121, 160), (161, 200), (201, 250), (251, 300), 
+                 (301, 350), (351, 400), (400, 50000))        
+    
+    bg_range_pairs = [(true_range,icgm_range) for true_range in bg_ranges for icgm_range in bg_ranges]
 
-        ((61, 80), (61, 80)),
-        ((61, 80), (81, 120)),
+    for (low_true, high_true), (low_icgm, high_icgm) in bg_range_pairs:
 
-        ((81, 120), (81, 120)),
-        ((81, 120), (121, 160)),
-        ((81, 120), (161, 200)),
-
-        ((121, 160), (121, 160)),
-        ((121, 160), (161, 200)),
-        ((121, 160), (201, 250)),
-
-        ((161, 200), (161, 200)),
-        ((161, 200), (201, 250)),
-        ((161, 200), (251, 300)),
-
-        ((201, 250), (201, 250)),
-        ((201, 250), (251, 300)),
-        ((201, 250), (301, 350)),
-
-        ((251, 300), (251, 300)),
-        ((251, 300), (301, 350)),
-        ((251, 300), (351, 400)),
-
-        ((301, 350), (301, 350)),
-        ((301, 350), (351, 400)),
-        ((351, 400), (351, 450)),
-    ]:
         true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
         icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (summary_df["start_bg_with_offset"] <= high_icgm)
         initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
 
-        concurrency_square_mask = true_mask & icgm_mask & initially_ok_mask
+        # concurrency_square_mask = true_mask & icgm_mask & initially_ok_mask
+        concurrency_square_mask = true_mask & icgm_mask 
 
         p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
         p_corr_bolus_given_error = 3 / 288
@@ -446,9 +423,13 @@ def score_risk_table(summary_df):
         num_range_mask = np.sum(true_mask & icgm_mask)
         num_total_sims = max(1, len(summary_df[concurrency_square_mask]))
 
-        lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]
-
+        lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]        
         num_total_patients = max(1, len(summary_df[concurrency_square_mask]["vp_id"].unique()))
+
+        # if num_total_patients > 1 and p_error:
+                # print('a')
+                # print(lbgi_data)
+                
         for s_idx, severity_band in enumerate([(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)], 1):
             severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
 
@@ -463,7 +444,7 @@ def score_risk_table(summary_df):
 
             num_risk_events_patient = risk_prob_patient * num_cgm_per_100k_person_years
             num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
-
+            
             patient_percentages.append(patient_prob)
             lbgi_band.append(s_idx)
 
@@ -498,11 +479,11 @@ def score_risk_table(summary_df):
         # print(low_true, high_true, low_icgm, high_icgm, num_total)
         # print("Severity:", severity, "P(true range, icgm range)", p_error, "\n")
 
-    # risk_table_per_error_bin_patient_prob.print()
+    risk_table_per_error_bin_patient_prob.print()
     risk_table_per_error_bin_sim_prob.print()
     # risk_table_per_sim.print()
 
-    logger.info("Total sims", total_sims)
+    logger.info("Total sims %d", total_sims)
 
     # print(risk_severities)
     # print(risk_severities.values())
@@ -616,7 +597,7 @@ def get_icgm_sim_summary_df(result_dir, save_dir):
     return sim_summary_df
 
 
-def compute_risk_results(sim_summary_df, save_dir):
+def compute_risk_results(sim_summary_df):
 
     def get_cgm_range_prob(sbg):
         cgm_range_prob = None
@@ -710,7 +691,7 @@ def compute_risk_results(sim_summary_df, save_dir):
     # assert num_criteria_met == len(result_generator)
 
     risk_results_df = pd.DataFrame(risk_results_df)
-    risk_results_df.to_csv(os.path.join(save_dir, "risk_results.csv"))
+    # risk_results_df.to_csv(os.path.join(save_dir, "risk_results.csv"))
 
     # a = 1
     # print(num_events_per_severity)
@@ -721,7 +702,7 @@ def compute_risk_results(sim_summary_df, save_dir):
 if __name__ == "__main__":
 
     # test_patient_result_dir = "/Users/mconn/data/simulator/processed/test_patient_jun24"
-    test_patient_result_dir = "/Users/mconn/data/simulator/processed/icgm-sensitivity-analysis-results-2024-08-13/"
+    test_patient_result_dir = "/Users/mconn/data/simulator/processed/icgm-sensitivity-analysis-results-2024-08-22/"
 
     # plot_sensor_error_vs_loop_prediction_error([
     #     ("with_RC", test_patient_result_dir),
