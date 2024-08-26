@@ -20,7 +20,7 @@ if not os.path.exists(result_dir):
     logger.info("Made director for results: {}".format(result_dir))
 
 if 1:
-    sim_batch_size = 10
+    sim_batch_size = 64
 
     json_base_configs = transform_icgm_json_to_v2_parser()
     sim_batch_generator = build_icgm_sim_generator(json_base_configs, sim_batch_size=sim_batch_size)
