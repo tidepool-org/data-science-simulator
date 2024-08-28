@@ -35,7 +35,7 @@ def process_simulation_data (result_dir):
     summary_data = []
     for sim_id, sim_json_info in sim_results.items():
         i+=1
-        if i % 10000 == 0:
+        if i % 1000 == 0:
             print(i)
 
         if "Ideal" in sim_id:

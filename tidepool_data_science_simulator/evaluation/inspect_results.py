@@ -18,18 +18,24 @@ JAEB_DATA_DIR = "../../data/PHI/time-series-data-around-issue-reports-2020-07-28
 
 
 def collect_sims_and_results(result_dir, sim_id_pattern="vp.*.json", max_sims=np.inf):
-
+    i = 1
     sim_info_dict = dict()
     for root, dirs, files in os.walk(result_dir, topdown=False):
         for file in sorted(files):
             if re.search(sim_id_pattern, file):
                 sim_info = json.load(open(os.path.join(root, file), "r"))
                 sim_id = sim_info["sim_id"]
+
                 df_file = [fn for fn in files if sim_id in fn and ".tsv" in fn][0]
+
                 df_path = os.path.join(root, df_file)
                 sim_info["result_path"] = df_path
                 sim_info_dict[sim_id] = sim_info
-
+                
+                if i % 1000 == 0:
+                    print(i)
+                i+=1
+                
                 if len(sim_info_dict) > max_sims:
                     break
 
