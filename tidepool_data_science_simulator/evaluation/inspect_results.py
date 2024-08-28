@@ -26,8 +26,9 @@ def collect_sims_and_results(result_dir, sim_id_pattern="vp.*.json", max_sims=np
                 sim_info = json.load(open(os.path.join(root, file), "r"))
                 sim_id = sim_info["sim_id"]
 
-                df_file = [fn for fn in files if sim_id in fn and ".tsv" in fn][0]
-
+                # df_file = [fn for fn in files if sim_id in fn and ".tsv" in fn][0]
+                df_file = sim_id + '.tsv'
+                
                 df_path = os.path.join(root, df_file)
                 sim_info["result_path"] = df_path
                 sim_info_dict[sim_id] = sim_info
