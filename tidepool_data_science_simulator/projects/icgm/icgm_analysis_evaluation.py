@@ -31,9 +31,13 @@ logger = logging.getLogger(__name__)
 def process_simulation_data (result_dir):
 
     sim_results = collect_sims_and_results(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=1e12)
-
+    i = 0
     summary_data = []
     for sim_id, sim_json_info in sim_results.items():
+        i+=1
+        if i % 10000 == 0:
+            print(i)
+
         if "Ideal" in sim_id:
             continue
 
