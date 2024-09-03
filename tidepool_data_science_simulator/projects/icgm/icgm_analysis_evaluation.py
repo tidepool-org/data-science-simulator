@@ -21,32 +21,39 @@ from tidepool_data_science_simulator.projects.icgm.icgm_sensitivity_analysis_ai_
 
 from tidepool_data_science_simulator.evaluation.icgm_eval import iCGMEvaluator, compute_bionomial_95_LB_CI_moments
 
-from tidepool_data_science_simulator.evaluation.inspect_results import load_results, collect_sims_and_results, load_result
+from tidepool_data_science_simulator.evaluation.inspect_results import load_results, collect_sims_and_results_generator, load_result
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results, plot_sim_icgm_paired
 
 
 logger = logging.getLogger(__name__)
 
 
-def process_simulation_data (result_dir):
+def process_simulation_data(result_dir):
 
-    sim_results = collect_sims_and_results(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=1e12)
+    sim_results = collect_sims_and_results_generator(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=1e12)
     i = 0
     summary_data = []
-    for sim_id, sim_json_info in sim_results.items():
-        i+=1
+    for sim_id, sim_json_info in sim_results:
+
         if i % 1000 == 0:
             print(i)
+        i += 1
+        
+        sim_id = sim_json_info['sim_id']
 
         if "Ideal" in sim_id:
             continue
+        
+        # sim_results_match = collect_sims_and_results_generator(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=1e12)
 
-        for sim_id_match, sim_json_info_match in sim_results.items():
-            non_sensor_id = re.sub(r"\.s.*\.", "", sim_id)
-            non_sensr_id_match = re.sub(r"\.sIdealSensor\.", "", sim_id_match)
-            if non_sensor_id == non_sensr_id_match:
-                sim_json_info_match = sim_json_info_match
-                break
+        # for sim_id_match, sim_json_info_match in sim_results_match:
+        #     non_sensor_id = re.sub(r"\.s.*\.", "", sim_id)
+        #     non_sensor_id_match = re.sub(r"\.sIdealSensor\.", "", sim_id_match)
+        #     if non_sensor_id == non_sensor_id_match:
+        #         sim_json_info_match = sim_json_info_match
+        #         break
+        
+        sim_json_info_match = sim_json_info
 
         _, df_results = load_result(sim_json_info["result_path"])
         true_bg = np.array(df_results['bg'])
