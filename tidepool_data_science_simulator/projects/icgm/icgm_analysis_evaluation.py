@@ -5,6 +5,8 @@ import re
 import os
 import logging
 import datetime
+import warnings
+
 from collections import defaultdict
 
 import numpy as np
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def process_simulation_data(result_dir):
-
+    warnings.filterwarnings('ignore')
     sim_results = collect_sims_and_results_generator(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=1e12)
     i = 0
     summary_data = []
@@ -38,7 +40,7 @@ def process_simulation_data(result_dir):
         if i % 1000 == 0:
             print(i)
         i += 1
-        
+
         sim_id = sim_json_info['sim_id']
 
         if "Ideal" in sim_id:

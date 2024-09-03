@@ -185,7 +185,7 @@ if __name__ == "__main__":
     os.environ['NUMEXPR_MAX_THREADS'] = str(sim_batch_size)
     numexpr.set_num_threads(sim_batch_size)
     
-    pass
+    
     result_dir = os.path.join(DATA_DIR, "processed/icgm-sensitivity-analysis-results-COASTAL")
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
