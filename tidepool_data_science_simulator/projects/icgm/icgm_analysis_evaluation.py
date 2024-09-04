@@ -23,7 +23,7 @@ from tidepool_data_science_simulator.projects.icgm.icgm_sensitivity_analysis_ai_
 
 from tidepool_data_science_simulator.evaluation.icgm_eval import iCGMEvaluator, compute_bionomial_95_LB_CI_moments
 
-from tidepool_data_science_simulator.evaluation.inspect_results import load_results, collect_sims_and_results_generator, load_result
+from tidepool_data_science_simulator.evaluation.inspect_results import load_results, collect_sims_and_results_generator, collect_sim_result, load_result
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results, plot_sim_icgm_paired
 
 
@@ -31,31 +31,32 @@ logger = logging.getLogger(__name__)
 
 
 def process_simulation_data(result_dir):
+    # Get rid of unnecessary warnings for low/high BG
     warnings.filterwarnings('ignore')
-    sim_results = collect_sims_and_results_generator(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=1e12)
-    i = 0
+    
+    sim_id_pattern="vp.*bg.*.json" 
+
+    sim_results = collect_sims_and_results_generator(
+        result_dir, 
+        sim_id_pattern=sim_id_pattern, 
+        max_sims=1e12
+    )
+    
     summary_data = []
+    i = 0
     for sim_id, sim_json_info in sim_results:
-
-        if i % 1000 == 0:
-            print(i)
+        
         i += 1
-
-        sim_id = sim_json_info['sim_id']
-
-        if "Ideal" in sim_id:
-            continue
+        if i % 1000 == 0:
+            logger.info("%s",i)
         
-        # sim_results_match = collect_sims_and_results_generator(result_dir, sim_id_pattern="vp.*bg.*.json", max_sims=1e12)
+        sim_results_match = re.search(r"tbg=(\d+)", sim_id)
+        ideal_sbg = sim_results_match.group(1)
+        ideal_sbg_string = "sbg=" + ideal_sbg + ".json"
 
-        # for sim_id_match, sim_json_info_match in sim_results_match:
-        #     non_sensor_id = re.sub(r"\.s.*\.", "", sim_id)
-        #     non_sensor_id_match = re.sub(r"\.sIdealSensor\.", "", sim_id_match)
-        #     if non_sensor_id == non_sensor_id_match:
-        #         sim_json_info_match = sim_json_info_match
-        #         break
-        
-        sim_json_info_match = sim_json_info
+        ideal_sbg_file = re.sub(r"sbg=(\d+)", ideal_sbg_string, sim_id)
+   
+        sim_json_info_match = collect_sim_result(result_dir, ideal_sbg_file)
 
         _, df_results = load_result(sim_json_info["result_path"])
         true_bg = np.array(df_results['bg'])
@@ -70,8 +71,9 @@ def process_simulation_data(result_dir):
         dkai_ideal = dka_index(df_results_ideal['iob'], df_results_ideal["sbr"])
 
         bg_cond = int(re.search(r"bg=(\d)", sim_id).groups()[0])
+        
+        true_bg_start = sim_json_info["patient"]["sensor"].get("true_start_bg")
 
-        true_bg_start = sim_json_info["patient"]["sensor"]["true_start_bg"]
         sensor_bg_start = sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
         
         target_bg = 110
