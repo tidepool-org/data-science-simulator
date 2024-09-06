@@ -34,11 +34,11 @@ def process_simulation_data(result_dir):
     # Get rid of unnecessary warnings for low/high BG
     warnings.filterwarnings('ignore')
     
-    sim_id_pattern="vp.*bg.*.json" 
+    sim_id_pattern_regex="vp.*bg.*.json" 
 
     sim_results = collect_sims_and_results_generator(
         result_dir, 
-        sim_id_pattern=sim_id_pattern, 
+        sim_id_pattern=sim_id_pattern_regex, 
         max_sims=1e12
     )
     
@@ -50,21 +50,25 @@ def process_simulation_data(result_dir):
         if i % 1000 == 0:
             logger.info("%s",i)
         
-        sim_results_match = re.search(r"tbg=(\d+)", sim_id)
-        ideal_sbg = sim_results_match.group(1)
-        ideal_sbg_string = "sbg=" + ideal_sbg + ".json"
-
-        ideal_sbg_file = re.sub(r"sbg=(\d+)", ideal_sbg_string, sim_id)
-   
-        sim_json_info_match = collect_sim_result(result_dir, ideal_sbg_file)
-
+        # Load data and calculate risk metrics
         _, df_results = load_result(sim_json_info["result_path"])
         true_bg = np.array(df_results['bg'])
         true_bg[true_bg < 1] = 1
         lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(true_bg)
         dkai_icgm = dka_index(df_results['iob'], df_results["sbr"])
 
-        _, df_results_ideal = load_result(sim_json_info_match["result_path"])
+        # Find the simulation where the true and sensor blood glucose match
+        # Could also run with the ideal sensor class
+        sim_results_match = re.search(r"tbg=(\d+)", sim_id)
+        ideal_sbg = sim_results_match.group(1)
+        ideal_sbg_string = "sbg=" + ideal_sbg + ".json"
+
+        ideal_sbg_file = re.sub(r"sbg=(\d+)", ideal_sbg_string, sim_id)   
+        sim_json_info_ideal = collect_sim_result(result_dir, ideal_sbg_file)
+
+        # Load data with ideal sensor and calculate risk metrics
+        # Will be used to filter our cases where the risk was already high
+        _, df_results_ideal = load_result(sim_json_info_ideal["result_path"])
         true_bg = np.array(df_results_ideal["bg"])
         true_bg[true_bg < 1] = 1
         lbgi_ideal, hbgi_ideal, brgi_ideal = blood_glucose_risk_index(true_bg)
@@ -200,30 +204,33 @@ class TPRiskTableRev7(object):
 
 def compute_score_risk_table(summary_df):
 
-    dexcom_value_model = DexcomG6ValueModel(concurrency_table="Coastal")
+    dexcom_value_model = DexcomG6ValueModel(concurrency_table="adult")
 
     summary_df["vp_id"] = summary_df["sim_id"].apply(lambda sim_id: re.search(r"(vp.*).bg=\d", sim_id).groups()[0])
 
-    total_sims = 0
-    bg_ranges = ((0, 40),(40, 60),(61, 80), (81, 120), 
+    
+    bg_ranges = ((0, 40),(41, 60),(61, 80), (81, 120), 
                  (121, 160), (161, 200), (201, 250), (251, 300), 
-                 (301, 350), (351, 400), (400, 50000))        
+                 (301, 350), (351, 400), (401, 50000))        
     
     bg_range_pairs = [(true_range,icgm_range) for true_range in bg_ranges for icgm_range in bg_ranges]
     severity_bands = [(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)]
+    
+    initially_ok_mask = summary_df["lbgi_ideal"] <= 1.1e8
+    print(sum(initially_ok_mask))
 
     severity_event_probability = [0,0,0,0,0]
+
     for (low_true, high_true), (low_icgm, high_icgm) in bg_range_pairs:
 
         true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
         icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (summary_df["start_bg_with_offset"] <= high_icgm)
-        initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
-
-        # concurrency_square_mask = true_mask & icgm_mask & initially_ok_mask
-        concurrency_square_mask = true_mask & icgm_mask 
+        
+        concurrency_square_mask = true_mask & icgm_mask & initially_ok_mask
+        # concurrency_square_mask = true_mask & icgm_mask 
 
         p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
-        p_corr_bolus_given_error = 3 / 288
+        p_corr_bolus_given_error = 6 / 288
         num_cgm_per_100k_person_years = 288 * 365 * 100000
 
         num_initially_ok = np.sum(initially_ok_mask)
@@ -231,7 +238,9 @@ def compute_score_risk_table(summary_df):
         num_total_sims = max(1, len(summary_df[concurrency_square_mask]))
 
         lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]        
-        
+        if not lbgi_data.empty:
+            print()
+
         for s_idx, severity_band in enumerate(severity_bands, 1):
             severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
 
@@ -240,12 +249,15 @@ def compute_score_risk_table(summary_df):
             risk_prob_sim = sim_prob * p_corr_bolus_given_error * p_error
             num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
 
-            severity_event_probability[s_idx-1] += num_risk_events_sim
+            severity_event_probability[s_idx] += num_risk_events_sim
 
     severity_event_probability_df = pd.DataFrame(severity_event_probability)
     severity_event_probability_df.to_csv('severity_event_probability.csv')
 
     print(severity_event_probability_df)
+    print(severity_event_probability_df / num_cgm_per_100k_person_years)
+    print(sum(severity_event_probability_df[0]))
+    print(sum(severity_event_probability_df[0])/num_cgm_per_100k_person_years)
     return
 
 def get_icgm_sim_summary_df(result_dir, save_dir):

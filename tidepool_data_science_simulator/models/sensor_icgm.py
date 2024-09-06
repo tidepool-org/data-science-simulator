@@ -1245,6 +1245,8 @@ class DexcomG6ValueModel(SensoriCGMModelOverlayBase):
             idx = 8
         elif 350 < value <= 400:
             idx = 9
+        elif 401 <= value:
+            idx = 10
 
         return idx
 

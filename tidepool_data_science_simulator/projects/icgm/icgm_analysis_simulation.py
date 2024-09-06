@@ -44,10 +44,10 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     num_history_values = len(json_sim_base_config["patient"]["sensor"]["glucose_history"]["value"])
 
     true_glucose_start_values = range(40, 405, 5)
-    error_glucose_values = [v for v in true_glucose_start_values[::-1]]
+    # error_glucose_values = [v for v in true_glucose_start_values[::-1]]
 
     # true_glucose_start_values = [90]  # testing
-    # error_glucose_values = [160]
+    error_glucose_values = [90]
 
     random_state = RandomState(base_sim_seed)
 
@@ -55,8 +55,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
         for initial_error_value in error_glucose_values:
 
             new_sim_base_config = copy.deepcopy(json_sim_base_config)
-            sim_id = "icgm_analysis_coastal_vp_{}_{}_tbg={}_sbg={}".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose, initial_error_value)
-
+            
             new_sim_base_config["controller"]["settings"]["max_physiologic_slope"] = 4  # add in velocity cap
             glucose_history_values = {i: true_start_glucose for i in range(num_history_values)}
 
@@ -65,12 +64,16 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
 
             date_str_format = "%m/%d/%Y %H:%M:%S"  # ref: "8/15/2019 12:00:00"
             glucose_datetimes = [datetime.datetime.strptime(dt_str, date_str_format)
-                                 for dt_str in
-                                 new_sim_base_config["patient"]["sensor"]["glucose_history"]["datetime"].values()]
+                                    for dt_str in
+                                    new_sim_base_config["patient"]["sensor"]["glucose_history"]["datetime"].values()]
             t0 = datetime.datetime.strptime(new_sim_base_config["time_to_calculate_at"], date_str_format)
 
             sim_parser = ScenarioParserV2()
+            
+            # sim_id = "icgm_analysis_coastal_vp_{}_{}_tbg={}_sbg=IDEAL".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose)
+            # sensor = get_ideal_sensor(t0=t0, sim_parser=sim_parser)
 
+            sim_id = "icgm_analysis_coastal_vp_{}_{}_tbg={}_sbg={}".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose, initial_error_value)
             sensor = get_initial_offset_sensor_noisy(t0_init=t0 - datetime.timedelta(minutes=len(glucose_history_values) * 5.0),
                                                t0=t0,
                                                random_state=random_state,
@@ -89,21 +92,27 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             virtual_patient.does_accept_bolus_recommendation = types.MethodType(does_accept_bolus_recommendation, virtual_patient)
 
             sim = Simulation(sim_start_time,
-                             duration_hrs=duration_hrs,
-                             virtual_patient=virtual_patient,
-                             controller=controller,
-                             multiprocess=True,
-                             sim_id=sim_id
-                             )
+                                duration_hrs=duration_hrs,
+                                virtual_patient=virtual_patient,
+                                controller=controller,
+                                multiprocess=True,
+                                sim_id=sim_id
+                                )
 
             sim.random_state = random_state
 
             yield sim
 
 
+# def get_ideal_sensor(t0, sim_parser):
+
+#     ideal_sensor_config = SensorConfig(sensor_bg_history=sim_parser.patient_glucose_history)
+#     sensor = IdealSensor(time=t0, sensor_config=ideal_sensor_config)
+#     return sensor
+
 def get_ideal_sensor(t0, sim_parser):
 
-    ideal_sensor_config = SensorConfig(sensor_bg_history=sim_parser.patient_glucose_history)
+    ideal_sensor_config = SensorConfig(sensor_bg_history=GlucoseTrace())
     sensor = IdealSensor(time=t0, sensor_config=ideal_sensor_config)
     return sensor
 
@@ -191,25 +200,23 @@ if __name__ == "__main__":
         os.makedirs(result_dir)
         logger.info("Made director for results: {}".format(result_dir))
 
-    if 1:
-        
+    
+    json_base_configs = transform_icgm_json_to_v2_parser()
+    sim_batch_generator = build_icgm_sim_generator(json_base_configs, sim_batch_size=sim_batch_size)
 
-        json_base_configs = transform_icgm_json_to_v2_parser()
-        sim_batch_generator = build_icgm_sim_generator(json_base_configs, sim_batch_size=sim_batch_size)
+    start_time = time.time()
+    for i, sim_batch in enumerate(sim_batch_generator):
 
-        start_time = time.time()
-        for i, sim_batch in enumerate(sim_batch_generator):
+        batch_start_time = time.time()
 
-            batch_start_time = time.time()
-
-            full_results, summary_results_df = run_simulations(
-                sim_batch,
-                save_dir=result_dir,
-                save_results=True,
-                num_procs=sim_batch_size
-            )
-            batch_total_time = (time.time() - batch_start_time) / 60
-            run_total_time = (time.time() - start_time) / 60
-            logger.info("Batch {}".format(i))
-            logger.info("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
+        full_results, summary_results_df = run_simulations(
+            sim_batch,
+            save_dir=result_dir,
+            save_results=True,
+            num_procs=sim_batch_size
+        )
+        batch_total_time = (time.time() - batch_start_time) / 60
+        run_total_time = (time.time() - start_time) / 60
+        logger.info("Batch {}".format(i))
+        logger.info("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
 
