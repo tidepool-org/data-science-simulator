@@ -11,6 +11,9 @@
   "rate_rounder": 0.05,
   "insulin_delay": 10,
   "carb_delay": 10,
+  "minimum_autobolus": 0.0,
+  "maximum_autobolus": 30.0,
+  "partial_application_factor": 0.4,
   "default_absorption_times": [
     120.0,
     180.0,
