@@ -44,10 +44,10 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     num_history_values = len(json_sim_base_config["patient"]["sensor"]["glucose_history"]["value"])
 
     true_glucose_start_values = range(40, 405, 5)
-    # error_glucose_values = [v for v in true_glucose_start_values[::-1]]
+    error_glucose_values = [v for v in true_glucose_start_values[::-1]]
 
     # true_glucose_start_values = [90]  # testing
-    error_glucose_values = [90]
+    # error_glucose_values = [90]
 
     random_state = RandomState(base_sim_seed)
 
