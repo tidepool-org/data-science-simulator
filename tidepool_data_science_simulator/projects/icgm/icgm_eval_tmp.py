@@ -291,6 +291,14 @@ class TPRiskTableRev8(object):
             (4, 4): "Yellow",
         }
 
+    # def get_probability_index(self, num_events_per_100k_person_years):
+    #
+    #     for bounds in self.table_probability_indices.keys():
+    #         if bounds[0] <= num_events_per_100k_person_years < bounds[1]:
+    #             return self.table_probability_indices[bounds]
+    #
+    #     raise Exception("Probability not in indices.")
+
     def get_severity_index(self, severity_lbgi):
 
         for bounds in self.table_severity_indices.keys():
@@ -299,14 +307,14 @@ class TPRiskTableRev8(object):
 
         raise Exception("Severity not in indices.")
 
-    def add(self, severity_lbgi, num_events_per_100k_person_years):
+    def add(self, severity_lbgi, severity_prob):
 
         severity_idx = self.get_severity_index(severity_lbgi)
         # prob_idx = self.get_probability_index(num_events_per_100k_person_years)
 
         # self.table[prob_idx, severity_idx] += 1
 
-        self.table[severity_idx] += (num_events_per_100k_person_years / (365*100000*288))
+        self.table[severity_idx] += (severity_prob)# / (365*100000*288))
 
 
     def is_problematic(self, severity_lbgi, num_events_per_100k_person_years):
@@ -324,16 +332,168 @@ class TPRiskTableRev8(object):
         np.set_printoptions(suppress=True, precision=12)
         print(pd.DataFrame(self.table))
         print([f"{v:f}" for v in self.table])
-        print(np.sum(self.table))
+        print(np.sum(self.table), 6/288)
 
 
-def score_risk_table_CS_Aug_2024(summary_df):
+class PositiveBiasiCGMRequirements():
 
-    dexcom_value_model = DexcomG6ValueModel(concurrency_table="adult")
+    def __init__(self, risk_table=TPRiskTableRev7(), true_ranges=None):
+
+        self.p_corr_bolus_given_error = 3.0 / 288.0
+        self.num_cgm_per_100k_person_years = 288 * 365 * 100000
+
+        self.true_ranges = true_ranges
+        if true_ranges is None:
+            self.true_ranges = [
+                (0, 40),
+                (40, 60),
+                (61, 80),
+                (81, 120),
+                (121, 160),
+                (161, 200),
+                (201, 250),
+                (251, 300),
+                (301, 350),
+                (351, 400),
+            ]
+
+        self.dexcom_pediatric_value_model = DexcomG6ValueModel(concurrency_table="pediatric")
+        total_data_points = np.sum(self.dexcom_pediatric_value_model.comparator_totals)
+        self.p_true_pediatric = np.array([v / total_data_points for v in self.dexcom_pediatric_value_model.comparator_totals])
+
+        self.risk_table = risk_table
+
+    def fit_positive_bias_prob(self, summary_df):
+
+        for i, (low_true, high_true) in enumerate(self.true_ranges):
+
+            for (low_icgm, high_icgm) in self.true_ranges[i:]:
+
+                initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
+                true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
+
+                icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (
+                            summary_df["start_bg_with_offset"] <= high_icgm)
+
+                concurrency_square_mask = true_mask & icgm_mask & initially_ok_mask
+                sub_df = summary_df[concurrency_square_mask]
+
+                p_error_max = self.fit_error_probability(sub_df)
+                p_requirements = self.dexcom_pediatric_value_model.get_joint_probability(low_true, low_icgm)
+
+                logger.info(low_true, high_true, low_icgm, high_icgm, p_error_max, p_requirements)
+
+    def fit_positive_bias_range_and_prob(self, summary_df):
+
+        initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
+        # initially_ok_mask = summary_df["lbgi_ideal"] < 0.5
+
+        for i, (low_true, high_true) in enumerate(self.true_ranges):
+
+            true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
+
+            for (low_icgm, high_icgm) in self.true_ranges[i:]:
+
+                test_high_icgms = [high_icgm - i for i in range(0, 40, 1)]
+                mitigation_probs = []
+
+                for test_high_icgm in test_high_icgms:
+
+                    icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (
+                            summary_df["start_bg_with_offset"] <= test_high_icgm)
+
+                    concurrency_square_mask = true_mask & icgm_mask & initially_ok_mask
+                    sub_df = summary_df[concurrency_square_mask]
+
+                    # plt.hist(sub_df["true_start_bg"], alpha=0.5, label="True")
+                    # plt.hist(sub_df["start_bg_with_offset"], alpha=0.5, label="iCGM")
+                    # plt.legend()
+                    # plt.show()
+
+                    p_error_max = self.fit_error_probability(sub_df)
+
+                    mitigation_probs.append(p_error_max)
+                    p_requirements = self.dexcom_pediatric_value_model.get_joint_probability(low_true, low_icgm)
+
+                    logger.info(low_true, high_true, low_icgm, test_high_icgm, p_error_max, p_requirements)
+                    logger.info("Num sims", np.sum(concurrency_square_mask))
+
+                    if p_error_max is not None and p_error_max < p_requirements and (test_high_icgm - low_icgm) < 5:
+                        a = 1
+
+                plt.plot(test_high_icgms, mitigation_probs, label="Max P(True, iCGM)")
+                plt.axhline(p_requirements, label="Dexcom P(True, iCGM)", linestyle="--")
+                plt.legend()
+                plt.show()
+
+    def fit_error_probability(self, df, max_iters=20):
+
+        high_bound = 1.0
+        low_bound = 0.0
+
+        lbgi_data = df["lbgi_icgm"]
+
+        if len(lbgi_data) == 0:
+            return None
+
+        # Check if ok initially
+        if self.is_mitigated(lbgi_data, high_bound):
+            return high_bound
+
+        num_iters = 0
+        num_iters_not_mitigated = 0
+        test_bounds = []
+        while True:
+
+            test_bound = (high_bound - low_bound) / 2.0
+
+            if num_iters >= max_iters:
+                # plt.plot(test_bounds)
+                # plt.show()
+                # print(num_iters_not_mitigated)
+                return test_bound
+
+            test_bounds.append(test_bound)
+
+            if not self.is_mitigated(lbgi_data, test_bound):
+                high_bound = test_bound
+            else:
+                low_bound = test_bound
+                num_iters_not_mitigated += 1
+
+            num_iters += 1
+
+    def is_mitigated(self, lbgi_data, region_probability):
+
+        num_total_sims = len(lbgi_data)
+
+        for s_idx, severity_band in enumerate([(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)], 1):
+
+            severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
+            num_sims_in_severity_band = len(lbgi_data[severity_mask])
+            severity_prob = num_sims_in_severity_band / num_total_sims
+            risk_prob_sim = severity_prob * self.p_corr_bolus_given_error * region_probability
+            num_risk_events_sim = risk_prob_sim * self.num_cgm_per_100k_person_years
+
+            if self.risk_table.is_problematic(severity_band[0], num_risk_events_sim):
+                return False
+
+        return True
+
+
+def score_risk_table(summary_df):
+
+    dexcom_value_model = DexcomG6ValueModel(concurrency_table="TP_iCGM")
 
     summary_df["vp_id"] = summary_df["sim_id"].apply(lambda sim_id: re.search(r"(vp.*)_tbg=\d", sim_id).groups()[0])
 
+    risk_table_per_error_bin_patient_prob = TPRiskTableRev7()
+    risk_table_per_error_bin_sim_prob = TPRiskTableRev7()
+    risk_table_per_sim = TPRiskTableRev7()
     risk_table_per_sim_ALL = TPRiskTableRev8()
+
+    patient_percentages = []
+    lbgi_band = []
 
     total_sims = 0
     for (low_true, high_true), (low_icgm, high_icgm) in [
@@ -374,41 +534,170 @@ def score_risk_table_CS_Aug_2024(summary_df):
         true_mask = (summary_df["tbg"] >= low_true) & (summary_df["tbg"] <= high_true)
         icgm_mask = (summary_df["sbg"] >= low_icgm) & (summary_df["sbg"] <= high_icgm)
 
+        # initially_ok_mask = summary_df["lbgi_ideal"] == 0.0
 
-        concurrency_square_mask = true_mask & icgm_mask
+        concurrency_square_mask = true_mask & icgm_mask #& initially_ok_mask
 
         p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
         p_corr_bolus_given_error = 6 / 288
         num_cgm_per_100k_person_years = 288 * 365 * 100000
 
+        # num_initially_ok = np.sum(initially_ok_mask)
         num_range_mask = np.sum(true_mask & icgm_mask)
         num_total_sims = max(1, len(summary_df[concurrency_square_mask]))
 
+        # lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]
         lbgi_data = summary_df[concurrency_square_mask]["lbgi"]
 
+        num_total_patients = max(1, len(summary_df[concurrency_square_mask]["vp_id"].unique()))
         for s_idx, severity_band in enumerate([(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)], 1):
             severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
+
+            num_patients_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask]["vp_id"].unique())
             num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
+
+            patient_prob = num_patients_in_severity_band / num_total_patients
             sim_prob = num_sims_in_severity_band / num_total_sims
+
+            risk_prob_patient = patient_prob * p_corr_bolus_given_error * p_error
             risk_prob_sim = sim_prob * p_corr_bolus_given_error * p_error
+
+            num_risk_events_patient = risk_prob_patient * num_cgm_per_100k_person_years
             num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
 
+            patient_percentages.append(patient_prob)
+            lbgi_band.append(s_idx)
+
+            if not np.isnan(num_risk_events_patient) and num_risk_events_patient > 0.0:
+                risk_table_per_error_bin_patient_prob.add(severity_band[0], num_risk_events_patient)
+                # print(num_risk_events_patient)
+
             if not np.isnan(num_risk_events_sim) and num_risk_events_sim > 0.0:
+                risk_table_per_error_bin_sim_prob.add(severity_band[0], num_risk_events_sim)
 
                 risk_table_per_sim_ALL.add(severity_band[0], num_risk_events_sim)
                 # print(num_risk_events_sim)
 
+        # p_settings = 1/99.0
+        # for i, row in summary_df[concurrency_square_mask].iterrows():
+        #
+        #     sim_severity = row["lbgi_icgm"]
+        #
+        #     # bg_error = max(10, row["start_bg_with_offset"] - row["true_start_bg"])
+        #     # p_corr_bolus_given_error /= (bg_error / 10)
+        #     # print(p_corr_bolus_given_error)
+        #
+        #     sim_prob = p_error * p_corr_bolus_given_error * p_settings
+        #     num_events_per_100k_person_years = sim_prob * num_cgm_per_100k_person_years
+        #     risk_table_per_sim.add(sim_severity, num_events_per_100k_person_years)
+        #
+        #     if risk_table_per_sim.is_problematic(sim_severity, num_events_per_100k_person_years):
+        #         print(num_events_per_100k_person_years)
+
+        # print("Num sims excluded", num_sims_excluded)
+
         total_sims += num_total_sims
 
-        # print(low_true, high_true, low_icgm, high_icgm, num_total_sims)
+        # print(low_true, high_true, low_icgm, high_icgm, num_total)
+        # print("Severity:", severity, "P(true range, icgm range)", p_error, "\n")
 
-    # risk_table_per_sim_ALL.print()
+    # risk_table_per_error_bin_patient_prob.print()
+    # risk_table_per_error_bin_sim_prob.print()
+    # risk_table_per_sim.print()
+    risk_table_per_sim_ALL.print()
+
+    logger.info(f"Total sims {total_sims}")
+
+    # print(risk_severities)
+    # print(risk_severities.values())
+    # print([val / sum(list(risk_severities.values())) for val in risk_severities.values()])
+
+    # plt.scatter(lbgi_band, patient_percentages)
+    # plt.show()
+
+
+def score_risk_table_CS_Aug_2024(summary_df):
+
+    dexcom_value_model = DexcomG6ValueModel(concurrency_table="adult")
+
+    summary_df["vp_id"] = summary_df["sim_id"].apply(lambda sim_id: re.search(r"(vp.*)_tbg=\d", sim_id).groups()[0])
+    risk_table_per_sim_ALL = TPRiskTableRev8()
+
+    total_sensor_prob = 0
+
+    total_sims = 0
+    bins = [(40, 60), (61, 80), (81, 120), (121, 160), (161, 200), (201, 250), (251, 300), (301, 350), (351, 400)]
+    for (low_true, high_true) in bins:
+        for (low_icgm, high_icgm) in bins:
+
+            true_mask = (summary_df["tbg"] >= low_true) & (summary_df["tbg"] <= high_true)
+            icgm_mask = (summary_df["sbg"] >= low_icgm) & (summary_df["sbg"] <= high_icgm)
+
+            concurrency_square_mask = true_mask & icgm_mask
+
+            p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
+            total_sensor_prob += p_error
+            p_corr_bolus_given_error = 6 / 288
+            num_total_sims = len(summary_df[concurrency_square_mask])
+
+            lbgi_data = summary_df[concurrency_square_mask]["lbgi"]
+
+            for s_idx, severity_band in enumerate([(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)], 1):
+
+                severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
+                num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
+                sim_prob = num_sims_in_severity_band / num_total_sims
+                risk_prob_sim = sim_prob * p_corr_bolus_given_error * p_error
+
+                risk_table_per_sim_ALL.add(severity_band[0], risk_prob_sim)
+
+            total_sims += num_total_sims
+
+    risk_table_per_sim_ALL.print()
 
     # logger.info(f"Total sims {total_sims}")
-    
+    # print(total_sensor_prob)
     return risk_table_per_sim_ALL
 
+def get_positive_bias_errors(all_results):
 
+    tbgs = []
+    sbgs = []
+    loop_pred_bgs = []
+    sensor_error_size = []
+    loop_pred_error_size = []
+    for sim_id, result_df in all_results.items():
+        start_row_mask = result_df.index == datetime.datetime.strptime("8/15/2019 12:00:00", "%m/%d/%Y %H:%M:%S")
+        tbg = result_df[start_row_mask]["bg"].values[0]
+        sbg = result_df[start_row_mask]["bg_sensor"].values[0]
+        loop_pred = result_df[start_row_mask]["loop_final_glucose_pred"].values[0]
+
+        tbgs.append(tbg)
+        sbgs.append(sbg)
+        loop_pred_bgs.append(loop_pred)
+        sensor_error_size.append(sbg - tbg)
+        loop_pred_error_size.append(loop_pred - tbg)
+
+    return tbgs, sbgs, loop_pred_bgs, sensor_error_size, loop_pred_error_size
+
+
+def plot_sensor_error_vs_loop_prediction_error(result_dirs):
+
+    max_dfs = np.inf
+    for label, result_dir in result_dirs:
+
+        all_results = load_results(result_dir, ext = "tsv", max_dfs = max_dfs)
+        logger.info("Processing {}".format(label))
+        tbgs, sbgs, loop_pred_bgs, sensor_error_size, loop_pred_error_size = get_positive_bias_errors(all_results)
+        plt.scatter(sensor_error_size, loop_pred_error_size, label=label)
+
+    x_range = np.arange(min(sensor_error_size), max(sensor_error_size))
+    plt.plot(x_range, x_range, label="Linear", color="grey", linestyle="--")
+    plt.title("Loop Prediction Sensitivity to Spurious Sensor Errors")
+    plt.xlabel("Sensor Error Size (mg/dL)")
+    plt.ylabel("Loop Prediction Error Size (mg/dL)")
+    plt.legend()
+    plt.show()
 
 
 def get_icgm_sim_summary_df(result_dir, save_dir):
@@ -592,11 +881,17 @@ if __name__ == "__main__":
 
     # summary_result_filepath = "/Users/cameron/Downloads/sim_summary_df_Jun6_2021.csv"
     # summary_result_filepath = "/Users/cameron/Downloads/sim_summary_df_TempBasal_Sep09_2021.csv"
-    summary_result_filepath = "/Users/mconn/Downloads/sim_summary_df_MITIGATED_Aug12_2021.csv"
+    summary_result_filepath = "/Users/cameron/Downloads/sim_summary_df_MITIGATED_Aug12_2021.csv"
+
+    # summary_result_filepath = "/Users/cameron/Downloads/post_mitigation_bolus_sims_Aug2021_total_bolus.csv"
+    # summary_result_filepath = "/Users/cameron/Downloads/sim_summary_df_MITIGATED_Aug12_2021.csv"
+    # summary_result_filepath = "/Users/cameron/Downloads/sim_summary_df_MITIGATED_Aug12_2021.csv"
+
 
 
     # summary_df = pd.read_csv(summary_result_filepath, sep="\t")
     summary_df = pd.read_csv(summary_result_filepath, sep=",")
+    # score_risk_table(summary_df)
     score_risk_table_CS_Aug_2024(summary_df)
 
     # compute_risk_stats(summary_df)
