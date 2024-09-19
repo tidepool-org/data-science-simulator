@@ -167,7 +167,7 @@ class LoopController(BaseControllerClass):
         isf_values, isf_start_times, isf_end_times = \
             virtual_patient.pump.pump_config.insulin_sensitivity_schedule.get_loop_inputs()
 
-        cir_values, cir_start_times, cir_durations = \
+        cir_values, cir_start_times, cir_end_times = \
             virtual_patient.pump.pump_config.carb_ratio_schedule.get_loop_inputs()
 
         tr_min_values, tr_max_values, tr_start_times, tr_end_times = \
@@ -198,6 +198,7 @@ class LoopController(BaseControllerClass):
 
             "carb_ratio_values": cir_values,
             "carb_ratio_start_times": cir_start_times,
+            "carb_ratio_end_times": cir_end_times,
 
             "sensitivity_ratio_values": isf_values,
             "sensitivity_ratio_start_times": isf_start_times,
@@ -358,6 +359,24 @@ class LoopController(BaseControllerClass):
         temp_basal
         """
         virtual_patient.pump.set_temp_basal(temp_basal)
+
+
+class SwiftLoopController(LoopController):
+    """
+    Loop controller class that intefaces with the Swift verion of Loop.
+    """
+
+    def __repr__(self):
+        return "SwiftLoopKit"
+
+    def __str__(self):
+        return "SwiftLoopKit.1"
+
+    def __init__(self, time, controller_config, automation_control_timeline=AutomationControlTimeline([], [])):
+        super().__init__(time, controller_config)
+        self.name = "SwiftLoopKit v0.1"
+
+    
 
 
 class LoopControllerDisconnector(LoopController):
