@@ -238,13 +238,15 @@ class Simulation(multiprocessing.Process):
                 pump_cir = pump_state.get_scheduled_carb_insulin_ratio_value()
                 delivered_basal_insulin = pump_state.delivered_basal_insulin
                 undelivered_basal_insulin = pump_state.undelivered_basal_insulin
-
+            
             # Loop output
             try:
                 loop_out = simulation_state.controller_state.pyloopkit_recommendations
                 loop_cob = loop_out["carbs_on_board"]
             except AttributeError:
                 loop_cob = None
+            except Exception:
+                loop_out = None
 
             try:
                 pred_horizon_minutes = len(loop_out["predicted_glucose_values"]) * 5

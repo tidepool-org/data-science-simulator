@@ -2,6 +2,7 @@ __author__ = "Cameron Summers"
 
 import datetime
 import copy
+import json
 from numpy.random import RandomState
 
 import logging
@@ -11,8 +12,10 @@ from tidepool_data_science_simulator.models.simulation import SimulationComponen
 from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus, TempBasal
 
 from pyloopkit.loop_data_manager import update as loop_predict
+from loop_to_python_api.api import get_loop_recommendations
 
 from tidepool_data_science_simulator import USE_LOCAL_PYLOOPKIT
+
 
 logger = logging.getLogger(__name__)
 if USE_LOCAL_PYLOOPKIT:
@@ -216,6 +219,7 @@ class LoopController(BaseControllerClass):
 
         return loop_inputs_dict
 
+
     def get_loop_recommendations(self, time, **kwargs):
         """
         Get recommendations from the pyloopkit algorithm, based on
@@ -233,6 +237,7 @@ class LoopController(BaseControllerClass):
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
             loop_algorithm_output = loop_predict(loop_inputs_dict)
             return loop_algorithm_output
+
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
         """
@@ -262,6 +267,7 @@ class LoopController(BaseControllerClass):
             pass  # no recommendations
 
         self.recommendations = loop_algorithm_output
+
 
     def get_recommended_bolus(self, loop_algorithm_output):
         """
@@ -307,6 +313,7 @@ class LoopController(BaseControllerClass):
 
         return autobolus
     
+
     def get_recommended_temp_basal(self, loop_algorithm_output):
         """
         Extract temp basal from pyloopkit recommendations output.
@@ -326,6 +333,7 @@ class LoopController(BaseControllerClass):
             temp_basal = TempBasal(self.time, loop_temp_basal, duration, "U/hr")
 
         return temp_basal
+
 
     def set_bolus_recommendation_event(self, virtual_patient, bolus):
         """
@@ -376,6 +384,213 @@ class SwiftLoopController(LoopController):
         super().__init__(time, controller_config)
         self.name = "SwiftLoopKit v0.1"
 
+    def prepare_inputs(self, virtual_patient):
+        loop_inputs = super().prepare_inputs(virtual_patient=virtual_patient)
+        return self.loop_input_to_swift(loop_inputs)
+
+
+    def loop_input_to_swift(self, loop_input):
+        format_string = r'%Y-%m-%dT%H:%M:%SZ'
+        t_now = loop_input['time_to_calculate_at']
+
+        data = {}
+
+        # SETTINGS
+        settings_dictionary = loop_input['settings_dictionary']
+
+        data['predictionStart'] = t_now.strftime(format=format_string)
+        data['recommendationInsulinType'] = 'novolog'
+        data['maxBasalRate'] = settings_dictionary['max_basal_rate']
+        data['maxBolus'] = settings_dictionary['max_bolus']
+        data['suspendThreshold'] = settings_dictionary['suspend_threshold']
+        
+        data['recommendationType'] = 'automaticBolus'
+        if settings_dictionary['partial_application_factor']:
+            data['recommendationType'] = 'automaticBolus'
+        # data['recommendationType'] = 'manualBolus'
+
+        # BASAL RATE
+        start_times = loop_input['basal_rate_start_times']
+        durations = loop_input['basal_rate_minutes']
+        values = loop_input['basal_rate_values']
+
+        for start_time, duration, value in zip(start_times, durations, values):
+            start_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
+                start_time.hour, start_time.minute, start_time.second
+            )
+            end_date = min(start_date + datetime.timedelta(minutes=duration), t_now)
+
+            data_entry = { "endDate" : end_date.strftime(format_string),
+                "startDate" : start_date.strftime(format_string),
+                "value" : value }
+
+        data['basal'] = [data_entry] 
+
+        # SENSITIVITY
+        start_times = loop_input['sensitivity_ratio_start_times']
+        end_times = loop_input['sensitivity_ratio_end_times']
+        values = loop_input['sensitivity_ratio_values']
+
+        for start_time, end_time, value in zip(start_times, end_times, values):
+            start_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
+                start_time.hour, start_time.minute, start_time.second
+            )
+            end_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
+                end_time.hour, end_time.minute, end_time.second
+            )
+            data_entry = { "endDate" : end_date.strftime(format_string),
+                "startDate" : start_date.strftime(format_string),
+                "value" : value }
+
+        data['sensitivity'] = [data_entry]
+
+        # CARB RATIO
+        start_times = loop_input['carb_ratio_start_times']
+        end_times = loop_input['carb_ratio_end_times']
+        values = loop_input['carb_ratio_values']
+
+        for start_time, end_time, value in zip(start_times, end_times, values):
+            start_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
+                start_time.hour, start_time.minute, start_time.second
+            )
+            end_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
+                end_time.hour, end_time.minute, end_time.second
+            )
+            data_entry = { "endDate" : end_date.strftime(format_string),
+                "startDate" : start_date.strftime(format_string),
+                "value" : value }
+
+        data['carbRatio'] = [data_entry]
+
+        # TARGET
+        start_times = loop_input['target_range_start_times']
+        end_times = loop_input['target_range_end_times']
+        lower_bounds = loop_input['target_range_minimum_values']
+        upper_bounds = loop_input['target_range_maximum_values']
+
+        for start_time, end_time, lower_bound, upper_bound in zip(
+            start_times, end_times, lower_bounds, upper_bounds
+        ):
+            start_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
+                start_time.hour, start_time.minute, start_time.second
+            )
+            end_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
+                end_time.hour, end_time.minute, end_time.second
+            )
+
+            data_entry = { "endDate" : end_date.strftime(format_string),
+                "startDate" : start_date.strftime(format_string),
+                "lowerBound" : lower_bound,
+                "upperBound" : upper_bound }
+
+        data['target'] = [data_entry]
+
+        # GLUCOSE
+        glucose_values = loop_input['glucose_values']
+        glucose_dates = loop_input['glucose_dates']
+
+        history = []
+        for value, date in zip(glucose_values, glucose_dates):
+            entry = {
+                'date' : date.strftime(format=format_string),  
+                'value' : value
+            }
+            history.append(entry)
+
+        data['glucoseHistory'] = history
+
+        # CARB ENTRIES
+        carb_values = loop_input['carb_values']
+        carb_dates = loop_input['carb_dates']
+        carb_absorption_times = loop_input['carb_absorption_times'] 
+
+        history = []
+        for value, date, absorption_time in zip(carb_values, carb_dates, carb_absorption_times):
+            entry = {
+                'date' : date.strftime(format=format_string),  
+                'grams' : value,
+                'absorptionTime' : absorption_time * 60
+            }
+            history.append(entry)
+
+        data['carbEntries'] = history
+
+        # TEMP BASAL DOSES
+        dose_values = loop_input['dose_values']
+        dose_start_times = loop_input['dose_start_times']
+        dose_end_times = loop_input['dose_end_times']
+
+        history = []
+        for value, dose_start_time, dose_end_time in zip(dose_values, dose_start_times, dose_end_times):
+            entry = {
+                'startDate' : dose_start_time.strftime(format=format_string),  
+                'endDate' : dose_end_time.strftime(format=format_string),  
+                'volume' : value/12,
+                'type' : 'basal'
+            }
+            history.append(entry)
+
+        data['doses'] = history
+
+        return data
+    
+    def get_loop_recommendations(self, time, **kwargs):
+        """
+        Get recommendations from the pyloopkit algorithm, based on
+        virtual_patient dosing and glucose.
+        """
+        self.time = time
+
+        automation_control_event = self.automation_control_timeline.get_event(time)
+
+        if automation_control_event is not None:
+            self.open_loop = not automation_control_event.dosing_enabled
+
+        virtual_patient = kwargs["virtual_patient"]
+        if virtual_patient.pump is not None:
+            loop_inputs_dict = self.prepare_inputs(virtual_patient)
+            swift_output = get_loop_recommendations(loop_inputs_dict)
+            swift_output_decode = swift_output.decode('utf-8')
+            swift_output_json = json.loads(swift_output_decode)
+
+            return swift_output_json
+
+    def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
+        """
+        Apply the recommendations from the pyloopkit algo.
+
+        Parameters
+        ----------
+        virtual_patient
+        loop_algorithm_output
+        """
+        print(loop_algorithm_output)
+        
+        manual_data = loop_algorithm_output.get('manual')
+        automatic_data = loop_algorithm_output.get('automatic')
+
+        if manual_data:
+            manual_bolus_rec = manual_data['amount']
+            if virtual_patient.does_accept_bolus_recommendation(manual_bolus_rec):
+                self.set_bolus_recommendation_event(virtual_patient, manual_bolus_rec)
+        
+        elif automatic_data:
+            autobolus_rec = automatic_data.get('bolusUnits')
+            temp_basal_data = automatic_data.get('basalAdjustment')
+            
+            if autobolus_rec:
+                
+                self.set_bolus_recommendation_event(virtual_patient, Bolus(autobolus_rec, "U"))
+            elif temp_basal_data:
+                units_per_hour = automatic_data.get('unitsPerHour') or 0
+                temp_basal = TempBasal(self.time, units_per_hour, 30, "U/hr")
+                self.modulate_temp_basal(virtual_patient, temp_basal)
+        else: 
+            pass
+
+        
+
+        self.recommendations = loop_algorithm_output
     
 
 
