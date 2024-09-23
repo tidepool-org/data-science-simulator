@@ -384,19 +384,60 @@ class SwiftLoopController(LoopController):
         super().__init__(time, controller_config)
         self.name = "SwiftLoopKit v0.1"
 
+
     def prepare_inputs(self, virtual_patient):
-        loop_inputs = super().prepare_inputs(virtual_patient=virtual_patient)
-        return self.loop_input_to_swift(loop_inputs)
+        """
+        Collect inputs to the loop update call for the current time.
 
+        Parameters
+        ----------
+        virtual_patient:
 
-    def loop_input_to_swift(self, loop_input):
+        Returns
+        -------
+        dict
+            Inputs for Pyloopkit algo
+        """
+        glucose_dates, glucose_values = virtual_patient.sensor.get_loop_inputs()
+
+        bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = self.get_dose_event_timelines(virtual_patient)
+
+        bolus_dose_types, bolus_dose_values, bolus_start_times, bolus_end_times, bolus_delivered_units = \
+            bolus_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+
+        temp_basal_dose_types, temp_basal_dose_values, temp_basal_start_times, temp_basal_end_times, temp_basal_delivered_units = \
+            temp_basal_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+
+        carb_values, carb_start_times, carb_durations = \
+            carb_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+
+        basal_rate_values, basal_rate_start_times, basal_rate_durations = \
+            virtual_patient.pump.pump_config.basal_schedule.get_loop_inputs()
+
+        isf_values, isf_start_times, isf_end_times = \
+            virtual_patient.pump.pump_config.insulin_sensitivity_schedule.get_loop_inputs()
+
+        cir_values, cir_start_times, cir_end_times = \
+            virtual_patient.pump.pump_config.carb_ratio_schedule.get_loop_inputs()
+
+        tr_min_values, tr_max_values, tr_start_times, tr_end_times = \
+            virtual_patient.pump.pump_config.target_range_schedule.get_loop_inputs()
+
+        last_temp_basal = None
+        if len(temp_basal_dose_types) > 0:
+            last_temp_basal = [temp_basal_dose_types[-1], temp_basal_start_times[-1], temp_basal_end_times[-1], temp_basal_dose_values[-1]]
+        
+        
+        ##########################
+        # Create the Swift Loop input structure
+        ##########################
         format_string = r'%Y-%m-%dT%H:%M:%SZ'
-        t_now = loop_input['time_to_calculate_at']
+        t_now = self.time
 
         data = {}
 
         # SETTINGS
-        settings_dictionary = loop_input['settings_dictionary']
+        settings_dictionary = self.controller_config.controller_settings
 
         data['predictionStart'] = t_now.strftime(format=format_string)
         data['recommendationInsulinType'] = 'novolog'
@@ -410,11 +451,7 @@ class SwiftLoopController(LoopController):
         # data['recommendationType'] = 'manualBolus'
 
         # BASAL RATE
-        start_times = loop_input['basal_rate_start_times']
-        durations = loop_input['basal_rate_minutes']
-        values = loop_input['basal_rate_values']
-
-        for start_time, duration, value in zip(start_times, durations, values):
+        for start_time, duration, value in zip(basal_rate_start_times, basal_rate_durations, basal_rate_values):
             start_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
                 start_time.hour, start_time.minute, start_time.second
             )
@@ -427,11 +464,7 @@ class SwiftLoopController(LoopController):
         data['basal'] = [data_entry] 
 
         # SENSITIVITY
-        start_times = loop_input['sensitivity_ratio_start_times']
-        end_times = loop_input['sensitivity_ratio_end_times']
-        values = loop_input['sensitivity_ratio_values']
-
-        for start_time, end_time, value in zip(start_times, end_times, values):
+        for start_time, end_time, value in zip(isf_start_times, isf_end_times, isf_values):
             start_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
                 start_time.hour, start_time.minute, start_time.second
             )
@@ -445,11 +478,7 @@ class SwiftLoopController(LoopController):
         data['sensitivity'] = [data_entry]
 
         # CARB RATIO
-        start_times = loop_input['carb_ratio_start_times']
-        end_times = loop_input['carb_ratio_end_times']
-        values = loop_input['carb_ratio_values']
-
-        for start_time, end_time, value in zip(start_times, end_times, values):
+        for start_time, end_time, value in zip(cir_start_times, cir_end_times, cir_values):
             start_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
                 start_time.hour, start_time.minute, start_time.second
             )
@@ -463,13 +492,8 @@ class SwiftLoopController(LoopController):
         data['carbRatio'] = [data_entry]
 
         # TARGET
-        start_times = loop_input['target_range_start_times']
-        end_times = loop_input['target_range_end_times']
-        lower_bounds = loop_input['target_range_minimum_values']
-        upper_bounds = loop_input['target_range_maximum_values']
-
         for start_time, end_time, lower_bound, upper_bound in zip(
-            start_times, end_times, lower_bounds, upper_bounds
+            tr_start_times, tr_end_times, tr_min_values, tr_max_values
         ):
             start_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
                 start_time.hour, start_time.minute, start_time.second
@@ -486,9 +510,6 @@ class SwiftLoopController(LoopController):
         data['target'] = [data_entry]
 
         # GLUCOSE
-        glucose_values = loop_input['glucose_values']
-        glucose_dates = loop_input['glucose_dates']
-
         history = []
         for value, date in zip(glucose_values, glucose_dates):
             entry = {
@@ -500,12 +521,8 @@ class SwiftLoopController(LoopController):
         data['glucoseHistory'] = history
 
         # CARB ENTRIES
-        carb_values = loop_input['carb_values']
-        carb_dates = loop_input['carb_dates']
-        carb_absorption_times = loop_input['carb_absorption_times'] 
-
         history = []
-        for value, date, absorption_time in zip(carb_values, carb_dates, carb_absorption_times):
+        for value, date, absorption_time in zip(carb_values, carb_start_times, carb_durations):
             entry = {
                 'date' : date.strftime(format=format_string),  
                 'grams' : value,
@@ -515,24 +532,30 @@ class SwiftLoopController(LoopController):
 
         data['carbEntries'] = history
 
-        # TEMP BASAL DOSES
-        dose_values = loop_input['dose_values']
-        dose_start_times = loop_input['dose_start_times']
-        dose_end_times = loop_input['dose_end_times']
-
+        # DOSES
+        dose_types = bolus_dose_types + temp_basal_dose_types
+        dose_values = bolus_dose_values + temp_basal_dose_values
+        dose_start_times = bolus_start_times + temp_basal_start_times
+        dose_end_times = bolus_end_times + temp_basal_end_times
+    
         history = []
-        for value, dose_start_time, dose_end_time in zip(dose_values, dose_start_times, dose_end_times):
+        for value, dose_start_time, dose_end_time, dose_type in zip(dose_values, dose_start_times, dose_end_times, dose_types):
+            dose_start_time = dose_start_time - datetime.timedelta(seconds=2)
+            dose_type = dose_type.name.replace('tempbasal', 'basal')
+
             entry = {
                 'startDate' : dose_start_time.strftime(format=format_string),  
                 'endDate' : dose_end_time.strftime(format=format_string),  
-                'volume' : value/12,
-                'type' : 'basal'
+                'volume' : value,
+                'type' : dose_type
             }
+
             history.append(entry)
 
         data['doses'] = history
 
         return data
+
     
     def get_loop_recommendations(self, time, **kwargs):
         """

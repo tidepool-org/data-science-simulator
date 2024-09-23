@@ -373,6 +373,8 @@ class Simulation(multiprocessing.Process):
         }
         return stateless_info
 
+class SettingTimeline(SimulationComponent):
+    pass
 
 class SettingSchedule24Hr(SimulationComponent):
     """
