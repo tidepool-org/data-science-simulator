@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 import itertools
 
-import seaborn as sns
+# import seaborn as sns
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -13,7 +13,7 @@ import matplotlib.colors as mcolors
 # style.use("seaborn-poster")  # sets the size of the charts
 # style.use("ggplot")
 
-sns.set_style("darkgrid")
+# sns.set_style("darkgrid")
 
 
 def plot_sim_icgm_paired(all_results):
