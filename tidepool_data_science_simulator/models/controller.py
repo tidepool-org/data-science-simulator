@@ -13,7 +13,7 @@ from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus,
 
 from pyloopkit.loop_data_manager import update as loop_predict
 from loop_to_python_api.api import get_loop_recommendations
-
+# import loop_to_python_api
 from tidepool_data_science_simulator import USE_LOCAL_PYLOOPKIT
 
 
@@ -464,18 +464,20 @@ class SwiftLoopController(LoopController):
         data['basal'] = [data_entry] 
 
         # SENSITIVITY
+        data_entries = []
         for start_time, end_time, value in zip(isf_start_times, isf_end_times, isf_values):
-            start_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
-                start_time.hour, start_time.minute, start_time.second
-            )
-            end_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
-                end_time.hour, end_time.minute, end_time.second
-            )
-            data_entry = { "endDate" : end_date.strftime(format_string),
-                "startDate" : start_date.strftime(format_string),
+            # start_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
+            #     start_time.hour, start_time.minute, start_time.second
+            # )
+            # end_date = datetime.datetime(t_now.year, t_now.month, t_now.day, 
+            #     end_time.hour, end_time.minute, end_time.second
+            # )
+            data_entry = { "endDate" : end_time.strftime(format_string),
+                "startDate" : start_time.strftime(format_string),
                 "value" : value }
+            data_entries.append(data_entry)
 
-        data['sensitivity'] = [data_entry]
+        data['sensitivity'] = data_entries
 
         # CARB RATIO
         for start_time, end_time, value in zip(cir_start_times, cir_end_times, cir_values):
@@ -572,6 +574,7 @@ class SwiftLoopController(LoopController):
         virtual_patient = kwargs["virtual_patient"]
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
+            
             swift_output = get_loop_recommendations(loop_inputs_dict)
             swift_output_decode = swift_output.decode('utf-8')
             swift_output_json = json.loads(swift_output_decode)
@@ -586,7 +589,7 @@ class SwiftLoopController(LoopController):
         ----------
         virtual_patient
         loop_algorithm_output
-        """
+        """        
         print(loop_algorithm_output)
         
         manual_data = loop_algorithm_output.get('manual')

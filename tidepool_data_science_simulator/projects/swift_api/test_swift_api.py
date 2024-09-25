@@ -66,10 +66,11 @@ def test_swift_api():
     sim_id = "test_swift_api"
     sim = Simulation(
         time=t0,
-        duration_hrs=6,
+        duration_hrs=24,
         virtual_patient=vp,
         controller=controller,
-        sim_id=sim_id
+        sim_id=sim_id,
+        multiprocess=False
     )
     sim.run()
     

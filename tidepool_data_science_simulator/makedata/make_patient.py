@@ -8,7 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 from tidepool_data_science_simulator.models.simulation import (
-    SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr
+    SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr,
+    SettingTimeline, BasalTimeline, TargetRangeTimeline, 
 )
 from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, ActionTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import PumpConfig, PatientConfig, SensorConfig
@@ -67,33 +68,33 @@ def get_canonical_risk_pump_config(t0=DATETIME_DEFAULT):
 
     pump_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
     pump_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
-
+    dt = datetime.datetime(year=2019, month=8, day=15, hour=0, minute=0, second=0)
     pump_config = PumpConfig(
-        basal_schedule=BasalSchedule24hr(
+        basal_schedule=BasalTimeline(
             t0,
-            start_times=[SINGLE_SETTING_START_TIME],
+            start_times=[dt],
             values=[BasalRate(0.3, "U/hr")],
-            duration_minutes=[SINGLE_SETTING_DURATION]
+            duration_minutes=[SINGLE_SETTING_DURATION * 2]
         ),
-        carb_ratio_schedule=SettingSchedule24Hr(
+        carb_ratio_schedule=SettingTimeline(
             t0,
             "CIR",
-            start_times=[SINGLE_SETTING_START_TIME],
+            start_times=[dt],
             values=[CarbInsulinRatio(20.0, "g/U")],
-            duration_minutes=[SINGLE_SETTING_DURATION]
+            duration_minutes=[SINGLE_SETTING_DURATION * 2]
         ),
-        insulin_sensitivity_schedule=SettingSchedule24Hr(
+        insulin_sensitivity_schedule=SettingTimeline(
             t0,
             "ISF",
-            start_times=[SINGLE_SETTING_START_TIME],
+            start_times=[dt],
             values=[InsulinSensitivityFactor(150.0, "mg/dL/U")],
-            duration_minutes=[SINGLE_SETTING_DURATION]
+            duration_minutes=[SINGLE_SETTING_DURATION * 2]
         ),
-        target_range_schedule=TargetRangeSchedule24hr(
+        target_range_schedule=TargetRangeTimeline(
             t0,
-            start_times=[SINGLE_SETTING_START_TIME],
+            start_times=[dt],
             values=[TargetRange(100, 120, "mg/dL")],
-            duration_minutes=[SINGLE_SETTING_DURATION]
+            duration_minutes=[SINGLE_SETTING_DURATION * 2]
         ),
         carb_event_timeline=pump_carb_timeline,
         bolus_event_timeline=pump_bolus_timeline
