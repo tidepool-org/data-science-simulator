@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import datetime
+import ast
 
 from pyloopkit.dose import DoseType
 
@@ -96,10 +97,10 @@ def dataframe_inputs_to_dict(dfs, df_misc, df_settings):
     input_dictionary["settings_dictionary"] = df_settings.to_dict()["settings"]
 
     # set the format back for the edge cases
-    input_dictionary["settings_dictionary"]["model"] = np.safe_eval(
+    input_dictionary["settings_dictionary"]["model"] = ast.literal_eval(
         input_dictionary["settings_dictionary"]["model"]
     )
-    input_dictionary["settings_dictionary"]["default_absorption_times"] = np.safe_eval(
+    input_dictionary["settings_dictionary"]["default_absorption_times"] = ast.literal_eval(
         input_dictionary["settings_dictionary"]["default_absorption_times"]
     )
 
@@ -167,7 +168,7 @@ def input_table_to_dict(input_df):
 
             dict_["settings_dictionary"][k] = str2bool(dict_["settings_dictionary"][k])
         else:
-            dict_["settings_dictionary"][k] = np.safe_eval(
+            dict_["settings_dictionary"][k] = ast.literal_eval(
                 dict_["settings_dictionary"][k]
             )
     if "suspend_threshold" not in dict_["settings_dictionary"].keys():
@@ -181,7 +182,7 @@ def input_table_to_dict(input_df):
         if "units" in col:
             dict_[col] = input_df_T[col].dropna().unique()[0]
         elif "offset" in col:
-            dict_[col] = int(np.safe_eval(input_df_T[col].dropna()[0]))
+            dict_[col] = int(ast.literal_eval(input_df_T[col].dropna()[0]))
         elif "time_to_calculate" in col:
             dict_[col] = datetime.datetime.fromisoformat(
                 pd.to_datetime(input_df_T[col].dropna()[0]).isoformat()
@@ -202,11 +203,11 @@ def input_table_to_dict(input_df):
                             pd.to_datetime(v).isoformat()
                         )
                     else:
-                        obj = np.safe_eval(v)
+                        obj = ast.literal_eval(v)
                 elif "DoseType" in v:
                     obj = DoseType.from_str(v[9:])
                 else:
-                    obj = np.safe_eval(v)
+                    obj = ast.literal_eval(v)
 
                 temp_array = np.append(temp_array, obj)
 
