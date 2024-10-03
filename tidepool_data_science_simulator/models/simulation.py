@@ -413,10 +413,10 @@ class SettingSchedule24Hr(SimulationComponent):
         for start_time, value, duration_minutes in zip(
             start_times, values, duration_minutes
         ):
-
-            start_datetime = datetime.datetime.combine(
-                datetime.datetime.today(), start_time
-            )
+            
+            # start_delta = datetime.timedelta(hours=start_time.hour, seconds=start_time.second)
+            start_datetime = datetime.datetime.combine(time, start_time)
+            
             end_datetime = (
                 start_datetime
                 + datetime.timedelta(minutes=duration_minutes)
@@ -510,7 +510,9 @@ class SettingSchedule24Hr(SimulationComponent):
         self.time = time
 
     def get_loop_inputs(self):
-
+        """
+        Get the inputs in datetime.time for pyloopkit
+        """
         values = []
         start_times = []
         end_times = []
@@ -520,6 +522,21 @@ class SettingSchedule24Hr(SimulationComponent):
             end_times.append(end_time)
 
         return values, start_times, end_times
+
+    def get_loop_swift_inputs(self):
+        """
+        Get the inputs in datetime.datetime for SwiftLoop
+        """
+        values = []
+        start_datetimes = []
+        end_datetimes = []
+        for (start_datetime, end_datetime), setting in self.schedule_timeline.items():
+            values.append(setting.value)
+            start_datetimes.append(start_datetime)
+            end_datetimes.append(end_datetime)
+
+        return values, start_datetimes, end_datetimes
+    
 
     def get_info_stateless(self):
 
@@ -552,7 +569,7 @@ class BasalSchedule24hr(SettingSchedule24Hr):
             start_times.append(start_time)
             durations.append(self.schedule_durations[(start_time, end_time)])
 
-        return values, start_times, durations
+        return values, start_times, durations 
 
 
 class TargetRangeSchedule24hr(SettingSchedule24Hr):
@@ -566,6 +583,7 @@ class TargetRangeSchedule24hr(SettingSchedule24Hr):
         max_values = []
         start_times = []
         end_times = []
+        
         for (start_time, end_time), target_range in self.schedule.items():
             min_values.append(target_range.min_value)
             max_values.append(target_range.max_value)
@@ -574,128 +592,146 @@ class TargetRangeSchedule24hr(SettingSchedule24Hr):
 
         return min_values, max_values, start_times, end_times
 
-
-class SettingTimeline(SettingSchedule24Hr):
-    """
-    A class for settings timelines that extend over multiple days.
-    """
-
-    def __init__(self, time, name, start_times=None, values=None, duration_minutes=None):
+    def get_loop_swift_inputs(self):
         """
-        Parameters
-        ----------
-        time: datetime
-            Current time
-
-        name: str
-            Setting name
-
-        start_times: list
-            List of datetime.time objects
-
-        values: list
-            List of objects
-
-        duration_minutes: list
-            List of ints
+        Get the inputs in datetime.datetime for SwiftLoop
         """
-        self.time = time
-        self.name = name
-        self.schedule_durations = {}
-        self.schedule = {}
-        self.percentage_change = None
-        self.schedule_timeline = {}
-        self.schedule_durations_timeline = {}
-
-        # All the same length
-        assert (
-            len(start_times) + len(values) + len(duration_minutes)
-            == len(start_times) * 3
-        )
-
-        for start_time, value, duration_minutes in zip(
-            start_times, values, duration_minutes
-        ):
-
-            # start_datetime = datetime.datetime.combine(
-            #     datetime.datetime.today(), start_time
-            # )
-            end_datetime = (
-                start_time
-                + datetime.timedelta(minutes=duration_minutes)
-                - datetime.timedelta(seconds=1)
-            )
-            end_time = end_datetime.time()
-            self.schedule[(start_time, end_time)] = value
-            self.schedule_durations[(start_time, end_time)] = duration_minutes
-            self.schedule_durations_timeline[(start_time, end_datetime)] = duration_minutes
-            self.schedule_timeline[(start_time, end_datetime)] = value
-       
-    def get_loop_inputs(self):
-
-        values = []
-        start_times = []
-        end_times = []
-        for (start_time, end_time), setting in self.schedule_timeline.items():
-            values.append(setting.value)
-            start_times.append(start_time)
-            end_times.append(end_time)
-
-        return values, start_times, end_times
-    
-    def get_state(self):
-        """
-        Get the value object at the current time, e.g. carb ratio or target range
-
-        Returns
-        -------
-        object
-            The object at the current time
-        """
-
-        for (start_time, end_time), value in self.schedule_timeline.items():
-            current_time = self.time
-            if start_time <= current_time <= end_time:
-                return value
-
-        raise Exception("Could not find setting for time {}".format(self.time))
-
-class BasalTimeline(SettingTimeline):
-
-    def __init__(self, time, start_times, values, duration_minutes):
-        super().__init__(time, "Basal Rate Schedule", start_times, values, duration_minutes)
-
-    def get_loop_inputs(self):
-
-        values = []
-        start_times = []
-        durations = []
-        for (start_time, end_time), setting in self.schedule_timeline.items():
-            values.append(setting.value)
-            start_times.append(start_time)
-            durations.append(self.schedule_durations_timeline[(start_time, end_time)])
-
-        return values, start_times, durations
-
-
-class TargetRangeTimeline(SettingTimeline):
-
-    def __init__(self, time, start_times, values, duration_minutes):
-        super().__init__(time, "Target Range Schedule", start_times, values, duration_minutes)
-
-    def get_loop_inputs(self):
-
         min_values = []
         max_values = []
-        start_times = []
-        end_times = []
-        for (start_time, end_time), target_range in self.schedule_timeline.items():
+        start_datetimes = []
+        end_datetimes = []
+        
+        for (start_datetime, end_datetime), target_range in self.schedule.items():
             min_values.append(target_range.min_value)
             max_values.append(target_range.max_value)
-            start_times.append(start_time)
-            end_times.append(end_time)
+            start_datetimes.append(start_datetime)
+            end_datetimes.append(end_datetime)
+        
+        return min_values, max_values, start_datetimes, end_datetimes
+    
 
-        return min_values, max_values, start_times, end_times
+# class SettingTimeline(SettingSchedule24Hr):
+#     """
+#     A class for settings timelines that extend over multiple days.
+#     """
+
+#     def __init__(self, time, name, start_times=None, values=None, duration_minutes=None):
+#         """
+#         Parameters
+#         ----------
+#         time: datetime
+#             Current time
+
+#         name: str
+#             Setting name
+
+#         start_times: list
+#             List of datetime.time objects
+
+#         values: list
+#             List of objects
+
+#         duration_minutes: list
+#             List of ints
+#         """
+#         self.time = time
+#         self.name = name
+#         self.schedule_durations = {}
+#         self.schedule = {}
+#         self.percentage_change = None
+#         self.schedule_timeline = {}
+#         self.schedule_durations_timeline = {}
+
+#         # All the same length
+#         assert (
+#             len(start_times) + len(values) + len(duration_minutes)
+#             == len(start_times) * 3
+#         )
+
+#         for start_time, value, duration_minutes in zip(
+#             start_times, values, duration_minutes
+#         ):
+
+#             # start_datetime = datetime.datetime.combine(
+#             #     datetime.datetime.today(), start_time
+#             # )
+#             end_datetime = (
+#                 start_time
+#                 + datetime.timedelta(minutes=duration_minutes)
+#                 - datetime.timedelta(seconds=1)
+#             )
+#             end_time = end_datetime.time()
+#             self.schedule[(start_time, end_time)] = value
+#             self.schedule_durations[(start_time, end_time)] = duration_minutes
+#             self.schedule_durations_timeline[(start_time, end_datetime)] = duration_minutes
+#             self.schedule_timeline[(start_time, end_datetime)] = value
+       
+#     def get_loop_inputs(self):
+
+#         values = []
+#         start_times = []
+#         end_times = []
+#         for (start_time, end_time), setting in self.schedule_timeline.items():
+#             values.append(setting.value)
+#             start_times.append(start_time)
+#             end_times.append(end_time)
+
+#         return values, start_times, end_times
+    
+#     def get_state(self):
+#         """
+#         Get the value object at the current time, e.g. carb ratio or target range
+
+#         Returns
+#         -------
+#         object
+#             The object at the current time
+#         """
+
+#         for (start_time, end_time), value in self.schedule_timeline.items():
+#             current_time = self.time
+#             if start_time <= current_time <= end_time:
+#                 return value
+
+#         raise Exception("Could not find setting for time {}".format(self.time))
+
+# class BasalTimeline(SettingTimeline):
+
+#     def __init__(self, time, start_times, values, duration_minutes):
+#         super().__init__(time, "Basal Rate Schedule", start_times, values, duration_minutes)
+
+#     def get_loop_inputs(self):
+
+#         values = []
+#         start_times = []
+#         end_times = []
+
+#         for (start_time, end_time), setting in self.schedule_timeline.items():
+#             values.append(setting.value)
+#             start_times.append(start_time)
+#             end_times.append(end_time)
+
+#         return values, start_times, end_times
+
+
+# class TargetRangeTimeline(SettingTimeline):
+
+#     def __init__(self, time, start_times, values, duration_minutes):
+#         super().__init__(time, "Target Range Schedule", start_times, values, duration_minutes)
+
+#     def get_loop_inputs(self):
+
+#         min_values = []
+#         max_values = []
+#         start_times = []
+#         end_times = []
+#         for (start_time, end_time), target_range in self.schedule_timeline.items():
+#             min_values.append(target_range.min_value)
+#             max_values.append(target_range.max_value)
+#             start_times.append(start_time)
+#             end_times.append(end_time)
+
+#         return min_values, max_values, start_times, end_times
     
 
 class SingleSettingSchedule24Hr(SimulationComponent):
