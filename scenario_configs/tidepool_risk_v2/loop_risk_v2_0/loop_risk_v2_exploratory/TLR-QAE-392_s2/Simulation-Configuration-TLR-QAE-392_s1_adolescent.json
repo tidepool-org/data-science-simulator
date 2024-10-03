@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "risk-id": "TLR-QAE-392_s1",
+    "simulation_id": "TLR-QAE-392_s1-base_adolescent",
+    "risk_description": "Correction range width",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_v1",
+  "override_config": [
+    {"sim_id": "post-Loop-WithMitigations_t1_adolescent",
+      "duration_hours": 80.0,
+      "patient": {
+        "patient_model": {
+          "bolus_entries": "reusable.insulin_doses.80hr_accept_rec_v1",
+          "carb_entries": "reusable.carb_doses.adolescent_80hr_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_80hr_v1",
+          "target_range": {
+  "start_times": [
+    "0:00:00"
+  ],
+  "lower_values": [
+    87
+  ],
+  "upper_values": [
+    87
+  ]
+}
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+      }
+    }
+]
+}

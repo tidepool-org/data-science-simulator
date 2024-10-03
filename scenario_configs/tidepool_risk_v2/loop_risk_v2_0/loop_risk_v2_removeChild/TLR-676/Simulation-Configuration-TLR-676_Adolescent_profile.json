@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "risk-id": "TLR-676",
+    "simulation_id": "TLR-676-adolescent",
+    "risk_description": "Carb entry without bolus",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-LoopNoMitigations_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-LoopWithMitigations_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+      }
+    }
+  ]
+}
