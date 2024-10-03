@@ -557,9 +557,7 @@ class SwiftLoopController(LoopController):
         virtual_patient = kwargs["virtual_patient"]
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
-            
-            # loop_inputs_dict['basal'][0]['endDate'] = loop_inputs_dict['predictionStart']
-            
+                        
             swift_output = get_loop_recommendations(loop_inputs_dict)
             swift_output_decode = swift_output.decode('utf-8')
             swift_output_json = json.loads(swift_output_decode)
@@ -574,9 +572,7 @@ class SwiftLoopController(LoopController):
         ----------
         virtual_patient
         loop_algorithm_output
-        """        
-        print(loop_algorithm_output)
-        
+        """                
         manual_data = loop_algorithm_output.get('manual')
         automatic_data = loop_algorithm_output.get('automatic')
 

@@ -18,7 +18,8 @@ from tidepool_data_science_simulator.run import run_simulations
 
 
 THIS_DIR = os.path.abspath(__file__)
-TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_test/loop_risk_test/")
+TIDEPOOL_CONFIGURATION_ROOT = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_test/") 
+TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(TIDEPOOL_CONFIGURATION_ROOT, "loop_risk_test/")
 
 RESULTS_SAVE_DIR = os.path.join(DATA_DIR, "results/tidepool_loop_risk_test")
 
@@ -45,7 +46,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
             #    continue
             # print("!!!"+scenario_json_name)
             scenario_json_path = os.path.join(risk_dir_path, scenario_json_name)
-            parser = ScenarioParserV2(path_to_json_config=scenario_json_path)
+            parser = ScenarioParserV2(path_to_json_config=scenario_json_path, pointer_object_dir=TIDEPOOL_CONFIGURATION_ROOT)
 
             sim_suite = parser.get_sims(override_json_save_dir=override_config_save_dir)
             yield risk_dir_name, scenario_json_name, sim_suite

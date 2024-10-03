@@ -68,33 +68,33 @@ def get_canonical_risk_pump_config(t0=DATETIME_DEFAULT):
 
     pump_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
     pump_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
-    dt = datetime.datetime(year=2019, month=8, day=15, hour=0, minute=0, second=0)
+
     pump_config = PumpConfig(
-        basal_schedule=BasalTimeline(
+        basal_schedule=BasalSchedule24hr(
             t0,
-            start_times=[dt],
+            start_times=[SINGLE_SETTING_START_TIME],
             values=[BasalRate(0.3, "U/hr")],
-            duration_minutes=[SINGLE_SETTING_DURATION * 2]
+            duration_minutes=[SINGLE_SETTING_DURATION]
         ),
-        carb_ratio_schedule=SettingTimeline(
+        carb_ratio_schedule=SettingSchedule24Hr(
             t0,
             "CIR",
-            start_times=[dt],
+            start_times=[SINGLE_SETTING_START_TIME],
             values=[CarbInsulinRatio(20.0, "g/U")],
-            duration_minutes=[SINGLE_SETTING_DURATION * 2]
+            duration_minutes=[SINGLE_SETTING_DURATION]
         ),
-        insulin_sensitivity_schedule=SettingTimeline(
+        insulin_sensitivity_schedule=SettingSchedule24Hr(
             t0,
             "ISF",
-            start_times=[dt],
+            start_times=[SINGLE_SETTING_START_TIME],
             values=[InsulinSensitivityFactor(150.0, "mg/dL/U")],
-            duration_minutes=[SINGLE_SETTING_DURATION * 2]
+            duration_minutes=[SINGLE_SETTING_DURATION]
         ),
-        target_range_schedule=TargetRangeTimeline(
+        target_range_schedule=TargetRangeSchedule24hr(
             t0,
-            start_times=[dt],
+            start_times=[SINGLE_SETTING_START_TIME],
             values=[TargetRange(100, 120, "mg/dL")],
-            duration_minutes=[SINGLE_SETTING_DURATION * 2]
+            duration_minutes=[SINGLE_SETTING_DURATION]
         ),
         carb_event_timeline=pump_carb_timeline,
         bolus_event_timeline=pump_bolus_timeline
@@ -102,6 +102,56 @@ def get_canonical_risk_pump_config(t0=DATETIME_DEFAULT):
 
     return t0, pump_config
 
+# def get_canonical_timeline_risk_pump_config(t0=DATETIME_DEFAULT):
+#     """
+#     Get canonical pump config using timelines instead of 24 hour schedules
+#     This is necessary for using the Swift version of Loop
+
+#     Parameters
+#     ----------
+#     t0
+
+#     Returns
+#     -------
+#     PumpConfig
+#     """
+    
+#     pump_carb_timeline = CarbTimeline([t0], [Carb(0.0, "g", 180)])
+#     pump_bolus_timeline = BolusTimeline([t0], [Bolus(0.0, "U")])
+#     dt = datetime.datetime(year=2019, month=8, day=15, hour=0, minute=0, second=0)
+    
+#     pump_config = PumpConfig(
+#         basal_schedule=BasalTimeline(
+#             t0,
+#             start_times=[dt],
+#             values=[BasalRate(0.3, "U/hr")],
+#             duration_minutes=[SINGLE_SETTING_DURATION * 2]
+#         ),
+#         carb_ratio_schedule=SettingTimeline(
+#             t0,
+#             "CIR",
+#             start_times=[dt],
+#             values=[CarbInsulinRatio(20.0, "g/U")],
+#             duration_minutes=[SINGLE_SETTING_DURATION * 2]
+#         ),
+#         insulin_sensitivity_schedule=SettingTimeline(
+#             t0,
+#             "ISF",
+#             start_times=[dt],
+#             values=[InsulinSensitivityFactor(150.0, "mg/dL/U")],
+#             duration_minutes=[SINGLE_SETTING_DURATION * 2]
+#         ),
+#         target_range_schedule=TargetRangeTimeline(
+#             t0,
+#             start_times=[dt],
+#             values=[TargetRange(100, 120, "mg/dL")],
+#             duration_minutes=[SINGLE_SETTING_DURATION * 2]
+#         ),
+#         carb_event_timeline=pump_carb_timeline,
+#         bolus_event_timeline=pump_bolus_timeline
+#     )
+
+#     return t0, pump_config
 
 def get_canonical_sensor_config(t0=DATETIME_DEFAULT, num_glucose_values=137, start_value=110):
     """
