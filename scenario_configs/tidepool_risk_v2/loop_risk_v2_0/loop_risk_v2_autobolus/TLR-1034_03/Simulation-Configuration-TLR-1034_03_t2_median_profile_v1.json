@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "risk-id": "TLR-034_03",
+    "simulation_id": "TLR-034_03-t2_median",
+    "risk_description": "Autobolus to cover no meal announcement",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_median_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "partial_application_factor": 0.3,
+          "maximum_autobolus": 30.0,
+          "minimum_autobolus": 0.0
+        }
+      }
+      },
+    {"sim_id": "pre-noLoop_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
+        }
+      },
+      "controller": null
+      },
+    {"sim_id": "post-Loop-WithMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "partial_application_factor": 0.3,
+          "maximum_autobolus": 30.0,
+          "minimum_autobolus": 0.0,
+          "glucose_safety_limit": 75,
+          "max_basal_rate": 2.975
+        }
+      }
+      }
+]
+}

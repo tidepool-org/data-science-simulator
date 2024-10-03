@@ -1,0 +1,91 @@
+{
+  "metadata": {
+    "risk-id": "TLR-Expl-auto",
+    "simulation_id": "TLR-Expl-auto-base_adolescent",
+    "risk_description": "Auto-resume 0.05",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "duration_hours": 24.0,
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_70_12hr",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00"],
+              "values": [1.9, 0.0]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "20:00:00"],
+              "values": [1.9, 0.05, 1.9]
+            }
+          }
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_adolescent",
+      "duration_hours": 24.0,
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_70_12hr",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00"],
+              "values": [1.9, 0.0]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "20:00:00"],
+              "values": [1.9, 0.05, 1.9]
+            }
+          }
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_adolescent",
+      "duration_hours": 24.0,
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_70_12hr",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00"],
+              "values": [1.9, 0.0]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "20:00:00"],
+              "values": [1.9, 0.05, 1.9]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+      }
+    }
+]
+}
