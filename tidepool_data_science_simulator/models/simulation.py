@@ -413,8 +413,6 @@ class SettingSchedule24Hr(SimulationComponent):
         for start_time, value, duration_minutes in zip(
             start_times, values, duration_minutes
         ):
-            
-            # start_delta = datetime.timedelta(hours=start_time.hour, seconds=start_time.second)
             start_datetime = datetime.datetime.combine(time, start_time)
             
             end_datetime = (

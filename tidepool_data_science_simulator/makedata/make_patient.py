@@ -8,8 +8,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 from tidepool_data_science_simulator.models.simulation import (
-    SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr,
-    SettingTimeline, BasalTimeline, TargetRangeTimeline, 
+    SettingSchedule24Hr, BasalSchedule24hr, TargetRangeSchedule24hr
+ 
 )
 from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, ActionTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import PumpConfig, PatientConfig, SensorConfig
