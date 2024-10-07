@@ -576,18 +576,22 @@ class SwiftLoopController(LoopController):
         manual_data = loop_algorithm_output.get('manual')
         automatic_data = loop_algorithm_output.get('automatic')
 
+        if virtual_patient.bg_current < 90:
+            print(virtual_patient)
+
         if manual_data:
             manual_bolus_rec = manual_data['amount']
             if virtual_patient.does_accept_bolus_recommendation(manual_bolus_rec):
                 self.set_bolus_recommendation_event(virtual_patient, manual_bolus_rec)
-        
+
         elif automatic_data:
             autobolus_rec = automatic_data.get('bolusUnits')
             temp_basal_data = automatic_data.get('basalAdjustment')
             
-            if autobolus_rec is not None:
+            if autobolus_rec:
                 self.set_bolus_recommendation_event(virtual_patient, Bolus(autobolus_rec, "U"))
-            elif temp_basal_data:
+            
+            if temp_basal_data is not None:
                 units_per_hour = temp_basal_data.get('unitsPerHour') or 0
       
                 temp_basal = TempBasal(self.time, units_per_hour, 30, "U/hr")
