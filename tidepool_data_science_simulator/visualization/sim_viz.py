@@ -117,7 +117,7 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")
         ax[2].set_ylim((0, 100))
-        ax[2].set_xlim((datetime.datetime(2019,8,15,11,30), datetime.datetime(2019,8,15,18)))
+        ax[2].set_xlim((datetime.datetime(2019,8,15,11,30), datetime.datetime(2019,8,16,12)))
                        
         if len(all_results) <= n_sims_max_legend:
             ax[2].legend(prop={'size': 6})

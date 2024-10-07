@@ -26,3 +26,4 @@ dependencies:
     - git+https://github.com/tidepool-org/data-science-models@dev
     - git+https://github.com/tidepool-org/Pyloopkit@dev
     - git+https://github.com/tidepool-org/data-science-metrics
+    - git+https://github.com/tidepool-org/LoopAlgorithmToPyton@mjc/simulator_connection
