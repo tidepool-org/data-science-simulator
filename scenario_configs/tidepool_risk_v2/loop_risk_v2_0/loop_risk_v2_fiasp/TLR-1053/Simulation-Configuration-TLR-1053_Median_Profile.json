@@ -1,7 +1,7 @@
 {
     "metadata": {
-        "risk_id": "TLR-791",
-        "simulation_id": "TLR-791-Median",
+        "risk_id": "TLR-1053",
+        "simulation_id": "TLR-1053-Median",
         "risk_description": "Metabolic settings are too aggressive",
         "config_format_version": "v1.0"
     },
@@ -20,7 +20,7 @@
           },
            "controller": {
               "settings": {
-                "model": "rapid_acting_child"
+                "model": "fiasp"
               }
             }
         },
@@ -52,7 +52,7 @@
                 "settings": {
                   "glucose_safety_limit": 75,
                   "max_basal_rate": 1.75,
-                  "model": "rapid_acting_child"
+                  "model": "fiasp"
                 }
             }
         }
