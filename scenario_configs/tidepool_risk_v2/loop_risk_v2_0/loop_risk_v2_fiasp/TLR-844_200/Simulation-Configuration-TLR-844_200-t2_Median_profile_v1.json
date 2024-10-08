@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "risk-id": "TLR-844_200",
+    "simulation_id": "TLR-844_200-median",
+    "risk_description": "Too-aggressive override 200",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_preset_130_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_median",
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_200_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t2_median",
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_200_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_median",
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_200_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_v1"
+      }
+    }
+  ]
+}

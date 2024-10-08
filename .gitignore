@@ -103,10 +103,5 @@ venv.bak/
 .spyderproject
 .spyproject
 
-loop_risk_v2_0.py
-*.json
-tidepool_data_science_simulator/projects/risk/loop_risk_v2_0.py
-scenario_configs/tidepool_risk_v2/reusable/metabolism_settings/update.py
-tidepool_data_science_simulator/projects/risk/loop_risk_v2_0.py
 *.swp
 *.swo
