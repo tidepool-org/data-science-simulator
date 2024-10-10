@@ -441,8 +441,9 @@ class SwiftLoopController(LoopController):
         data['maxBasalRate'] = settings_dictionary['max_basal_rate']
         data['maxBolus'] = settings_dictionary['max_bolus']
         data['suspendThreshold'] = settings_dictionary['suspend_threshold']
-        
-        if settings_dictionary['partial_application_factor']:
+        data['automaticBolusApplicationFactor'] = .4
+              
+        if settings_dictionary.get('partial_application_factor'):
             data['recommendationType'] = 'automaticBolus' 
         else:
             data['recommendationType'] = 'tempBasal'
@@ -575,9 +576,6 @@ class SwiftLoopController(LoopController):
         """                
         manual_data = loop_algorithm_output.get('manual')
         automatic_data = loop_algorithm_output.get('automatic')
-
-        if virtual_patient.bg_current < 90:
-            print(virtual_patient)
 
         if manual_data:
             manual_bolus_rec = manual_data['amount']

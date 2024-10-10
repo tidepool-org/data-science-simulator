@@ -1,11 +1,11 @@
 __author__ = "Mark Connolly"
 
-from datetime import time, datetime
 
+import time, datetime
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 from tidepool_data_science_simulator.models.simulation import SettingSchedule24Hr, Simulation, TargetRangeSchedule24hr
-from tidepool_data_science_simulator.models.controller import LoopController, SwiftLoopController
+from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController, SwiftLoopController
 from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor
@@ -32,12 +32,12 @@ def test_swift_api():
     t0, controller_config = get_canonical_controller_config()
     t0, pump_config = get_canonical_risk_pump_config()
     
-    dt = time(hour=0, minute=0, second=0)
+    dt = datetime.time(hour=0, minute=0, second=0)
 
     true_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(20.0, "U", 180)])
     patient_config.carb_event_timeline = true_carb_timeline
     reported_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 240)])
-    # pump_config.carb_event_timeline = reported_carb_timeline
+    pump_config.carb_event_timeline = reported_carb_timeline
 
     insulin_sensitivity_timeline=SettingSchedule24Hr(
         t0,
@@ -52,7 +52,7 @@ def test_swift_api():
         t0,
         "ISF",
         start_times=[SINGLE_SETTING_START_TIME],
-        values=[InsulinSensitivityFactor(60.0, "md/dL / U")],
+        values=[InsulinSensitivityFactor(80.0, "md/dL / U")],
         duration_minutes=[SINGLE_SETTING_DURATION]
     )
     patient_config.insulin_sensitivity_schedule = insulin_sensitivity_schedule
@@ -60,7 +60,7 @@ def test_swift_api():
     new_target_range_schedule = \
         TargetRangeSchedule24hr(
             t0,
-            start_times=[time(0, 0, 0)],
+            start_times=[datetime.time(0, 0, 0)],
             values=[TargetRange(100, 120, "mg/dL")],
             duration_minutes=[1440]
         )
@@ -93,13 +93,14 @@ def test_swift_api():
     
     sim_results_df = sim.get_results_df()
 
-    plot_sim_results({sim_id: sim_results_df})
+    # plot_sim_results({sim_id: sim_results_df})
 
-    return
+    return 1
 
 
 
 
 if __name__ == "__main__":
-
+    start_time = time.time()
     test_swift_api()
+    print("--- %s seconds ---" % (time.time() - start_time))
