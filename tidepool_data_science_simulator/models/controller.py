@@ -441,7 +441,8 @@ class SwiftLoopController(LoopController):
         data['maxBasalRate'] = settings_dictionary['max_basal_rate']
         data['maxBolus'] = settings_dictionary['max_bolus']
         data['suspendThreshold'] = settings_dictionary['suspend_threshold']
-        data['automaticBolusApplicationFactor'] = .4
+        data['automaticBolusApplicationFactor'] = settings_dictionary['partial_application_factor']
+        data['useMidAbsorptionISF'] = settings_dictionary['use_mid_absorption_isf']
               
         if settings_dictionary.get('partial_application_factor'):
             data['recommendationType'] = 'automaticBolus' 

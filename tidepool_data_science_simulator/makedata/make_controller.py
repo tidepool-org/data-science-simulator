@@ -26,7 +26,9 @@ def get_canonical_controller_config(t0=DATETIME_DEFAULT):
         "default_absorption_times": [30.0, 120.0, 180.0, 240.0, 300.0],
         "max_basal_rate": 35,
         "max_bolus": 30,
-        "retrospective_correction_enabled": True
+        "retrospective_correction_enabled": True,
+        "partial_application_factor": 0.4,
+        "use_mid_absorption_isf": False
     }
     controller_config = ControllerConfig(
         bolus_event_timeline=BolusTimeline(),

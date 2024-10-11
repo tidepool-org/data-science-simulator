@@ -1,7 +1,7 @@
 {
   "max_basal_rate": 35,
   "max_bolus": 30,
-  "glucose_safety_limit": 70,
+  "suspend_threshold": 70,
   "model": "rapid_acting_adult",
   "momentum_data_interval": 15,
   "dynamic_carb_absorption_enabled": true,
@@ -16,5 +16,7 @@
     180.0,
     300.0
   ],
-  "retrospective_correction_enabled": true
+  "retrospective_correction_enabled": true,
+  "partial_application_factor": 0.4,
+  "use_mid_absorption_isf": false
 }
