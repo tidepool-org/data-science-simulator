@@ -24,5 +24,5 @@ dependencies:
     - pip-chill==1.0.0
     - python-dotenv==0.13.0
     - git+https://github.com/tidepool-org/data-science-models@dev
-    - git+https://github.com/tidepool-org/Pyloopkit@dev
+    - git+https://github.com/tidepool-org/Pyloopkit@mjc/icgm_bolus_fix_positive_rc_momentum
     - git+https://github.com/tidepool-org/data-science-metrics

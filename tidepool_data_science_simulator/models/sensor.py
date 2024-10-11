@@ -159,7 +159,9 @@ class NoisySensor(SensorBase):
             "time_delta_crunch_prob": self.sensor_config.time_delta_crunch_prob,
             "bg_spurious_error_delta_mgdl_range": self.sensor_config.bg_spurious_error_delta_mgdl_range,
             "not_working_time_minutes_range": self.sensor_config.not_working_time_minutes_range,
-            "cgm_offset_minutes_range": self.sensor_config.cgm_offset_minutes_range
+            "cgm_offset_minutes_range": self.sensor_config.cgm_offset_minutes_range,
+            "true_start_bg": self.true_start_bg,
+            "start_bg_with_offset": self.start_bg_with_offset,
         })
         return stateless_info
 
