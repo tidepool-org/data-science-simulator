@@ -3,9 +3,10 @@ __author__ = "Cameron Summers"
 import os
 import re
 import json
+import glob
 import argparse
 import numpy as np
-
+import multiprocessing
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -17,6 +18,35 @@ from tidepool_data_science_simulator.evaluation.jaeb_utils import (
 JAEB_DATA_DIR = "../../data/PHI/time-series-data-around-issue-reports-2020-07-28"
 
 
+def collect_sim_result(root, file):
+    file_path = os.path.join(root, file) 
+
+    sim_info = json.load(open(file_path))
+    sim_id = sim_info["sim_id"]
+
+    df_file = sim_id + '.tsv'
+
+    df_path = os.path.join(root, df_file)
+    sim_info["result_path"] = df_path
+    
+    return sim_info
+
+
+def collect_sims_and_results_generator(result_dir, sim_id_pattern="vp.*.json", max_sims=np.inf):
+    i = 0
+    for root, dirs, files in os.walk(result_dir, topdown=False):
+        for file in sorted(files):
+            if re.search(sim_id_pattern, file):
+                sim_info = collect_sim_result(result_dir, file)
+                sim_id = sim_info["sim_id"]
+
+                if i > max_sims:
+                    break
+                i += 1
+                yield sim_id, sim_info
+
+
+        
 def collect_sims_and_results(result_dir, sim_id_pattern="vp.*.json", max_sims=np.inf):
 
     sim_info_dict = dict()
@@ -25,14 +55,26 @@ def collect_sims_and_results(result_dir, sim_id_pattern="vp.*.json", max_sims=np
             if re.search(sim_id_pattern, file):
                 sim_info = json.load(open(os.path.join(root, file), "r"))
                 sim_id = sim_info["sim_id"]
-                df_file = [fn for fn in files if sim_id in fn and ".tsv" in fn][0]
+
+                # df_file = [fn for fn in files if sim_id in fn and ".tsv" in fn][0]
+                df_file = sim_id + '.tsv'
+
                 df_path = os.path.join(root, df_file)
                 sim_info["result_path"] = df_path
                 sim_info_dict[sim_id] = sim_info
-
+                
                 if len(sim_info_dict) > max_sims:
                     break
 
+    return sim_info_dict
+
+
+def collect_sims_and_results_parallel(result_dir, sim_id_pattern="vp.*.json", max_sims=np.inf, number_processes=1):
+    
+    files =glob.glob(result_dir + '/*', recursive=True)
+    pool = multiprocessing.Pool(14)
+    
+    # sim_info_dict = *pool.map()
     return sim_info_dict
 
 

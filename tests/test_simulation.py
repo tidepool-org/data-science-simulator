@@ -25,7 +25,7 @@ from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_resul
 
 def test_basic_simulation():
     """
-    Make sure Loop can bring a person close to their target range over 8 hours.
+    Make sure Loop can bring a person close to their target range over 24 hours.
     """
     target = 120
 
@@ -68,7 +68,7 @@ def test_basic_simulation():
     sim_id = "basic_loop_control"
     sim = Simulation(
         time=t0,
-        duration_hrs=8,
+        duration_hrs=24,
         virtual_patient=vp,
         controller=controller,
         sim_id=sim_id
@@ -77,9 +77,10 @@ def test_basic_simulation():
     sim.run()
     sim_results_df = sim.get_results_df()
 
+    # plot_sim_results({sim_id: sim_results_df})
+
     assert abs(target - sim_results_df["bg"].tolist()[-1]) < 10
 
-    # plot_sim_results({sim_id: sim_results_df})
 
 
 if __name__ == "__main__":
