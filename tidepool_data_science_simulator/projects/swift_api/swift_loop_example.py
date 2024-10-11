@@ -31,6 +31,8 @@ def test_swift_api():
     t0, sensor_config = get_canonical_sensor_config(start_value=100)
     t0, controller_config = get_canonical_controller_config()
     t0, pump_config = get_canonical_risk_pump_config()
+
+    controller_config.controller_settings['partial_application_factor'] = 0.9
     
     dt = datetime.time(hour=0, minute=0, second=0)
 
@@ -52,7 +54,7 @@ def test_swift_api():
         t0,
         "ISF",
         start_times=[SINGLE_SETTING_START_TIME],
-        values=[InsulinSensitivityFactor(80.0, "md/dL / U")],
+        values=[InsulinSensitivityFactor(40.0, "md/dL / U")],
         duration_minutes=[SINGLE_SETTING_DURATION]
     )
     patient_config.insulin_sensitivity_schedule = insulin_sensitivity_schedule
@@ -70,7 +72,6 @@ def test_swift_api():
     sensor = IdealSensor(t0, sensor_config)
 
     controller = SwiftLoopController(t0, controller_config)
-    controller.controller_config.controller_settings['partial_application_factor'] = .4
 
     vp = VirtualPatient(
         time=DATETIME_DEFAULT,
@@ -93,7 +94,7 @@ def test_swift_api():
     
     sim_results_df = sim.get_results_df()
 
-    # plot_sim_results({sim_id: sim_results_df})
+    plot_sim_results({sim_id: sim_results_df})
 
     return 1
 
