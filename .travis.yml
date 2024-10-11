@@ -19,4 +19,4 @@ install:
 script:
   - python -m pytest
 
-
+os: osx
