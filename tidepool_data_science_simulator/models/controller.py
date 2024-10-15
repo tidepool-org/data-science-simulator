@@ -238,6 +238,14 @@ class LoopController(BaseControllerClass):
             loop_algorithm_output = loop_predict(loop_inputs_dict)
             return loop_algorithm_output
 
+    def get_current_basal(self, virtual_patient, loop_algorithm_output):
+        '''
+        
+        '''
+        scheduled_basal_rec = virtual_patient.pump.pump_config.basal_schedule.get_state()
+        return TempBasal(self.time, value=scheduled_basal_rec.value, duration_minutes=30, units=scheduled_basal_rec.units)
+         
+        
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
         """
@@ -248,29 +256,39 @@ class LoopController(BaseControllerClass):
         virtual_patient
         loop_algorithm_output
         """
-        temp_basal_rec = self.get_recommended_temp_basal(loop_algorithm_output)
-
-        bolus_rec = self.get_recommended_bolus(loop_algorithm_output=loop_algorithm_output)
+        manual_bolus_rec = self.get_recommended_bolus(loop_algorithm_output=loop_algorithm_output)
         autobolus_rec = self.get_recommended_autobolus(loop_algorithm_output=loop_algorithm_output)
-
-        if bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation(bolus_rec):
-            self.set_bolus_recommendation_event(virtual_patient, bolus_rec)
+        temp_basal_rec = self.get_recommended_temp_basal(loop_algorithm_output)
+                
+        if manual_bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation(manual_bolus_rec):
+            self.set_bolus_recommendation_event(virtual_patient, manual_bolus_rec)
         
         elif autobolus_rec is not None:
             if autobolus_rec.value:
-                self.set_bolus_recommendation_event(virtual_patient, autobolus_rec)
-        
-        elif not self.open_loop and temp_basal_rec is not None:
-            if temp_basal_rec.scheduled_duration_minutes == 0 and temp_basal_rec.value == 0:
-                # In pyloopkit this is a "cancel"
-                virtual_patient.pump.deactivate_temp_basal()
-            else:
+                # Set the autobolus and maintain the temp basal at the sbr
+                self.set_bolus_recommendation_event(virtual_patient, autobolus_rec)                
+                scheduled_basal_rec = self.get_current_basal(virtual_patient, loop_algorithm_output)
+                self.modulate_temp_basal(virtual_patient, scheduled_basal_rec)
+
+            elif not temp_basal_rec:
+                temp_basal_rec = TempBasal(self.time, value=0, duration_minutes=30, units="U/hr")
                 self.modulate_temp_basal(virtual_patient, temp_basal_rec)
+        
+        elif temp_basal_rec is not None:
+            self.modulate_temp_basal(virtual_patient, temp_basal_rec)
+        # elif not self.open_loop and temp_basal_rec is not None:
+        #     if temp_basal_rec.scheduled_duration_minutes == 0 and temp_basal_rec.value == 0:
+        #         # In pyloopkit this is a "cancel"
+        #         virtual_patient.pump.deactivate_temp_basal()
+        #     else:
+        #         self.modulate_temp_basal(virtual_patient, temp_basal_rec)
         
         else:
             pass  # no recommendations
 
         self.recommendations = loop_algorithm_output
+
+    
 
 
     def get_recommended_bolus(self, loop_algorithm_output):
@@ -468,7 +486,7 @@ class SwiftLoopController(LoopController):
             data_entries.append(data_entry)
 
         data['sensitivity'] = data_entries
-
+        
         # CARB RATIO
         data_entries = []
         for start_time, end_time, value in zip(cir_start_times, cir_end_times, cir_values):

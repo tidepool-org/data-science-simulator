@@ -29,6 +29,10 @@
         }
         },
         "controller": {
+          "id": "swift",
+          "settings": {
+            "partial_application_factor" : 0.1
+          },
           "automation_control_timeline": [
             {
               "dosing_enabled": false,
@@ -87,6 +91,7 @@
         }
         },
         "controller": {
+          "id": "swift",
           "automation_control_timeline": [
             {
               "dosing_enabled": false,

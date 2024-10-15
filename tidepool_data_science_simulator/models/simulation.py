@@ -528,10 +528,15 @@ class SettingSchedule24Hr(SimulationComponent):
         values = []
         start_datetimes = []
         end_datetimes = []
-        for (start_datetime, end_datetime), setting in self.schedule_timeline.items():
-            values.append(setting.value)
-            start_datetimes.append(start_datetime)
-            end_datetimes.append(end_datetime)
+        
+        days = 2
+        for day in range(days):
+            td = datetime.timedelta(days=day)
+            
+            for (start_datetime, end_datetime), setting in self.schedule_timeline.items():
+                values.append(setting.value)
+                start_datetimes.append(start_datetime + td)
+                end_datetimes.append(end_datetime + td)
 
         return values, start_datetimes, end_datetimes
     
@@ -599,15 +604,19 @@ class TargetRangeSchedule24hr(SettingSchedule24Hr):
         start_datetimes = []
         end_datetimes = []
         
-        for (start_datetime, end_datetime), target_range in self.schedule.items():
-            min_values.append(target_range.min_value)
-            max_values.append(target_range.max_value)
-            start_datetimes.append(start_datetime)
-            end_datetimes.append(end_datetime)
+        days = 2
+        for day in range(days):
+            td = datetime.timedelta(days=day)
+            
+            for (start_datetime, end_datetime), target_range in self.schedule_timeline.items():
+                min_values.append(target_range.min_value)
+                max_values.append(target_range.max_value)
+                start_datetimes.append(start_datetime + td)
+                end_datetimes.append(end_datetime + td)
         
         return min_values, max_values, start_datetimes, end_datetimes
         
-
+        
 class SingleSettingSchedule24Hr(SimulationComponent):
     """
     Convenience class for creating single value setting schedules.

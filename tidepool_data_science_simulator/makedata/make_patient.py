@@ -26,7 +26,7 @@ from tidepool_data_science_simulator.models.controller import LoopController
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 SINGLE_SETTING_START_TIME = datetime.time(hour=0, minute=0, second=0)
-SINGLE_SETTING_DURATION = 1440
+SINGLE_SETTING_DURATION = 14400
 DATETIME_DEFAULT = datetime.datetime(year=2019, month=8, day=15, hour=12, minute=0, second=0)
 
 
