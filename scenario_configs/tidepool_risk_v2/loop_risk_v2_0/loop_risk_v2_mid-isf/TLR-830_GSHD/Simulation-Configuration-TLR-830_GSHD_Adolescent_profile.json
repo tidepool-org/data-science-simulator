@@ -17,7 +17,7 @@
         }
       }
     },
-    {"sim_id": "pre-noLoop_t1_adolescent",
+    {"sim_id": "pre-NoLoop_t1_adolescent",
       "patient": {
         "sensor": {
           "glucose_history": "reusable.glucose.sim_historical_data_12hr"

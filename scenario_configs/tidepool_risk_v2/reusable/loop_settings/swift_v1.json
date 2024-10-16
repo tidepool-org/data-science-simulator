@@ -19,6 +19,5 @@
     180.0,
     240.0
   ],
-  "retrospective_correction_enabled": true,
-  "use_mid_absorption_isf": true
+  "retrospective_correction_enabled": true
 }

@@ -29,7 +29,7 @@
       }
     },
     {
-      "sim_id": "pre-noLoop_t1_adolescent",
+      "sim_id": "pre-NoLoop_t2_adolescent",
       "patient": {
         "patient_model": {
           "bolus_entries": [
