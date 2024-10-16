@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "risk-id": "TLR-742",
+    "simulation_id": "TLR-742-resistant",
+    "risk_description": "Accidental override of rec bolus on watch",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_resistant_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-LoopNoMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 8.23
+          }
+            ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries":[
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 8.23
+          }
+            ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 8.23
+          }
+            ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries":[
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 8.23
+          }
+            ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-LoopWithMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 8.23
+          }
+            ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries":[
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 8.23
+          }
+            ],
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_swift"
+      }
+    }
+  ]
+}

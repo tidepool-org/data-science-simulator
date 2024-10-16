@@ -1,0 +1,166 @@
+{
+  "metadata": {
+    "risk-id": "TLR-830_MTS",
+    "simulation_id": "TLR-830_MTS-adolescent",
+    "risk_description": "Debugging features mock therapy settings",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop-NoMitigations_t1_adolescent",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": [
+                "00:00:00",
+                "09:00:00"
+              ],
+              "values": [
+                45,
+                55
+              ]
+            },
+            "carb_insulin_ratio": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                10
+              ]
+            },
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "15:00:00"
+              ],
+              "values": [
+                1.0,
+                0.85
+              ]
+            }
+          },
+          "target_range": {
+            "start_times": [
+              "00:00:00",
+              "08:00:00",
+              "21:00:00"
+            ],
+            "lower_values": [
+              100,
+              105,
+              100
+            ],
+            "upper_values": [
+              110,
+              115,
+              110
+            ]
+          }
+        }
+      },
+      "controller": {
+        "settings": {
+          "max_basal_rate": 5
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_adolescent",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": [
+                "00:00:00",
+                "09:00:00"
+              ],
+              "values": [
+                45,
+                55
+              ]
+            },
+            "carb_insulin_ratio": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                10
+              ]
+            },
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "15:00:00"
+              ],
+              "values": [
+                1.0,
+                0.85
+              ]
+            }
+          },
+          "target_range": {
+            "start_times": [
+              "00:00:00",
+              "08:00:00",
+              "21:00:00"
+            ],
+            "lower_values": [
+              100,
+              105,
+              100
+            ],
+            "upper_values": [
+              110,
+              115,
+              110
+            ]
+          }
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "pre-Loop-WithMitigations_t1_adolescent",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": [
+                "00:00:00",
+                "09:00:00"
+              ],
+              "values": [
+                45,
+                55
+              ]
+            },
+            "carb_insulin_ratio": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                10
+              ]
+            },
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "15:00:00"
+              ],
+              "values": [
+                1.0,
+                0.85
+              ]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+      }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_swift"
+      }
+    }
+  ]
+}

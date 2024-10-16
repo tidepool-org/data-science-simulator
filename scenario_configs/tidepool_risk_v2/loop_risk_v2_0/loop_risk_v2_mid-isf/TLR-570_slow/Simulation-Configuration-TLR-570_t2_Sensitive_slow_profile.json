@@ -1,0 +1,89 @@
+{
+  "metadata": {
+    "risk-id": "TLR-570",
+    "simulation_id": "TLR-570-slowcarb-sensitive",
+    "risk_description": "Carb absorption different from physiological",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 62,
+              "duration": 300
+            }
+          ],
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 62,
+              "duration": 240
+            }
+          ]
+        }
+      }
+      },
+    {
+      "sim_id": "pre-NoLoop_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 62,
+              "duration": 300
+            }
+          ],
+          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 62,
+              "duration": 240
+            }
+          ],
+          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
+        }
+      },
+      "controller": null
+      },
+    {
+      "sim_id": "post-Loop_WithMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 62,
+              "duration": 300
+            }
+          ],
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 62,
+              "duration": 240
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_sensitive_swift"
+      }
+      }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "risk-id": "TLR-578",
+    "simulation_id": "TLR-578-median",
+    "risk_description": "Attempt to stop bolus in progress fails",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        },
+        "pump": {
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_median",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        },
+        "pump": {
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+        },
+        "pump": {
+          "bolus_entries": "reusable.insulin_doses.median_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+    }
+  ]
+}

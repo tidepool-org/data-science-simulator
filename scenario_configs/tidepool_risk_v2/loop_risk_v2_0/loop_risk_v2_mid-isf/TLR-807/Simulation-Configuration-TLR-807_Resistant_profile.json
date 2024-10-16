@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "risk-id": "TLR-807",
+    "simulation_id": "TLR-807-resistant",
+    "risk_description": "Bolus interrupted due to pump failure",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.75
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.75
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.775
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.775
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-LoopWithMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.6375
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.6375
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+    }
+    ]
+}

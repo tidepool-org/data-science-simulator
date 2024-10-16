@@ -1,0 +1,91 @@
+{
+  "metadata": {
+    "risk-id": "TLR-901",
+    "simulation_id": "TLR-901-base_resistant",
+    "risk_description": "Outdated settings",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_resistant_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [2.86]
+            },
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00"],
+              "values": [14.0]
+            },
+            "carb_insulin_ratio": {
+              "start_times": ["00:00:00"],
+              "values": [7.0]
+            }
+          }
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [2.86]
+            },
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00"],
+              "values": [14.0]
+            },
+            "carb_insulin_ratio": {
+              "start_times": ["00:00:00"],
+              "values": [7.0]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [2.86]
+            },
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00"],
+              "values": [14.0]
+            },
+            "carb_insulin_ratio": {
+              "start_times": ["00:00:00"],
+              "values": [7.0]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_swift"
+      }
+    }
+]
+}
