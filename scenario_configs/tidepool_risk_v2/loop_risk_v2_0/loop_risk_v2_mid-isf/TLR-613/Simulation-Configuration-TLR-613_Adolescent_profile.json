@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "risk-id": "TLR-613",
+    "simulation_id": "TLR-613-median",
+    "risk_description": "Incorrect settings for insulin rationing",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["0:00:00"],
+            "lower_values": [170],
+            "upper_values": [180]
+          },
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [1.9]
+            }
+          }
+        }
+    }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["0:00:00"],
+            "lower_values": [170],
+            "upper_values": [180]
+          },
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [1.9]
+            }
+          }
+        }
+    },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["0:00:00"],
+            "lower_values": [170],
+            "upper_values": [180]
+          },
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [1.9]
+            }
+          }
+        }
+    },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_swift"
+      }
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "risk-id": "TLR-675",
+    "simulation_id": "TLR-675-base_sensitive",
+    "risk_description": "Bolus needed higher than max",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 100
+            }
+          ],
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 100
+            }
+          ]
+        }
+      },
+      "controller": {
+        "settings": {
+          "max_bolus": 2.33
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 100
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.33
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 100
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.33
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 100
+            }
+          ],
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 100
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "max_bolus": 2.33,
+          "suspend_threshold": 75,
+          "max_basal_rate": 0.35
+        }
+      }
+    }
+]
+}

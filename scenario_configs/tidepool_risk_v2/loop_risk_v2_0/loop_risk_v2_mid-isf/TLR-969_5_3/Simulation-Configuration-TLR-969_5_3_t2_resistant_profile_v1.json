@@ -1,0 +1,91 @@
+{
+  "metadata": {
+    "risk-id": "TLR-976_5_3",
+    "simulation_id": "TLR-976_5_3-t2_resistant",
+    "risk_description": "incorrect carb abs: 5h true, 3h select",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_resistant_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "duration": 300,
+              "value": 76
+            }
+          ],
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "duration": 180,
+              "value": 76
+            }
+          ]
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "duration": 300,
+              "value": 76
+            }
+          ],
+          "bolus_entries": "reusable.insulin_doses.t2_resistant_profile_v1"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "duration": 180,
+              "value": 76
+            }
+          ],
+          "bolus_entries": "reusable.insulin_doses.t2_resistant_profile_v1"
+        }
+      }
+    },
+    {"sim_id": "post-Loop-WithMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "duration": 300,
+              "value": 76
+            }
+          ],
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "duration": 180,
+              "value": 76
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_swift"
+      }
+    }
+]
+}

@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "risk-id": "TLR-822",
+    "simulation_id": "TLR-822-adolescent",
+    "risk_description": "Doubled meal bolus",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-LoopNoMitigationss_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 60
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:05:00",
+              "value": 60
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 12.5
+            },
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": 12.5
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 60
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:05:00",
+              "value": 60
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 12.5
+            },
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": 12.5
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-LoopWithMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 60
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:05:00",
+              "value": 60
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+    }
+  ]
+}

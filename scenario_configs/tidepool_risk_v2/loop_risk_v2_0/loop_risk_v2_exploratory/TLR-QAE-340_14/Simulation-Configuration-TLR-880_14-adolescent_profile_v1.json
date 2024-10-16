@@ -1,0 +1,75 @@
+{
+  "metadata": {
+    "risk-id": "TLR-880_14",
+    "simulation_id": "TLR-880_14-adolescent",
+    "risk_description": "Override guardrails too restrictive",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_180_2h_adolescent_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_170_2h_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 29.75
+            }
+          ]
+
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 29.75
+            }
+          ],
+          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_170_2h_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        }
+      }
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_170_2h_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_swift"
+      }
+    }
+]
+}
