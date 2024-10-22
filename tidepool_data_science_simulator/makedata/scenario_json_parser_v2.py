@@ -8,6 +8,8 @@ import os
 import datetime
 
 import logging
+
+from tidepool_data_science_simulator.models.swift_controller import SwiftLoopController
 logger = logging.getLogger(__name__)
 
 from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
@@ -35,7 +37,8 @@ from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
-from tidepool_data_science_simulator.models.controller import AutomationControlTimeline, LoopController, DoNothingController, AutomationControl, SwiftLoopController
+from tidepool_data_science_simulator.models.controller import AutomationControlTimeline, LoopController, DoNothingController, AutomationControl
+
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 

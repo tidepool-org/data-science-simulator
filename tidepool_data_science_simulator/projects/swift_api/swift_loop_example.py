@@ -5,7 +5,7 @@ import time, datetime
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 from tidepool_data_science_simulator.models.simulation import SettingSchedule24Hr, Simulation, TargetRangeSchedule24hr
-from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController, SwiftLoopController
+from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController
 from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor
@@ -19,6 +19,7 @@ from tidepool_data_science_simulator.makedata.make_patient import (
 from tidepool_data_science_simulator.models.events import BolusTimeline, CarbTimeline
 from tidepool_data_science_simulator.models.measures import Bolus, Carb, InsulinSensitivityFactor, TargetRange
 
+from tidepool_data_science_simulator.models.swift_controller import SwiftLoopController
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 
 def test_swift_api():
