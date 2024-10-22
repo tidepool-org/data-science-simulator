@@ -5,7 +5,7 @@ import datetime
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 from tidepool_data_science_simulator.models.simulation import Simulation, TargetRangeSchedule24hr
-from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController, SwiftLoopController
+from tidepool_data_science_simulator.models.controller import DoNothingController, LoopController
 from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor
