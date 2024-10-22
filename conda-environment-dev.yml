@@ -2,12 +2,14 @@ name: tidepool-data-science-simulator-dev
 channels:
   - defaults
   - conda-forge
+
 dependencies:
   - black
   - coverage
   - flake8
   - matplotlib
   - mypy
+  - numexpr
   - numpy
   - pandas
   - pip
@@ -20,6 +22,7 @@ dependencies:
   - requests
   - scipy
   - seaborn
+  
   - pip:
     - pip-chill
     - python-dotenv
