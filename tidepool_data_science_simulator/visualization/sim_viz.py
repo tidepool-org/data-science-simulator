@@ -5,7 +5,7 @@ import datetime
 import numpy as np
 import itertools
 
-import seaborn as sns
+# import seaborn as sns
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -13,7 +13,7 @@ import matplotlib.colors as mcolors
 # style.use("seaborn-poster")  # sets the size of the charts
 # style.use("ggplot")
 
-sns.set_style("darkgrid")
+# sns.set_style("darkgrid")
 
 
 def plot_sim_icgm_paired(all_results):
@@ -117,6 +117,8 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")
         ax[2].set_ylim((0, 100))
+        ax[2].set_xlim((datetime.datetime(2019,8,15,11,30), datetime.datetime(2019,8,16,12)))
+                       
         if len(all_results) <= n_sims_max_legend:
             ax[2].legend(prop={'size': 6})
 

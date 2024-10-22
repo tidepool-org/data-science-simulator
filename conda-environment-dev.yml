@@ -26,3 +26,4 @@ dependencies:
     - -e file:/Users/mconn/tidepool/repositories/data-science-models
     - -e file:/Users/mconn/tidepool/repositories/PyLoopKit
     - -e file:/Users/mconn/tidepool/repositories/data-science-metrics
+    - -e file:/Users/mconn/tidepool/repositories/LoopAlgorithmToPython

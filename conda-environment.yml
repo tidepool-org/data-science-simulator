@@ -26,3 +26,5 @@ dependencies:
     - git+https://github.com/tidepool-org/data-science-models@dev
     - git+https://github.com/tidepool-org/Pyloopkit@mjc/icgm_bolus_fix_positive_rc_momentum
     - git+https://github.com/tidepool-org/data-science-metrics
+    - git+https://github.com/tidepool-org/LoopAlgorithmToPython
+    # - -e file:/Users/mconn/tidepool/repositories/LoopAlgorithmToPython
