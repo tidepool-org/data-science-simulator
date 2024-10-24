@@ -238,13 +238,15 @@ class Simulation(multiprocessing.Process):
                 pump_cir = pump_state.get_scheduled_carb_insulin_ratio_value()
                 delivered_basal_insulin = pump_state.delivered_basal_insulin
                 undelivered_basal_insulin = pump_state.undelivered_basal_insulin
-
+            
             # Loop output
             try:
                 loop_out = simulation_state.controller_state.pyloopkit_recommendations
                 loop_cob = loop_out["carbs_on_board"]
             except AttributeError:
                 loop_cob = None
+            except Exception:
+                loop_out = None
 
             try:
                 pred_horizon_minutes = len(loop_out["predicted_glucose_values"]) * 5
@@ -400,6 +402,7 @@ class SettingSchedule24Hr(SimulationComponent):
         self.schedule_durations = {}
         self.schedule = {}
         self.percentage_change = None
+        self.schedule_timeline = {}
 
         # All the same length
         assert (
@@ -410,10 +413,8 @@ class SettingSchedule24Hr(SimulationComponent):
         for start_time, value, duration_minutes in zip(
             start_times, values, duration_minutes
         ):
-
-            start_datetime = datetime.datetime.combine(
-                datetime.datetime.today(), start_time
-            )
+            start_datetime = datetime.datetime.combine(time, start_time)
+            
             end_datetime = (
                 start_datetime
                 + datetime.timedelta(minutes=duration_minutes)
@@ -422,6 +423,7 @@ class SettingSchedule24Hr(SimulationComponent):
             end_time = end_datetime.time()
             self.schedule[(start_time, end_time)] = value
             self.schedule_durations[(start_time, end_time)] = duration_minutes
+            self.schedule_timeline[(start_datetime, end_datetime)] = value
 
     def set_override(self, percentage_change):
         """
@@ -506,7 +508,9 @@ class SettingSchedule24Hr(SimulationComponent):
         self.time = time
 
     def get_loop_inputs(self):
-
+        """
+        Get the inputs in datetime.time for pyloopkit
+        """
         values = []
         start_times = []
         end_times = []
@@ -516,6 +520,26 @@ class SettingSchedule24Hr(SimulationComponent):
             end_times.append(end_time)
 
         return values, start_times, end_times
+
+    def get_loop_swift_inputs(self):
+        """
+        Get the inputs in datetime.datetime for SwiftLoop
+        """
+        values = []
+        start_datetimes = []
+        end_datetimes = []
+        
+        days = 2
+        for day in range(days):
+            td = datetime.timedelta(days=day)
+            
+            for (start_datetime, end_datetime), setting in self.schedule_timeline.items():
+                values.append(setting.value)
+                start_datetimes.append(start_datetime + td)
+                end_datetimes.append(end_datetime + td)
+
+        return values, start_datetimes, end_datetimes
+    
 
     def get_info_stateless(self):
 
@@ -548,7 +572,7 @@ class BasalSchedule24hr(SettingSchedule24Hr):
             start_times.append(start_time)
             durations.append(self.schedule_durations[(start_time, end_time)])
 
-        return values, start_times, durations
+        return values, start_times, durations 
 
 
 class TargetRangeSchedule24hr(SettingSchedule24Hr):
@@ -562,6 +586,7 @@ class TargetRangeSchedule24hr(SettingSchedule24Hr):
         max_values = []
         start_times = []
         end_times = []
+        
         for (start_time, end_time), target_range in self.schedule.items():
             min_values.append(target_range.min_value)
             max_values.append(target_range.max_value)
@@ -570,7 +595,28 @@ class TargetRangeSchedule24hr(SettingSchedule24Hr):
 
         return min_values, max_values, start_times, end_times
 
-
+    def get_loop_swift_inputs(self):
+        """
+        Get the inputs in datetime.datetime for SwiftLoop
+        """
+        min_values = []
+        max_values = []
+        start_datetimes = []
+        end_datetimes = []
+        
+        days = 2
+        for day in range(days):
+            td = datetime.timedelta(days=day)
+            
+            for (start_datetime, end_datetime), target_range in self.schedule_timeline.items():
+                min_values.append(target_range.min_value)
+                max_values.append(target_range.max_value)
+                start_datetimes.append(start_datetime + td)
+                end_datetimes.append(end_datetime + td)
+        
+        return min_values, max_values, start_datetimes, end_datetimes
+        
+        
 class SingleSettingSchedule24Hr(SimulationComponent):
     """
     Convenience class for creating single value setting schedules.

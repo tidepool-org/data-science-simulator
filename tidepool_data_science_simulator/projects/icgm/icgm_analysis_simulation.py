@@ -33,8 +33,6 @@ from tidepool_data_science_simulator.makedata.scenario_json_parser_v2 import Sce
 from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.utils import DATA_DIR
 
-from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
-
 
 def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     """
@@ -61,7 +59,11 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
 
             new_sim_base_config["patient"]["sensor"]["glucose_history"]["value"] = glucose_history_values
             new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values
-
+            
+            new_sim_base_config["controller"]["id"] = 'swift'
+            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.4
+            new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
+            
             date_str_format = "%m/%d/%Y %H:%M:%S"  # ref: "8/15/2019 12:00:00"
             glucose_datetimes = [datetime.datetime.strptime(dt_str, date_str_format)
                                     for dt_str in
@@ -194,13 +196,13 @@ if __name__ == "__main__":
     os.environ['NUMEXPR_MAX_THREADS'] = str(sim_batch_size)
     numexpr.set_num_threads(sim_batch_size)
     
+    date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S")
+    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_COASTAL_" + date_string)
     
-    result_dir = os.path.join(DATA_DIR, "processed/icgm-sensitivity-analysis-results-COASTAL")
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
         logger.info("Made director for results: {}".format(result_dir))
 
-    
     json_base_configs = transform_icgm_json_to_v2_parser()
     sim_batch_generator = build_icgm_sim_generator(json_base_configs, sim_batch_size=sim_batch_size)
 
@@ -215,6 +217,7 @@ if __name__ == "__main__":
             save_results=True,
             num_procs=sim_batch_size
         )
+        
         batch_total_time = (time.time() - batch_start_time) / 60
         run_total_time = (time.time() - start_time) / 60
         logger.info("Batch {}".format(i))

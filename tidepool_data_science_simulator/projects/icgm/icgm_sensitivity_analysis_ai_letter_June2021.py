@@ -16,7 +16,7 @@ from collections import defaultdict
 import numpy as np
 from numpy.random import RandomState
 import pandas as pd
-import seaborn as sns
+# import seaborn as sns
 import matplotlib.pyplot as plt
 
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump

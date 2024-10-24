@@ -8,6 +8,8 @@ import os
 import datetime
 
 import logging
+
+from tidepool_data_science_simulator.models.swift_controller import SwiftLoopController
 logger = logging.getLogger(__name__)
 
 from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
@@ -36,6 +38,7 @@ from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.models.controller import AutomationControlTimeline, LoopController, DoNothingController, AutomationControl
+
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 
@@ -55,9 +58,10 @@ class ScenarioParserV2(SimulationParser):
     Redesigned scenario parser for Tidepool Risk automated pipeline, Feb 2021.
     """
 
-    def __init__(self, path_to_json_config=None):
+    def __init__(self, path_to_json_config=None, pointer_object_dir=POINTER_OBJ_DIR):
 
         self.pointer_keyword = "reusable"
+        self.pointer_object_dir = pointer_object_dir
 
         if path_to_json_config:
             config = json.load(open(path_to_json_config))
@@ -198,8 +202,8 @@ class ScenarioParserV2(SimulationParser):
         json_filename = "{}.json".format(filename_no_ext)
         csv_filename = "{}.csv".format(filename_no_ext)
 
-        json_path = os.path.join(POINTER_OBJ_DIR, folder_path, json_filename)
-        csv_path = os.path.join(POINTER_OBJ_DIR, folder_path, csv_filename)
+        json_path = os.path.join(self.pointer_object_dir, folder_path, json_filename)
+        csv_path = os.path.join(self.pointer_object_dir, folder_path, csv_filename)
         if os.path.isfile(json_path):
             obj = json.load(open(json_path, "r"))
         elif os.path.isfile(csv_path):
@@ -248,7 +252,7 @@ class ScenarioParserV2(SimulationParser):
 
         else:
             start_times = [first_time]
-            durations_minutes = [1440]  # minutes in 24 hours
+            durations_minutes = [1440*10]  # minutes in 24 hours * 10 
 
         return start_times, durations_minutes
 
@@ -435,7 +439,7 @@ class ScenarioParserV2(SimulationParser):
                          sim_id=self.metadata["simulation_id"]
                          )
         return sim
-
+    
     def build_model_from_config(self, sim_start_time, model_config):
 
         model = dict()
@@ -602,7 +606,6 @@ class ScenarioParserV2(SimulationParser):
         controller = DoNothingController(sim_start_time, controller_config=None)
 
         if sim_config.get("controller") is not None:
-
             controller_settings = sim_config["controller"]["settings"]
 
             automation_control_entries = []
@@ -625,8 +628,11 @@ class ScenarioParserV2(SimulationParser):
                 carb_event_timeline=self.pump_model["carb_timeline"],
                 controller_settings=controller_settings
             )
-
-            controller = LoopController(sim_start_time, controller_config, automation_control_timeline)
+            controller_id = sim_config['controller']['id']
+            if 'swift' in controller_id:
+                controller = SwiftLoopController(sim_start_time, controller_config, automation_control_timeline)
+            else:
+                controller = LoopController(sim_start_time, controller_config, automation_control_timeline)
 
         return controller
 

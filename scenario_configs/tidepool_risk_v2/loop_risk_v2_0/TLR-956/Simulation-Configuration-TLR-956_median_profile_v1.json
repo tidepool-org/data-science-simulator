@@ -29,6 +29,7 @@
         }
         },
         "controller": {
+          "id": "swift",
           "automation_control_timeline": [
             {
               "dosing_enabled": false,
@@ -87,6 +88,7 @@
         }
         },
         "controller": {
+          "id": "swift",
           "automation_control_timeline": [
             {
               "dosing_enabled": false,
@@ -100,5 +102,5 @@
           "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
         }
       }
-]
+    ]
 }

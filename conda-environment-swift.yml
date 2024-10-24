@@ -1,4 +1,4 @@
-name: tidepool-data-science-simulator
+name: tidepool-data-science-simulator-swift
 channels:
   - defaults
   - conda-forge
@@ -18,7 +18,6 @@ dependencies:
   - pre-commit=3.4.0
   - pytest=7.4.4
   - python=3.12.7
-  - python-dotenv
   - requests=2.32.3
   - scipy=1.13.1
   - seaborn=0.13.2
@@ -30,5 +29,4 @@ dependencies:
     - git+https://github.com/tidepool-org/data-science-models
     - git+https://github.com/tidepool-org/Pyloopkit
     - git+https://github.com/tidepool-org/data-science-metrics
-    - git+https://github.com/tidepool-org/LoopAlgorithmToPython
-    # - -e ../LoopAlgorithmToPython
+    - -e ../LoopAlgorithmToPython

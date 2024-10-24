@@ -3,7 +3,6 @@ __author__ = "Cameron Summers"
 from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline
 from tidepool_data_science_simulator.makedata.scenario_parser import ControllerConfig
 
-from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.makedata.make_patient import DATETIME_DEFAULT
 
 
@@ -26,7 +25,9 @@ def get_canonical_controller_config(t0=DATETIME_DEFAULT):
         "default_absorption_times": [30.0, 120.0, 180.0, 240.0, 300.0],
         "max_basal_rate": 35,
         "max_bolus": 30,
-        "retrospective_correction_enabled": True
+        "retrospective_correction_enabled": True,
+        "partial_application_factor": 0.0,
+        "use_mid_absorption_isf": False
     }
     controller_config = ControllerConfig(
         bolus_event_timeline=BolusTimeline(),

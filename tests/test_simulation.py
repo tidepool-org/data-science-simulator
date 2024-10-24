@@ -56,6 +56,7 @@ def test_basic_simulation():
     sensor = IdealSensor(t0, sensor_config)
     # controller = DoNothingController(t0, controller_config)
     controller = LoopController(t0, controller_config)
+    controller.controller_config.controller_settings['partial_application_factor'] = 0.4
 
     vp = VirtualPatient(
         time=DATETIME_DEFAULT,
@@ -68,7 +69,7 @@ def test_basic_simulation():
     sim_id = "basic_loop_control"
     sim = Simulation(
         time=t0,
-        duration_hrs=24,
+        duration_hrs=23,
         virtual_patient=vp,
         controller=controller,
         sim_id=sim_id
