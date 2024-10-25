@@ -31,4 +31,3 @@ dependencies:
     - git+https://github.com/tidepool-org/Pyloopkit
     - git+https://github.com/tidepool-org/data-science-metrics
     - git+https://github.com/tidepool-org/LoopAlgorithmToPython
-    # - -e ../LoopAlgorithmToPython
