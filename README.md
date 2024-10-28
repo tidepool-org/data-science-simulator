@@ -53,10 +53,25 @@ that was created from the environmental.yml file (hint: environment name is at t
 1. Run `conda activate <conda-env-name>` or `source activate <conda-env-name>` to start the environment.
 1. Run `deactivate` to stop the environment.
 
+
 ## Getting Started with this project
 1. Current FDA scenarios are being kept `scenario_configs/tidepool_risk_v2/loop_risk_v2_0` within this repo.
 2. Exploratory iCGM sensitivity analyses are located in `tidepool_data_science_simulator/projects/icgm` within this repo.
 3. Analysess of proposed Tidepool Loop therapy settings guardrails are located in `tidepool_data_science_simulator/projects/loop_guardrails` within this repo.
+
+## Using Swift Loop
+In order to use the Swift implementation of the Loop Algorithm, you need:
+
+* A machine running MacOS with XCode installed.
+* The LoopAlgorithmToPython respository with the built dylib (see Build Dynamic Library in the associated README).
+* The `tidepool-data-science-swift.yml` conda environment installed and activated (see Getting Started with the Conda Virtual Environment).
+  * Note - the conda environment assumes both the data-science-simulator and LoopAlgorithmToPython repositories are in the same directory.
+
+
+### Using the SwiftLoopController class
+The `SwiftLoopController` class can be directly substituted for the `LoopController` class when setting up simulator experiments. 
+
+The SwiftLoopController can be selected via configuration override by specifying ` "controller": { "id": "swift"}` instead of `"controller": {"id": "pyloopkit_v1"}`.
 
 ## Contributing Guide
 1. All are welcome to contribute to this project.
