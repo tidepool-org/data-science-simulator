@@ -20,7 +20,7 @@
       }
     },
     {
-      "sim_id": "pre-NoLoop_t1_adolescent",
+      "sim_id": "pre-noLoop_t1_adolescent",
       "patient": {
         "pump": {
           "target_range": {

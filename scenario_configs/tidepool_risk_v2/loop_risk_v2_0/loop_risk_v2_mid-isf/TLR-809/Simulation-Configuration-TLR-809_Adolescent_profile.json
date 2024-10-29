@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.base_adolescent_swift",
   "override_config": [
     {
-      "sim_id": "pre-NoLoop_t1_adolescent",
+      "sim_id": "pre-noLoop_t1_adolescent",
       "patient": {
         "patient_model":{
           "glucose_history": "reusable.glucose.flat_111_12hr",
