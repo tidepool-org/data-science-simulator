@@ -63,7 +63,7 @@ that was created from the environmental.yml file (hint: environment name is at t
 In order to use the Swift implementation of the Loop Algorithm, you need:
 
 * A machine running MacOS with XCode installed.
-* The LoopAlgorithmToPython respository with the built dylib (see Build Dynamic Library in the associated README).
+* To clone the [LoopAlgorithmToPython](https://github.com/tidepool-org/LoopAlgorithmToPython) respository with the built dylib (see Build Dynamic Library in the associated README).
 * The `tidepool-data-science-swift.yml` conda environment installed and activated (see Getting Started with the Conda Virtual Environment).
   * Note - the conda environment assumes both the data-science-simulator and LoopAlgorithmToPython repositories are in the same directory.
 
