@@ -32,7 +32,7 @@
       }
       },
     {
-      "sim_id": "pre-NoLoop_t1_adolescent",
+      "sim_id": "pre-noLoop_t1_adolescent",
       "patient": {
         "patient_model": {
           "carb_entries": [
