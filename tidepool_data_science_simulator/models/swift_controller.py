@@ -164,9 +164,11 @@ class SwiftLoopController(LoopController):
             dose_type = dose_type.name.replace('tempbasal', 'basal')
             
             if dose_type == 'bolus':
-                dose_start_time = dose_start_time - datetime.timedelta(seconds=2)  
+                dose_start_time = dose_start_time + datetime.timedelta(seconds=1)  
+                dose_end_time = dose_end_time + datetime.timedelta(seconds=2)  
             elif dose_type == 'basal':
                 value = value / 12
+                dose_start_time = dose_start_time + datetime.timedelta(seconds=3)  
 
             entry = {
                 'startDate' : dose_start_time.strftime(format=format_string),  
@@ -176,15 +178,15 @@ class SwiftLoopController(LoopController):
             }
 
             history.append(entry)
-
+        history = sorted(history, key=lambda x: x["startDate"], reverse=True)
         data['doses'] = history
 
         return data
 
     
-    def get_loop_recommendations(self, time, **kwargs):
+    def get_loop_recommendations(self, time, virtual_patient=None):
         """
-        Get recommendations from the pyloopkit algorithm, based on
+        Get recommendations from the Loop Algorithm, based on
         virtual_patient dosing and glucose.
         """
         self.time = time
@@ -194,7 +196,6 @@ class SwiftLoopController(LoopController):
         if automation_control_event is not None:
             self.open_loop = not automation_control_event.dosing_enabled
 
-        virtual_patient = kwargs["virtual_patient"]
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
                         

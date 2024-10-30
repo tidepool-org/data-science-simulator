@@ -33,13 +33,14 @@ def test_swift_api():
     t0, controller_config = get_canonical_controller_config()
     t0, pump_config = get_canonical_risk_pump_config()
 
-    controller_config.controller_settings['partial_application_factor'] = 0.9
+    controller_config.controller_settings['partial_application_factor'] = 0.4
+    controller_config.controller_settings['use_mid_absorption_isf'] = False
     
     dt = datetime.time(hour=0, minute=0, second=0)
 
-    true_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(20.0, "U", 180)])
+    true_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 180)])
     patient_config.carb_event_timeline = true_carb_timeline
-    reported_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 240)])
+    reported_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 180)])
     pump_config.carb_event_timeline = reported_carb_timeline
 
     insulin_sensitivity_timeline=SettingSchedule24Hr(
@@ -47,7 +48,7 @@ def test_swift_api():
         "ISF",
         start_times=[dt],
         values=[InsulinSensitivityFactor(40.0, "mg/dL/U")],
-        duration_minutes=[SINGLE_SETTING_DURATION * 2]
+        duration_minutes=[SINGLE_SETTING_DURATION]
     )
     pump_config.insulin_sensitivity_schedule = insulin_sensitivity_timeline
     
