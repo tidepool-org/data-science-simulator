@@ -117,9 +117,16 @@ def compute_score_risk_table(summary_df):
     severity_bands = [(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)]
 
     severity_event_count = [0,0,0,0,0]
+    low_true_axis = []
+    low_icgm_axis = []
+    mean_lbgi = []
+    joint_prob = []
 
+    # Go through each square in the concurrency table 
     for (low_true, high_true), (low_icgm, high_icgm) in bg_range_pairs:
-        
+        low_true_axis.append(low_true)
+        low_icgm_axis.append(low_icgm)
+
         # Backward compatibility with old versions of the results file. 
         if "true_start_bg" in summary_df:
             true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
@@ -142,7 +149,11 @@ def compute_score_risk_table(summary_df):
             return
         # End backward compatibility
 
+        mean_lbgi.append(np.mean(lbgi_data))
         p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
+
+        joint_prob.append(p_error)
+
         p_corr_bolus_given_error = 6 / 288
         num_cgm_per_100k_person_years = 288 * 365 * 100000
 
@@ -159,10 +170,22 @@ def compute_score_risk_table(summary_df):
             severity_event_count[s_idx] += num_risk_events_sim
 
     severity_event_count_df = pd.DataFrame(severity_event_count)
+    print(severity_event_count)
     severity_event_probability_df = severity_event_count_df / num_cgm_per_100k_person_years 
 
     severity_event_probability_df.to_csv('severity_event_probability.csv')
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
 
+    # d = np.array(mean_lbgi) * np.array(joint_prob)
+
+    # ax.scatter(low_icgm_axis, low_true_axis, d, c=d, cmap='viridis', marker='o')
+
+    # ax.set_xlabel("Sensor Blood  Glucose")
+    # ax.set_ylabel("True Blood Glucose")
+    # ax.set_zlabel("Mean LBGI")
+
+    # plt.show()
     return severity_event_probability_df
 
 
@@ -180,5 +203,5 @@ if __name__ == "__main__":
             summary_result_filepath = process_simulation_data(path)
        
         case 'summarize': 
-            summary_df = pd.read_csv(path, sep="\t")
+            summary_df = pd.read_csv(path, sep=",")
             print(compute_score_risk_table(summary_df))
