@@ -149,7 +149,7 @@ def compute_score_risk_table(summary_df):
             return
         # End backward compatibility
 
-        mean_lbgi.append(np.mean(lbgi_data))
+        mean_lbgi.append(np.median(lbgi_data))
         p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
 
         joint_prob.append(p_error)
@@ -161,7 +161,6 @@ def compute_score_risk_table(summary_df):
 
         for s_idx, severity_band in enumerate(severity_bands, 0):
             severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
-
             num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
             sim_prob = num_sims_in_severity_band / num_total_sims
             risk_prob_sim = sim_prob * p_corr_bolus_given_error * p_error
@@ -174,19 +173,10 @@ def compute_score_risk_table(summary_df):
     severity_event_probability_df = severity_event_count_df / num_cgm_per_100k_person_years 
 
     severity_event_probability_df.to_csv('severity_event_probability.csv')
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
 
-    # d = np.array(mean_lbgi) * np.array(joint_prob)
+    d = np.array(mean_lbgi) #* np.array(joint_prob)
 
-    # ax.scatter(low_icgm_axis, low_true_axis, d, c=d, cmap='viridis', marker='o')
-
-    # ax.set_xlabel("Sensor Blood  Glucose")
-    # ax.set_ylabel("True Blood Glucose")
-    # ax.set_zlabel("Mean LBGI")
-
-    # plt.show()
-    return severity_event_probability_df
+    return severity_event_probability_df, (low_icgm_axis, low_true_axis, d)
 
 
 if __name__ == "__main__":
