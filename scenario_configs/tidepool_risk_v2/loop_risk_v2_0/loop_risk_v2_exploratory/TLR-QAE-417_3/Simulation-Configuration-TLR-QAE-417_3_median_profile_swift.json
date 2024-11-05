@@ -1,0 +1,65 @@
+{
+  "metadata": {
+    "risk-id": "TLR-QAE-417_3",
+    "simulation_id": "TLR-QAE-417_3-base_median",
+    "risk_description": "Hyperglycemia crash",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.drop_to55_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.drop_to55_12hr"
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:30:00"
+          }
+        ]
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_median",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.drop_to55_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.drop_to55_12hr"
+        }
+      },
+      "controller": null
+      },
+    {"sim_id": "post-Loop-WithMitigations_t1_median",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.drop_to55_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.drop_to55_12hr"
+        },
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "suspend_threshold": 75,
+          "max_basal_rate": 1.75
+        },
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:30:00"
+          }
+        ]
+      }
+    }
+]
+}

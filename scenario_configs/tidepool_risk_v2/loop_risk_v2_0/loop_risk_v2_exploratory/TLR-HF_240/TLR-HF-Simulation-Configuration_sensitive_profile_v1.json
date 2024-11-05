@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "risk-id": "TLR-HF-240",
+    "simulation_id": "TLR-HF-base_sensitive",
+    "risk_description": "Explore preset effect 240m",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      180.0, 92.31, 180.0
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      30.0, 11.54, 30.0
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      0.3, 0.31, 0.3
+    ]
+  }
+}
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      180.0, 92.31, 180.0
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      30.0, 11.54, 30.0
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      0.3, 0.31, 0.3
+    ]
+  }
+}
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      180.0, 92.31, 180.0
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      30.0, 11.54, 30.0
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      0.3, 0.31, 0.3
+    ]
+  }
+},
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
+      }
+    }
+]
+}

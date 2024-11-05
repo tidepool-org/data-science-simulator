@@ -1,0 +1,104 @@
+{
+  "metadata": {
+    "risk-id": "TLR-866",
+    "simulation_id": "TLR-866-sensitive",
+    "risk_description": "MTB insufficient",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_median",
+      "duration_hours": 23.0,
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 16:00:00"
+          }
+        ]
+    },
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.4, 0.2, 0.4]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.4, 0.2, 0.4]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t2_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.4, 0.2, 0.4]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.4, 0.2, 0.4]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_median",
+      "duration_hours": 23.0,
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 16:00:00"
+          }
+        ],
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_IM_swift"
+    },
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.4, 0.2, 0.4]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.4, 0.2, 0.4]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      }
+    }
+]
+}

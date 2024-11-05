@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "risk-id": "TLR-842-large",
+    "simulation_id": "TLR-842-large-sensitive",
+    "risk_description": "User loses track of number of quick bolus button presses",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.65
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.65
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.65
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.65
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.65
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.65
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_sensitive_v1"
+      }
+    }
+  ]
+}

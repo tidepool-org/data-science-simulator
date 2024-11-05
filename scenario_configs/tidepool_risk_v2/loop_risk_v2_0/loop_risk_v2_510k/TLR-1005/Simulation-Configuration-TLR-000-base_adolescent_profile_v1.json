@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "risk-id": "TLR-000-base",
+    "simulation_id": "TLR-000-base-adolescent",
+    "risk_description": "Baseline profile run",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_110_12hr",
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_110_12hr"
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_110_12hr",
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 17.5
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 17.5
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_110_12hr"
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop_WithMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_110_12hr",
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_110_12hr"
+        }
+      },
+      "controller": {
+        "settings": {
+    "glucose_safety_limit": 75,
+    "max_basal_rate": 5.7,
+          "max_bolus": 30
+  }
+      }
+    }
+]
+}

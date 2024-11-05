@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "risk_id": "TLR-793",
+    "simulation_id": "TLR-793-Sensitive",
+    "risk_description": "Safety setting too aggressive: Correction range",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop-noMitigations_t1_sensitive",
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00"],
+            "lower_values": [54],
+            "upper_values": [70]
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_sensitive",
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00"],
+            "lower_values": [54],
+            "upper_values": [70]
+          }
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-withMitigations_t1_sensitive",
+      "patient": {
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_IM_v1"
+      }
+    }
+  ]
+}

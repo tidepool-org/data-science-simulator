@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "risk-id": "TLR-739",
+    "simulation_id": "TLR-739-sensitive",
+    "risk_description": "Low glucose meal entry, closed loop off",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_swift",
+  "override_config": [
+    { "sim_id": "pre-noLoop_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 2.06
+            }
+          ],
+            "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 13:00:00",
+              "type": "carb",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 2.06
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        }
+    },
+      "controller": null
+    }
+  ]
+}

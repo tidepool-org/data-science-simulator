@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "risk-id": "TLR-876-1",
+    "simulation_id": "TLR-876-1-base_adolescent",
+    "risk_description": "MTB too long, scenario 1",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "duration_hours": 12.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["00:00:00", "12:00:00", "18:00:00"],
+              "values": [1.9, 2.85, 1.9]
+            }
+          }
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {"dosing_enabled": false,
+          "time": "8/15/2019 12:00:00"},
+          {"dosing_enabled": true,
+          "time": "8/15/2019 18:00:00"}
+        ]
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_adolescent",
+      "duration_hours": 12.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["00:00:00", "12:00:00", "18:00:00"],
+              "values": [1.9, 2.85, 1.9]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_adolescent",
+      "duration_hours": 12.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["00:00:00", "12:00:00", "18:00:00"],
+              "values": [1.9, 2.85, 1.9]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {"dosing_enabled": false,
+          "time": "8/15/2019 12:00:00"},
+          {"dosing_enabled": true,
+          "time": "8/15/2019 18:00:00"}
+        ],
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_swift"
+      }
+    }
+]
+}

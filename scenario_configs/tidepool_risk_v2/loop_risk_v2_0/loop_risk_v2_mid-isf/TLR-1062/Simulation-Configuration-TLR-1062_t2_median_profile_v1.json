@@ -1,0 +1,60 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1062",
+    "simulation_id": "TLR-1062-t2_median",
+    "risk_description": "100+% preset with no correction range adj",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_preset_150_median_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1"
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.3
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.3
+            }
+          ]
+        }
+      },
+      "controller": null
+      },
+    {"sim_id": "post-Loop-WithMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_median_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_swift"
+      }
+    }
+]
+}

@@ -1,0 +1,130 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1026",
+    "simulation_id": "TLR-1026-base_median",
+    "risk_description": "user mistakes carb tool for bolus tool",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_median_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.falling_75_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": 4.0
+            }
+          ],
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 44.0,
+              "type": "carb"
+            }
+          ]
+          },
+        "sensor": {
+          "glucose_history": "reusable.glucose.falling_75_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": 4.0
+            }
+          ],
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 44.0,
+              "type": "carb"
+            }
+          ]
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t2_median",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.falling_75_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": 4.0
+            }
+          ],
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 44.0,
+              "type": "carb"
+            }
+          ]
+          },
+        "sensor": {
+          "glucose_history": "reusable.glucose.falling_75_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": 4.0
+            }
+          ],
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 44.0,
+              "type": "carb"
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.falling_75_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": 4.0
+            }
+          ],
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 44.0,
+              "type": "carb"
+            }
+          ]
+          },
+        "sensor": {
+          "glucose_history": "reusable.glucose.falling_75_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": 4.0
+            }
+          ],
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 44.0,
+              "type": "carb"
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_v1"
+      }
+    }
+]
+}

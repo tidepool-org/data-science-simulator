@@ -1,0 +1,57 @@
+[
+  {
+    "type": "carb",
+    "start_time": "8/15/2019 12:00:00",
+    "value": 37.0
+  },
+  {
+    "type": "carb",
+    "start_time": "8/15/2019 18:00:00",
+    "value": 55.5
+  },
+  {
+    "type": "carb",
+    "start_time": "8/16/2019 06:00:00",
+    "value": 18.5
+  },
+  {
+    "type": "carb",
+    "start_time": "8/16/2019 12:00:00",
+    "value": 37.0
+  },
+  {
+    "type": "carb",
+    "start_time": "8/16/2019 18:00:00",
+    "value": 55.5
+  },
+  {
+    "type": "carb",
+    "start_time": "8/17/2019 06:00:00",
+    "value": 18.5
+  },
+  {
+    "type": "carb",
+    "start_time": "8/17/2019 12:00:00",
+    "value": 37.0
+  },
+  {
+    "type": "carb",
+    "start_time": "8/17/2019 18:00:00",
+    "value": 55.5
+  },
+  {
+    "type": "carb",
+    "start_time": "8/18/2019 06:00:00",
+    "value": 18.5
+  },
+  {
+    "type": "carb",
+    "start_time": "8/18/2019 12:00:00",
+    "value": 37.0
+  },
+  {
+    "type": "carb",
+    "start_time": "8/18/2019 18:00:00",
+    "value": 55.5
+  }
+]

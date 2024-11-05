@@ -1,0 +1,55 @@
+{
+    "metadata": {
+        "risk_id": "TLR-790",
+        "simulation_id": "TLR-790-Median",
+        "risk_description": "Metabolic settings are too aggressive",
+        "config_format_version": "v1.0"
+    },
+    "base_config": "reusable.simulations.t2_median_v1",
+    "override_config": [
+        {
+            "sim_id": "pre-Loop-noMitigations_t2_median",
+            "patient": {
+              "pump": {
+                "metabolism_settings": {
+                  "basal_rate": {
+                         "start_times": ["0:00:00"],
+                         "values":  [1.7]
+                  }
+                }
+              }
+            }
+        },
+        {
+            "sim_id": "pre-noLoop_t2_median",
+            "patient": {
+              "pump": {
+                "metabolism_settings": {
+                  "basal_rate": {
+                         "start_times": ["0:00:00"],
+                         "values":  [1.7]
+                  }
+                }
+              }
+            },
+            "controller": null
+        },
+        {
+            "sim_id": "post-Loop-WithMitigations_t2_median",
+            "patient": {
+              "pump": {
+                "metabolism_settings": {
+                  "basal_rate": {
+                         "start_times": ["0:00:00"],
+                         "values":  [1.7]
+                  }
+                },
+                "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+              }
+              },
+          "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_v1"
+      }
+            }
+    ]
+}

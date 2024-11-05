@@ -1,0 +1,62 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1030_04",
+    "simulation_id": "TLR-1030_04-base_median",
+    "risk_description": "negative sensor bias",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_180_12hr"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_150_12hr"
+        }
+      },
+      "controller": {
+        "settings": {
+          "partial_application_factor": 0.4,
+          "maximum_autobolus": 30.0
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_180_12hr"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_150_12hr"
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_180_12hr"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_150_12hr"
+        },
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "partial_application_factor": 0.4,
+          "maximum_autobolus": 30.0,
+          "glucose_safety_limit": 75,
+          "max_basal_rate": 1.75
+        }
+      }
+      }
+]
+}

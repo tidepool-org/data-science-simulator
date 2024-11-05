@@ -1,0 +1,79 @@
+{
+  "metadata": {
+    "risk_id": "TLR-704",
+    "simulation_id": "TLR-704-Sensitive",
+    "risk_description": "Watch accidental bolus entry",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.63
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.63
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.63
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.63
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.63
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.63
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_v1"
+      }
+    }
+  ]
+}

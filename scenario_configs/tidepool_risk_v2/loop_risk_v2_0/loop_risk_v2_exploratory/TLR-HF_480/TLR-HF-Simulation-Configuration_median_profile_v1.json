@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "risk-id": "TLR-HF-480",
+    "simulation_id": "TLR-HF-base_median",
+    "risk_description": "Explore preset effect 480m",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "12:00:00","20:00:00"
+    ],
+    "values": [
+      50, 38.46, 50
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "12:00:00","20:00:00"
+    ],
+    "values": [
+      13.0, 10.0, 13.0
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "12:00:00","20:00:00"
+    ],
+    "values": [
+      0.5, 0.65, 0.5
+    ]
+  }
+}
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_median",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "12:00:00","20:00:00"
+    ],
+    "values": [
+      50, 38.46, 50
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "12:00:00","20:00:00"
+    ],
+    "values": [
+      13.0, 10.0, 13.0
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "12:00:00","20:00:00"
+    ],
+    "values": [
+      0.5, 0.65, 0.5
+    ]
+  }
+}
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_median",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "12:00:00","20:00:00"
+    ],
+    "values": [
+      50, 38.46, 50
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "12:00:00","20:00:00"
+    ],
+    "values": [
+      13.0, 10.0, 13.0
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "12:00:00","20:00:00"
+    ],
+    "values": [
+      0.5, 0.65, 0.5
+    ]
+  }
+},
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
+    }
+]
+}

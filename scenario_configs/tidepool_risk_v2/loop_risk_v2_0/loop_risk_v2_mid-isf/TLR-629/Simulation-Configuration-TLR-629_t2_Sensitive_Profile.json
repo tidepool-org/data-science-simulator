@@ -1,0 +1,66 @@
+{
+  "metadata": {
+    "risk-id": "TLR-629",
+    "simulation_id": "TLR-629.t2_sensitive",
+    "risk_description": "Stale data in bolus recommendation",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ],
+          "glucose_history": "reusable.glucose.falling_30m_fast_12hr"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1"
+        }
+        }
+      },
+    {
+      "sim_id": "pre-NoLoop_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1",
+          "glucose_history": "reusable.glucose.falling_30m_fast_12hr"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1"
+        }
+        },
+      "controller": null
+      },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ],
+          "glucose_history": "reusable.glucose.falling_30m_fast_12hr"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+        },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_swift"
+      }
+      }
+  ]
+}
