@@ -41,8 +41,18 @@ def process_simulation_data(result_dir):
         
         # Load data and calculate risk metrics
         _, df_results = load_result(sim_json_info["result_path"])
-        true_bg = np.array(df_results['bg'])
+        true_bg = np.array(df_results['bg'])        
         true_bg[true_bg < 1] = 1
+        
+        # Do not calculate LGBI before Loop is active
+        true_bolus = np.array(df_results['true_bolus'])
+        true_basal = np.array(df_results['temp_basal'])
+
+        first_valid_bolus = np.argmax(~np.isnan(true_bolus))
+        first_valid_basal = np.argmax(~np.isnan(true_basal))
+        first_valid_index = min((first_valid_basal, first_valid_bolus))
+        true_bg = true_bg[first_valid_index:]
+
         lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(true_bg)
         dkai_icgm = dka_index(df_results['iob'], df_results["sbr"])
 
@@ -122,6 +132,12 @@ def compute_score_risk_table(summary_df):
     mean_lbgi = []
     joint_prob = []
 
+    if "lbgi_ideal" in summary_df:
+        lbgi_ideal = summary_df["lbgi_ideal"]
+        lbgi_ideal_mask = lbgi_ideal < 1
+    else:
+        lbgi_ideal_mask = np.ones(len(summary_df), dtype=bool)
+
     # Go through each square in the concurrency table 
     for (low_true, high_true), (low_icgm, high_icgm) in bg_range_pairs:
         low_true_axis.append(low_true)
@@ -139,10 +155,11 @@ def compute_score_risk_table(summary_df):
         else:
             return
 
-        concurrency_square_mask = true_mask & icgm_mask 
+        concurrency_square_mask = true_mask & icgm_mask & lbgi_ideal_mask
 
         if "lbgi_icgm" in summary_df:
             lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]
+            
         elif "lbgi" in summary_df:
             lbgi_data = summary_df[concurrency_square_mask]["lbgi"]        
         else:
@@ -172,11 +189,7 @@ def compute_score_risk_table(summary_df):
     print(severity_event_count)
     severity_event_probability_df = severity_event_count_df / num_cgm_per_100k_person_years 
 
-    severity_event_probability_df.to_csv('severity_event_probability.csv')
-
-    d = np.array(mean_lbgi) #* np.array(joint_prob)
-
-    return severity_event_probability_df, (low_icgm_axis, low_true_axis, d)
+    return severity_event_probability_df, (low_icgm_axis, low_true_axis, np.array(mean_lbgi), np.array(joint_prob))
 
 
 if __name__ == "__main__":
