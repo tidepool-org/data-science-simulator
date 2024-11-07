@@ -134,7 +134,7 @@ def compute_score_risk_table(summary_df):
 
     if "lbgi_ideal" in summary_df:
         lbgi_ideal = summary_df["lbgi_ideal"]
-        lbgi_ideal_mask = lbgi_ideal < 1
+        lbgi_ideal_mask = lbgi_ideal < 0
     else:
         lbgi_ideal_mask = np.ones(len(summary_df), dtype=bool)
 
@@ -155,7 +155,7 @@ def compute_score_risk_table(summary_df):
         else:
             return
 
-        concurrency_square_mask = true_mask & icgm_mask & lbgi_ideal_mask
+        concurrency_square_mask = true_mask & icgm_mask #& lbgi_ideal_mask
 
         if "lbgi_icgm" in summary_df:
             lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]
@@ -186,7 +186,6 @@ def compute_score_risk_table(summary_df):
             severity_event_count[s_idx] += num_risk_events_sim
 
     severity_event_count_df = pd.DataFrame(severity_event_count)
-    print(severity_event_count)
     severity_event_probability_df = severity_event_count_df / num_cgm_per_100k_person_years 
 
     return severity_event_probability_df, (low_icgm_axis, low_true_axis, np.array(mean_lbgi), np.array(joint_prob))

@@ -33,6 +33,10 @@ axes[0].set_ylabel("True Blood Glucose")
 axes[0].set_zlabel("Mean LBGI")
 axes[0].set_title('2021')
 
+for i in range(6):
+    axes[i].set_xlabel("Sensor Blood  Glucose")
+    axes[i].set_ylabel("True Blood Glucose")
+
 # ax2.scatter(low_icgm_axis, low_true_axis, d, c=d, cmap='viridis', marker='o')
 
 # ax2.set_xlabel("Sensor Blood  Glucose")

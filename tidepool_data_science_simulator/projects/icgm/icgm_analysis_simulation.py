@@ -104,6 +104,8 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             sim.random_state = random_state
 
             yield sim
+        
+    return
 
 
 # def get_ideal_sensor(t0, sim_parser):
@@ -208,18 +210,18 @@ if __name__ == "__main__":
 
     start_time = time.time()
     for i, sim_batch in enumerate(sim_batch_generator):
+        if sim_batch:
+            batch_start_time = time.time()
 
-        batch_start_time = time.time()
-
-        full_results, summary_results_df = run_simulations(
-            sim_batch,
-            save_dir=result_dir,
-            save_results=True,
-            num_procs=sim_batch_size
-        )
-        
-        batch_total_time = (time.time() - batch_start_time) / 60
-        run_total_time = (time.time() - start_time) / 60
-        logger.info("Batch {}".format(i))
-        logger.info("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
+            full_results, summary_results_df = run_simulations(
+                sim_batch,
+                save_dir=result_dir,
+                save_results=True,
+                num_procs=sim_batch_size
+            )
+            
+            batch_total_time = (time.time() - batch_start_time) / 60
+            run_total_time = (time.time() - start_time) / 60
+            logger.info("Batch {}".format(i))
+            logger.info("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
 
