@@ -173,8 +173,9 @@ def compute_score_risk_table(summary_df):
         else:
             return
         # End backward compatibility
-
-        mean_lbgi.append(np.median(lbgi_data))
+        mean_lbgi.append(np.sum(lbgi_data)/len(lbgi_data))
+        # mean_lbgi.append(np.sum(lbgi_data >= 20)/len(lbgi_data))
+        print(np.sum(lbgi_data >= 20))
         p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
 
         joint_prob.append(p_error)

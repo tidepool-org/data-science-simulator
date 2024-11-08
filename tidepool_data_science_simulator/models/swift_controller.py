@@ -199,10 +199,16 @@ class SwiftLoopController(LoopController):
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
                         
-            swift_output = get_loop_recommendations(loop_inputs_dict)
-            swift_output_decode = swift_output.decode('utf-8')
-            swift_output_json = json.loads(swift_output_decode)
+            swift_output_automatic = get_loop_recommendations(loop_inputs_dict)
+            swift_output_decode_automatic = swift_output_automatic.decode('utf-8')
+            swift_output_json_automatic = json.loads(swift_output_decode_automatic)
 
+            loop_inputs_dict['recommendationType'] = 'manualBolus'
+            swift_output_manual = get_loop_recommendations(loop_inputs_dict)
+            swift_output_decode_manual = swift_output_manual.decode('utf-8')
+            swift_output_json_manual = json.loads(swift_output_decode_manual)
+            
+            swift_output_json = swift_output_json_automatic | swift_output_json_manual
             return swift_output_json
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
@@ -220,9 +226,10 @@ class SwiftLoopController(LoopController):
         if manual_data:
             manual_bolus_rec = manual_data['amount']
             if virtual_patient.does_accept_bolus_recommendation(manual_bolus_rec):
-                self.set_bolus_recommendation_event(virtual_patient, manual_bolus_rec)
+                bolus = Bolus(manual_bolus_rec, "U")
+                self.set_bolus_recommendation_event(virtual_patient, bolus)            
 
-        elif automatic_data:
+        if automatic_data:
             autobolus_rec = automatic_data.get('bolusUnits')
             temp_basal_data = automatic_data.get('basalAdjustment')
             
