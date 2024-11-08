@@ -90,7 +90,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             virtual_patient.sensor = sensor
 
             def does_accept_bolus_recommendation(self, bolus):
-                return self.time == t0
+                return False #self.time == t0
             virtual_patient.does_accept_bolus_recommendation = types.MethodType(does_accept_bolus_recommendation, virtual_patient)
 
             sim = Simulation(sim_start_time,

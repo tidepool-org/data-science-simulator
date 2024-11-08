@@ -44,34 +44,40 @@ def process_simulation_data(result_dir):
         true_bg = np.array(df_results['bg'])        
         true_bg[true_bg < 1] = 1
         
-        # Do not calculate LGBI before Loop is active
-        true_bolus = np.array(df_results['true_bolus'])
-        true_basal = np.array(df_results['temp_basal'])
 
-        first_valid_bolus = np.argmax(~np.isnan(true_bolus))
-        first_valid_basal = np.argmax(~np.isnan(true_basal))
-        first_valid_index = min((first_valid_basal, first_valid_bolus))
-        true_bg = true_bg[first_valid_index:]
+
+        # Do not calculate LGBI before Loop is active
+        if 0:
+            true_bolus = np.array(df_results['true_bolus'])
+            true_basal = np.array(df_results['temp_basal'])
+
+            first_valid_bolus = np.argmax(~np.isnan(true_bolus))
+            first_valid_basal = np.argmax(~np.isnan(true_basal))
+            first_valid_index = min((first_valid_basal, first_valid_bolus))
+            start_index = first_valid_index
+
+        start_index = 137
+        true_bg = true_bg[start_index:]
 
         lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(true_bg)
-        dkai_icgm = dka_index(df_results['iob'], df_results["sbr"])
+        # dkai_icgm = dka_index(df_results['iob'], df_results["sbr"])
 
-        # Find the simulation where the true and sensor blood glucose match
-        # Could also run with the ideal sensor class
-        sim_results_match = re.search(r"tbg=(\d+)", sim_id)
-        ideal_sbg = sim_results_match.group(1)
-        ideal_sbg_string = "sbg=" + ideal_sbg + ".json"
+        # # Find the simulation where the true and sensor blood glucose match
+        # # Could also run with the ideal sensor class
+        # sim_results_match = re.search(r"tbg=(\d+)", sim_id)
+        # ideal_sbg = sim_results_match.group(1)
+        # ideal_sbg_string = "sbg=" + ideal_sbg + ".json"
 
-        ideal_sbg_file = re.sub(r"sbg=(\d+)", ideal_sbg_string, sim_id)   
-        sim_json_info_ideal = collect_sim_result(result_dir, ideal_sbg_file)
+        # ideal_sbg_file = re.sub(r"sbg=(\d+)", ideal_sbg_string, sim_id)   
+        # sim_json_info_ideal = collect_sim_result(result_dir, ideal_sbg_file)
 
-        # Load data with ideal sensor and calculate risk metrics
-        # Will be used to filter our cases where the risk was already high
-        _, df_results_ideal = load_result(sim_json_info_ideal["result_path"])
-        true_bg = np.array(df_results_ideal["bg"])
-        true_bg[true_bg < 1] = 1
-        lbgi_ideal, hbgi_ideal, brgi_ideal = blood_glucose_risk_index(true_bg)
-        dkai_ideal = dka_index(df_results_ideal['iob'], df_results_ideal["sbr"])
+        # # Load data with ideal sensor and calculate risk metrics
+        # # Will be used to filter our cases where the risk was already high
+        # _, df_results_ideal = load_result(sim_json_info_ideal["result_path"])
+        # true_bg = np.array(df_results_ideal["bg"])
+        # true_bg[true_bg < 1] = 1
+        # lbgi_ideal, hbgi_ideal, brgi_ideal = blood_glucose_risk_index(true_bg)
+        # dkai_ideal = dka_index(df_results_ideal['iob'], df_results_ideal["sbr"])
 
         bg_cond = int(re.search(r"bg=(\d)", sim_id).groups()[0])
         
@@ -87,11 +93,11 @@ def process_simulation_data(result_dir):
         row = {
             "sim_id": sim_id,
             "lbgi_icgm": lbgi_icgm,
-            "lbgi_ideal": lbgi_ideal,
-            "lbgi_diff": lbgi_icgm - lbgi_ideal,
-            "dkai_icgm": dkai_icgm,
-            "dkai_ideal": dkai_ideal,
-            "dkai_diff": dkai_icgm - dkai_ideal,
+            # "lbgi_ideal": lbgi_ideal,
+            # "lbgi_diff": lbgi_icgm - lbgi_ideal,
+            # "dkai_icgm": dkai_icgm,
+            # "dkai_ideal": dkai_ideal,
+            # "dkai_diff": dkai_icgm - dkai_ideal,
             "bg_condition": bg_cond,
             "true_start_bg": true_bg_start,
             "start_bg_with_offset": sensor_bg_start,
@@ -132,11 +138,11 @@ def compute_score_risk_table(summary_df):
     mean_lbgi = []
     joint_prob = []
 
-    if "lbgi_ideal" in summary_df:
-        lbgi_ideal = summary_df["lbgi_ideal"]
-        lbgi_ideal_mask = lbgi_ideal < 0
-    else:
-        lbgi_ideal_mask = np.ones(len(summary_df), dtype=bool)
+    # if "lbgi_ideal" in summary_df:
+    #     lbgi_ideal = summary_df["lbgi_ideal"]
+    #     lbgi_ideal_mask = lbgi_ideal < 0
+    # else:
+    #     lbgi_ideal_mask = np.ones(len(summary_df), dtype=bool)
 
     # Go through each square in the concurrency table 
     for (low_true, high_true), (low_icgm, high_icgm) in bg_range_pairs:
@@ -145,10 +151,12 @@ def compute_score_risk_table(summary_df):
 
         # Backward compatibility with old versions of the results file. 
         if "true_start_bg" in summary_df:
+            # Current version
             true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
             icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (summary_df["start_bg_with_offset"] <= high_icgm)
 
         elif "tbg" in summary_df:
+            # 2021 version
             true_mask = (summary_df["tbg"] >= low_true) & (summary_df["tbg"] <= high_true)
             icgm_mask = (summary_df["sbg"] >= low_icgm) & (summary_df["sbg"] <= high_icgm)
 
