@@ -3,6 +3,8 @@ __author__ = "Mark Connolly"
 import logging
 
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
+from tidepool_data_science_metrics.glucose import glucose
+
 logger = logging.getLogger(__name__)
 
 import time
@@ -221,6 +223,10 @@ if __name__ == "__main__":
             )
             # for sim_id, sim_results_df in full_results.items():
             #     plot_sim_results({sim_id: sim_results_df})
+            #     bg = sim_results_df['bg']
+            #     bg = bg[136:]
+            #     lbgi_icgm, hbgi_icgm, brgi_icgm = glucose.blood_glucose_risk_index(bg)
+            #     print(lbgi_icgm)
             
             batch_total_time = (time.time() - batch_start_time) / 60
             run_total_time = (time.time() - start_time) / 60
