@@ -204,6 +204,7 @@ class SwiftLoopController(LoopController):
             swift_output_json_automatic = json.loads(swift_output_decode_automatic)
 
             loop_inputs_dict['recommendationType'] = 'manualBolus'
+            loop_inputs_dict['includePositiveVelocityAndRC'] = False
             swift_output_manual = get_loop_recommendations(loop_inputs_dict)
             swift_output_decode_manual = swift_output_manual.decode('utf-8')
             swift_output_json_manual = json.loads(swift_output_decode_manual)
