@@ -1,6 +1,8 @@
 __author__ = "Mark Connolly"
 
 import logging
+
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 logger = logging.getLogger(__name__)
 
 import time
@@ -68,12 +70,10 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             glucose_datetimes = [datetime.datetime.strptime(dt_str, date_str_format)
                                     for dt_str in
                                     new_sim_base_config["patient"]["sensor"]["glucose_history"]["datetime"].values()]
+            
             t0 = datetime.datetime.strptime(new_sim_base_config["time_to_calculate_at"], date_str_format)
 
             sim_parser = ScenarioParserV2()
-            
-            # sim_id = "icgm_analysis_coastal_vp_{}_{}_tbg={}_sbg=IDEAL".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose)
-            # sensor = get_ideal_sensor(t0=t0, sim_parser=sim_parser)
 
             sim_id = "icgm_analysis_coastal_vp_{}_{}_tbg={}_sbg={}".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose, initial_error_value)
             sensor = get_initial_offset_sensor_noisy(t0_init=t0 - datetime.timedelta(minutes=len(glucose_history_values) * 5.0),
@@ -219,6 +219,8 @@ if __name__ == "__main__":
                 save_results=True,
                 num_procs=sim_batch_size
             )
+            # for sim_id, sim_results_df in full_results.items():
+            #     plot_sim_results({sim_id: sim_results_df})
             
             batch_total_time = (time.time() - batch_start_time) / 60
             run_total_time = (time.time() - start_time) / 60

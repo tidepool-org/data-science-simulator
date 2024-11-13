@@ -5,13 +5,16 @@ from pathlib import Path
 from tidepool_data_science_metrics.glucose import glucose
 
 result_directory = Path("/Users/mconn/data/simulator/processed/icgm-sensitivity-analysis-results-2020-12-11/")
-result_directory = Path("/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_results_COASTAL_AUTOBOLUS_2024_10_30_T_19_10_10/")
+
+# result_directory = Path("/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_results_COASTAL_AUTOBOLUS_2024_10_30_T_19_10_10/")
 result_directory = Path("/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_results_COASTAL_2024_11_08_T_14_30_46")
+result_directory = Path("/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_results_COASTAL_2024_11_12_T_18_23_25")
+
 # result_directory = Path("/Users/mconn/data/simulator/processed/temp")
 
-result_pattern = "*bg40.siCGM_40.0*.tsv"
+# result_pattern = "*83ce*bg40.siCGM_120.0*.tsv"
 result_pattern = "*tbg=40_sbg=120.tsv"
-result_pattern = "*.tsv"
+# result_pattern = "*.tsv"
 
 for result_path in result_directory.glob(result_pattern): 
     (sim_id, sim_results_df) = load_result(result_path, ext="tsv")
