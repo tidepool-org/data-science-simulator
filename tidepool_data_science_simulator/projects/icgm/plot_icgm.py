@@ -8,7 +8,7 @@ result_directory = Path("/Users/mconn/data/simulator/processed/icgm-sensitivity-
 
 # result_directory = Path("/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_results_COASTAL_AUTOBOLUS_2024_10_30_T_19_10_10/")
 result_directory = Path("/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_results_COASTAL_2024_11_08_T_14_30_46")
-result_directory = Path("/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_results_COASTAL_2024_11_12_T_18_23_25")
+result_directory = Path("/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_results_COASTAL_2024_11_13_T_10_06_13")
 
 # result_directory = Path("/Users/mconn/data/simulator/processed/temp")
 

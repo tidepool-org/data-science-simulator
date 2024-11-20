@@ -5,6 +5,8 @@ from tidepool_data_science_simulator.projects.icgm.icgm_eval_tmp import score_ri
 import matplotlib.pyplot as plt
 import numpy as np
 
+pd.set_option('display.float_format', '{:.2e}'.format)
+
 path = '/Users/mconn/tidepool/repositories/data-science-simulator/sim_summary_df_MITIGATED_Aug12_2021.csv'
 summary_df_2021 = pd.read_csv(path, sep=",")
 severity_event_probability_df_2021, (low_icgm_axis_2021, low_true_axis_2021, mean_lbgi_2021, joint_prob_2021) = compute_score_risk_table(summary_df_2021)
@@ -18,7 +20,7 @@ print(severity_event_probability_df_2021)
 # path = args.path
 path = '/Users/mconn/tidepool/repositories/data-science-simulator/processed_simulation_data_2024-11-08_AUTOBOLUS.csv'
 # path = '/Users/mconn/tidepool/repositories/data-science-simulator/processed_simulation_data_2024-11-08_TEMPBASAL.csv'
-path = './processed_simulation_data_2024-11-11T15:02:54.820708.csv'
+path = './processed_simulation_data_2024-11-15T16:13:50.323592.csv'
 
 summary_df = pd.read_csv(path, sep="\t")
 severity_event_probability_df, (low_icgm_axis, low_true_axis, mean_lbgi_swift, joint_prob_swift) = compute_score_risk_table(summary_df)
@@ -46,4 +48,10 @@ for i in range(6):
     axes[i].set_xlabel("Sensor Blood  Glucose")
     axes[i].set_ylabel("True Blood Glucose")
 
+fig2 = plt.figure()
+ax = fig2.add_subplot(projection='3d')
+d = joint_prob_swift*(mean_lbgi_swift - mean_lbgi_2021)
+ax.scatter(low_icgm_axis, low_true_axis, d, c=d, cmap='viridis', marker='o')
+ax.set_xlabel("Sensor Blood  Glucose")
+ax.set_ylabel("True Blood Glucose")
 plt.show()

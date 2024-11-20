@@ -124,12 +124,14 @@ def process_simulation_data(result_dir):
 
 def compute_score_risk_table(summary_df):
 
-    dexcom_value_model = DexcomG6ValueModel(concurrency_table="adult")
+    dexcom_value_model = DexcomG6ValueModel(concurrency_table="coastal")
 
     bg_ranges = [(40, 60),(61, 80), (81, 120), (121, 160), (161, 200), 
                  (201, 250), (251, 300), (301, 350), (351, 400)]  
     
     bg_range_pairs = [(true_range,icgm_range) for true_range in bg_ranges for icgm_range in bg_ranges]
+
+    # bg_range_pairs = [((121, 160), (201, 250))]
     severity_bands = [(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)]
 
     severity_event_count = [0,0,0,0,0]
@@ -173,9 +175,9 @@ def compute_score_risk_table(summary_df):
         else:
             return
         # End backward compatibility
-        mean_lbgi.append(np.sum(lbgi_data)/len(lbgi_data))
-        # mean_lbgi.append(np.sum(lbgi_data >= 20)/len(lbgi_data))
-        print(np.sum(lbgi_data >= 20))
+        # mean_lbgi.append(np.sum(lbgi_data)/len(lbgi_data))
+        mean_lbgi.append(np.sum(lbgi_data >= 20)/len(lbgi_data))
+
         p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
 
         joint_prob.append(p_error)

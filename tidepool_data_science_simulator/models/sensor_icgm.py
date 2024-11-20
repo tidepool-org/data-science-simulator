@@ -1209,7 +1209,7 @@ class DexcomG6ValueModel(SensoriCGMModelOverlayBase):
         elif concurrency_table == "TP_iCGM":
             self.p_icgm_given_true = np.array(TP_iCGM_CONCURRENCY)
             self.comparator_totals = [2, 127, 559, 1254, 1081, 955, 913, 570, 282, 74, 10]
-        elif concurrency_table == "Coastal":
+        elif concurrency_table == "coastal":
             self.p_icgm_given_true = np.array(COASTAL_CONCURRENCY)
             self.comparator_totals = [1.8, 340.5, 1749.6, 3593.2, 3731.8, 2738.5, 1890.8, 1336.6, 614.8, 126.3, 17.7]
 
