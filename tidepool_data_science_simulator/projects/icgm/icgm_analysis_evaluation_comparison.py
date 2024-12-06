@@ -20,7 +20,7 @@ print(severity_event_probability_df_2021)
 # path = args.path
 path = '/Users/mconn/tidepool/repositories/data-science-simulator/processed_simulation_data_2024-11-08_AUTOBOLUS.csv'
 # path = '/Users/mconn/tidepool/repositories/data-science-simulator/processed_simulation_data_2024-11-08_TEMPBASAL.csv'
-path = './processed_simulation_data_2024-11-15T16:13:50.323592.csv'
+path = 'tidepool_data_science_simulator/projects/icgm/processed_data/icgm_sensitivity_analysis_results_AUTOBOLUS_06_2024_12_02_8476f12.csv'
 
 summary_df = pd.read_csv(path, sep="\t")
 severity_event_probability_df, (low_icgm_axis, low_true_axis, mean_lbgi_swift, joint_prob_swift) = compute_score_risk_table(summary_df)
