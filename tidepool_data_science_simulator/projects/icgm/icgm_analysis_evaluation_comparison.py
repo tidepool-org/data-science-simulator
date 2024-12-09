@@ -7,7 +7,7 @@ import numpy as np
 
 pd.set_option('display.float_format', '{:.2e}'.format)
 
-path = 'tidepool_data_science_simulator/projects/icgm/processed_data/sim_summary_df_MITIGATED_Aug12_2021.csv'
+path = '/Users/mconn/data/simulator/processed_data/sim_summary_df_MITIGATED_Aug12_2021.csv'
 summary_df_2021 = pd.read_csv(path, sep=",")
 severity_event_probability_df_2021, (low_icgm_axis_2021, low_true_axis_2021, mean_lbgi_2021, joint_prob_2021) = compute_score_risk_table(summary_df_2021)
 print(severity_event_probability_df_2021)
@@ -17,9 +17,9 @@ print(severity_event_probability_df_2021)
 # parser.add_argument("path", help="simulation data directory (process) or summary file path (summarize)", type=str)
 # args = parser.parse_args()
 
-path = 'tidepool_data_science_simulator/projects/icgm/processed_data/icgm_sensitivity_analysis_results_AUTOBOLUS_04_2024_11_20_619381e.csv'
-# path = 'tidepool_data_science_simulator/projects/icgm/processed_data/icgm_sensitivity_analysis_results_AUTOBOLUS_06_2024_12_02_8476f12.csv'
-path = 'tidepool_data_science_simulator/projects/icgm/processed_data/icgm_sensitivity_analysis_results_MANUAL_2024_11_13_0da14e7.csv'
+path = '/Users/mconn/data/simulator/processed_data/icgm_sensitivity_analysis_results_AUTOBOLUS_04_2024_11_20_619381e.csv'
+path = '/Users/mconn/data/simulator/processed_data/icgm_sensitivity_analysis_results_AUTOBOLUS_06_2024_12_02_8476f12.csv'
+# path = '/Users/mconn/data/simulator/processed_data/icgm_sensitivity_analysis_results_MANUAL_2024_11_13_0da14e7.csv'
 
 summary_df = pd.read_csv(path, sep="\t")
 severity_event_probability_df, (low_icgm_axis, low_true_axis, mean_lbgi_swift, joint_prob_swift) = compute_score_risk_table(summary_df)
