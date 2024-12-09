@@ -65,7 +65,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values
             
             new_sim_base_config["controller"]["id"] = 'swift'
-            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.6
+            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.0
             new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
             
             date_str_format = "%m/%d/%Y %H:%M:%S"  # ref: "8/15/2019 12:00:00"
@@ -92,7 +92,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             virtual_patient.sensor = sensor
 
             def does_accept_bolus_recommendation(self, bolus):
-                return False #self.time == t0
+                return self.time == t0
             virtual_patient.does_accept_bolus_recommendation = types.MethodType(does_accept_bolus_recommendation, virtual_patient)
 
             sim = Simulation(sim_start_time,

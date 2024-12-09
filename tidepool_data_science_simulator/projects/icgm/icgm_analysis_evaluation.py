@@ -19,7 +19,24 @@ from tidepool_data_science_simulator.evaluation.inspect_results import load_resu
 
 logger = logging.getLogger(__name__)
 
+table_probability_indices = {
+    (0, 1e-6): 1,
+    (1e-6, 1e-4): 2,
+    (1e-4, 1e-2): 3,
+    (1e-2, 1e-1): 4,
+    (.1, 1): 5,
+}
+
+def get_probability_index(event_probability):
+
+    for bounds in table_probability_indices.keys():
+        if bounds[0] <= event_probability < bounds[1]:
+            return table_probability_indices[bounds]
+
+    raise Exception("Probability not in indices.")
+
 def process_simulation_data(result_dir):
+
     # Get rid of unnecessary warnings for low/high BG
     warnings.filterwarnings('ignore')
     
@@ -128,9 +145,11 @@ def compute_score_risk_table(summary_df):
 
     bg_ranges = [(40, 60),(61, 80), (81, 120), (121, 160), (161, 200), 
                  (201, 250), (251, 300), (301, 350), (351, 400)]  
-    
-    bg_range_pairs = [(true_range,icgm_range) for true_range in bg_ranges for icgm_range in bg_ranges]
+    # bg_ranges = [(i, i+4) for i in range(36, 400, 5)]
 
+    bg_range_pairs = [(true_range,icgm_range) for true_range in bg_ranges for icgm_range in bg_ranges]
+    # bg_range_pairs = [((121, 125), (246, 250))]
+    # bg_range_pairs = [((124, 129), (244, 249))]
     # bg_range_pairs = [((121, 160), (201, 250))]
     severity_bands = [(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)]
 
@@ -175,6 +194,7 @@ def compute_score_risk_table(summary_df):
         else:
             return
         # End backward compatibility
+
         # mean_lbgi.append(np.sum(lbgi_data)/len(lbgi_data))
         mean_lbgi.append(np.sum(lbgi_data >= 20)/len(lbgi_data))
 
@@ -185,12 +205,12 @@ def compute_score_risk_table(summary_df):
         p_corr_bolus_given_error = 6 / 288
         num_cgm_per_100k_person_years = 288 * 365 * 100000
 
-        num_total_sims = max(1, len(summary_df[concurrency_square_mask]))
+        num_sims_in_concurrency_square = max(1, len(summary_df[concurrency_square_mask]))
 
         for s_idx, severity_band in enumerate(severity_bands, 0):
             severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
             num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
-            sim_prob = num_sims_in_severity_band / num_total_sims
+            sim_prob = num_sims_in_severity_band / num_sims_in_concurrency_square
             risk_prob_sim = sim_prob * p_corr_bolus_given_error * p_error
             num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
 
@@ -199,6 +219,9 @@ def compute_score_risk_table(summary_df):
     severity_event_count_df = pd.DataFrame(severity_event_count)
     severity_event_probability_df = severity_event_count_df / num_cgm_per_100k_person_years 
 
+    # risk_index = [get_probability_index(p) for p in severity_event_probability_df[0]]
+    # risk_index = np.array(risk_index)
+    # print(risk_index * np.array([1,2,3,4,5]))
     return severity_event_probability_df, (low_icgm_axis, low_true_axis, np.array(mean_lbgi), np.array(joint_prob))
 
 
