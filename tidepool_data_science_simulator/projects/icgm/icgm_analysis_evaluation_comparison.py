@@ -35,15 +35,6 @@ dims = (dim, dim)
 true_grid = np.reshape(low_true_axis_2021, dims)
 icgm_grid = np.reshape(low_icgm_axis_2021, dims)
 
-# axes[0].scatter(low_icgm_axis_2021, low_true_axis_2021, mean_lbgi_2021, c=mean_lbgi_2021, cmap='viridis', marker='o')
-# axes[1].scatter(low_icgm_axis, low_true_axis, mean_lbgi_swift, c=mean_lbgi_swift, cmap='viridis', marker='o')
-
-# axes[2].scatter(low_icgm_axis, low_true_axis, joint_prob_swift, c=joint_prob_swift, cmap='viridis', marker='o')
-# axes[3].scatter(low_icgm_axis, low_true_axis, joint_prob_swift, c=joint_prob_swift, cmap='viridis', marker='o')
-
-# axes[4].scatter(low_icgm_axis, low_true_axis, mean_lbgi_2021*joint_prob_swift, c=mean_lbgi_2021*joint_prob_swift, cmap='viridis', marker='o')
-# axes[5].scatter(low_icgm_axis, low_true_axis, mean_lbgi_swift*joint_prob_swift, c=mean_lbgi_swift*joint_prob_swift, cmap='viridis', marker='o')
-
 axes[0].pcolormesh(true_grid, icgm_grid, np.reshape(mean_lbgi_2021, dims), vmin=0, vmax=1)
 axes[1].pcolormesh(true_grid, icgm_grid, np.reshape(mean_lbgi_swift, dims), vmin=0, vmax=1)
 
@@ -55,13 +46,10 @@ axes[5].pcolormesh(true_grid, icgm_grid, np.reshape(mean_lbgi_swift*joint_prob_s
 
 axes[0].set_xlabel("Sensor Blood  Glucose")
 axes[0].set_ylabel("True Blood Glucose")
-# axes[0].set_zlabel("Mean LBGI")
 axes[0].set_title('2021')
 
 for i in range(6):
     axes[i].invert_yaxis()
-    axes[i].set_xlabel("Sensor Blood  Glucose")
-    axes[i].set_ylabel("True Blood Glucose")
 
 d = joint_prob_swift*(mean_lbgi_swift - mean_lbgi_2021)
 data_grid = np.reshape(d, dims)
