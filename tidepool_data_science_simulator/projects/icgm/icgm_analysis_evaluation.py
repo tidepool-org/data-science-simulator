@@ -219,9 +219,9 @@ def compute_score_risk_table(summary_df):
     severity_event_count_df = pd.DataFrame(severity_event_count)
     severity_event_probability_df = severity_event_count_df / num_cgm_per_100k_person_years 
 
-    # risk_index = [get_probability_index(p) for p in severity_event_probability_df[0]]
-    # risk_index = np.array(risk_index)
-    # print(risk_index * np.array([1,2,3,4,5]))
+    risk_index = [get_probability_index(p) for p in severity_event_probability_df[0]]
+    risk_index = np.array(risk_index)
+    print(risk_index * np.array([1,2,3,4,5]))
     return severity_event_probability_df, (low_icgm_axis, low_true_axis, np.array(mean_lbgi), np.array(joint_prob))
 
 
