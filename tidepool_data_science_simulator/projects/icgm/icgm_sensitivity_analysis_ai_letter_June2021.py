@@ -37,7 +37,7 @@ from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.utils import DATA_DIR
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
-
+from tidepool_data_science_metrics.glucose import glucose
 
 def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     """
@@ -49,8 +49,8 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     true_glucose_start_values = range(40, 405, 5)
     error_glucose_values = [v for v in true_glucose_start_values[::-1]]
 
-    # true_glucose_start_values = [90]  # testing
-    # error_glucose_values = [160]
+    true_glucose_start_values = [125]  # testing
+    error_glucose_values = [245]
 
     random_state = RandomState(base_sim_seed)
 
@@ -198,6 +198,8 @@ if __name__ == "__main__":
         for i, sim_batch in enumerate(sim_batch_generator):
 
             batch_start_time = time.time()
+            if not sim_batch:
+                continue
 
             full_results, summary_results_df = run_simulations(
                 sim_batch,
@@ -209,6 +211,12 @@ if __name__ == "__main__":
             run_total_time = (time.time() - start_time) / 60
             logger.info("Batch {}".format(i))
             logger.info("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
+            
+            for sim_id, sim_results_df in full_results.items():
+                bg = sim_results_df['bg']
+                bg = bg[136:]
+                lbgi_icgm, hbgi_icgm, brgi_icgm = glucose.blood_glucose_risk_index(bg)
+                print(lbgi_icgm)
 
             # plot_sim_results(full_results)
 
