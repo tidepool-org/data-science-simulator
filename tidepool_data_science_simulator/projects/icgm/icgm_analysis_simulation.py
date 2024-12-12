@@ -1,6 +1,7 @@
 __author__ = "Mark Connolly"
 
 import logging
+import subprocess
 
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_metrics.glucose import glucose
@@ -65,7 +66,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values
             
             new_sim_base_config["controller"]["id"] = 'swift'
-            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.5
+            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.4
             new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
             
             date_str_format = "%m/%d/%Y %H:%M:%S"  # ref: "8/15/2019 12:00:00"
@@ -92,7 +93,8 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             virtual_patient.sensor = sensor
 
             def does_accept_bolus_recommendation(self, bolus):
-                return False # self.time == t0
+                return False 
+                # return self.time == t0
             
             virtual_patient.does_accept_bolus_recommendation = types.MethodType(does_accept_bolus_recommendation, virtual_patient)
 
@@ -201,8 +203,9 @@ if __name__ == "__main__":
     os.environ['NUMEXPR_MAX_THREADS'] = str(sim_batch_size)
     numexpr.set_num_threads(sim_batch_size)
     
-    date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S")
-    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_COASTAL_" + date_string)
+    date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S_")
+    short_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()
+    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_AUTOBOLUS_04_positive_bias_correction_" + date_string + short_hash)
     
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)

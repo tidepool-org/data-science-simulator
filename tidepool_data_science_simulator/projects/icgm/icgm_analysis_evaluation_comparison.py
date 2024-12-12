@@ -53,8 +53,8 @@ axes[5].pcolormesh(true_grid, icgm_grid, np.reshape(mean_lbgi_swift*joint_prob_s
 # axes[5].pcolormesh(true_grid, icgm_grid, np.reshape(mean_lbgi_swift*joint_prob_swift, dims), edgecolors='k', linewidths=lw)
 
 axes[0].set_title('2021')
-axes[4].set_xlabel("Sensor Blood  Glucose")
-axes[4].set_ylabel("True Blood Glucose")
+axes[4].set_ylabel("Sensor Blood  Glucose")
+axes[4].set_xlabel("True Blood Glucose")
 
 ticks = [40, 61, 81, 121, 161, 201, 251, 301, 351]
 ticklabels = ['41-60','61-80','81-120','121-160','161-200','201-250','251-300','301-350','351-400']

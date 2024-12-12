@@ -84,6 +84,7 @@ class SwiftLoopController(LoopController):
               
         if settings_dictionary.get('partial_application_factor'):
             data['recommendationType'] = 'automaticBolus' 
+            data['includePositiveVelocityAndRC'] = False
         else:
             data['recommendationType'] = 'tempBasal'
 
@@ -198,13 +199,23 @@ class SwiftLoopController(LoopController):
 
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
-                        
+            
+            # Recommendation type is set in the prepare_inputs() to an automatic value
             swift_output_automatic = get_loop_recommendations(loop_inputs_dict)
             swift_output_decode_automatic = swift_output_automatic.decode('utf-8')
             swift_output_json_automatic = json.loads(swift_output_decode_automatic)
 
             loop_inputs_dict['recommendationType'] = 'manualBolus'
             loop_inputs_dict['includePositiveVelocityAndRC'] = False
+            
+            # loop_inputs_dict['doses'].append(
+            #     {
+            #         "startDate": "2019-08-15T11:55:01Z",
+            #         "endDate": "2019-08-15T11:55:02Z",
+            #         "volume": 0,
+            #         "type": "bolus"
+            #     }
+            # )
             swift_output_manual = get_loop_recommendations(loop_inputs_dict)
             swift_output_decode_manual = swift_output_manual.decode('utf-8')
             swift_output_json_manual = json.loads(swift_output_decode_manual)

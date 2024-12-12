@@ -202,7 +202,7 @@ def compute_score_risk_table(summary_df):
 
         joint_prob.append(p_error)
 
-        p_corr_bolus_given_error = 6 / 288
+        p_corr_bolus_given_error = 1 # 6 / 288 
         num_cgm_per_100k_person_years = 288 * 365 * 100000
 
         num_sims_in_concurrency_square = max(1, len(summary_df[concurrency_square_mask]))
