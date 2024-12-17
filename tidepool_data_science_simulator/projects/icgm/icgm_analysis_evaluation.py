@@ -61,19 +61,18 @@ def process_simulation_data(result_dir):
         true_bg = np.array(df_results['bg'])        
         true_bg[true_bg < 1] = 1
         
-
-
         # Do not calculate LGBI before Loop is active
-        if 0:
+        if 1:
             true_bolus = np.array(df_results['true_bolus'])
             true_basal = np.array(df_results['temp_basal'])
 
-            first_valid_bolus = np.argmax(~np.isnan(true_bolus))
-            first_valid_basal = np.argmax(~np.isnan(true_basal))
+            first_valid_bolus = np.argmax(true_bolus > 0)
+            first_valid_basal = np.argmax(true_basal > 0)
             first_valid_index = min((first_valid_basal, first_valid_bolus))
             start_index = first_valid_index
+        else:
+            start_index = 137
 
-        start_index = 137
         true_bg = true_bg[start_index:]
 
         lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(true_bg)
@@ -148,9 +147,12 @@ def compute_score_risk_table(summary_df):
     # bg_ranges = [(i, i+4) for i in range(36, 400, 5)]
 
     bg_range_pairs = [(true_range,icgm_range) for true_range in bg_ranges for icgm_range in bg_ranges]
+
     # bg_range_pairs = [((121, 125), (246, 250))]
     # bg_range_pairs = [((124, 129), (244, 249))]
-    # bg_range_pairs = [((121, 160), (201, 250))]
+    # bg_range_pairs = [((41, 45), (46, 50))]
+    # bg_range_pairs = [((41,45),(i,i+4)) for i in range(36,120,5)]
+    # bg_range_pairs = [((46, 45), (56, 60))]
     severity_bands = [(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)]
 
     severity_event_count = [0,0,0,0,0]
@@ -196,13 +198,15 @@ def compute_score_risk_table(summary_df):
         # End backward compatibility
 
         # mean_lbgi.append(np.sum(lbgi_data)/len(lbgi_data))
-        mean_lbgi.append(np.sum(lbgi_data >= 20)/len(lbgi_data))
+        # mean_lbgi.append(np.sum(lbgi_data >= 20)/len(lbgi_data))
+         
+        mean_lbgi.append(np.sum((lbgi_data >= 10) & (lbgi_data < 20))/len(lbgi_data))
 
         p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
 
         joint_prob.append(p_error)
 
-        p_corr_bolus_given_error = 1 # 6 / 288 
+        p_corr_bolus_given_error = 6 / 288 
         num_cgm_per_100k_person_years = 288 * 365 * 100000
 
         num_sims_in_concurrency_square = max(1, len(summary_df[concurrency_square_mask]))
@@ -213,6 +217,8 @@ def compute_score_risk_table(summary_df):
             sim_prob = num_sims_in_severity_band / num_sims_in_concurrency_square
             risk_prob_sim = sim_prob * p_corr_bolus_given_error * p_error
             num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
+            # if s_idx == 3:
+            #     print(num_sims_in_severity_band)
 
             severity_event_count[s_idx] += num_risk_events_sim
 
