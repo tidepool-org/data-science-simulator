@@ -66,8 +66,9 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values
             
             new_sim_base_config["controller"]["id"] = 'swift'
-            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.4
+            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.0
             new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
+            new_sim_base_config["controller"]["settings"]["includePositiveVelocityAndRC"] = False
             
             date_str_format = "%m/%d/%Y %H:%M:%S"  # ref: "8/15/2019 12:00:00"
             glucose_datetimes = [datetime.datetime.strptime(dt_str, date_str_format)
@@ -225,6 +226,7 @@ if __name__ == "__main__":
                 save_results=True,
                 num_procs=sim_batch_size
             )
+            
             # for sim_id, sim_results_df in full_results.items():
             #     bg = sim_results_df['bg']
             #     bg = bg[136:]
