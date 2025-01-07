@@ -119,8 +119,8 @@ def process_simulation_data(result_dir):
         summary_data.append(row)
 
     summary_df = pd.DataFrame(summary_data)
-
-    summary_result_filepath = "./processed_simulation_data_{}.csv".format(datetime.datetime.now().isoformat())
+    
+    summary_result_filepath = result_dir + '.csv'
     summary_df.to_csv(summary_result_filepath, sep="\t")
     logger.info("Saved summary results to %s", summary_result_filepath)
 
