@@ -1,0 +1,53 @@
+{
+  "metadata": {
+    "risk-id": "TLR-912",
+    "simulation_id": "TLR-912-resistant",
+    "risk_description": "Suspend unsuccessful",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_54_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_54_12hr"
+        }
+      },
+      "controller": {
+        "settings": {
+          "suspend_threshold": 0
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_resistant_t1_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_54_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_54_12hr"
+        }
+      },
+      "controller": null
+        },
+    {"sim_id": "post_Loop_WithMitigations_t1_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_54_12hr"
+        },
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_54_12hr"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_swift"
+      }
+    }
+]
+}

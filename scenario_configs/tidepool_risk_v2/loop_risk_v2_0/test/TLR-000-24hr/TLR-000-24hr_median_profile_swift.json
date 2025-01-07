@@ -1,0 +1,80 @@
+{
+  "metadata": {
+    "risk-id": "TLR-000",
+    "simulation_id": "TLR-000-base_median",
+    "risk_description": "Base for HF—24 hours happy",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_swift",
+  "override_config": [
+    {"sim_id": "post-Loop-WithMitigations_t1_median",
+      "duration_hours": 36.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_130_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_130_12hr",
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 30.0
+            },
+            {
+              "start_time": "8/15/2019 18:00:00",
+              "type": "carb",
+              "value": 60.0
+            },
+            {
+              "start_time": "8/16/2019 8:30:00",
+              "type": "carb",
+              "value": 25.0
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 18:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 8:30:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 30.0
+            },
+            {
+              "start_time": "8/15/2019 18:00:00",
+              "type": "carb",
+              "value": 60.0
+            },
+            {
+              "start_time": "8/16/2019 8:30:00",
+              "type": "carb",
+              "value": 25.0
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "suspend_threshold": 80,
+          "max_basal_rate": 0.5,
+          "partial_application_factor": 0.4
+        }
+      }
+    }
+]
+}

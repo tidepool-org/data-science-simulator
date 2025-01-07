@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "risk-id": "TLR-QAE-394",
+    "simulation_id": "TLR-QAE-394-base_median",
+    "risk_description": "Simple bolus calc with no BG when glucose is low",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_autobolus",
+  "override_config": [
+    {"sim_id": "pre-noLoop_t1_median",
+      "patient": {
+      "patient_model": {
+        "glucose_history": "reusable.glucose.flat_70_12hr",
+        "carb_entries": "reusable.carb_doses.median_profile_v1",
+        "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+      },
+      "sensor": {
+        "glucose_history": "reusable.glucose.flat_70_12hr"
+      },
+      "pump": {
+        "carb_entries": "reusable.carb_doses.median_profile_v1",
+        "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+      }
+    },
+      "controller": null
+    }
+]
+}

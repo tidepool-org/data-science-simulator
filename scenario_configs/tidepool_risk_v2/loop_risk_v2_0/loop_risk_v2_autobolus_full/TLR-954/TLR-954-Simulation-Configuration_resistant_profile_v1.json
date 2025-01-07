@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "risk-id": "TLR-954",
+    "simulation_id": "TLR-954-base_resistant",
+    "risk_description": "System error prevents save of SBR",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_autobolus",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.8, 0.0, 0.8]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.8, 0.0, 0.8]
+            }
+          }
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.8, 0.0, 0.8]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.8, 0.0, 0.8]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.8, 0.0, 0.8]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.8, 0.0, 0.8]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_swift"
+      }
+    }
+]
+}

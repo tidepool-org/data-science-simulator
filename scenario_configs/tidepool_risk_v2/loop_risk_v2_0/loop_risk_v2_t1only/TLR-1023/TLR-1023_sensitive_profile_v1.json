@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1023",
+    "simulation_id": "TLR-1023-base_sensitive",
+    "risk_description": "Carb entry w/o bolus Closed Loop Off",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_swift",
+  "override_config": [
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1"
+          },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1"
+        }
+      },
+      "controller": null
+    }
+]
+}

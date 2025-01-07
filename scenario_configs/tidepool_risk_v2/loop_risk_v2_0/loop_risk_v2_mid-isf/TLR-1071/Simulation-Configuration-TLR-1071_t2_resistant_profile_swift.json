@@ -1,0 +1,62 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1071",
+    "simulation_id": "TLR-1071-base_resistant",
+    "risk_description": "Unintentional activation of preset",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_preset_80_resistant_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+          },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_resistant_preset_130_v1",
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
+        }
+      }
+    },
+     {"sim_id": "pre-noLoop_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+            "time": "8/15/2019 12:00:00",
+            "value": 5.85
+          }
+            ]
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_130_v1",
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries":[
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 5.85
+          }
+            ]
+        }
+      }
+    },
+     {"sim_id": "post-Loop-WithMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+          },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_resistant_preset_130_v1",
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+       "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_swift"
+      }
+    }
+]
+}
