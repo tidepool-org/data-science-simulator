@@ -60,45 +60,37 @@ def process_simulation_data(result_dir):
         _, df_results = load_result(sim_json_info["result_path"])
         true_bg = np.array(df_results['bg'])        
         true_bg[true_bg < 1] = 1
-        
-        # Do not calculate LGBI before Loop is active
-        if 1:
-            true_bolus = np.array(df_results['true_bolus'])
-            true_basal = np.array(df_results['temp_basal'])
 
+        # Calculate LBGI based on the default start
+        start_index = 137
+        
+        bg_from_start = true_bg[start_index:]
+        lbgi_icgm_start, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(bg_from_start)
+        
+        # Calculate LBGI based on the first action of Loop
+        # for bolus...        
+        true_bolus = np.array(df_results['true_bolus'])
+        true_bolus = np.where(true_bolus == None, 0.0, true_bolus)
+            
+        first_valid_bolus = len(true_bolus)
+        if np.any(true_bolus > 0):
             first_valid_bolus = np.argmax(true_bolus > 0)
-            first_valid_basal = np.argmax(true_basal > 0)
-            first_valid_index = min((first_valid_basal, first_valid_bolus))
-            start_index = first_valid_index
-        else:
-            start_index = 137
-
-        true_bg = true_bg[start_index:]
-
-        lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(true_bg)
-        # dkai_icgm = dka_index(df_results['iob'], df_results["sbr"])
-
-        # # Find the simulation where the true and sensor blood glucose match
-        # # Could also run with the ideal sensor class
-        # sim_results_match = re.search(r"tbg=(\d+)", sim_id)
-        # ideal_sbg = sim_results_match.group(1)
-        # ideal_sbg_string = "sbg=" + ideal_sbg + ".json"
-
-        # ideal_sbg_file = re.sub(r"sbg=(\d+)", ideal_sbg_string, sim_id)   
-        # sim_json_info_ideal = collect_sim_result(result_dir, ideal_sbg_file)
-
-        # # Load data with ideal sensor and calculate risk metrics
-        # # Will be used to filter our cases where the risk was already high
-        # _, df_results_ideal = load_result(sim_json_info_ideal["result_path"])
-        # true_bg = np.array(df_results_ideal["bg"])
-        # true_bg[true_bg < 1] = 1
-        # lbgi_ideal, hbgi_ideal, brgi_ideal = blood_glucose_risk_index(true_bg)
-        # dkai_ideal = dka_index(df_results_ideal['iob'], df_results_ideal["sbr"])
-
-        bg_cond = int(re.search(r"bg=(\d)", sim_id).groups()[0])
         
-        true_bg_start = sim_json_info["patient"]["sensor"].get("true_start_bg")
+        # ... and basal
+        true_basal = np.array(df_results['temp_basal'])
 
+        first_valid_basal = len(true_basal)
+        if np.any(true_basal > 0):
+            first_valid_basal = np.argmax(true_basal > 0)                        
+
+        first_valid_index = min((first_valid_basal, first_valid_bolus))
+        
+        bg_valid = true_bg[first_valid_index:]
+        lbgi_icgm_valid, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(bg_valid)
+
+        # Collect the rest of the information from the run
+        bg_cond = int(re.search(r"bg=(\d)", sim_id).groups()[0])
+        true_bg_start = sim_json_info["patient"]["sensor"].get("true_start_bg")
         sensor_bg_start = sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
         
         target_bg = 110
@@ -106,14 +98,11 @@ def process_simulation_data(result_dir):
         max_bolus_delivered = df_results["true_bolus"].max()
         traditional_bolus_delivered = max(0, (sensor_bg_start - target_bg) / isf)
 
+        # Create table row and append to summary
         row = {
             "sim_id": sim_id,
-            "lbgi_icgm": lbgi_icgm,
-            # "lbgi_ideal": lbgi_ideal,
-            # "lbgi_diff": lbgi_icgm - lbgi_ideal,
-            # "dkai_icgm": dkai_icgm,
-            # "dkai_ideal": dkai_ideal,
-            # "dkai_diff": dkai_icgm - dkai_ideal,
+            "lbgi_icgm_start": lbgi_icgm_start,
+            "lbgi_icgm_valid": lbgi_icgm_valid,
             "bg_condition": bg_cond,
             "true_start_bg": true_bg_start,
             "start_bg_with_offset": sensor_bg_start,
@@ -161,12 +150,6 @@ def compute_score_risk_table(summary_df):
     mean_lbgi = []
     joint_prob = []
 
-    # if "lbgi_ideal" in summary_df:
-    #     lbgi_ideal = summary_df["lbgi_ideal"]
-    #     lbgi_ideal_mask = lbgi_ideal < 0
-    # else:
-    #     lbgi_ideal_mask = np.ones(len(summary_df), dtype=bool)
-
     # Go through each square in the concurrency table 
     for (low_true, high_true), (low_icgm, high_icgm) in bg_range_pairs:
         low_true_axis.append(low_true)
@@ -186,7 +169,7 @@ def compute_score_risk_table(summary_df):
         else:
             return
 
-        concurrency_square_mask = true_mask & icgm_mask #& lbgi_ideal_mask
+        concurrency_square_mask = true_mask & icgm_mask
 
         if "lbgi_icgm" in summary_df:
             lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]
@@ -197,30 +180,27 @@ def compute_score_risk_table(summary_df):
             return
         # End backward compatibility
 
-        # mean_lbgi.append(np.sum(lbgi_data)/len(lbgi_data))
-        # mean_lbgi.append(np.sum(lbgi_data >= 20)/len(lbgi_data))
-         
-        mean_lbgi.append(np.sum((lbgi_data >= 10) & (lbgi_data < 20))/len(lbgi_data))
-
         p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
 
         joint_prob.append(p_error)
 
-        p_corr_bolus_given_error = 6 / 288 
+        p_corr_bolus_given_error = 6 / 288 # = 1/48
         num_cgm_per_100k_person_years = 288 * 365 * 100000
-
         num_sims_in_concurrency_square = max(1, len(summary_df[concurrency_square_mask]))
-
+        
+        sim_prob = []
         for s_idx, severity_band in enumerate(severity_bands, 0):
             severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
             num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
-            sim_prob = num_sims_in_severity_band / num_sims_in_concurrency_square
-            risk_prob_sim = sim_prob * p_corr_bolus_given_error * p_error
+            sim_prob.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
+            
+            risk_prob_sim = sim_prob[s_idx] * p_corr_bolus_given_error * p_error
             num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
-            # if s_idx == 3:
-            #     print(num_sims_in_severity_band)
 
             severity_event_count[s_idx] += num_risk_events_sim
+
+        mean_lbgi.append(sim_prob)
+
 
     severity_event_count_df = pd.DataFrame(severity_event_count)
     severity_event_probability_df = severity_event_count_df / num_cgm_per_100k_person_years 
@@ -228,6 +208,7 @@ def compute_score_risk_table(summary_df):
     risk_index = [get_probability_index(p) for p in severity_event_probability_df[0]]
     risk_index = np.array(risk_index)
     print(risk_index * np.array([1,2,3,4,5]))
+
     return severity_event_probability_df, (low_icgm_axis, low_true_axis, np.array(mean_lbgi), np.array(joint_prob))
 
 
