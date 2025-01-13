@@ -3,6 +3,8 @@ __author__ = "Mark Connolly"
 import logging
 import subprocess
 
+import numpy as np
+
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_metrics.glucose import glucose
 
@@ -37,6 +39,7 @@ from tidepool_data_science_simulator.makedata.scenario_json_parser_v2 import Sce
 
 from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.utils import DATA_DIR
+from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
 
 
 def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
@@ -49,8 +52,8 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     true_glucose_start_values = range(40, 405, 5)
     error_glucose_values = [v for v in true_glucose_start_values[::-1]]
 
-    # true_glucose_start_values = [125]  # testing
-    # error_glucose_values = [250]
+    true_glucose_start_values = [45]  # testing
+    error_glucose_values = [70]
 
     random_state = RandomState(base_sim_seed)
 
@@ -66,7 +69,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values
             
             new_sim_base_config["controller"]["id"] = 'swift'
-            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.0
+            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.5
             new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
             new_sim_base_config["controller"]["settings"]["includePositiveVelocityAndRC"] = False
             
@@ -206,7 +209,7 @@ if __name__ == "__main__":
     
     date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S_")
     short_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()
-    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_AUTOBOLUS_04_positive_bias_correction_" + date_string + short_hash)
+    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_AUTOBOLUS_05_positive_bias_correction_" + date_string + short_hash)
     
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
@@ -227,13 +230,45 @@ if __name__ == "__main__":
                 num_procs=sim_batch_size
             )
             
-            # for sim_id, sim_results_df in full_results.items():
-            #     bg = sim_results_df['bg']
-            #     bg = bg[136:]
-            #     lbgi_icgm, hbgi_icgm, brgi_icgm = glucose.blood_glucose_risk_index(bg)
-            #     print(lbgi_icgm)
-            #     if lbgi_icgm > 0:
-            #         plot_sim_results({sim_id: sim_results_df})
+            if 0:
+                for sim_id, sim_results_df in full_results.items():
+                    
+                    true_bg = np.array(sim_results_df['bg'])        
+                    true_bg[true_bg < 1] = 1
+
+                    # Calculate LBGI based on the default start
+                    start_index = 137
+                    
+                    bg_from_start = true_bg[start_index:]
+                    lbgi_icgm_start, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(bg_from_start)
+                    
+                    # Calculate LBGI based on the first action of Loop
+                    # for bolus...        
+                    true_bolus = np.array(sim_results_df['true_bolus'])
+                    true_bolus = np.where(true_bolus == None, 0.0, true_bolus)
+                        
+                    first_valid_bolus = len(true_bolus)
+                    if np.any(true_bolus > 0):
+                        first_valid_bolus = np.argmax(true_bolus > 0)
+                    
+                    # ... and basal
+                    true_basal = np.array(sim_results_df['temp_basal'])
+
+                    first_valid_basal = len(true_basal)
+                    if np.any(true_basal > 0):
+                        first_valid_basal = np.argmax(true_basal > 0)                        
+
+                    first_valid_index = min((first_valid_basal, first_valid_bolus))
+                    
+                    bg_valid = true_bg[first_valid_index:]
+                    lbgi_icgm_valid, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(bg_valid)
+                    
+                    if lbgi_icgm_valid > 10:
+                        plot_sim_results({sim_id: sim_results_df})
+
+                    print(lbgi_icgm_start)
+                    print(lbgi_icgm_valid)
+
             
             batch_total_time = (time.time() - batch_start_time) / 60
             run_total_time = (time.time() - start_time) / 60
