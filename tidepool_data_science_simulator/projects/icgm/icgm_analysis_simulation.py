@@ -52,8 +52,8 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     true_glucose_start_values = range(40, 405, 5)
     error_glucose_values = [v for v in true_glucose_start_values[::-1]]
 
-    true_glucose_start_values = [45]  # testing
-    error_glucose_values = [70]
+    # true_glucose_start_values = [45]  # testing
+    # error_glucose_values = [70]
 
     random_state = RandomState(base_sim_seed)
 
