@@ -209,7 +209,7 @@ if __name__ == "__main__":
     
     date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S_")
     short_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()
-    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_AUTOBOLUS_05_positive_bias_correction_" + date_string + short_hash)
+    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_AUTOBOLUS_06_positive_bias_correction_" + date_string + short_hash)
     
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
