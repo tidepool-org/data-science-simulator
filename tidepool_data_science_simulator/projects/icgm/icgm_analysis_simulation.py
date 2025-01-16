@@ -69,7 +69,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values
             
             new_sim_base_config["controller"]["id"] = 'swift'
-            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.5
+            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.6
             new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
             new_sim_base_config["controller"]["settings"]["includePositiveVelocityAndRC"] = False
             
