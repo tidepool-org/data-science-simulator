@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "risk-id": "TLR-847_wmeal",
+    "simulation_id": "TLR-847_wmeal-sensitive",
+    "risk_description": "Override configured too short",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_70_sensitive_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_70_2hrs_v1"
+          }
+        }
+      },
+    {
+      "sim_id": "pre-noLoop_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.33
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.33
+            }
+          ],
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_70_2hrs_v1"
+          }
+        },
+      "controller": null
+      },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_70_2hrs_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+          }
+        },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_IM_swift"
+      }
+      }
+  ]
+}

@@ -56,7 +56,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop_WithMitigations",
+      "sim_id": "post-Loop_WithMitigations_t1_median",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.median_profile_v1",

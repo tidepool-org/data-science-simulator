@@ -1,0 +1,62 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1032_07",
+    "simulation_id": "TLR-1032_07-base_resistant",
+    "risk_description": "autobolus prevents bolus",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "partial_application_factor": 0.7,
+          "maximum_autobolus": 30.0
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1"
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1"
+        },
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "partial_application_factor": 0.7,
+          "maximum_autobolus": 30.0,
+          "suspend_threshold": 75,
+          "max_basal_rate": 2.8
+        }
+      }
+    }
+]
+}

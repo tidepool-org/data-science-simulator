@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "risk-id": "TLR-872_wmeal",
+    "simulation_id": "TLR-872_wmeal-sensitive",
+    "risk_description": "MTB needed and not used",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_autobolus",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_70_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_70_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_70_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_IM_swift"
+      }
+    }
+]
+}

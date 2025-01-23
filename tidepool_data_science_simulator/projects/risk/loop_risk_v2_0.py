@@ -33,7 +33,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
 
     # Define the base directory and selected subdirectory
     BASE_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/")
-    SELECTED_SUBDIR = "loop_risk_v2_t1only"  # Change this to select different subdirectories
+    SELECTED_SUBDIR = "loop_risk_v2_autobolus_sp_0_5"  # Change this to select different subdirectories
 
     # Construct the full path to the selected subdirectory
     SELECTED_DIR_PATH = os.path.join(BASE_DIR, SELECTED_SUBDIR)
@@ -48,9 +48,9 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
     for risk_dir_name in risk_dirs:
         print(f"Processing risk directory: {risk_dir_name}")
         #for use in filtering to just one risk. If wanting to run all of them, comment out lines 35-37
-        #if ("TLR-1081") not in risk_dir_name:
-         #   print(f"Skipping {risk_dir_name} as it doesn't contain selected subdirectory")
-          #  continue
+       # if ("TLR-552") not in risk_dir_name:
+        #    print(f"Skipping {risk_dir_name} as it doesn't contain selected subdirectory")
+         #   continue
         print(f"Processing: {risk_dir_name}")
 
         risk_dir_path = os.path.join(SELECTED_DIR_PATH, risk_dir_name)
