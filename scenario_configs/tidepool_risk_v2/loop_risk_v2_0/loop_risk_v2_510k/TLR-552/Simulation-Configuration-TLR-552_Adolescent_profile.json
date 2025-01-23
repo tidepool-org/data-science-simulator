@@ -1,0 +1,77 @@
+{
+  "metadata": {
+    "risk-id": "TLR-552",
+    "simulation_id": "TLR-552-adolescent",
+    "risk_description": "Insulin does not reach body",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                0.0
+              ]
+            }
+          }
+        }
+    },
+      "controller": {
+        "settings": {
+          "max_basal_rate": 0.0
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                0.0
+              ]
+            }
+          }
+        }
+    },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                0.0
+              ]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+    },
+      "controller": {
+        "settings": {
+          "max_basal_rate": 0.0
+        }
+      }
+    }
+  ]
+}

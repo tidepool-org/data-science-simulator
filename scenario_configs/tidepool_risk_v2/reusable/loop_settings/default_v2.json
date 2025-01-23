@@ -17,6 +17,6 @@
     300.0
   ],
   "retrospective_correction_enabled": true,
-  "partial_application_factor": 0.4,
-  "use_mid_absorption_isf": false
+  "partial_application_factor": 0.0,
+  "use_mid_absorption_isf": true
 }

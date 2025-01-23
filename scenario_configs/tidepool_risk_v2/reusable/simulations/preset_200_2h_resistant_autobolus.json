@@ -1,0 +1,32 @@
+{
+  "sim_id": "preset_200_2h_resistant_v1",
+  "time_to_calculate_at": "8/15/2019 12:00:00",
+  "duration_hours": 8.0,
+  "offset_applied_to_dates": 0,
+  "patient": {
+    "sensor": {
+      "glucose_history": "reusable.glucose.flat_110_12hr"
+    },
+    "pump": {
+      "metabolism_settings": "reusable.metabolism_settings.resistant_preset_200_2h_v1",
+      "bolus_entries": [],
+      "carb_entries": [],
+      "target_range": {
+        "start_times": ["0:00:00"],
+        "lower_values": [70],
+        "upper_values": [90]
+      }
+    },
+    "patient_model": {
+      "metabolism_settings": "reusable.metabolism_settings.resistant_preset_200_2h_v1",
+      "glucose_history": "reusable.glucose.flat_110_12hr",
+      "bolus_entries": [],
+      "carb_entries": []
+    }
+  },
+  "controller": {
+    "id": "swift",
+    "settings": "reusable.loop_settings.autobolus_v1",
+    "automation_control_timeline": []
+  }
+}

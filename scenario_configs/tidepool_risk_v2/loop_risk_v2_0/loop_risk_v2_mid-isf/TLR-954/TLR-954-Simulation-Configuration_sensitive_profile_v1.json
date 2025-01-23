@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "risk-id": "TLR-954",
+    "simulation_id": "TLR-954-base_sensitive",
+    "risk_description": "System error prevents save of SBR",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.3, 0.0, 0.3]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.3, 0.0, 0.3]
+            }
+          }
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.3, 0.0, 0.3]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.3, 0.0, 0.3]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.3, 0.0, 0.3]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [0.3, 0.0, 0.3]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_IM_swift"
+      }
+    }
+]
+}

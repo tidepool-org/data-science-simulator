@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "risk-id": "TLR-845_20",
+    "simulation_id": "TLR-845_20-sensitive",
+    "risk_description": "Insufficient override 20",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_preset_80_sensitive_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_sensitive_preset_20_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t2_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_sensitive_preset_20_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_sensitive_preset_20_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_sensitive_v1"
+      }
+    }
+  ]
+}

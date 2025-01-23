@@ -1,0 +1,104 @@
+{
+  "metadata": {
+    "risk-id": "TLR-868",
+    "simulation_id": "TLR-868-resistant",
+    "risk_description": "MTB too aggressive",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_preset_70_resistant_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_median",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ]
+    },
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [2.26, 3.39, 2.26]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [2.26, 3.39, 2.26]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t2_median",
+      "controller": null,
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [2.26, 3.39, 2.26]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [2.26, 3.39, 2.26]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_median",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ],
+        "settings": {
+            "glucose_safety_limit": 75,
+            "max_basal_rate": 7.91
+          }
+    },
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [2.26, 3.39, 2.26]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [2.26, 3.39, 2.26]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      }
+    }
+  ]
+}

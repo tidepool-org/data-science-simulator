@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "risk-id": "TLR-868_corr",
+    "simulation_id": "TLR-868_corr-adolescent",
+    "risk_description": "MTB too short a time",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_70_adolescent_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ]
+    },
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 14.17
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [1.9, 1.33, 1.9]
+            }
+          }
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 14.17
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [1.9, 1.33, 1.9]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_adolescent",
+      "controller": null,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 14.17
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [1.9, 1.33, 1.9]
+            }
+          }
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 14.17
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [1.9, 1.33, 1.9]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_adolescent",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ],
+        "settings": {
+            "suspend_threshold": 75,
+            "max_basal_rate": 1.33
+          }
+    },
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 14.17
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [1.9, 1.33, 1.9]
+            }
+          }
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 14.17
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [1.9, 1.33, 1.9]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+      }
+    }
+  ]
+}

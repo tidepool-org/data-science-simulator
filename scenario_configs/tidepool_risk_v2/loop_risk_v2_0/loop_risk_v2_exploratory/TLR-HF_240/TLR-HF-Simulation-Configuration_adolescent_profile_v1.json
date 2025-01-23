@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "risk-id": "TLR-HF-240",
+    "simulation_id": "TLR-HF-base_adolescent",
+    "risk_description": "Explore preset effect 240m",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      12.0, 9.23, 12.0
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      4.0, 3.08, 4.0
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      1.9, 2.47, 1.9
+    ]
+  }
+}
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_adolescent",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      12.0, 9.23, 12.0
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      4.0, 3.08, 4.0
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      1.9, 2.47, 1.9
+    ]
+  }
+}
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_adolescent",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      12.0, 9.23, 12.0
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      4.0, 3.08, 4.0
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "12:00:00","16:00:00"
+    ],
+    "values": [
+      1.9, 2.47, 1.9
+    ]
+  }
+},
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_v1"
+      }
+    }
+]
+}

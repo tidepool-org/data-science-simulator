@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1066",
+    "simulation_id": "TLR-1066-base_resistant",
+    "risk_description": "Preset no correction range adj",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_preset_150_resistant_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t2_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t2_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        },
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_swift"
+      }
+    }
+]
+}

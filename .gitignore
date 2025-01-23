@@ -103,7 +103,5 @@ venv.bak/
 .spyderproject
 .spyproject
 
-*.json
-scenario_configs/tidepool_risk_v2/reusable/metabolism_settings/update.py
 *.swp
 *.swo

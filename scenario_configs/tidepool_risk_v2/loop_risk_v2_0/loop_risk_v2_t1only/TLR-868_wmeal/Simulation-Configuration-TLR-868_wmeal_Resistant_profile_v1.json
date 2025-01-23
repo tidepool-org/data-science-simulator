@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "risk-id": "TLR-868",
+    "simulation_id": "TLR-868-resistant",
+    "risk_description": "MTB too aggressive",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_70_resistant_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_resistant",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ]
+    },
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_resistant",
+      "controller": null,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.17
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.17
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ],
+        "settings": {
+            "suspend_threshold": 75,
+            "max_basal_rate": 1.75
+          }
+    },
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      }
+    }
+  ]
+}

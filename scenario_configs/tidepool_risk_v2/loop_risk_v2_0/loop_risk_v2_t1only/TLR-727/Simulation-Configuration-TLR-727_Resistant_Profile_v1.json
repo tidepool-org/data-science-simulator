@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "risk-id": "TLR-727",
+    "simulation_id": "TLR-727-Resistant",
+    "risk_description": "Accidental carb entry",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop-NoMitigations_t1_resistant",
+      "patient": {
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 8
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_resistant",
+      "patient": {
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 8
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "patient": {
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 8
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_swift"
+      }
+    }
+  ]
+}

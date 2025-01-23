@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1049_8",
+    "simulation_id": "TLR-1049_8-base_median",
+    "risk_description": "Workout duration set too long",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00", "20:00:00"],
+            "lower_values": [70, 170, 70],
+            "upper_values": [90, 180, 90]
+          }
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00", "20:00:00"],
+            "lower_values": [70, 170, 70],
+            "upper_values": [90, 180, 90]
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00", "20:00:00"],
+            "lower_values": [100, 170, 100],
+            "upper_values": [105, 180, 105]
+          }
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+    }
+]
+}
