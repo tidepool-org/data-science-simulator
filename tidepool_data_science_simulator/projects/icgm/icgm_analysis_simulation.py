@@ -53,7 +53,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     error_glucose_values = [v for v in true_glucose_start_values[::-1]]
 
     # true_glucose_start_values = [45]  # testing
-    # error_glucose_values = [70]
+    # error_glucose_values = [120]
 
     random_state = RandomState(base_sim_seed)
 
@@ -69,9 +69,10 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values
             
             new_sim_base_config["controller"]["id"] = 'swift'
-            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.6
+            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.0
             new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
-            new_sim_base_config["controller"]["settings"]["includePositiveVelocityAndRC"] = False
+            new_sim_base_config["controller"]["settings"]["include_positive_velocity_and_RC"] = False
+            new_sim_base_config["controller"]["settings"]["suspend_threshold"] = 70
             
             date_str_format = "%m/%d/%Y %H:%M:%S"  # ref: "8/15/2019 12:00:00"
             glucose_datetimes = [datetime.datetime.strptime(dt_str, date_str_format)
@@ -97,8 +98,8 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             virtual_patient.sensor = sensor
 
             def does_accept_bolus_recommendation(self, bolus):
-                return False 
-                # return self.time == t0
+                # return False 
+                return self.time == t0
             
             virtual_patient.does_accept_bolus_recommendation = types.MethodType(does_accept_bolus_recommendation, virtual_patient)
 
@@ -180,6 +181,9 @@ def build_icgm_sim_generator(json_base_configs, sim_batch_size=30):
     Build simulations for the FDA AI Letter iCGM sensitivity analysis.
     """
     for i, json_config in enumerate(json_base_configs, 1):
+        # if i != 35:
+        #     continue
+
         logger.info("VP: {}. {} of {}".format(json_config["patient_id"], i, len(json_base_configs)))
 
         sim_ctr = 0
@@ -209,7 +213,7 @@ if __name__ == "__main__":
     
     date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S_")
     short_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()
-    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_AUTOBOLUS_06_positive_bias_correction_" + date_string + short_hash)
+    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_MANUAL_BOLUS_positive_bias_correction_" + date_string + short_hash)
     
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
@@ -253,6 +257,7 @@ if __name__ == "__main__":
                     
                     # ... and basal
                     true_basal = np.array(sim_results_df['temp_basal'])
+                    true_basal = np.where(true_basal == None, 0.0, true_basal)
 
                     first_valid_basal = len(true_basal)
                     if np.any(true_basal > 0):
@@ -263,11 +268,17 @@ if __name__ == "__main__":
                     bg_valid = true_bg[first_valid_index:]
                     lbgi_icgm_valid, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(bg_valid)
                     
-                    if lbgi_icgm_valid > 10:
-                        plot_sim_results({sim_id: sim_results_df})
+                    # if lbgi_icgm_valid > 10:
+                    #     plot_sim_results({sim_id: sim_results_df})
 
                     print(lbgi_icgm_start)
                     print(lbgi_icgm_valid)
+                    print(first_valid_bolus)
+
+                    # if(first_valid_bolus == 137):
+                    #     plot_sim_results({sim_id: sim_results_df})
+                        
+                    plot_sim_results({sim_id: sim_results_df})
 
             
             batch_total_time = (time.time() - batch_start_time) / 60

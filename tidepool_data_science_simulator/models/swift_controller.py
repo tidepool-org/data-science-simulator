@@ -9,6 +9,7 @@ from tidepool_data_science_simulator import USE_LOCAL_PYLOOPKIT
 
 from loop_to_python_api.api import get_loop_recommendations
 
+
 class SwiftLoopController(LoopController):
     """
     Loop controller class that intefaces with the Swift verion of Loop.
@@ -81,10 +82,12 @@ class SwiftLoopController(LoopController):
         data['suspendThreshold'] = settings_dictionary['suspend_threshold']
         data['automaticBolusApplicationFactor'] = settings_dictionary['partial_application_factor']
         data['useMidAbsorptionISF'] = settings_dictionary['use_mid_absorption_isf']
-              
+
+        # Note: this will automatically be set to false for manual bolus recommendations
+        data['includePositiveVelocityAndRC'] = settings_dictionary['include_positive_velocity_and_RC']
+
         if settings_dictionary.get('partial_application_factor'):
             data['recommendationType'] = 'automaticBolus' 
-            data['includePositiveVelocityAndRC'] = False
         else:
             data['recommendationType'] = 'tempBasal'
 
@@ -190,6 +193,7 @@ class SwiftLoopController(LoopController):
         Get recommendations from the Loop Algorithm, based on
         virtual_patient dosing and glucose.
         """
+        format_string = r'%Y-%m-%dT%H:%M:%SZ'
         self.time = time
 
         automation_control_event = self.automation_control_timeline.get_event(time)
@@ -207,15 +211,30 @@ class SwiftLoopController(LoopController):
 
             loop_inputs_dict['recommendationType'] = 'manualBolus'
             loop_inputs_dict['includePositiveVelocityAndRC'] = False
+
+            # A manual bolus will always occur after the most recent dose recommendation has already been logged 
+            if swift_output_json_automatic['automatic'].get('bolusUnits'):
+                 
+                 loop_inputs_dict['doses'].append(
+                    {
+                        "startDate": time.strftime(format=format_string),
+                        "endDate": (time + datetime.timedelta(seconds=1)).strftime(format=format_string),
+                        "volume": swift_output_json_automatic['automatic']['bolusUnits'],
+                        "type": "bolus"
+                    }
+                 )
             
-            # loop_inputs_dict['doses'].append(
-            #     {
-            #         "startDate": "2019-08-15T11:55:01Z",
-            #         "endDate": "2019-08-15T11:55:02Z",
-            #         "volume": 0,
-            #         "type": "bolus"
-            #     }
-            # )
+            else:
+                
+                loop_inputs_dict['doses'].append(
+                    {
+                        "startDate": time.strftime(format=format_string),
+                        "endDate": (time + datetime.timedelta(minutes=30)).strftime(format=format_string),
+                        "volume": swift_output_json_automatic['automatic']['basalAdjustment']['unitsPerHour']/2,
+                        "type": "basal"
+                    }
+                )
+
             swift_output_manual = get_loop_recommendations(loop_inputs_dict)
             swift_output_decode_manual = swift_output_manual.decode('utf-8')
             swift_output_json_manual = json.loads(swift_output_decode_manual)
@@ -225,7 +244,7 @@ class SwiftLoopController(LoopController):
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
         """
-        Apply the recommendations from the pyloopkit algo.
+        Apply the recommendations from the Swift Loop algorithm.
 
         Parameters
         ----------
