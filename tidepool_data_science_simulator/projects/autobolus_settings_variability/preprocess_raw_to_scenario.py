@@ -2,67 +2,77 @@ __author__ = "Shawn Foster"
 
 import os
 import pandas as pd
+import random  # Add this import
+
+import os
+import pandas as pd
+import random  # Add this import
 
 
-def process_csv_files(input_dir, output_dir):
+def select_random_files(input_dir, num_files):
     """
-    Process CSV files in the input directory:
-    1. Remove last 4 rows
-    2. Retain only first 3 columns
-    3. Move values from Column C to Column B if Column B is empty
-    4. Save processed files to output directory
+    Select a random subset of CSV files from the input directory.
 
     Args:
-    input_dir (str): Path to directory containing input CSV files
-    output_dir (str): Path to directory for saving processed CSV files
+        input_dir (str): Directory containing CSV files
+        num_files (int): Number of files to select
+
+    Returns:
+        list: Selected filenames
     """
-    # Create output directory if it doesn't exist
+    # Get all CSV files in directory
+    all_files = [f for f in os.listdir(input_dir) if f.endswith('.csv')]
+
+    # Select random files (don't select more than available)
+    return random.sample(all_files, min(num_files, len(all_files)))
+
+def process_csv_files(input_dir, output_dir, files_to_process=None):
+    """
+    Process CSV files in the input directory.
+    
+    Args:
+        input_dir (str): Input directory path
+        output_dir (str): Output directory path
+        files_to_process (list): Optional list of specific files to process
+    """
     os.makedirs(output_dir, exist_ok=True)
 
-    # Iterate through all files in the input directory
-    for filename in os.listdir(input_dir):
+    # If no specific files provided, process all CSV files
+    if files_to_process is None:
+        files_to_process = [f for f in os.listdir(input_dir) if f.endswith('.csv')]
+
+    for filename in files_to_process:
         if filename.endswith('.csv'):
-            # Construct full file paths
             input_path = os.path.join(input_dir, filename)
             output_path = os.path.join(output_dir, filename)
 
             try:
-                # Read the CSV file
                 df = pd.read_csv(input_path)
-
-                # Remove last 4 rows
                 df = df.iloc[:-4]
-
-                # Retain only first 3 columns
                 df = df.iloc[:, :3]
 
-                # Move values from Column C to Column B if Column B is empty
-                # First, fill NaN with empty string to handle different types of empty values
                 df.iloc[:, 1] = df.iloc[:, 1].fillna('')
                 df.iloc[:, 2] = df.iloc[:, 2].fillna('')
 
-                # Create a mask for rows where Column B is empty and Column C has a value
                 mask = (df.iloc[:, 1] == '') & (df.iloc[:, 2] != '')
-
-                # Move values from Column C to Column B where the mask is True
                 df.loc[mask, df.columns[1]] = df.loc[mask, df.columns[2]]
                 df.loc[mask, df.columns[2]] = ''
 
-                # Delete Column C
                 df = df.iloc[:, :2]
-
-                # Save processed file
                 df.to_csv(output_path, index=False)
-
                 print(f"Processed {filename}")
 
             except Exception as e:
                 print(f"Error processing {filename}: {e}")
 
-
-# Example usage
 if __name__ == "__main__":
     input_directory = "/Users/shawnfoster/data/virtual_patients/raw_files"
     output_directory = "/Users/shawnfoster/data/virtual_patients/json_ready"
+    num_files_to_process = 100
 
-    process_csv_files(input_directory, output_directory)
+    files_to_process = select_random_files(input_directory, num_files_to_process)
+    print(f"Selected {len(files_to_process)} files to process:")
+    for file in files_to_process:
+        print(f"- {file}")
+
+    process_csv_files(input_directory, output_directory, files_to_process)

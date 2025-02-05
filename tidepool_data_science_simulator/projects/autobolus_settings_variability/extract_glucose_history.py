@@ -1,5 +1,3 @@
-___author__ = """Shawn Foster"""
-
 __author__ = """Shawn Foster"""
 
 import os
@@ -52,7 +50,7 @@ def process_csv_files(input_directory, output_directory):
             input_path = os.path.join(input_directory, filename)
 
             # Create output filename based on input filename
-            output_filename = f"{filename}_glucose_v1.csv"
+            output_filename = f"{filename}"
             output_path = os.path.join(output_directory, output_filename)
 
             # Extract last 3 rows

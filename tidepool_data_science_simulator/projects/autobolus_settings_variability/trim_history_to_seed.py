@@ -1,71 +1,53 @@
-__author__ = "Shawn Foster"
-
 import os
 import pandas as pd
 from datetime import datetime, timedelta
 
 
 def process_csv_files(input_directory, output_directory):
-    # Create output directory if it doesn't exist
+    start_datetime = datetime(2019, 8, 15, 0, 40, 0)
+    num_intervals = 137
+    interval_minutes = 5
+
     os.makedirs(output_directory, exist_ok=True)
 
-    # Starting datetime
-    start_datetime = datetime(2019, 8, 15, 0, 0, 0)
-
-    # Iterate through all files in the input directory
     for filename in os.listdir(input_directory):
-        # Check if the file is a CSV
         if filename.endswith('.csv'):
             input_path = os.path.join(input_directory, filename)
-
             try:
-                # Read the CSV file
                 df = pd.read_csv(input_path)
+                glucose_df = df[df['setting_name'] == 'actual_blood_glucose']
 
-                # Select first 146 columns
-                df_truncated = df.iloc[:, :146]
+                if not glucose_df.empty:
+                    # Get numeric columns (excluding 'setting_name' and 'settings')
+                    value_columns = [col for col in glucose_df.columns if col.isdigit()]
+                    # Convert row to series and round values
+                    values = glucose_df[value_columns].iloc[0].astype(float).round().astype(int)
+                    values = values.head(num_intervals)
 
-                # Pivot the data
-                id_columns = ['setting_name', 'settings']
+                    # Create timestamps
+                    timestamps = [
+                        (start_datetime + timedelta(minutes=interval_minutes * i)).strftime('%-m/%d/%Y %H:%M:%S')
+                        for i in range(num_intervals)
+                    ]
 
-                # Melt the dataframe to prepare for pivoting
-                df_melted = df_truncated.melt(
-                    id_vars=id_columns,
-                    var_name='timestamp_index',
-                    value_name='value'
-                )
+                    # Create output DataFrame
+                    result_df = pd.DataFrame({
+                        'datetime': timestamps[:len(values)],
+                        'value': values,
+                        'units': ['mg/dL'] * len(values)
+                    })
 
-                # Remove rows with empty values
-                df_melted = df_melted.dropna(subset=['value'])
-
-                # Convert timestamp index to datetime
-                df_melted['timestamp'] = df_melted['timestamp_index'].apply(
-                    lambda x: (start_datetime + timedelta(minutes=5 * (int(x)))).strftime('%m/%d/%Y %H:%M:%S')
-                )
-
-                # Drop the original timestamp index
-                df_melted = df_melted.drop(columns=['timestamp_index'])
-
-                # Create output filename
-                output_filename = f"{filename}_trimmed.csv"
-                output_path = os.path.join(output_directory, output_filename)
-
-                # Save the processed file
-                df_melted.to_csv(output_path, index=False)
-
-                print(f"Processed {filename} -> {output_filename}")
-
-                # Print first few timestamps for verification
-                print("First few timestamps:")
-                print(df_melted['timestamp'].head())
+                    output_path = os.path.join(output_directory, filename.replace('_trimmed.csv', '.csv'))
+                    result_df.to_csv(output_path, index=False)
+                    print(f"Processed {filename}")
 
             except Exception as e:
                 print(f"Error processing {filename}: {e}")
+                import traceback
+                print(traceback.format_exc())
 
 
-# Set directories
-input_directory = '/Users/shawnfoster/data/virtual_patients/glucose_history'
-output_directory = '/Users/shawnfoster/data/virtual_patients/glucose_history/processed_files'
-
-# Run the script
-process_csv_files(input_directory, output_directory)
+if __name__ == "__main__":
+    input_directory = '/Users/shawnfoster/data/virtual_patients/glucose_history'
+    output_directory = '/Users/shawnfoster/data/virtual_patients/glucose_history/trimmed'
+    process_csv_files(input_directory, output_directory)

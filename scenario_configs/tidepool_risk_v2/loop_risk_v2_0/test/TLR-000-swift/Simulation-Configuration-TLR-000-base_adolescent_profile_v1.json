@@ -29,8 +29,8 @@
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
           "bolus_entries": [
             {
-              "time": "8/15/2019 12:00:00",
-              "value": 17.5
+              "time": "08/15/2019 12:00:00",
+              "value": 3.3
             }
           ]
         },
@@ -39,7 +39,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 17.5
+              "value": 3.3
             }
           ]
         },
