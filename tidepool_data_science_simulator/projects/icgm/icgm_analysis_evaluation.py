@@ -127,33 +127,39 @@ def process_simulation_data(result_dir):
     return summary_result_filepath
 
 
-def compute_score_risk_table(summary_df):
+def compute_score_risk_table(summary_df, concurrency_table=None):
 
-    dexcom_value_model = DexcomG6ValueModel(concurrency_table="coastal")
+    dexcom_value_model = DexcomG6ValueModel(concurrency_table=concurrency_table)
 
     bg_ranges = [(40, 60),(61, 80), (81, 120), (121, 160), (161, 200), 
                  (201, 250), (251, 300), (301, 350), (351, 400)]  
+    
     # bg_ranges = [(i, i+4) for i in range(36, 400, 5)]
 
     bg_range_pairs = [(true_range,icgm_range) for true_range in bg_ranges for icgm_range in bg_ranges]
+    # bg_range_pairs = bg_range_pairs[2:]
 
     # bg_range_pairs = [((121, 125), (246, 250))]
     # bg_range_pairs = [((124, 129), (244, 249))]
     # bg_range_pairs = [((41, 45), (46, 50))]
     # bg_range_pairs = [((41,45),(i,i+4)) for i in range(36,120,5)]
-    # bg_range_pairs = [((46, 45), (56, 60))]
+    # bg_range_pairs = [((40, 45), (56, 60))]
     severity_bands = [(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)]
 
     severity_event_count = [0,0,0,0,0]
     low_true_axis = []
     low_icgm_axis = []
-    mean_lbgi = []
+    mean_lbgi_start = []
+    mean_lbgi_valid = []
     joint_prob = []
 
     # Go through each square in the concurrency table 
     for (low_true, high_true), (low_icgm, high_icgm) in bg_range_pairs:
         low_true_axis.append(low_true)
         low_icgm_axis.append(low_icgm)
+
+        # if low_true == 40 and (low_icgm == 40 or low_icgm == 61):
+        #     continue
 
         # Backward compatibility with old versions of the results file. 
         if "true_start_bg" in summary_df:
@@ -170,12 +176,17 @@ def compute_score_risk_table(summary_df):
             return
 
         concurrency_square_mask = true_mask & icgm_mask
+        lbgi_data = []
+        lbgi_data_valid = []
 
         if "lbgi_icgm" in summary_df:
             lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]
             
         elif "lbgi" in summary_df:
             lbgi_data = summary_df[concurrency_square_mask]["lbgi"]        
+        elif "lbgi_icgm_valid" in summary_df:
+            lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm_start"]        
+            lbgi_data_valid = summary_df[concurrency_square_mask]["lbgi_icgm_valid"]        
         else:
             return
         # End backward compatibility
@@ -188,28 +199,36 @@ def compute_score_risk_table(summary_df):
         num_cgm_per_100k_person_years = 288 * 365 * 100000
         num_sims_in_concurrency_square = max(1, len(summary_df[concurrency_square_mask]))
         
-        sim_prob = []
+        sim_prob_start = []
+        sim_prob_valid = []
         for s_idx, severity_band in enumerate(severity_bands, 0):
             severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
             num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
-            sim_prob.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
+            sim_prob_start.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
             
-            risk_prob_sim = sim_prob[s_idx] * p_corr_bolus_given_error * p_error
+            risk_prob_sim = sim_prob_start[s_idx] * p_corr_bolus_given_error * p_error
             num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
 
             severity_event_count[s_idx] += num_risk_events_sim
+            ####
+            # if "lbgi_icgm_valid" in summary_df:
+            #     severity_mask = (lbgi_data_valid >= severity_band[0]) & (lbgi_data_valid < severity_band[1])
+            #     num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
+            #     sim_prob_valid.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
+                
+            #     risk_prob_sim = sim_prob_valid[s_idx] * p_corr_bolus_given_error * p_error
+            #     num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
 
-        mean_lbgi.append(sim_prob)
+            #     severity_event_count[s_idx] += num_risk_events_sim
+
+        mean_lbgi_start.append(sim_prob_start)
+        # mean_lbgi_valid.append(sim_prob_valid)
 
 
     severity_event_count_df = pd.DataFrame(severity_event_count)
     severity_event_probability_df = severity_event_count_df / num_cgm_per_100k_person_years 
 
-    risk_index = [get_probability_index(p) for p in severity_event_probability_df[0]]
-    risk_index = np.array(risk_index)
-    print(risk_index * np.array([1,2,3,4,5]))
-
-    return severity_event_probability_df, (low_icgm_axis, low_true_axis, np.array(mean_lbgi), np.array(joint_prob))
+    return severity_event_probability_df, (low_icgm_axis, low_true_axis, np.array(mean_lbgi_start), np.array(joint_prob))
 
 
 if __name__ == "__main__":

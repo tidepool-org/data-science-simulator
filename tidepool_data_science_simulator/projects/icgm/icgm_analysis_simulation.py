@@ -47,6 +47,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     Generator simulations from a base configuration that have different true bg
     starting points and different t0 sensor error values.
     """
+    IDEAL = True
     num_history_values = len(json_sim_base_config["patient"]["sensor"]["glucose_history"]["value"])
 
     true_glucose_start_values = range(40, 405, 5)
@@ -69,7 +70,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values
             
             new_sim_base_config["controller"]["id"] = 'swift'
-            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.0
+            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.4
             new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
             new_sim_base_config["controller"]["settings"]["include_positive_velocity_and_RC"] = False
             new_sim_base_config["controller"]["settings"]["suspend_threshold"] = 70
@@ -83,7 +84,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
 
             sim_parser = ScenarioParserV2()
 
-            sim_id = "icgm_analysis_coastal_vp_{}_{}_tbg={}_sbg={}".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose, initial_error_value)
+            sim_id = "icgm_analysis_vp_{}_{}_tbg={}_sbg={}".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose, initial_error_value)
             sensor = get_initial_offset_sensor_noisy(t0_init=t0 - datetime.timedelta(minutes=len(glucose_history_values) * 5.0),
                                                t0=t0,
                                                random_state=random_state,
@@ -213,7 +214,7 @@ if __name__ == "__main__":
     
     date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S_")
     short_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()
-    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_MANUAL_BOLUS_positive_bias_correction_" + date_string + short_hash)
+    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_KF_test_" + date_string + short_hash)
     
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)

@@ -632,7 +632,7 @@ class ScenarioParserV2(SimulationParser):
             controller_id = sim_config['controller']['id']
             if 'swift' in controller_id:
                 controller = SwiftLoopController(sim_start_time, controller_config, automation_control_timeline)
-            elif 'Py' in controller_id:
+            elif 'py' in controller_id:
                 controller = LoopController(sim_start_time, controller_config, automation_control_timeline)
             elif 'open' in controller_id:
                 controller = OpenLoopController(sim_start_time, controller_config, automation_control_timeline)
