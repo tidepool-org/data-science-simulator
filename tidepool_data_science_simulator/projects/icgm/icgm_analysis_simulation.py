@@ -1,6 +1,13 @@
 __author__ = "Mark Connolly"
 
 import logging
+import subprocess
+
+import numpy as np
+
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
+from tidepool_data_science_metrics.glucose import glucose
+
 logger = logging.getLogger(__name__)
 
 import time
@@ -32,6 +39,7 @@ from tidepool_data_science_simulator.makedata.scenario_json_parser_v2 import Sce
 
 from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.utils import DATA_DIR
+from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
 
 
 def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
@@ -39,13 +47,14 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     Generator simulations from a base configuration that have different true bg
     starting points and different t0 sensor error values.
     """
+    IDEAL = True
     num_history_values = len(json_sim_base_config["patient"]["sensor"]["glucose_history"]["value"])
 
     true_glucose_start_values = range(40, 405, 5)
     error_glucose_values = [v for v in true_glucose_start_values[::-1]]
 
-    # true_glucose_start_values = [90]  # testing
-    # error_glucose_values = [90]
+    # true_glucose_start_values = [45]  # testing
+    # error_glucose_values = [120]
 
     random_state = RandomState(base_sim_seed)
 
@@ -63,19 +72,19 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             new_sim_base_config["controller"]["id"] = 'swift'
             new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.4
             new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
+            new_sim_base_config["controller"]["settings"]["include_positive_velocity_and_RC"] = False
+            new_sim_base_config["controller"]["settings"]["suspend_threshold"] = 70
             
             date_str_format = "%m/%d/%Y %H:%M:%S"  # ref: "8/15/2019 12:00:00"
             glucose_datetimes = [datetime.datetime.strptime(dt_str, date_str_format)
                                     for dt_str in
                                     new_sim_base_config["patient"]["sensor"]["glucose_history"]["datetime"].values()]
+            
             t0 = datetime.datetime.strptime(new_sim_base_config["time_to_calculate_at"], date_str_format)
 
             sim_parser = ScenarioParserV2()
-            
-            # sim_id = "icgm_analysis_coastal_vp_{}_{}_tbg={}_sbg=IDEAL".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose)
-            # sensor = get_ideal_sensor(t0=t0, sim_parser=sim_parser)
 
-            sim_id = "icgm_analysis_coastal_vp_{}_{}_tbg={}_sbg={}".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose, initial_error_value)
+            sim_id = "icgm_analysis_vp_{}_{}_tbg={}_sbg={}".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose, initial_error_value)
             sensor = get_initial_offset_sensor_noisy(t0_init=t0 - datetime.timedelta(minutes=len(glucose_history_values) * 5.0),
                                                t0=t0,
                                                random_state=random_state,
@@ -90,7 +99,9 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             virtual_patient.sensor = sensor
 
             def does_accept_bolus_recommendation(self, bolus):
+                # return False 
                 return self.time == t0
+            
             virtual_patient.does_accept_bolus_recommendation = types.MethodType(does_accept_bolus_recommendation, virtual_patient)
 
             sim = Simulation(sim_start_time,
@@ -104,6 +115,8 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             sim.random_state = random_state
 
             yield sim
+        
+    return
 
 
 # def get_ideal_sensor(t0, sim_parser):
@@ -169,6 +182,9 @@ def build_icgm_sim_generator(json_base_configs, sim_batch_size=30):
     Build simulations for the FDA AI Letter iCGM sensitivity analysis.
     """
     for i, json_config in enumerate(json_base_configs, 1):
+        # if i != 35:
+        #     continue
+
         logger.info("VP: {}. {} of {}".format(json_config["patient_id"], i, len(json_base_configs)))
 
         sim_ctr = 0
@@ -196,8 +212,9 @@ if __name__ == "__main__":
     os.environ['NUMEXPR_MAX_THREADS'] = str(sim_batch_size)
     numexpr.set_num_threads(sim_batch_size)
     
-    date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S")
-    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_COASTAL_" + date_string)
+    date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S_")
+    short_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()
+    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_KF_test_" + date_string + short_hash)
     
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
@@ -208,18 +225,65 @@ if __name__ == "__main__":
 
     start_time = time.time()
     for i, sim_batch in enumerate(sim_batch_generator):
+        if sim_batch:
+            batch_start_time = time.time()
 
-        batch_start_time = time.time()
+            full_results, summary_results_df = run_simulations(
+                sim_batch,
+                save_dir=result_dir,
+                save_results=True,
+                num_procs=sim_batch_size
+            )
+            
+            if 0:
+                for sim_id, sim_results_df in full_results.items():
+                    
+                    true_bg = np.array(sim_results_df['bg'])        
+                    true_bg[true_bg < 1] = 1
 
-        full_results, summary_results_df = run_simulations(
-            sim_batch,
-            save_dir=result_dir,
-            save_results=True,
-            num_procs=sim_batch_size
-        )
-        
-        batch_total_time = (time.time() - batch_start_time) / 60
-        run_total_time = (time.time() - start_time) / 60
-        logger.info("Batch {}".format(i))
-        logger.info("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
+                    # Calculate LBGI based on the default start
+                    start_index = 137
+                    
+                    bg_from_start = true_bg[start_index:]
+                    lbgi_icgm_start, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(bg_from_start)
+                    
+                    # Calculate LBGI based on the first action of Loop
+                    # for bolus...        
+                    true_bolus = np.array(sim_results_df['true_bolus'])
+                    true_bolus = np.where(true_bolus == None, 0.0, true_bolus)
+                        
+                    first_valid_bolus = len(true_bolus)
+                    if np.any(true_bolus > 0):
+                        first_valid_bolus = np.argmax(true_bolus > 0)
+                    
+                    # ... and basal
+                    true_basal = np.array(sim_results_df['temp_basal'])
+                    true_basal = np.where(true_basal == None, 0.0, true_basal)
+
+                    first_valid_basal = len(true_basal)
+                    if np.any(true_basal > 0):
+                        first_valid_basal = np.argmax(true_basal > 0)                        
+
+                    first_valid_index = min((first_valid_basal, first_valid_bolus))
+                    
+                    bg_valid = true_bg[first_valid_index:]
+                    lbgi_icgm_valid, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(bg_valid)
+                    
+                    # if lbgi_icgm_valid > 10:
+                    #     plot_sim_results({sim_id: sim_results_df})
+
+                    print(lbgi_icgm_start)
+                    print(lbgi_icgm_valid)
+                    print(first_valid_bolus)
+
+                    # if(first_valid_bolus == 137):
+                    #     plot_sim_results({sim_id: sim_results_df})
+                        
+                    plot_sim_results({sim_id: sim_results_df})
+
+            
+            batch_total_time = (time.time() - batch_start_time) / 60
+            run_total_time = (time.time() - start_time) / 60
+            logger.info("Batch {}".format(i))
+            logger.info("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
 

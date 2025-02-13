@@ -8,9 +8,10 @@ import os
 import datetime
 
 import logging
+logger = logging.getLogger(__name__)
 
 from tidepool_data_science_simulator.models.swift_controller import SwiftLoopController
-logger = logging.getLogger(__name__)
+from tidepool_data_science_simulator.models.controller import OpenLoopController
 
 from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG import input_table_to_dict
 from tidepool_data_science_simulator.models.simulation import (
@@ -631,8 +632,10 @@ class ScenarioParserV2(SimulationParser):
             controller_id = sim_config['controller']['id']
             if 'swift' in controller_id:
                 controller = SwiftLoopController(sim_start_time, controller_config, automation_control_timeline)
-            else:
+            elif 'py' in controller_id:
                 controller = LoopController(sim_start_time, controller_config, automation_control_timeline)
+            elif 'open' in controller_id:
+                controller = OpenLoopController(sim_start_time, controller_config, automation_control_timeline)
 
         return controller
 
