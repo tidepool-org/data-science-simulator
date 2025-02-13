@@ -19,7 +19,24 @@ from tidepool_data_science_simulator.evaluation.inspect_results import load_resu
 
 logger = logging.getLogger(__name__)
 
+table_probability_indices = {
+    (0, 1e-6): 1,
+    (1e-6, 1e-4): 2,
+    (1e-4, 1e-2): 3,
+    (1e-2, 1e-1): 4,
+    (.1, 1): 5,
+}
+
+def get_probability_index(event_probability):
+
+    for bounds in table_probability_indices.keys():
+        if bounds[0] <= event_probability < bounds[1]:
+            return table_probability_indices[bounds]
+
+    raise Exception("Probability not in indices.")
+
 def process_simulation_data(result_dir):
+
     # Get rid of unnecessary warnings for low/high BG
     warnings.filterwarnings('ignore')
     
@@ -41,32 +58,39 @@ def process_simulation_data(result_dir):
         
         # Load data and calculate risk metrics
         _, df_results = load_result(sim_json_info["result_path"])
-        true_bg = np.array(df_results['bg'])
+        true_bg = np.array(df_results['bg'])        
         true_bg[true_bg < 1] = 1
-        lbgi_icgm, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(true_bg)
-        dkai_icgm = dka_index(df_results['iob'], df_results["sbr"])
 
-        # Find the simulation where the true and sensor blood glucose match
-        # Could also run with the ideal sensor class
-        sim_results_match = re.search(r"tbg=(\d+)", sim_id)
-        ideal_sbg = sim_results_match.group(1)
-        ideal_sbg_string = "sbg=" + ideal_sbg + ".json"
-
-        ideal_sbg_file = re.sub(r"sbg=(\d+)", ideal_sbg_string, sim_id)   
-        sim_json_info_ideal = collect_sim_result(result_dir, ideal_sbg_file)
-
-        # Load data with ideal sensor and calculate risk metrics
-        # Will be used to filter our cases where the risk was already high
-        _, df_results_ideal = load_result(sim_json_info_ideal["result_path"])
-        true_bg = np.array(df_results_ideal["bg"])
-        true_bg[true_bg < 1] = 1
-        lbgi_ideal, hbgi_ideal, brgi_ideal = blood_glucose_risk_index(true_bg)
-        dkai_ideal = dka_index(df_results_ideal['iob'], df_results_ideal["sbr"])
-
-        bg_cond = int(re.search(r"bg=(\d)", sim_id).groups()[0])
+        # Calculate LBGI based on the default start
+        start_index = 137
         
-        true_bg_start = sim_json_info["patient"]["sensor"].get("true_start_bg")
+        bg_from_start = true_bg[start_index:]
+        lbgi_icgm_start, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(bg_from_start)
+        
+        # Calculate LBGI based on the first action of Loop
+        # for bolus...        
+        true_bolus = np.array(df_results['true_bolus'])
+        true_bolus = np.where(true_bolus == None, 0.0, true_bolus)
+            
+        first_valid_bolus = len(true_bolus)
+        if np.any(true_bolus > 0):
+            first_valid_bolus = np.argmax(true_bolus > 0)
+        
+        # ... and basal
+        true_basal = np.array(df_results['temp_basal'])
 
+        first_valid_basal = len(true_basal)
+        if np.any(true_basal > 0):
+            first_valid_basal = np.argmax(true_basal > 0)                        
+
+        first_valid_index = min((first_valid_basal, first_valid_bolus))
+        
+        bg_valid = true_bg[first_valid_index:]
+        lbgi_icgm_valid, hbgi_icgm, brgi_icgm = blood_glucose_risk_index(bg_valid)
+
+        # Collect the rest of the information from the run
+        bg_cond = int(re.search(r"bg=(\d)", sim_id).groups()[0])
+        true_bg_start = sim_json_info["patient"]["sensor"].get("true_start_bg")
         sensor_bg_start = sim_json_info["patient"]["sensor"]["start_bg_with_offset"]
         
         target_bg = 110
@@ -74,14 +98,11 @@ def process_simulation_data(result_dir):
         max_bolus_delivered = df_results["true_bolus"].max()
         traditional_bolus_delivered = max(0, (sensor_bg_start - target_bg) / isf)
 
+        # Create table row and append to summary
         row = {
             "sim_id": sim_id,
-            "lbgi_icgm": lbgi_icgm,
-            "lbgi_ideal": lbgi_ideal,
-            "lbgi_diff": lbgi_icgm - lbgi_ideal,
-            "dkai_icgm": dkai_icgm,
-            "dkai_ideal": dkai_ideal,
-            "dkai_diff": dkai_icgm - dkai_ideal,
+            "lbgi_icgm_start": lbgi_icgm_start,
+            "lbgi_icgm_valid": lbgi_icgm_valid,
             "bg_condition": bg_cond,
             "true_start_bg": true_bg_start,
             "start_bg_with_offset": sensor_bg_start,
@@ -98,72 +119,116 @@ def process_simulation_data(result_dir):
         summary_data.append(row)
 
     summary_df = pd.DataFrame(summary_data)
-
-    summary_result_filepath = "./processed_simulation_data_{}.csv".format(datetime.datetime.now().isoformat())
+    
+    summary_result_filepath = result_dir + '.csv'
     summary_df.to_csv(summary_result_filepath, sep="\t")
     logger.info("Saved summary results to %s", summary_result_filepath)
 
     return summary_result_filepath
 
 
-def compute_score_risk_table(summary_df):
+def compute_score_risk_table(summary_df, concurrency_table=None):
 
-    dexcom_value_model = DexcomG6ValueModel(concurrency_table="adult")
+    dexcom_value_model = DexcomG6ValueModel(concurrency_table=concurrency_table)
 
     bg_ranges = [(40, 60),(61, 80), (81, 120), (121, 160), (161, 200), 
                  (201, 250), (251, 300), (301, 350), (351, 400)]  
     
+    # bg_ranges = [(i, i+4) for i in range(36, 400, 5)]
+
     bg_range_pairs = [(true_range,icgm_range) for true_range in bg_ranges for icgm_range in bg_ranges]
+    # bg_range_pairs = bg_range_pairs[2:]
+
+    # bg_range_pairs = [((121, 125), (246, 250))]
+    # bg_range_pairs = [((124, 129), (244, 249))]
+    # bg_range_pairs = [((41, 45), (46, 50))]
+    # bg_range_pairs = [((41,45),(i,i+4)) for i in range(36,120,5)]
+    # bg_range_pairs = [((40, 45), (56, 60))]
     severity_bands = [(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)]
 
     severity_event_count = [0,0,0,0,0]
+    low_true_axis = []
+    low_icgm_axis = []
+    mean_lbgi_start = []
+    mean_lbgi_valid = []
+    joint_prob = []
 
+    # Go through each square in the concurrency table 
     for (low_true, high_true), (low_icgm, high_icgm) in bg_range_pairs:
-        
+        low_true_axis.append(low_true)
+        low_icgm_axis.append(low_icgm)
+
+        # if low_true == 40 and (low_icgm == 40 or low_icgm == 61):
+        #     continue
+
         # Backward compatibility with old versions of the results file. 
         if "true_start_bg" in summary_df:
+            # Current version
             true_mask = (summary_df["true_start_bg"] >= low_true) & (summary_df["true_start_bg"] <= high_true)
             icgm_mask = (summary_df["start_bg_with_offset"] >= low_icgm) & (summary_df["start_bg_with_offset"] <= high_icgm)
 
         elif "tbg" in summary_df:
+            # 2021 version
             true_mask = (summary_df["tbg"] >= low_true) & (summary_df["tbg"] <= high_true)
             icgm_mask = (summary_df["sbg"] >= low_icgm) & (summary_df["sbg"] <= high_icgm)
 
         else:
             return
 
-        concurrency_square_mask = true_mask & icgm_mask 
+        concurrency_square_mask = true_mask & icgm_mask
+        lbgi_data = []
+        lbgi_data_valid = []
 
         if "lbgi_icgm" in summary_df:
             lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]
+            
         elif "lbgi" in summary_df:
             lbgi_data = summary_df[concurrency_square_mask]["lbgi"]        
+        elif "lbgi_icgm_valid" in summary_df:
+            lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm_start"]        
+            lbgi_data_valid = summary_df[concurrency_square_mask]["lbgi_icgm_valid"]        
         else:
             return
         # End backward compatibility
 
         p_error = dexcom_value_model.get_joint_probability(low_true, low_icgm)
-        p_corr_bolus_given_error = 6 / 288
+
+        joint_prob.append(p_error)
+
+        p_corr_bolus_given_error = 6 / 288 # = 1/48
         num_cgm_per_100k_person_years = 288 * 365 * 100000
-
-        num_total_sims = max(1, len(summary_df[concurrency_square_mask]))
-
+        num_sims_in_concurrency_square = max(1, len(summary_df[concurrency_square_mask]))
+        
+        sim_prob_start = []
+        sim_prob_valid = []
         for s_idx, severity_band in enumerate(severity_bands, 0):
             severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
-
             num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
-            sim_prob = num_sims_in_severity_band / num_total_sims
-            risk_prob_sim = sim_prob * p_corr_bolus_given_error * p_error
+            sim_prob_start.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
+            
+            risk_prob_sim = sim_prob_start[s_idx] * p_corr_bolus_given_error * p_error
             num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
 
             severity_event_count[s_idx] += num_risk_events_sim
+            ####
+            # if "lbgi_icgm_valid" in summary_df:
+            #     severity_mask = (lbgi_data_valid >= severity_band[0]) & (lbgi_data_valid < severity_band[1])
+            #     num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
+            #     sim_prob_valid.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
+                
+            #     risk_prob_sim = sim_prob_valid[s_idx] * p_corr_bolus_given_error * p_error
+            #     num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
+
+            #     severity_event_count[s_idx] += num_risk_events_sim
+
+        mean_lbgi_start.append(sim_prob_start)
+        # mean_lbgi_valid.append(sim_prob_valid)
+
 
     severity_event_count_df = pd.DataFrame(severity_event_count)
     severity_event_probability_df = severity_event_count_df / num_cgm_per_100k_person_years 
 
-    severity_event_probability_df.to_csv('severity_event_probability.csv')
-
-    return severity_event_probability_df
+    return severity_event_probability_df, (low_icgm_axis, low_true_axis, np.array(mean_lbgi_start), np.array(joint_prob))
 
 
 if __name__ == "__main__":
@@ -180,5 +245,5 @@ if __name__ == "__main__":
             summary_result_filepath = process_simulation_data(path)
        
         case 'summarize': 
-            summary_df = pd.read_csv(path, sep="\t")
+            summary_df = pd.read_csv(path, sep=",")
             print(compute_score_risk_table(summary_df))
