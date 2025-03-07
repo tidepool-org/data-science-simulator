@@ -77,19 +77,24 @@ class SwiftLoopController(LoopController):
 
         data['predictionStart'] = t_now.strftime(format=format_string)
         data['recommendationInsulinType'] = 'novolog'
-        data['maxBasalRate'] = settings_dictionary['max_basal_rate']
-        data['maxBolus'] = settings_dictionary['max_bolus']
-        data['suspendThreshold'] = settings_dictionary['suspend_threshold']
-        data['automaticBolusApplicationFactor'] = settings_dictionary['partial_application_factor']
-        data['useMidAbsorptionISF'] = settings_dictionary['use_mid_absorption_isf']
+        data['maxBasalRate'] = settings_dictionary.get('max_basal_rate')
+        data['maxBolus'] = settings_dictionary.get('max_bolus')
+        data['suspendThreshold'] = settings_dictionary.get('suspend_threshold') or 70.0
+        data['automaticBolusApplicationFactor'] = settings_dictionary.get('partial_application_factor') or 0.4
+        data['useMidAbsorptionISF'] = settings_dictionary.get('use_mid_absorption_isf') or True
+        data['carbAbsorptionModel'] = settings_dictionary.get('carb_absorption_model') or 'piecewiseLinear'
 
-        # Note: this will automatically be set to false for manual bolus recommendations
-        data['includePositiveVelocityAndRC'] = settings_dictionary['include_positive_velocity_and_RC']
-
+        # Set the recommendation and includePositiveVelocityAndRC based on the partial_application_factor
         if settings_dictionary.get('partial_application_factor'):
-            data['recommendationType'] = 'automaticBolus' 
+            data['recommendationType'] = 'automaticBolus'
+            data['includePositiveVelocityAndRC'] = False
         else:
             data['recommendationType'] = 'tempBasal'
+            data['includePositiveVelocityAndRC'] = True
+
+        # If includePositiveVelocityAndRC is set in the settings, override the default value
+        if settings_dictionary.get('includePositiveVelocityAndRC'):
+            data['includePositiveVelocityAndRC'] = settings_dictionary['include_positive_velocity_and_RC']
 
         # BASAL RATE
         data_entries = []

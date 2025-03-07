@@ -27,7 +27,8 @@ def get_canonical_controller_config(t0=DATETIME_DEFAULT):
         "max_bolus": 30,
         "retrospective_correction_enabled": True,
         "partial_application_factor": 0.0,
-        "use_mid_absorption_isf": False
+        "use_mid_absorption_isf": False,
+        "carb_absorption_model": "piecewiseLinear"
     }
     controller_config = ControllerConfig(
         bolus_event_timeline=BolusTimeline(),
