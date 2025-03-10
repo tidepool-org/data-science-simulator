@@ -445,3 +445,49 @@ class ControllerState(object):
                  pyloopkit_recommendations
                  ):
         self.pyloopkit_recommendations = pyloopkit_recommendations
+
+
+
+class OpenLoopController(LoopController):
+    """
+    Open loop controller class that sets temp basal to the scheduled basal rate.
+    """
+
+    def __init__(self, time, controller_config, automation_control_timeline=AutomationControlTimeline([], [])):
+        super().__init__(time, controller_config, automation_control_timeline)
+        self.name = "OpenLoopKit"
+
+    def prepare_inputs(self, virtual_patient):
+        pass
+
+    def get_loop_recommendations(self, time, virtual_patient=None):
+        
+        self.time = time
+        suspend_threshold = self.controller_config.controller_settings['suspend_threshold']
+        
+        bg_current = virtual_patient.bg_current
+
+        basal_rate = 0 if bg_current < suspend_threshold else virtual_patient.pump.get_scheduled_basal_rate().value
+
+        swift_output_json = {
+                "automatic": {
+                    "bolusUnits": 0,
+                    "basalAdjustment": {
+                        "unitsPerHour": basal_rate,
+                        "duration": 1800
+                    }
+                }
+            }
+        
+        return swift_output_json
+
+    def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
+        automatic_data = loop_algorithm_output.get('automatic')
+        temp_basal_data = automatic_data.get('basalAdjustment') 
+        units_per_hour = temp_basal_data.get('unitsPerHour') or 0
+
+        temp_basal = TempBasal(self.time, units_per_hour, 30, "U/hr")
+        self.modulate_temp_basal(virtual_patient, temp_basal)
+        
+        self.recommendations = loop_algorithm_output
+
