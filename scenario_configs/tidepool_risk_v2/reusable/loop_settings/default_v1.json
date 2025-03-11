@@ -18,5 +18,6 @@
   ],
   "retrospective_correction_enabled": true,
   "partial_application_factor": 0.4,
-  "use_mid_absorption_isf": false
+  "use_mid_absorption_isf": false,
+  "carb_absorption_model": "piecewiseLinear"
 }
