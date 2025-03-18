@@ -99,9 +99,9 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
                    alpha=0.5)
         ax[1].set_ylim((0, 8))
 
-        # if len(all_results) <= n_sims_max_legend:
-        #     ax[1].legend(prop={'size': 12})
-
+        if len(all_results) <= n_sims_max_legend:
+            ax[1].legend(prop={'size': 6})
+        
         # ======== Carbs ============
         ax[2].stem(ctrl_result_df.index.to_pydatetime(),
                    ctrl_result_df["true_carb_value"],

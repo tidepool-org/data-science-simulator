@@ -59,17 +59,18 @@ def generate_autobolus_simulations(json_sim_base_config, simulation_configuratio
         new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values        
 
         new_sim_base_config["controller"]["id"] = 'swift'
+        # By default, temp basal will have include_positive_velocity_and_RC set to true while autobolus will have it set to false
         new_sim_base_config["controller"]["settings"]["include_positive_velocity_and_RC"] = True
         new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
 
-        true_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 240)])
-        reported_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 240)])            
+        true_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(20.0, "U", 240)])
+        reported_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(20.0, "U", 240)])            
         
         sim_parser = ScenarioParserV2()
         sim_start_time, duration_hrs, virtual_patient, controller = sim_parser.build_components_from_config(new_sim_base_config)
         
         virtual_patient.carb_event_timeline = true_carb_timeline
-        # virtual_patient.pump.carb_event_timeline = reported_carb_timeline
+        virtual_patient.pump.carb_event_timeline = reported_carb_timeline
         
         controller.controller_config.controller_settings['minimum_autobolus'] = 0.1
         controller.controller_config.controller_settings['maximum_autobolus'] = 100
@@ -93,7 +94,7 @@ def generate_autobolus_simulations(json_sim_base_config, simulation_configuratio
 
 def build_autobolus_sim_generator(json_base_configs, sim_batch_size=30):
     """
-    Build simulations for the FDA AI Letter iCGM sensitivity analysis.
+    Build simulations based on 
     """
     for i, json_config in enumerate(json_base_configs, 1):
         logger.info("VP: {}. {} of {}".format(json_config["patient_id"], i, len(json_base_configs)))
@@ -102,7 +103,7 @@ def build_autobolus_sim_generator(json_base_configs, sim_batch_size=30):
         sims = {}
 
         partial_application_factors = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
-        partial_application_factors = [0.4]
+        partial_application_factors = [0, 0.4]
         true_start_glucose_list = range(140, 141, 10)
 
         simulation_configurations = list(product(partial_application_factors, true_start_glucose_list))
@@ -133,7 +134,7 @@ if __name__ == "__main__":
         logger.info("Made directory for results: {}".format(result_dir))
 
 
-    sim_batch_size = 1
+    sim_batch_size = 14
 
     json_base_configs = transform_icgm_json_to_v2_parser()
     sim_batch_generator = build_autobolus_sim_generator(json_base_configs, sim_batch_size=sim_batch_size)
@@ -152,7 +153,7 @@ if __name__ == "__main__":
         batch_total_time = (time.time() - batch_start_time) / 60
         run_total_time = (time.time() - start_time) / 60
 
-        plot_sim_results(full_results)
-
+        # plot_sim_results(full_results)
+        
         logger.info("Batch {}".format(i))
         logger.info("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))

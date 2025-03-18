@@ -93,7 +93,7 @@ class SwiftLoopController(LoopController):
             data['includePositiveVelocityAndRC'] = True
 
         # If includePositiveVelocityAndRC is set in the settings, override the default value
-        if settings_dictionary.get('includePositiveVelocityAndRC'):
+        if settings_dictionary.get('include_positive_velocity_and_RC'):
             data['includePositiveVelocityAndRC'] = settings_dictionary['include_positive_velocity_and_RC']
 
         # BASAL RATE
