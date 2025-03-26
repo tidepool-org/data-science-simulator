@@ -21,7 +21,8 @@ dependencies:
   - requests=2.32.3
   - scipy=1.13.1
   - seaborn=0.13.2
-
+  - gcc
+  
   - pip:
     - backports-datetime-fromisoformat==2.0.2
     - pip-chill==1.0.3

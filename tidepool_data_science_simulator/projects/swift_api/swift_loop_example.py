@@ -95,7 +95,9 @@ def test_swift_api():
     sim.run()
     
     sim_results_df = sim.get_results_df()
-
+    
+    print(sim_results_df)
+    
     plot_sim_results({sim_id: sim_results_df})
 
     return 1
