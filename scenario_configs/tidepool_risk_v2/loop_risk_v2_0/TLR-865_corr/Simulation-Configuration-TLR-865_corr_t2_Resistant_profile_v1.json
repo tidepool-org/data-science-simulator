@@ -30,27 +30,21 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 9.52
+              "value": "accept_recommendation"
             }
           ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 7.61, 2.26]
+              "values": [2.2, 7.61, 2.2]
             }
           }
         },
         "pump": {
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 9.52
-            }
-          ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 7.61, 2.26]
+              "values": [2.2, 7.61, 2.2]
             }
           }
         }
@@ -68,13 +62,13 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 9.52
+              "value": 2.86
             }
           ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 7.61, 2.26]
+              "values": [2.2, 7.61, 2.2]
             }
           }
         },
@@ -82,13 +76,13 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 9.52
+              "value": 2.86
             }
           ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 7.61, 2.26]
+              "values": [2.2, 7.61, 2.2]
             }
           }
         }
@@ -121,30 +115,24 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 9.52
+              "value": "accept_recommendation"
             }
           ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 7.61, 2.26]
+              "values": [2.2, 7.61, 2.2]
             }
           }
         },
         "pump": {
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 9.52
-            }
-          ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 7.61, 2.26]
+              "values": [2.2, 7.61, 2.2]
             }
           },
-          "target_range": "reusable.mitigations.guardrails.target_range_t2_resistant_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
       }
     }

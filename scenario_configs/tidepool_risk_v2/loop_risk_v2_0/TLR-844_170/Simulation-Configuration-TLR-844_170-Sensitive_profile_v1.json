@@ -11,7 +11,7 @@
       "sim_id": "pre-Loop_NoMitigations_t1_sensitive",
       "patient": {
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.sensitive_170_v1"
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_170_v1"
         }
       }
     },
@@ -19,7 +19,7 @@
       "sim_id": "pre-noLoop_t1_sensitive",
       "patient": {
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.sensitive_170_v1"
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_170_v1"
         }
       },
       "controller": null
@@ -28,7 +28,7 @@
       "sim_id": "post-Loop-WithMitigations_t1_sensitive",
       "patient": {
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.sensitive_170_v1",
+          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_170_v1",
           "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       },

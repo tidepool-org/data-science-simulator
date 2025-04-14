@@ -35,7 +35,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.24
+              "value": 0.82
             }
           ]
         },
@@ -44,7 +44,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.24
+              "value": 0.82
             }
           ],
           "metabolism_settings": "reusable.metabolism_settings.resistant_preset_40_v1"

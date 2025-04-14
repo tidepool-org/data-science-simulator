@@ -28,30 +28,19 @@
         },
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_250_12hr",
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 9.52
-            }
-          ],
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 1.13, 2.26]
+              "values": [2.2, 1.1, 2.2]
             }
           }
         },
         "pump": {
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 9.52
-            }
-          ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 1.13, 2.26]
+              "values": [2.2, 1.1, 2.2]
             }
           }
         }
@@ -69,13 +58,13 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 9.52
+              "value": 2.86
             }
           ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 1.13, 2.26]
+              "values": [2.2, 1.1, 2.2]
             }
           }
         },
@@ -83,13 +72,13 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 9.52
+              "value": 2.86
             }
           ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 1.13, 2.26]
+              "values": [2.2, 1.1, 2.2]
             }
           }
         }
@@ -110,7 +99,7 @@
             "time": "8/15/2019 16:00:00"
           }
         ],
-        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_v1"
     },
       "patient": {
         "sensor": {
@@ -121,30 +110,24 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 2.55
+              "value": "accept_recommendation"
             }
           ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 1.13, 2.26]
+              "values": [2.2, 1.1, 2.2]
             }
           }
         },
         "pump": {
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 2.55
-            }
-          ],
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [2.26, 1.13, 2.26]
+              "values": [2.2, 1.1, 2.2]
             }
           },
-          "target_range": "reusable.mitigations.guardrails.target_range_t2_resistant_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
         }
       }
     }

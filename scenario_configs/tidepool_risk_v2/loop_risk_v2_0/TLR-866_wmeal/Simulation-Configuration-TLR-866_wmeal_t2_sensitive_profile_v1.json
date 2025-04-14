@@ -25,21 +25,20 @@
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [0.4, 0.2, 0.4]
+              "values": [0.3, 0.15, 0.3]
             }
           }
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1",
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [0.4, 0.2, 0.4]
+              "values": [0.3, 0.15, 0.3]
             }
           }
         }
@@ -55,7 +54,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [0.4, 0.2, 0.4]
+              "values": [0.3, 0.15, 0.3]
             }
           }
         },
@@ -65,7 +64,7 @@
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [0.4, 0.2, 0.4]
+              "values": [0.3, 0.15, 0.3]
             }
           }
         }
@@ -86,29 +85,28 @@
             "time": "8/15/2019 16:00:00"
           }
         ],
-        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_v1"
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_sensitive_v1"
     },
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [0.4, 0.2, 0.4]
+              "values": [0.3, 0.15, 0.3]
             }
           }
         },
         "pump": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1",
           "metabolism_settings": {
             "basal_rate": {
               "start_times": ["0:00:00", "12:00:00", "16:00:00"],
-              "values": [0.4, 0.2, 0.4]
+              "values": [0.3, 0.15, 0.3]
             }
           },
-          "target_range": "reusable.mitigations.guardrails.target_range_t2_sensitive_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       }
     }
