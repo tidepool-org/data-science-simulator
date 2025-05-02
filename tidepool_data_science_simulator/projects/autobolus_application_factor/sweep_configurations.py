@@ -59,6 +59,7 @@ def generate_autobolus_simulations(json_sim_base_config, simulation_configuratio
         new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values        
 
         new_sim_base_config["controller"]["id"] = 'swift'
+        
         # By default, temp basal will have include_positive_velocity_and_RC set to true while autobolus will have it set to false
         new_sim_base_config["controller"]["settings"]["include_positive_velocity_and_RC"] = True
         new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
@@ -104,7 +105,7 @@ def build_autobolus_sim_generator(json_base_configs, sim_batch_size=30):
 
         partial_application_factors = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
         partial_application_factors = [0, 0.4]
-        true_start_glucose_list = range(140, 141, 10)
+        true_start_glucose_list = range(40, 500, 10)
 
         simulation_configurations = list(product(partial_application_factors, true_start_glucose_list))
         simulation_configurations = pd.DataFrame(simulation_configurations, columns=['partial_application_factor', 'initial_blood_glucose'])
@@ -126,7 +127,7 @@ def build_autobolus_sim_generator(json_base_configs, sim_batch_size=30):
 if __name__ == "__main__":
 
     today_timestamp = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S")
-    result_dir = os.path.join(DATA_DIR, "processed/no_meal_announcements_" + today_timestamp)
+    result_dir = os.path.join(DATA_DIR, "processed/autobolus_tempbasal_comparison_" + today_timestamp)
     os.environ['NUMEXPR_MAX_THREADS'] = str(14)
     numexpr.set_num_threads(14)
     if not os.path.exists(result_dir):

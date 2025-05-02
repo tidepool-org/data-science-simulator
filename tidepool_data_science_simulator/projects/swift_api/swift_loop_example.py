@@ -17,7 +17,7 @@ from tidepool_data_science_simulator.makedata.make_patient import (
 )
 
 from tidepool_data_science_simulator.models.events import BolusTimeline, CarbTimeline
-from tidepool_data_science_simulator.models.measures import Bolus, Carb, InsulinSensitivityFactor, TargetRange
+from tidepool_data_science_simulator.models.measures import BasalRate, Bolus, Carb, InsulinSensitivityFactor, TargetRange
 
 from tidepool_data_science_simulator.models.swift_controller import SwiftLoopController
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
@@ -35,14 +35,36 @@ def test_swift_api():
 
     controller_config.controller_settings['partial_application_factor'] = 0.4
     controller_config.controller_settings['use_mid_absorption_isf'] = False
-    
+        
     dt = datetime.time(hour=0, minute=0, second=0)
 
-    true_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 180)])
-    patient_config.carb_event_timeline = true_carb_timeline
-    reported_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 180)])
-    pump_config.carb_event_timeline = reported_carb_timeline
+    basal_rate_start_times = [datetime.time(hour=0, minute=0, second=0)]
+    basal_rate_minutes = [1440]
+    basal_rate_values = [0.6]
 
+    start_time = datetime.datetime(2019, 8, 15, 12, 0)
+    
+    basal_schedule = SettingSchedule24Hr(
+        time=start_time,
+        name="Basal",
+        start_times=basal_rate_start_times,
+        values=[BasalRate(value, 'U/hr') for value in basal_rate_values],
+        duration_minutes=basal_rate_minutes,
+    )
+    pump_config.basal_schedule = basal_schedule
+    patient_config.basal_schedule = basal_schedule
+
+    # true_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 180)])
+    # patient_config.carb_event_timeline = true_carb_timeline
+    # reported_carb_timeline = CarbTimeline(datetimes=[t0], events=[Carb(25.0, "U", 180)])
+    # pump_config.carb_event_timeline = reported_carb_timeline
+
+    true_bolus_timeline = BolusTimeline(datetimes=[t0], events=[Bolus(2.0, "U")])
+    # patient_config.bolus_event_timeline = true_bolus_timeline
+    reported_bolus_timeline = BolusTimeline(datetimes=[t0], events=[Bolus(2.0, "U")])
+    # pump_config.bolus_event_timeline = reported_bolus_timeline
+    
+    # Set the insulin sensitivity factor to 40 mg/dL/U
     insulin_sensitivity_timeline=SettingSchedule24Hr(
         t0,
         "ISF",
@@ -74,6 +96,7 @@ def test_swift_api():
     sensor = IdealSensor(t0, sensor_config)
 
     controller = SwiftLoopController(t0, controller_config)
+    controller = DoNothingController(t0, controller_config)
 
     vp = VirtualPatient(
         time=DATETIME_DEFAULT,
