@@ -381,7 +381,7 @@ class VirtualPatient(SimulationComponent):
             self.pump.bolus_event_timeline.add_event(time_of_event, event)
         elif isinstance(event, Carb):
             self.bolus_event_timeline.add_event(time_of_event, event)
-            self.pump.bolus_event_timeline.add_event(time_of_event, event)
+            self.pump.carb_event_timeline.add_event(time_of_event, event)
         else:
             raise Exception("Unsupported event to add.")
 
