@@ -6,11 +6,13 @@ from tidepool_data_science_simulator.evaluation.inspect_results import load_resu
 from tidepool_data_science_simulator.utils import DATA_DIR
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_metrics.glucose.glucose import percent_values_ge_70_le_180, blood_glucose_risk_index
 from scipy.stats import lognorm
 from scipy.stats import ttest_ind
+from scipy.stats import gaussian_kde
 
 
 def calculate_cumulative_insulin(df):
@@ -140,7 +142,7 @@ condition_labels = ['Temp Basal', 'Autobolus (paf=0.4)']
 # Initialize a dictionary to store statistical details
 statistical_details = {}
 
-# Without scaling
+# Without weighting
 for i, metric_name in enumerate(metric_names):
     metric_values_0_0 = metrics_all[:, i, 0]
     metric_values_0_4 = metrics_all[:, i, 1]
@@ -160,46 +162,52 @@ for i, metric_name in enumerate(metric_names):
 
     # Save the plot
     fig, ax = plt.subplots(figsize=(5, 5))
-    ax.boxplot([metric_values_0_0, metric_values_0_4], labels=condition_labels)
+    # ax.boxplot([metric_values_0_0, metric_values_0_4], labels=condition_labels)
+    x_grid = np.linspace(metric_values_0_0.min() - 1, metric_values_0_0.max() + 1, 500)
+    kde_0_0 = gaussian_kde(metric_values_0_0, weights=weights, bw_method=0.2)
+    kde_0_4 = gaussian_kde(metric_values_0_4, weights=weights, bw_method=0.2)
+
+    ax.plot(x_grid, kde_0_0(x_grid), label='Temp Basal', color='blue')
     ax.set_title(f"{metric_name} (Without Scaling)\n(p={p_value:.2e})")
     ax.set_ylabel('Value')
     ax.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{metric_name.replace(' ', '_')}_without_scaling.png"))
     plt.close(fig)
+    plt.show()
 
-# With scaling
-for i, metric_name in enumerate(metric_names):
-    metric_values_0_0 = np.repeat(metrics_all[:, i, 0], (weights * 10000).astype(int))
-    metric_values_0_4 = np.repeat(metrics_all[:, i, 1], (weights * 10000).astype(int))
+# # With weighting
+# for i, metric_name in enumerate(metric_names):
+#     metric_values_0_0 = np.repeat(metrics_all[:, i, 0], (weights * 10000).astype(int))
+#     metric_values_0_4 = np.repeat(metrics_all[:, i, 1], (weights * 10000).astype(int))
 
-    # Perform a t-test between the two conditions
-    t_stat, p_value = ttest_ind(metric_values_0_0, metric_values_0_4, equal_var=False)
+#     # Perform a t-test between the two conditions
+#     t_stat, p_value = ttest_ind(metric_values_0_0, metric_values_0_4, equal_var=False)
 
-    # Save statistical details
-    statistical_details[metric_name]["With Scaling"] = {
-        "Temp Basal": {"mean": np.mean(metric_values_0_0), "std": np.std(metric_values_0_0)},
-        "Autobolus (paf=0.4)": {"mean": np.mean(metric_values_0_4), "std": np.std(metric_values_0_4)},
-        "t_stat": t_stat,
-        "p_value": p_value
-    }
+#     # Save statistical details
+#     statistical_details[metric_name]["With Scaling"] = {
+#         "Temp Basal": {"mean": np.mean(metric_values_0_0), "std": np.std(metric_values_0_0)},
+#         "Autobolus (paf=0.4)": {"mean": np.mean(metric_values_0_4), "std": np.std(metric_values_0_4)},
+#         "t_stat": t_stat,
+#         "p_value": p_value
+#     }
 
-    # Save the plot
-    fig, ax = plt.subplots(figsize=(5, 5))
-    ax.boxplot([metric_values_0_0, metric_values_0_4], labels=condition_labels)
-    ax.set_title(f"{metric_name} (With Scaling)\n(p={p_value:.2e})")
-    ax.set_ylabel('Value')
-    ax.grid(True, linestyle='--', alpha=0.7)
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"{metric_name.replace(' ', '_')}_with_scaling.png"))
-    plt.close(fig)
-
-# Output statistical details
-for metric_name, details in statistical_details.items():
-    print(f"Metric: {metric_name}")
-    for scaling, stats in details.items():
-        print(f"  {scaling}:")
-        print(f"    Temp Basal - Mean: {stats['Temp Basal']['mean']:.2f}, Std: {stats['Temp Basal']['std']:.2f}")
-        print(f"    Autobolus (paf=0.4) - Mean: {stats['Autobolus (paf=0.4)']['mean']:.2f}, Std: {stats['Autobolus (paf=0.4)']['std']:.2f}")
-        print(f"    t_stat: {stats['t_stat']:.2f}, p_value: {stats['p_value']:.2e}")
-    print()
+#     # Save the plot
+#     fig, ax = plt.subplots(figsize=(5, 5))
+#     ax.boxplot([metric_values_0_0, metric_values_0_4], labels=condition_labels)
+#     ax.set_title(f"{metric_name} (With Scaling)\n(p={p_value:.2e})")
+#     ax.set_ylabel('Value')
+#     ax.grid(True, linestyle='--', alpha=0.7)
+#     plt.tight_layout()
+#     # plt.savefig(os.path.join(output_dir, f"{metric_name.replace(' ', '_')}_with_scaling.png"))
+#     # plt.close(fig)
+#     plt.show()
+# # Output statistical details
+# for metric_name, details in statistical_details.items():
+#     print(f"Metric: {metric_name}")
+#     for scaling, stats in details.items():
+#         print(f"  {scaling}:")
+#         print(f"    Temp Basal - Mean: {stats['Temp Basal']['mean']:.2f}, Std: {stats['Temp Basal']['std']:.2f}")
+#         print(f"    Autobolus (paf=0.4) - Mean: {stats['Autobolus (paf=0.4)']['mean']:.2f}, Std: {stats['Autobolus (paf=0.4)']['std']:.2f}")
+#         print(f"    t_stat: {stats['t_stat']:.2f}, p_value: {stats['p_value']:.2e}")
+#     print()
