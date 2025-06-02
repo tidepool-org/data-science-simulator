@@ -75,34 +75,41 @@ def compare_kde_boxplot(
     x_min = min(data_1.min(), data_2.min())
     x_max = max(data_1.max() , data_2.max())
     x_grid = np.linspace(x_min, x_max, 500)
+    try:
+        # KDEs
+        kde_1 = gaussian_kde(data_1, weights=weights, bw_method=bw_method) 
+        kde_2 = gaussian_kde(data_2, weights=weights, bw_method=bw_method)
 
-    # KDEs
-    kde_1 = gaussian_kde(data_1, weights=weights, bw_method=bw_method) 
-    kde_2 = gaussian_kde(data_2, weights=weights, bw_method=bw_method)
+        density_1 = kde_1(x_grid)
+        density_2 = kde_2(x_grid)
 
-    density_1 = kde_1(x_grid)
-    density_2 = kde_2(x_grid)
+        peaks_1, _ = find_peaks(density_1)
+        modes_1 = x_grid[peaks_1]
 
-    peaks_1, _ = find_peaks(density_1)
-    modes_1 = x_grid[peaks_1]
+        peaks_2, _ = find_peaks(density_2)
+        modes_2 = x_grid[peaks_2]
 
-    peaks_2, _ = find_peaks(density_2)
-    modes_2 = x_grid[peaks_2]
+        # Normalize KDEs
+        density_1 /= density_1.max()
+        density_2 /= density_2.max()
 
-    # Normalize KDEs
-    density_1 /= density_1.max()
-    density_2 /= density_2.max()
+        # Add modes to labels
+        print(f"{label_1} (mode(s): {', '.join([f'{m:.1f}' for m in modes_1])})" if len(modes_1) > 0 else label_1)
+        print(f"{label_2} (mode(s): {', '.join([f'{m:.1f}' for m in modes_2])})" if len(modes_2) > 0 else label_2)
+        
+        # Plot
+        fig, ax = plt.subplots(figsize=(6, 6))
 
-    # Add modes to labels
-    print(f"{label_1} (mode(s): {', '.join([f'{m:.1f}' for m in modes_1])})" if len(modes_1) > 0 else label_1)
-    print(f"{label_2} (mode(s): {', '.join([f'{m:.1f}' for m in modes_2])})" if len(modes_2) > 0 else label_2)
+        ax.fill_betweenx(x_grid, (-density_1 * violin_width) - 0.1, -0.1, facecolor=color_1, alpha=1, label=label_1)
+        ax.fill_betweenx(x_grid, 0.1, (density_2 * violin_width) + 0.1, facecolor=color_2, alpha=1, label=label_2)
+
+    except Exception as e:   
+        print(f"Error in KDE calculation: {e}")
+        fig, ax = plt.subplots(figsize=(6, 6))
+        ax.set_title("KDE Error")
+        ax.set_xlabel("Density")
+        ax.set_ylabel(ylabel)
     
-    # Plot
-    fig, ax = plt.subplots(figsize=(6, 6))
-
-    ax.fill_betweenx(x_grid, (-density_1 * violin_width) - 0.1, -0.1, facecolor=color_1, alpha=1, label=label_1)
-    ax.fill_betweenx(x_grid, 0.1, (density_2 * violin_width) + 0.1, facecolor=color_2, alpha=1, label=label_2)
-
     # Boxplots
     data_1_weighted = np.repeat(data_1, (weights * 10000).astype(int))
     data_2_weighted = np.repeat(data_2, (weights * 10000).astype(int))
@@ -172,38 +179,6 @@ def load_histogram_weights(path):
     df = pd.read_csv(path)
     return {row['ibg']: row['proportion'] for _, row in df.iterrows()}
 
-def process_pair_metrics(grouped_files, weights_dict, start_idx=137, hours=2):
-    n = len(grouped_files)
-    metrics_all = np.zeros((n, 5, 2))
-    ibg_values = np.zeros(n)
-    weights = np.zeros(n)
-    insulin_diffs = []
-
-    for idx, (key, files) in enumerate(grouped_files.items()):
-        if not all(files[paf] for paf in PAF_VALUES):
-            continue
-        
-        ibg = float(key.split("_ibg=")[1])
-        if ibg < 70 or ibg > 180:
-            continue
-
-        df0 = pd.concat([load_result(f)[1] for f in files["paf=0.0"]])
-        df1 = pd.concat([load_result(f)[1] for f in files["paf=0.4"]])
-
-        slice_ = slice(start_idx, start_idx + hours * 12)
-        m0 = calculate_metrics(df0.iloc[slice_])
-        m1 = calculate_metrics(df1.iloc[slice_])
-
-        for j in range(5):
-            metrics_all[idx, j] = [m0[j], m1[j]]
-        
-        
-        ibg_values[idx] = ibg
-        weights[idx] = weights_dict.get(ibg, 0)
-        insulin_diffs.append(m0[3] - m1[3])
-    
-    return metrics_all, ibg_values, weights, insulin_diffs
-
 def summarize_and_plot(metrics_all, weights):
     summary = {}
     for i, name in enumerate(METRIC_NAMES):
@@ -241,13 +216,146 @@ def print_summary(summary):
             else:
                 print(f"  {group}: {vals:.2f}")
 
+def process_pair_metrics(grouped_files, weights_dict, start_idx=137, hours=8):
+    n = len(grouped_files)
+    metrics_all = np.zeros((n, 5, 2))
+    ibg_values = np.zeros(n)
+    weights = np.zeros(n)
+    insulin_diffs = []
+
+    for idx, (key, files) in enumerate(grouped_files.items()):
+        if not all(files[paf] for paf in PAF_VALUES):
+            continue
+        
+        ibg = float(key.split("_ibg=")[1])
+        # if ibg < 70 or ibg > 180:
+        #     continue
+
+        df0 = load_result(files["paf=0.0"][0])[1]
+        df1 = load_result(files["paf=0.4"][0])[1]
+        
+        if hours == -1:
+            slice_ = slice(start_idx, start_idx + len(df0))
+        else:
+            slice_ = slice(start_idx, start_idx + hours * 12)
+            
+        m0 = calculate_metrics(df0.iloc[slice_])
+        m1 = calculate_metrics(df1.iloc[slice_])
+
+        for j in range(5):
+            metrics_all[idx, j] = [m0[j], m1[j]]
+        
+        
+        ibg_values[idx] = ibg
+        weights[idx] = weights_dict.get(ibg, 0)
+        insulin_diffs.append(m0[3] - m1[3])
+    
+    return metrics_all, ibg_values, weights, insulin_diffs
+
 # --- Run Pipeline ---
 if __name__ == "__main__":
+    # all_files = list(RESULT_DIR.glob("*.tsv"))
+    # grouped = group_files_by_user_ibg(all_files)
+    # weights_dict = load_histogram_weights(HISTOGRAM_PATH)
+
+    # metrics_all, ibg_values, weights, insulin_diffs = process_pair_metrics(grouped, weights_dict)
+
+    # summary = summarize_and_plot(metrics_all, weights)
+    # print_summary(summary)
+
     all_files = list(RESULT_DIR.glob("*.tsv"))
     grouped = group_files_by_user_ibg(all_files)
     weights_dict = load_histogram_weights(HISTOGRAM_PATH)
 
-    metrics_all, ibg_values, weights, insulin_diffs = process_pair_metrics(grouped, weights_dict)
+    # Initialize storage
+    tir_results = {
+        "hour": [],
+        "mean_temp_basal": [],
+        "std_temp_basal": [],
+        "mean_autobolus": [],
+        "std_autobolus": [],
+        "median_temp_basal": [],
+        "q1_temp_basal": [],
+        "q3_temp_basal": [],
+        "median_autobolus": [],
+        "q1_autobolus": [],
+        "q3_autobolus": []
+    }
 
-    summary = summarize_and_plot(metrics_all, weights)
-    print_summary(summary)
+    for i in range(1, 9):
+        metrics_all, ibg_values, weights, insulin_diffs = process_pair_metrics(grouped, weights_dict, hours=i)
+
+        # Extract metric 0 (Time in Range)
+        tir_temp_basal = metrics_all[:, 0, 0]
+        tir_autobolus = metrics_all[:, 0, 1]
+
+        # Mean & Std
+        mean_tb, std_tb = weighted_mean_std(tir_temp_basal, weights)
+        mean_ab, std_ab = weighted_mean_std(tir_autobolus, weights)
+
+        # Median, Q1, Q3
+        median_tb = weighted_percentile(tir_temp_basal, weights, 50)
+        q1_tb = weighted_percentile(tir_temp_basal, weights, 25)
+        q3_tb = weighted_percentile(tir_temp_basal, weights, 75)
+
+        median_ab = weighted_percentile(tir_autobolus, weights, 50)
+        q1_ab = weighted_percentile(tir_autobolus, weights, 25)
+        q3_ab = weighted_percentile(tir_autobolus, weights, 75)
+
+        # Store
+        tir_results["hour"].append(i)
+        tir_results["mean_temp_basal"].append(mean_tb)
+        tir_results["std_temp_basal"].append(std_tb)
+        tir_results["mean_autobolus"].append(mean_ab)
+        tir_results["std_autobolus"].append(std_ab)
+        tir_results["median_temp_basal"].append(median_tb)
+        tir_results["q1_temp_basal"].append(q1_tb)
+        tir_results["q3_temp_basal"].append(q3_tb)
+        tir_results["median_autobolus"].append(median_ab)
+        tir_results["q1_autobolus"].append(q1_ab)
+        tir_results["q3_autobolus"].append(q3_ab)
+
+    tir_df = pd.DataFrame(tir_results)
+
+    # Assume tir_df was created from the previous step
+    fig, axes = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+
+    # === 1. Mean ± Std ===
+    axes[0].plot(tir_df["hour"], tir_df["mean_temp_basal"], label="Temp Basal (Mean)", color="blue")
+    axes[0].fill_between(tir_df["hour"],
+                        tir_df["mean_temp_basal"] - tir_df["std_temp_basal"],
+                        tir_df["mean_temp_basal"] + tir_df["std_temp_basal"],
+                        color="blue", alpha=0.2, label="Temp Basal ± Std")
+
+    axes[0].plot(tir_df["hour"], tir_df["mean_autobolus"], label="Autobolus (Mean)", color="orange")
+    axes[0].fill_between(tir_df["hour"],
+                        tir_df["mean_autobolus"] - tir_df["std_autobolus"],
+                        tir_df["mean_autobolus"] + tir_df["std_autobolus"],
+                        color="orange", alpha=0.2, label="Autobolus ± Std")
+
+    axes[0].set_title("Mean ± Std of Time in Range Over Time")
+    axes[0].set_ylabel("TIR (%)")
+    axes[0].legend()
+    axes[0].grid(True)
+
+    # === 2. Median with IQR ===
+    axes[1].plot(tir_df["hour"], tir_df["median_temp_basal"], label="Temp Basal (Median)", color="blue")
+    axes[1].fill_between(tir_df["hour"],
+                        tir_df["q1_temp_basal"],
+                        tir_df["q3_temp_basal"],
+                        color="blue", alpha=0.2, label="Temp Basal IQR")
+
+    axes[1].plot(tir_df["hour"], tir_df["median_autobolus"], label="Autobolus (Median)", color="orange")
+    axes[1].fill_between(tir_df["hour"],
+                        tir_df["q1_autobolus"],
+                        tir_df["q3_autobolus"],
+                        color="orange", alpha=0.2, label="Autobolus IQR")
+
+    axes[1].set_title("Median and IQR of Time in Range Over Time")
+    axes[1].set_xlabel("Time Window (hours)")
+    axes[1].set_ylabel("TIR (%)")
+    axes[1].legend()
+    axes[1].grid(True)
+
+    plt.tight_layout()
+    plt.show()
