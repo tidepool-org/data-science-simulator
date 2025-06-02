@@ -216,24 +216,59 @@ def print_summary(summary):
             else:
                 print(f"  {group}: {vals:.2f}")
 
-def process_pair_metrics(grouped_files, weights_dict, start_idx=137, hours=8):
-    n = len(grouped_files)
+def load_pair_data(grouped_files):
+    """
+    Load all paired data files once and return structured data.
+    
+    Returns:
+        dict: Dictionary with structure {key: {'ibg': float, 'df0': DataFrame, 'df1': DataFrame}}
+    """
+    pair_data = {}
+    
+    for key, files in grouped_files.items():
+        if not all(files[paf] for paf in PAF_VALUES):
+            continue
+            
+        ibg = float(key.split("_ibg=")[1])
+        
+        # Load both dataframes
+        df0 = load_result(files["paf=0.0"][0])[1]
+        df1 = load_result(files["paf=0.4"][0])[1]
+        
+        pair_data[key] = {
+            'ibg': ibg,
+            'df0': df0,
+            'df1': df1
+        }
+    
+    return pair_data
+
+
+def calculate_pair_metrics(pair_data, weights_dict, start_idx=137, hours=8):
+    """
+    Calculate metrics for pre-loaded paired data.
+    
+    Args:
+        pair_data: Dictionary from load_pair_data()
+        weights_dict: Dictionary of weights by IBG value
+        start_idx: Starting index for slicing
+        hours: Number of hours to analyze (-1 for all data)
+    
+    Returns:
+        tuple: (metrics_all, ibg_values, weights, insulin_diffs)
+    """
+    n = len(pair_data)
     metrics_all = np.zeros((n, 5, 2))
     ibg_values = np.zeros(n)
     weights = np.zeros(n)
     insulin_diffs = []
-
-    for idx, (key, files) in enumerate(grouped_files.items()):
-        if not all(files[paf] for paf in PAF_VALUES):
-            continue
+    
+    for idx, (key, data) in enumerate(pair_data.items()):
+        ibg = data['ibg']
+        df0 = data['df0']
+        df1 = data['df1']
         
-        ibg = float(key.split("_ibg=")[1])
-        # if ibg < 70 or ibg > 180:
-        #     continue
-
-        df0 = load_result(files["paf=0.0"][0])[1]
-        df1 = load_result(files["paf=0.4"][0])[1]
-        
+        # Apply time slicing
         if hours == -1:
             slice_ = slice(start_idx, start_idx + len(df0))
         else:
@@ -245,7 +280,6 @@ def process_pair_metrics(grouped_files, weights_dict, start_idx=137, hours=8):
         for j in range(5):
             metrics_all[idx, j] = [m0[j], m1[j]]
         
-        
         ibg_values[idx] = ibg
         weights[idx] = weights_dict.get(ibg, 0)
         insulin_diffs.append(m0[3] - m1[3])
@@ -254,18 +288,19 @@ def process_pair_metrics(grouped_files, weights_dict, start_idx=137, hours=8):
 
 # --- Run Pipeline ---
 if __name__ == "__main__":
-    # all_files = list(RESULT_DIR.glob("*.tsv"))
-    # grouped = group_files_by_user_ibg(all_files)
-    # weights_dict = load_histogram_weights(HISTOGRAM_PATH)
+    all_files = list(RESULT_DIR.glob("*.tsv"))
+    grouped = group_files_by_user_ibg(all_files)
+    weights_dict = load_histogram_weights(HISTOGRAM_PATH)
 
     # metrics_all, ibg_values, weights, insulin_diffs = process_pair_metrics(grouped, weights_dict)
 
     # summary = summarize_and_plot(metrics_all, weights)
     # print_summary(summary)
 
-    all_files = list(RESULT_DIR.glob("*.tsv"))
-    grouped = group_files_by_user_ibg(all_files)
-    weights_dict = load_histogram_weights(HISTOGRAM_PATH)
+    # Load all paired data once
+    print("Loading paired data...")
+    pair_data = load_pair_data(grouped)
+    print(f"Loaded {len(pair_data)} paired datasets")
 
     # Initialize storage
     tir_results = {
@@ -282,8 +317,12 @@ if __name__ == "__main__":
         "q3_autobolus": []
     }
 
+    # Calculate metrics for different time windows
     for i in range(1, 9):
-        metrics_all, ibg_values, weights, insulin_diffs = process_pair_metrics(grouped, weights_dict, hours=i)
+        print(f"Processing hour {i}...")
+        metrics_all, ibg_values, weights, insulin_diffs = calculate_pair_metrics(
+            pair_data, weights_dict, hours=i
+        )
 
         # Extract metric 0 (Time in Range)
         tir_temp_basal = metrics_all[:, 0, 0]
@@ -302,7 +341,7 @@ if __name__ == "__main__":
         q1_ab = weighted_percentile(tir_autobolus, weights, 25)
         q3_ab = weighted_percentile(tir_autobolus, weights, 75)
 
-        # Store
+        # Store results
         tir_results["hour"].append(i)
         tir_results["mean_temp_basal"].append(mean_tb)
         tir_results["std_temp_basal"].append(std_tb)
