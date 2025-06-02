@@ -1,213 +1,253 @@
-import os
-import glob
+# --- Imports ---
+from pathlib import Path
 import numpy as np
 import pandas as pd
-from tidepool_data_science_simulator.evaluation.inspect_results import load_results, load_result, collect_sims_and_results
-from tidepool_data_science_simulator.utils import DATA_DIR
+from collections import defaultdict
+from scipy.stats import ttest_ind, mannwhitneyu, gaussian_kde
+from scipy.signal import find_peaks
 
 import matplotlib.pyplot as plt
-import seaborn as sns
+from tidepool_data_science_simulator.utils import DATA_DIR
+from tidepool_data_science_simulator.evaluation.inspect_results import load_result
+from tidepool_data_science_metrics.glucose.glucose import (
+    percent_values_ge_70_le_180, percent_values_gt_180,
+    percent_values_lt_70, blood_glucose_risk_index,
+)
 
-from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
-from tidepool_data_science_metrics.glucose.glucose import percent_values_ge_70_le_180, blood_glucose_risk_index
-from scipy.stats import lognorm
-from scipy.stats import ttest_ind
-from scipy.stats import gaussian_kde
+# --- Configuration ---
+PROJECT_ROOT = Path(DATA_DIR) / "processed"
+RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_basal_cap2025_05_28_T_18_00_04"
+HISTOGRAM_PATH = Path("/Users/mconn/Downloads/BG_Distribution_Histogram.csv")
+METRIC_NAMES = [
+    'Percent Time in Range (70 - 180 mg/dL)', 
+    'Percent below Range (< 70 mg/dL)', 
+    'Percent Time above Range (> 180 mg/dL)', 
+    'Cumulative Insulin (U)', 
+    'BGRI'
+]
+PAF_VALUES = ["paf=0.0", "paf=0.4"]
 
+# --- Core Functions ---
+def weighted_percentile(values, weights, percentiles):
+    sorted_idx = np.argsort(values)
+    cum_weights = np.cumsum(weights[sorted_idx])
+    total = cum_weights[-1]
+    pct = 100 * cum_weights / total
+    return np.interp(percentiles, pct, values[sorted_idx])
 
-def calculate_cumulative_insulin(df):
+def weighted_iqr(values, weights):
+    return weighted_percentile(values, weights, [75])[0] - weighted_percentile(values, weights, [25])[0]
+
+def weighted_mean_std(values, weights):
+    mean = np.average(values, weights=weights)
+    var = np.average((values - mean) ** 2, weights=weights)
+    return mean, np.sqrt(var)
+ 
+def compare_kde_boxplot(
+    data_1,
+    data_2,
+    weights=None,
+    title="Comparison",
+    ylabel="Value",
+    label_1="Dataset 1",
+    label_2="Dataset 2",
+    color_1="#627cff",
+    color_2="#271b45",
+    bw_method=0.2,
+    violin_width=0.4,
+    box_width=0.05
+):
     """
-    Calculate cumulative insulin delivered from a DataFrame.
-    
+    Compare two datasets using KDEs and boxplots on a shared vertical axis.
+
     Parameters:
-    df (pd.DataFrame): DataFrame containing insulin data with columns 'delivered_basal_insulin' and 'true_bolus'.
+        data1: First dataset (1D array).
+        data2: Second dataset (1D array).
+        weights: Optional weights for computing KDE.
+        title: Plot title.
+        ylabel: Y-axis label.
+        label1, label2: Labels for datasets.
+        color1, color2: Colors for KDE and boxplot lines.
+        bw_method: Bandwidth for KDE.
+        violin_width: Max width of violin KDEs.
+        box_width: Width of boxplots.
+    """
+    x_min = min(data_1.min(), data_2.min())
+    x_max = max(data_1.max() , data_2.max())
+    x_grid = np.linspace(x_min, x_max, 500)
+
+    # KDEs
+    kde_1 = gaussian_kde(data_1, weights=weights, bw_method=bw_method) 
+    kde_2 = gaussian_kde(data_2, weights=weights, bw_method=bw_method)
+
+    density_1 = kde_1(x_grid)
+    density_2 = kde_2(x_grid)
+
+    peaks_1, _ = find_peaks(density_1)
+    modes_1 = x_grid[peaks_1]
+
+    peaks_2, _ = find_peaks(density_2)
+    modes_2 = x_grid[peaks_2]
+
+    # Normalize KDEs
+    density_1 /= density_1.max()
+    density_2 /= density_2.max()
+
+    # Add modes to labels
+    print(f"{label_1} (mode(s): {', '.join([f'{m:.1f}' for m in modes_1])})" if len(modes_1) > 0 else label_1)
+    print(f"{label_2} (mode(s): {', '.join([f'{m:.1f}' for m in modes_2])})" if len(modes_2) > 0 else label_2)
     
-    Returns:
-    tuple: Cumulative basal and bolus insulin.
-    """
-    cumulative_basal = df['delivered_basal_insulin'].sum()
-    cumulative_bolus = df['true_bolus'].sum()
-    return cumulative_basal + cumulative_bolus
+    # Plot
+    fig, ax = plt.subplots(figsize=(6, 6))
 
-def calculate_metrics(df):
-    """
-    Calculate key metrics from a DataFrame containing blood glucose and insulin data.
+    ax.fill_betweenx(x_grid, (-density_1 * violin_width) - 0.1, -0.1, facecolor=color_1, alpha=1, label=label_1)
+    ax.fill_betweenx(x_grid, 0.1, (density_2 * violin_width) + 0.1, facecolor=color_2, alpha=1, label=label_2)
 
-    Parameters:
-    df (pd.DataFrame): DataFrame containing simulation data with at least the following columns:
-                       - 'bg': Blood glucose values.
-                       - 'delivered_basal_insulin': Delivered basal insulin values.
-                       - 'true_bolus': Delivered bolus insulin values.
+    # Boxplots
+    data_1_weighted = np.repeat(data_1, (weights * 10000).astype(int))
+    data_2_weighted = np.repeat(data_2, (weights * 10000).astype(int))
 
-    Returns:
-    tuple: A tuple containing the following metrics:
-           - tir (float): Time in Range (percentage of blood glucose values between 70 and 180 mg/dL).
-           - cumulative_insulin (float): Total cumulative insulin delivered (basal + bolus).
-           - bgri (float): Blood Glucose Risk Index (a measure of glucose variability and risk).
-    """
-    # Calculate Time in Range (TIR) as the percentage of blood glucose values within the target range (70-180 mg/dL)
-    tir = percent_values_ge_70_le_180(df['bg'])
+    box_data = [data_1_weighted, data_2_weighted]
+    positions = [-0.05, 0.05]
+    box = ax.boxplot(box_data, vert=True, positions=positions, widths=box_width, patch_artist=True)
 
-    # Calculate the total cumulative insulin delivered (sum of basal and bolus insulin)
-    cumulative_insulin = calculate_cumulative_insulin(df)
+    line_width = 2.5
+    for i, color in enumerate([color_1, color_2]):
+        box['boxes'][i].set_facecolor('none')
+        box['boxes'][i].set_edgecolor(color)
+        box['boxes'][i].set_linewidth(line_width)
 
-    # Calculate the Blood Glucose Risk Index (BGRI), which quantifies glucose variability and risk
-    bgri = blood_glucose_risk_index(df['bg'])[2]
+        box['medians'][i].set_color(color)
+        box['medians'][i].set_linewidth(line_width)
 
-    return tir, cumulative_insulin, bgri
+        for j in [2*i, 2*i+1]:  # whiskers and caps
+            box['whiskers'][j].set_color(color)
+            box['whiskers'][j].set_linewidth(line_width)
+            box['caps'][j].set_color(color)
+            box['caps'][j].set_linewidth(line_width)
 
-# Directory containing the files
-directory = '/Users/mconn/tidepool/repositories/data-science-simulator/tidepool_data_science_simulator/projects/autobolus_application_factor/'
+        if 'fliers' in box and i < len(box['fliers']):
+            box['fliers'][i].set_markeredgecolor(color)
+            box['fliers'][i].set_linewidth(line_width)
 
-processed_dir = os.path.join(DATA_DIR, "processed/")
-result_dir = 'autobolus_tempbasal_comparison_2025_04_10_T_09_52_00/'
-result_path = os.path.join(processed_dir, result_dir)
+    ax.set_xlabel('Density')
+    ax.set_ylabel(ylabel)
+    ax.set_xticks([])
+    ax.set_xticklabels([])
+    ax.set_title(title)
+    ax.legend(frameon=False)
 
-# Get list of files in the directory
-files_0_0 = glob.glob(os.path.join(result_path, '*paf=0.0*tsv'))
-files_0_4 = glob.glob(os.path.join(result_path, '*paf=0.4*tsv'))
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
 
-# Group files by user and IBG
-pairs = {}
-for file in files_0_0 + files_0_4:
-    base_name = os.path.basename(file)
-    base_name = base_name.replace(".tsv", "")
-
-    # Extract vp, patient_id, and ibg explicitly from the file name by splitting out tags, e.g., "vp=1_patient_id=1_ibg=0.0_paf=0.4"
-    parts = [seg for seg in base_name.split("_") if "=" in seg]
-    data = dict(seg.split("=", 1) for seg in parts) 
-
-    user_ibg_key = f"vp={data['vp']}_patient_id={data['id']}_ibg={data['ibg']}"
-    paf_value = "paf=0.0" if "paf=0.0" in base_name else "paf=0.4"
-
-    if user_ibg_key not in pairs:
-        pairs[user_ibg_key] = {"paf=0.0": [], "paf=0.4": []}
-
-    pairs[user_ibg_key][paf_value].append(file)
-
-# Load the histogram data
-histogram_file = '/Users/mconn/Downloads/BG_Distribution_Histogram.csv'
-histogram_df = pd.read_csv(histogram_file)
-
-# Initialize a numpy array to store metrics
-metrics_all = np.zeros((len(pairs), 3, 2)) 
-
-# Initialize an array to store IBG values corresponding to each metric
-ibg_values = np.zeros(len(pairs))
-
-# Initialize weights array
-weights = np.zeros(len(pairs))
-
-# Loop through each user/IBG group and process files
-for idx, (user_ibg_key, paf_files) in enumerate(pairs.items()):
-    if paf_files["paf=0.0"] and paf_files["paf=0.4"]:
-        dfs_0_0 = [load_result(file)[1] for file in paf_files["paf=0.0"]]
-        dfs_0_4 = [load_result(file)[1] for file in paf_files["paf=0.4"]]
-
-        # Combine dataframes for each PAF value
-        df_0_0 = pd.concat(dfs_0_0, ignore_index=True)
-        df_0_4 = pd.concat(dfs_0_4, ignore_index=True)
-
-        # Calculate metrics for both conditions
-        metrics_0_0 = calculate_metrics(df_0_0)
-        metrics_0_4 = calculate_metrics(df_0_4)
-
-        # Extract IBG value from the user_ibg_key
-        ibg = float(user_ibg_key.split("_ibg=")[1])
-        ibg_values[idx] = ibg
-
-        # Get the proportion corresponding to the IBG
-        proportion = histogram_df.loc[histogram_df['ibg'] == ibg, 'proportion']
-        if proportion.empty:
-            raise ValueError(f"No matching proportion found for IBG={ibg} in the histogram file.")
-        weights[idx] = proportion.values[0]
-
-        # Store metrics in the numpy array
-        metrics_all[idx] = [
-            [metrics_0_0[0], metrics_0_4[0]],  # TIR
-            [metrics_0_0[1], metrics_0_4[1]],  # Cumulative Insulin
-            [metrics_0_0[2], metrics_0_4[2]]   # BGRI
-        ]
-
-
-# Directory to save plots
-output_dir = '/Users/mconn/Library/CloudStorage/GoogleDrive-mark.connolly@tidepool.org/My Drive/projects/Sensitivity Analysis/processed_data/compare_tempbasal_autobolus'
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
-
-# Create weighted box plots comparing each metric between the two conditions
-metric_names = ['Time in Range (TIR)', 'Cumulative Insulin', 'Blood Glucose Risk Index (BGRI)']
-condition_labels = ['Temp Basal', 'Autobolus (paf=0.4)']
-
-# Initialize a dictionary to store statistical details
-statistical_details = {}
-
-# Without weighting
-for i, metric_name in enumerate(metric_names):
-    metric_values_0_0 = metrics_all[:, i, 0]
-    metric_values_0_4 = metrics_all[:, i, 1]
-
-    # Perform a t-test between the two conditions
-    t_stat, p_value = ttest_ind(metric_values_0_0, metric_values_0_4, equal_var=False)
-
-    # Save statistical details
-    statistical_details[metric_name] = {
-        "Without Scaling": {
-            "Temp Basal": {"mean": np.mean(metric_values_0_0), "std": np.std(metric_values_0_0)},
-            "Autobolus (paf=0.4)": {"mean": np.mean(metric_values_0_4), "std": np.std(metric_values_0_4)},
-            "t_stat": t_stat,
-            "p_value": p_value
-        }
-    }
-
-    # Save the plot
-    fig, ax = plt.subplots(figsize=(5, 5))
-    # ax.boxplot([metric_values_0_0, metric_values_0_4], labels=condition_labels)
-    x_grid = np.linspace(metric_values_0_0.min() - 1, metric_values_0_0.max() + 1, 500)
-    kde_0_0 = gaussian_kde(metric_values_0_0, weights=weights, bw_method=0.2)
-    kde_0_4 = gaussian_kde(metric_values_0_4, weights=weights, bw_method=0.2)
-
-    ax.plot(x_grid, kde_0_0(x_grid), label='Temp Basal', color='blue')
-    ax.set_title(f"{metric_name} (Without Scaling)\n(p={p_value:.2e})")
-    ax.set_ylabel('Value')
-    ax.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, f"{metric_name.replace(' ', '_')}_without_scaling.png"))
-    plt.close(fig)
     plt.show()
 
-# # With weighting
-# for i, metric_name in enumerate(metric_names):
-#     metric_values_0_0 = np.repeat(metrics_all[:, i, 0], (weights * 10000).astype(int))
-#     metric_values_0_4 = np.repeat(metrics_all[:, i, 1], (weights * 10000).astype(int))
+def calculate_cumulative_insulin(df):
+    return df['delivered_basal_insulin'].sum() + df['true_bolus'].sum()
 
-#     # Perform a t-test between the two conditions
-#     t_stat, p_value = ttest_ind(metric_values_0_0, metric_values_0_4, equal_var=False)
+def calculate_metrics(df):
+    return (
+        percent_values_ge_70_le_180(df['bg']),
+        percent_values_lt_70(df['bg']),
+        percent_values_gt_180(df['bg']),
+        calculate_cumulative_insulin(df),
+        blood_glucose_risk_index(df['bg'])[2],
+    )
 
-#     # Save statistical details
-#     statistical_details[metric_name]["With Scaling"] = {
-#         "Temp Basal": {"mean": np.mean(metric_values_0_0), "std": np.std(metric_values_0_0)},
-#         "Autobolus (paf=0.4)": {"mean": np.mean(metric_values_0_4), "std": np.std(metric_values_0_4)},
-#         "t_stat": t_stat,
-#         "p_value": p_value
-#     }
+def group_files_by_user_ibg(files):
+    grouped = defaultdict(lambda: {paf: [] for paf in PAF_VALUES})
+    for file in files:
+        parts = {kv.split("=")[0]: kv.split("=")[1] for kv in Path(file).stem.split("_") if "=" in kv}
+        key = f"vp={parts['vp']}_patient_id={parts['id']}_ibg={parts['ibg']}"
 
-#     # Save the plot
-#     fig, ax = plt.subplots(figsize=(5, 5))
-#     ax.boxplot([metric_values_0_0, metric_values_0_4], labels=condition_labels)
-#     ax.set_title(f"{metric_name} (With Scaling)\n(p={p_value:.2e})")
-#     ax.set_ylabel('Value')
-#     ax.grid(True, linestyle='--', alpha=0.7)
-#     plt.tight_layout()
-#     # plt.savefig(os.path.join(output_dir, f"{metric_name.replace(' ', '_')}_with_scaling.png"))
-#     # plt.close(fig)
-#     plt.show()
-# # Output statistical details
-# for metric_name, details in statistical_details.items():
-#     print(f"Metric: {metric_name}")
-#     for scaling, stats in details.items():
-#         print(f"  {scaling}:")
-#         print(f"    Temp Basal - Mean: {stats['Temp Basal']['mean']:.2f}, Std: {stats['Temp Basal']['std']:.2f}")
-#         print(f"    Autobolus (paf=0.4) - Mean: {stats['Autobolus (paf=0.4)']['mean']:.2f}, Std: {stats['Autobolus (paf=0.4)']['std']:.2f}")
-#         print(f"    t_stat: {stats['t_stat']:.2f}, p_value: {stats['p_value']:.2e}")
-#     print()
+        file_str = str(file) 
+        for paf in PAF_VALUES:
+            if paf in file_str:
+                grouped[key][paf].append(file)
+    return grouped
+
+def load_histogram_weights(path):
+    df = pd.read_csv(path)
+    return {row['ibg']: row['proportion'] for _, row in df.iterrows()}
+
+def process_pair_metrics(grouped_files, weights_dict, start_idx=137, hours=2):
+    n = len(grouped_files)
+    metrics_all = np.zeros((n, 5, 2))
+    ibg_values = np.zeros(n)
+    weights = np.zeros(n)
+    insulin_diffs = []
+
+    for idx, (key, files) in enumerate(grouped_files.items()):
+        if not all(files[paf] for paf in PAF_VALUES):
+            continue
+        
+        ibg = float(key.split("_ibg=")[1])
+        if ibg < 70 or ibg > 180:
+            continue
+
+        df0 = pd.concat([load_result(f)[1] for f in files["paf=0.0"]])
+        df1 = pd.concat([load_result(f)[1] for f in files["paf=0.4"]])
+
+        slice_ = slice(start_idx, start_idx + hours * 12)
+        m0 = calculate_metrics(df0.iloc[slice_])
+        m1 = calculate_metrics(df1.iloc[slice_])
+
+        for j in range(5):
+            metrics_all[idx, j] = [m0[j], m1[j]]
+        
+        
+        ibg_values[idx] = ibg
+        weights[idx] = weights_dict.get(ibg, 0)
+        insulin_diffs.append(m0[3] - m1[3])
+    
+    return metrics_all, ibg_values, weights, insulin_diffs
+
+def summarize_and_plot(metrics_all, weights):
+    summary = {}
+    for i, name in enumerate(METRIC_NAMES):
+        data_1 = metrics_all[:, i, 0]
+        data_2 = metrics_all[:, i, 1]
+
+        try:
+            compare_kde_boxplot(data_1, data_2, weights, title=name,
+                                ylabel=name, label_1="Temp Basal", label_2="Autobolus (0.4)")
+        except Exception as e:
+            print(f"Error plotting {name}: {e}")
+            continue
+
+        t_stat, p_val = ttest_ind(data_1, data_2, equal_var=False)
+        u_stat, mw_p_val = mannwhitneyu(data_1, data_2, alternative='two-sided')
+        med1, med2 = weighted_percentile(data_1, weights, 50), weighted_percentile(data_2, weights, 50)
+        iqr1, iqr2 = weighted_iqr(data_1, weights), weighted_iqr(data_2, weights)
+        mean1, std1 = weighted_mean_std(data_1, weights)
+        mean2, std2 = weighted_mean_std(data_2, weights)
+
+        summary[name] = {
+            "Temp Basal": {"mean": mean1, "std": std1, "median": med1, "iqr": iqr1},
+            "Autobolus (0.4)": {"mean": mean2, "std": std2, "median": med2, "iqr": iqr2},
+            "t_stat": t_stat, "p_value": p_val,
+            "mannwhitney_u_stat": u_stat, "mannwhitney_p_value": mw_p_val
+        }
+    return summary
+
+def print_summary(summary):
+    for metric, stats in summary.items():
+        print(f"\nMetric: {metric}")
+        for group, vals in stats.items():
+            if isinstance(vals, dict):
+                print(f"  {group}: Mean={vals['mean']:.2f}, Std={vals['std']:.2f}, Median={vals['median']:.2f}, IQR={vals['iqr']:.2f}")
+            else:
+                print(f"  {group}: {vals:.2f}")
+
+# --- Run Pipeline ---
+if __name__ == "__main__":
+    all_files = list(RESULT_DIR.glob("*.tsv"))
+    grouped = group_files_by_user_ibg(all_files)
+    weights_dict = load_histogram_weights(HISTOGRAM_PATH)
+
+    metrics_all, ibg_values, weights, insulin_diffs = process_pair_metrics(grouped, weights_dict)
+
+    summary = summarize_and_plot(metrics_all, weights)
+    print_summary(summary)
