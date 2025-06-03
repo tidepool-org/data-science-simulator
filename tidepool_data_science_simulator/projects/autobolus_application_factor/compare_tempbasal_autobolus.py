@@ -286,22 +286,13 @@ def calculate_pair_metrics(pair_data, weights_dict, start_idx=137, hours=8):
     
     return metrics_all, ibg_values, weights, insulin_diffs
 
-# --- Run Pipeline ---
-if __name__ == "__main__":
-    all_files = list(RESULT_DIR.glob("*.tsv"))
-    grouped = group_files_by_user_ibg(all_files)
-    weights_dict = load_histogram_weights(HISTOGRAM_PATH)
 
-    # metrics_all, ibg_values, weights, insulin_diffs = process_pair_metrics(grouped, weights_dict)
-
-    # summary = summarize_and_plot(metrics_all, weights)
-    # print_summary(summary)
-
-    # Load all paired data once
-    print("Loading paired data...")
-    pair_data = load_pair_data(grouped)
-    print(f"Loaded {len(pair_data)} paired datasets")
-
+def plot_tir_over_time(pair_data, weights_dict):
+    """
+    Plot Time in Range (TIR) metrics over time.
+    
+    This function is a placeholder for the plotting logic.
+    """
     # Initialize storage
     tir_results = {
         "hour": [],
@@ -398,3 +389,25 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
+
+# --- Run Pipeline ---
+if __name__ == "__main__":
+    all_files = list(RESULT_DIR.glob("*.tsv"))
+    grouped = group_files_by_user_ibg(all_files)
+    pair_data = load_pair_data(grouped)
+    
+    weights_dict = load_histogram_weights(HISTOGRAM_PATH)
+
+    metrics_all, ibg_values, weights, insulin_diffs = calculate_pair_metrics(pair_data, weights_dict)
+    summary = summarize_and_plot(metrics_all, weights)
+    print_summary(summary)
+
+    # Load all paired data once
+    print("Loading paired data...")
+    
+    print(f"Loaded {len(pair_data)} paired datasets")
+
+    # Plot TIR over time`
+    plot_tir_over_time(pair_data, weights_dict)
+
+    
