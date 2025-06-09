@@ -15,6 +15,8 @@
   "maximum_autobolus": 0.0,
   "partial_application_factor": 0.0,
   "default_absorption_times": [
+    5.0,
+    30.0,
     120.0,
     180.0,
     240.0

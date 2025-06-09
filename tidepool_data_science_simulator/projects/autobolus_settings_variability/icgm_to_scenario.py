@@ -280,7 +280,7 @@ def create_basic_scenario_json(patient_id: str, duration_hours: float, settings:
             "risk_description": "Autobolus/TBR comparison with incorrect settings",
             "config_format_version": "v1.0"
         },
-        "base_config": "reusable.simulations.base_median_swift",
+        "base_config": "reusable.simulations.base_median_autobolus_v1_2",
         "override_config": [
             {
                 "sim_id": f"scenario_{patient_id}",
@@ -341,7 +341,6 @@ def create_basic_scenario_json(patient_id: str, duration_hours: float, settings:
                     "settings": {
                         "suspend_threshold": settings['suspend_threshold'],
                         "partial_application_factor": 0.4,
-                        "include_positive_velocity_and_RC": False,
                         "max_bolus": 20
                     }
                 }

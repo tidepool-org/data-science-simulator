@@ -50,7 +50,17 @@ CONTROLLER_MODEL_NAME_MAP = {
     "rapid_acting_adult": [360, 75],
     "rapid_acting_child": [360, 65],
     "walsh": [120, 15],
-    "fiasp": [360, 55]
+    "fiasp": [360, 55],
+    "theoretical_fast_5": [20, 120],
+    "theoretical_fast_3":[20, 240],
+    "theoretical_fast_1": [29, 300],
+    "theoretical_fast_4": [20, 240],
+    "theoretical_fast_2": [29, 300],
+    "u500": [360, 1110],
+    "regular": [360, 420],
+    "nph": [480, 1320],
+    "degludec": [540, 1440],
+    "glargine": [540, 1440]
 }
 
 

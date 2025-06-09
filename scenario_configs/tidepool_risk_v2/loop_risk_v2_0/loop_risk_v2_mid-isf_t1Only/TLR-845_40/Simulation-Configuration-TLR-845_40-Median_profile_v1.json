@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "risk-id": "TLR-845_40",
+    "simulation_id": "TLR-845_40-median",
+    "risk_description": "Insufficient override 40",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_80_median_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.median_preset_40_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.median_preset_40_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.median_preset_40_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+    }
+  ]
+}
