@@ -16,7 +16,10 @@ from tidepool_data_science_metrics.glucose.glucose import (
 
 # --- Configuration ---
 PROJECT_ROOT = Path(DATA_DIR) / "processed"
+RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_basal_cap_PAF_09_2025_06_03_T_11_13_54"
 RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_basal_cap2025_05_28_T_18_00_04"
+RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_basal_cap_PAF_04_RC_true2025_06_03_T_12_08_27"
+
 HISTOGRAM_PATH = Path("/Users/mconn/Downloads/BG_Distribution_Histogram.csv")
 METRIC_NAMES = [
     'Percent Time in Range (70 - 180 mg/dL)', 
@@ -75,6 +78,7 @@ def compare_kde_boxplot(
     x_min = min(data_1.min(), data_2.min())
     x_max = max(data_1.max() , data_2.max())
     x_grid = np.linspace(x_min, x_max, 500)
+
     try:
         # KDEs
         kde_1 = gaussian_kde(data_1, weights=weights, bw_method=bw_method) 
@@ -231,6 +235,9 @@ def load_pair_data(grouped_files):
             
         ibg = float(key.split("_ibg=")[1])
         
+        if not (70 <= ibg <= 180):
+            continue  # Skip if IBG is not in the desired range
+        
         # Load both dataframes
         df0 = load_result(files["paf=0.0"][0])[1]
         df1 = load_result(files["paf=0.4"][0])[1]
@@ -272,7 +279,8 @@ def calculate_pair_metrics(pair_data, weights_dict, start_idx=137, hours=8):
         if hours == -1:
             slice_ = slice(start_idx, start_idx + len(df0))
         else:
-            slice_ = slice(start_idx, start_idx + hours * 12)
+            end_idx = start_idx + int(np.round(hours * 12))
+            slice_ = slice(start_idx, end_idx)
             
         m0 = calculate_metrics(df0.iloc[slice_])
         m1 = calculate_metrics(df1.iloc[slice_])
@@ -287,9 +295,9 @@ def calculate_pair_metrics(pair_data, weights_dict, start_idx=137, hours=8):
     return metrics_all, ibg_values, weights, insulin_diffs
 
 
-def plot_tir_over_time(pair_data, weights_dict):
+def plot_metric_over_time(pair_data, weights_dict, metric_idx=0, time_range=range(1,9)):
     """
-    Plot Time in Range (TIR) metrics over time.
+    Plot metric over time.
     
     This function is a placeholder for the plotting logic.
     """
@@ -309,15 +317,15 @@ def plot_tir_over_time(pair_data, weights_dict):
     }
 
     # Calculate metrics for different time windows
-    for i in range(1, 9):
+    for i in time_range:
         print(f"Processing hour {i}...")
         metrics_all, ibg_values, weights, insulin_diffs = calculate_pair_metrics(
             pair_data, weights_dict, hours=i
         )
 
         # Extract metric 0 (Time in Range)
-        tir_temp_basal = metrics_all[:, 0, 0]
-        tir_autobolus = metrics_all[:, 0, 1]
+        tir_temp_basal = metrics_all[:, metric_idx, 0]
+        tir_autobolus = metrics_all[:, metric_idx, 1]
 
         # Mean & Std
         mean_tb, std_tb = weighted_mean_std(tir_temp_basal, weights)
@@ -394,20 +402,19 @@ def plot_tir_over_time(pair_data, weights_dict):
 if __name__ == "__main__":
     all_files = list(RESULT_DIR.glob("*.tsv"))
     grouped = group_files_by_user_ibg(all_files)
-    pair_data = load_pair_data(grouped)
     
+    # Load all paired data once
+    print("Loading paired data...")
+    pair_data = load_pair_data(grouped)
+    print(f"Loaded {len(pair_data)} paired datasets")
+
     weights_dict = load_histogram_weights(HISTOGRAM_PATH)
 
     metrics_all, ibg_values, weights, insulin_diffs = calculate_pair_metrics(pair_data, weights_dict)
     summary = summarize_and_plot(metrics_all, weights)
     print_summary(summary)
 
-    # Load all paired data once
-    print("Loading paired data...")
-    
-    print(f"Loaded {len(pair_data)} paired datasets")
-
-    # Plot TIR over time`
-    plot_tir_over_time(pair_data, weights_dict)
+    # Plot TIR over time
+    plot_metric_over_time(pair_data, weights_dict, metric_idx=0)
 
     
