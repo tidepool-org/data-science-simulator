@@ -462,6 +462,7 @@ class PatientConfig(object):
         glucose_sensitivity_factor_schedule=None,
         basal_blood_glucose_schedule=None,
         insulin_production_rate_schedule=None,
+        patient_insulin_type="rapid_acting_adult",
     ):
         """
         Configuration object for virtual patient.
@@ -523,6 +524,7 @@ class PatientConfig(object):
         self.bolus_event_timeline = bolus_event_timeline
         self.carb_event_timeline = carb_event_timeline
         self.action_timeline = action_timeline
+        self.patient_insulin_type = patient_insulin_type
 
         self.glucose_history = glucose_history
 
