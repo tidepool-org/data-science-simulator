@@ -22,5 +22,6 @@
     "values": [
       0.3, 0, 0.3
     ]
-  }
+  },
+"patient_insulin_type": "rapid_acting_adult"
 }
