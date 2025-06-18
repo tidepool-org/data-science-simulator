@@ -116,7 +116,7 @@ def build_autobolus_sim_generator(json_base_configs, sim_batch_size=30):
         # partial_application_factors = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
         partial_application_factors = [0.0, 0.4]
         # true_start_glucose_list = range(40, 400, 10)
-        true_start_glucose_list = range(70, 190, 10)
+        true_start_glucose_list = range(70, 181, 1)
         # true_start_glucose_list = [250]
 
         simulation_configurations = list(product(partial_application_factors, true_start_glucose_list))

@@ -19,6 +19,7 @@ PROJECT_ROOT = Path(DATA_DIR) / "processed"
 RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_basal_cap_PAF_09_2025_06_03_T_11_13_54"
 RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_basal_cap2025_05_28_T_18_00_04"
 RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_basal_cap_PAF_04_RC_true2025_06_03_T_12_08_27"
+RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_basal_cap_PAF_04_RC_true2025_06_16_T_13_47_07"
 
 HISTOGRAM_PATH = Path("/Users/mconn/Downloads/BG_Distribution_Histogram.csv")
 METRIC_NAMES = [
@@ -26,7 +27,8 @@ METRIC_NAMES = [
     'Percent below Range (< 70 mg/dL)', 
     'Percent Time above Range (> 180 mg/dL)', 
     'Cumulative Insulin (U)', 
-    'BGRI'
+    'BGRI',
+    'Mean Blood Glucose (mg/dL)'
 ]
 PAF_VALUES = ["paf=0.0", "paf=0.4"]
 
@@ -159,12 +161,18 @@ def calculate_cumulative_insulin(df):
     return df['delivered_basal_insulin'].sum() + df['true_bolus'].sum()
 
 def calculate_metrics(df):
+
+    cbg_mean = df['bg'].mean()
+    # if cbg_mean > 150:
+    #     cbg_mean = 150  # Cap mean at 180 for risk index calculation
+
     return (
         percent_values_ge_70_le_180(df['bg']),
         percent_values_lt_70(df['bg']),
         percent_values_gt_180(df['bg']),
         calculate_cumulative_insulin(df),
         blood_glucose_risk_index(df['bg'])[2],
+        cbg_mean,
     )
 
 def group_files_by_user_ibg(files):
@@ -183,11 +191,14 @@ def load_histogram_weights(path):
     df = pd.read_csv(path)
     return {row['ibg']: row['proportion'] for _, row in df.iterrows()}
 
-def summarize_and_plot(metrics_all, weights):
+def summarize_and_plot(results):
+    metrics = results['metrics']
+    weights = results['weights']
+
     summary = {}
     for i, name in enumerate(METRIC_NAMES):
-        data_1 = metrics_all[:, i, 0]
-        data_2 = metrics_all[:, i, 1]
+        data_1 = metrics[:, i, 0]
+        data_2 = metrics[:, i, 1]
 
         try:
             compare_kde_boxplot(data_1, data_2, weights, title=name,
@@ -265,16 +276,23 @@ def calculate_pair_metrics(pair_data, weights_dict, start_idx=137, hours=8):
         tuple: (metrics_all, ibg_values, weights, insulin_diffs)
     """
     n = len(pair_data)
-    metrics_all = np.zeros((n, 5, 2))
+    metrics_all = np.zeros((n, 6, 2))
     ibg_values = np.zeros(n)
     weights = np.zeros(n)
     insulin_diffs = []
-    
+    isf = np.zeros(n)
+    cir = np.zeros(n)
+    sbr = np.zeros(n)
+
     for idx, (key, data) in enumerate(pair_data.items()):
         ibg = data['ibg']
         df0 = data['df0']
         df1 = data['df1']
         
+        isf[idx] = df0['isf'].iloc[-1]  # Assuming isf is constant across the dataframe
+        cir[idx] = df0['cir'].iloc[-1]  # Assuming cir is constant across the dataframe
+        sbr[idx] = df0['sbr'].iloc[-1]  # Assuming sbr is constant across the dataframe
+
         # Apply time slicing
         if hours == -1:
             slice_ = slice(start_idx, start_idx + len(df0))
@@ -285,14 +303,22 @@ def calculate_pair_metrics(pair_data, weights_dict, start_idx=137, hours=8):
         m0 = calculate_metrics(df0.iloc[slice_])
         m1 = calculate_metrics(df1.iloc[slice_])
 
-        for j in range(5):
+        for j in range(6):
             metrics_all[idx, j] = [m0[j], m1[j]]
         
         ibg_values[idx] = ibg
         weights[idx] = weights_dict.get(ibg, 0)
         insulin_diffs.append(m0[3] - m1[3])
     
-    return metrics_all, ibg_values, weights, insulin_diffs
+    return {
+        'metrics': metrics_all, 
+        'ibg': ibg_values, 
+        'weights': weights, 
+        'insulin_diffs': insulin_diffs, 
+        'isf': isf, 
+        'cir': cir, 
+        'sbr': sbr
+    }
 
 
 def plot_metric_over_time(pair_data, weights_dict, metric_idx=0, time_range=range(1,9)):
@@ -319,9 +345,12 @@ def plot_metric_over_time(pair_data, weights_dict, metric_idx=0, time_range=rang
     # Calculate metrics for different time windows
     for i in time_range:
         print(f"Processing hour {i}...")
-        metrics_all, ibg_values, weights, insulin_diffs = calculate_pair_metrics(
+        results = calculate_pair_metrics(
             pair_data, weights_dict, hours=i
         )
+
+        metrics_all = results['metrics']
+        weights = results['weights']
 
         # Extract metric 0 (Time in Range)
         tir_temp_basal = metrics_all[:, metric_idx, 0]
@@ -410,11 +439,78 @@ if __name__ == "__main__":
 
     weights_dict = load_histogram_weights(HISTOGRAM_PATH)
 
-    metrics_all, ibg_values, weights, insulin_diffs = calculate_pair_metrics(pair_data, weights_dict)
-    summary = summarize_and_plot(metrics_all, weights)
-    print_summary(summary)
+    # # results = calculate_pair_metrics(pair_data, weights_dict, start_idx=0, hours=-1)
+    results = calculate_pair_metrics(pair_data, weights_dict)
 
-    # Plot TIR over time
-    plot_metric_over_time(pair_data, weights_dict, metric_idx=0)
+    # metrics = results['metrics']
+    # tir = metrics[:, 0, 0]  # Time in Range
+    # mean_cbg = metrics[:, 5, 0]  # Mean CGM
+    # ibg_values = results['ibg']
+    # weights = results['weights']
+    # isf = results['isf']
+    # cir = results['cir']
+    # sbr = results['sbr']
+    
+    # cgm_avg = []
+    # cmap = plt.cm.viridis
 
+    # fig, ax = plt.subplots(1,1)
+    # for (pair, tir_value) in zip(pair_data.values(), tir):
+    #     bg = pair['df0']['bg'].iloc[137:]  # Adjust start index if needed
+    #     cgm_avg.append(bg.mean())
+    #     ax.plot(bg, alpha=0.5, color=cmap(tir_value / 100))
+
+
+    # plt.tight_layout()
+
+
+    # # Create a 3D figure
+    # fig = plt.figure(figsize=(8, 6))
+    # ax = fig.add_subplot(projection='3d')
+    # ax.scatter(isf, cir, tir, alpha=0.5)
+
+    # # Create a 3D figure
+    # fig = plt.figure(figsize=(8, 6))
+    # ax = fig.add_subplot(projection='3d')
+    # ax.scatter(ibg_values, isf/cir, tir, alpha=0.5)
+
+    # fig = plt.figure(figsize=(8, 6))
+    # ax = fig.add_subplot()
+    # scatter = ax.scatter(isf/cir, ibg_values, c=tir, alpha=0.5)
+    # plt.colorbar(scatter, label='Values (1-100)')
+
+    # fig, ax = plt.subplots(1,5)
+    # ax[0].scatter(isf, tir, alpha=0.5)
+    # ax[0].set_xlabel("Insulin Sensitivity Factor (mg/dL/U)")
+    # ax[0].set_ylabel("TIR")
+    # ax[1].scatter(cir, tir, alpha=0.5)
+    # ax[1].set_xlabel("Carbohydrate-to-Insulin Ratio (g/U)")
+    # ax[2].scatter(sbr, tir, alpha=0.5)
+    # ax[2].set_xlabel("Scheduled Basal Rate (U/hr)")
+    # ax[3].scatter(ibg_values, tir, alpha=0.5)
+    # ax[3].set_xlabel("Initial Blood Glucose (mg/dL)")
+    # ax[4].scatter(isf/cir, tir, alpha=0.5)
+    # ax[4].set_xlabel("ISF/CIR Ratio")
+    # plt.tight_layout()
+
+    # fig, ax = plt.subplots(1,1)
+    # ax.scatter(isf/cir, tir, alpha=0.25)
+    # ax.set_xlabel("ISF/CIR Ratio")
+
+    # fig, ax = plt.subplots(1,1)
+    # ax.scatter(isf/cir, cgm_avg, alpha=0.25)
+    # ax.set_xlabel("ISF/CIR Ratio")
+
+    # # summary = summarize_and_plot(results)
+    # fig, ax = plt.subplots(1,1)
+    # k = isf/cir
+    # k = k[k<20]
+    # ax.hist(k,bins=50, color='blue', alpha=0.7, label='ISF/CIR Ratio')
+
+    summarize_and_plot(results)
+    # print_summary(summary)
+
+    # # Plot TIR over time
+    # plot_metric_over_time(pair_data, weights_dict, metric_idx=0)
+    plt.show()  
     
