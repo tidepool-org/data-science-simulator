@@ -47,10 +47,11 @@ POINTER_OBJ_DIR = os.path.dirname(__file__) + "/../../scenario_configs/tidepool_
 DATETIME_FORMAT = "%m/%d/%Y %H:%M:%S"
 
 CONTROLLER_MODEL_NAME_MAP = {
-    "rapid_acting_adult": [360, 75],
-    "rapid_acting_child": [360, 65],
-    "walsh": [120, 15],
-    "fiasp": [360, 55]
+    "rapid_acting_adult": "novolog",
+    "rapid_acting_child": "rapidActingChild",
+    "fiasp": "fiasp",
+    "lyumjev": "lyumjev",
+    "afrezza": "afrezza"
 }
 
 

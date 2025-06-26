@@ -76,13 +76,13 @@ class SwiftLoopController(LoopController):
         settings_dictionary = self.controller_config.controller_settings
 
         data['predictionStart'] = t_now.strftime(format=format_string)
-        data['recommendationInsulinType'] = 'novolog'
         data['maxBasalRate'] = settings_dictionary.get('max_basal_rate')
         data['maxBolus'] = settings_dictionary.get('max_bolus')
         data['suspendThreshold'] = settings_dictionary.get('suspend_threshold') or 70.0
         data['automaticBolusApplicationFactor'] = settings_dictionary.get('partial_application_factor') or 0.4
         data['useMidAbsorptionISF'] = settings_dictionary.get('use_mid_absorption_isf') or True
         data['carbAbsorptionModel'] = settings_dictionary.get('carb_absorption_model') or 'piecewiseLinear'
+        data['recommendationInsulinType'] = settings_dictionary.get('model') or 'novolog'
 
         # Set the recommendation and includePositiveVelocityAndRC based on the partial_application_factor
         if settings_dictionary.get('partial_application_factor'):
