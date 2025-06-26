@@ -42,16 +42,24 @@ from tidepool_data_science_simulator.models.controller import AutomationControlT
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
-
 POINTER_OBJ_DIR = os.path.dirname(__file__) + "/../../scenario_configs/tidepool_risk_v2/"
 DATETIME_FORMAT = "%m/%d/%Y %H:%M:%S"
 
 CONTROLLER_MODEL_NAME_MAP = {
-    "rapid_acting_adult": "novolog",
-    "rapid_acting_child": "rapidActingChild",
-    "fiasp": "fiasp",
-    "lyumjev": "lyumjev",
-    "afrezza": "afrezza"
+    "rapid_acting_adult": [360, 75],
+    "rapid_acting_child": [360, 65],
+    "walsh": [120, 15],
+    "fiasp": [360, 55],
+    "theoretical_fast_5": [20, 120],
+    "theoretical_fast_3":[20, 240],
+    "theoretical_fast_1": [29, 300],
+    "theoretical_fast_4": [20, 240],
+    "theoretical_fast_2": [29, 300],
+    "u500": [360, 1110],
+    "regular": [360, 420],
+    "nph": [480, 1320],
+    "degludec": [540, 1440],
+    "glargine": [540, 1440]
 }
 
 
@@ -64,6 +72,7 @@ class ScenarioParserV2(SimulationParser):
 
         self.pointer_keyword = "reusable"
         self.pointer_object_dir = pointer_object_dir
+        self.override_details = []
 
         if path_to_json_config:
             config = json.load(open(path_to_json_config))
@@ -94,18 +103,35 @@ class ScenarioParserV2(SimulationParser):
 
     def get_sims(self, override_json_save_dir=None):
         """
-        Get simulation objects as specified by the config file. By design there is one simulation for
-        each override config. The base simulation configuration is not built, but if an empty dict
-        is passed in the override list, this is a sim with the base config and no overrides.
-
-        Returns
-        -------
-            list: [Simulation]
+        Get simulation objects as specified by the config file.
         """
         simulations = dict()
-        for override_delta in self.override_configs:
 
-            override_sim_config = copy.deepcopy(self.base_sim_config)  # override alters the config in place, so start fresh to avoid issues
+        print(f"\n=== PROCESSING {len(self.override_configs)} OVERRIDE CONFIGURATIONS ===")
+
+        for i, override_delta in enumerate(self.override_configs, 1):
+            print(f"\n--- Processing override config {i}/{len(self.override_configs)} ---")
+
+            # Show what's in the override
+            if 'sim_id' in override_delta:
+                print(f"Simulation ID: {override_delta['sim_id']}")
+
+            # Show key override paths
+            if 'patient' in override_delta:
+                print("Contains patient overrides:")
+                if 'patient_model' in override_delta['patient']:
+                    print("  - patient_model overrides")
+                    if 'metabolism_settings' in override_delta['patient']['patient_model']:
+                        metabolism_settings = override_delta['patient']['patient_model']['metabolism_settings']
+                        print(f"    - metabolism_settings: {list(metabolism_settings.keys())}")
+
+            if 'controller' in override_delta:
+                print("Contains controller overrides:")
+                if 'settings' in override_delta['controller']:
+                    settings = override_delta['controller']['settings']
+                    print(f"  - controller settings: {list(settings.keys())}")
+
+            override_sim_config = copy.deepcopy(self.base_sim_config)
             self.apply_config_override(override_sim_config, override_delta)
 
             sim_id = override_sim_config["sim_id"]
@@ -118,6 +144,8 @@ class ScenarioParserV2(SimulationParser):
             sim.name = sim_id
             simulations[sim_id] = sim
 
+            print(f"✓ Successfully created simulation: {sim_id}")
+
         return simulations
 
     def apply_config_override(self, base_sim_config, override_delta):
@@ -126,6 +154,8 @@ class ScenarioParserV2(SimulationParser):
             1. Resolves pointer references to other files in the config
             2. Resolves the overriding leaf note configs
         """
+        # Clear previous override details
+        self.override_details = []
 
         self.resolve_pointers(base_sim_config)
         self.resolve_pointers(override_delta)
@@ -133,8 +163,50 @@ class ScenarioParserV2(SimulationParser):
         num_overrides = self.count_leaf_nodes(override_delta)
         num_overrides_applied = self.resolve_override(base_sim_config, override_delta)
 
+        # NEW: Enhanced debugging output
+        print(f"\n=== OVERRIDE SUMMARY ===")
+        print(f"Expected overrides: {num_overrides}")
+        print(f"Applied overrides: {num_overrides_applied}")
+
+        if self.override_details:
+            print(f"\nSuccessfully applied override values:")
+            for i, detail in enumerate(self.override_details, 1):
+                print(f"  {i}. {detail['key']}")
+                print(f"     Old: {detail['old_value']} ({type(detail['old_value']).__name__})")
+                print(f"     New: {detail['new_value']} ({detail['value_type']})")
+        else:
+            print("No override values were successfully applied!")
+
+        # Show what overrides were requested vs applied
         if num_overrides_applied != num_overrides:
-            raise Exception("Only applied {} of {} overriding values in {}. Check configurations.".format(num_overrides_applied, num_overrides, override_delta))
+            print(f"\n!!! MISMATCH: Only applied {num_overrides_applied} of {num_overrides} overriding values !!!")
+
+            # Try to identify which overrides failed
+            print("Debugging override structure:")
+            print("Override delta structure:")
+            self._debug_print_structure(override_delta, indent="  ")
+
+            raise Exception("Only applied {} of {} overriding values in {}. Check configurations.".format(
+                num_overrides_applied, num_overrides, override_delta))
+        else:
+            print(f"✓ All {num_overrides} override values applied successfully")
+
+        def _debug_print_structure(self, obj, indent="", max_depth=3, current_depth=0):
+            """Helper method to print the structure of configuration objects"""
+            if current_depth > max_depth:
+                print(f"{indent}... (max depth reached)")
+                return
+
+            if isinstance(obj, dict):
+                for key, value in obj.items():
+                    if isinstance(value, dict):
+                        print(f"{indent}{key}: {{")
+                        self._debug_print_structure(value, indent + "  ", max_depth, current_depth + 1)
+                        print(f"{indent}}}")
+                    else:
+                        print(f"{indent}{key}: {value} ({type(value).__name__})")
+            else:
+                print(f"{indent}{obj} ({type(obj).__name__})")
 
     def count_leaf_nodes(self, obj):
         """
@@ -160,8 +232,7 @@ class ScenarioParserV2(SimulationParser):
     def resolve_pointers(self, value):
         """
         Recursively traverse the simulation config obj and replace any pointers with their objects.
-        The relied on assumption to make this simply is the value is a pointer if its type is string
-        and it has the pointer keyword in it.
+
         """
         for k, v in value.items():
             if self.is_config_file_pointer(v):
@@ -169,22 +240,36 @@ class ScenarioParserV2(SimulationParser):
             elif isinstance(v, dict):
                 self.resolve_pointers(v)
 
-    def resolve_override(self, obj, override_obj):
+    def resolve_override(self, obj, override_obj, key_prefix=""):
         """
-        Recursively traverse the simulation config obj and apply specified leaf overrides. The
-        relied on assumption to make this simple is only values in the override that are not
-        dicts themselves (ie leaf nodes) are overridden.
+        Recursively traverse the simulation config obj and apply specified leaf overrides.
         """
         num_overides_applied = 0
+
         for k, v in obj.items():
+            current_key = f"{key_prefix}.{k}" if key_prefix else k
 
             if k in override_obj:
                 if not isinstance(override_obj[k], dict):  # key is there and it's a leaf node
-                    obj[k] = override_obj[k]
-                    # logger.debug("Applied override {}: {}".format(k, override_obj[k]))
+                    old_value = obj[k]
+                    new_value = override_obj[k]
+                    obj[k] = new_value
+
+                    # Record the override details at instance level
+                    self.override_details.append({
+                        "key": current_key,
+                        "old_value": old_value,
+                        "new_value": new_value,
+                        "value_type": type(new_value).__name__
+                    })
+
+                    print(
+                        f"Applied override {current_key}: {old_value} -> {new_value} (type: {type(new_value).__name__})")
                     num_overides_applied += 1
                 else:  # key is there and it's an object that should be explored for leaf overrides
-                    num_overides_applied += self.resolve_override(v, override_obj[k])
+
+                    sub_overrides = self.resolve_override(v, override_obj[k], current_key)
+                    num_overides_applied += sub_overrides
 
         return num_overides_applied
 
@@ -448,6 +533,10 @@ class ScenarioParserV2(SimulationParser):
 
         metabolism_settings = model_config["metabolism_settings"]
 
+        # model patient's actual insulin type
+        patient_insulin_type = metabolism_settings.get("patient_insulin_type", "rapid_acting_adult")
+        model["patient_insulin_type"] = patient_insulin_type
+
         basal_rate_schedule = metabolism_settings["basal_rate"]
         basal_start_times, basal_durations_minutes, basal_values = self.get_scalar_setting_schedule_info(basal_rate_schedule, self.validate_basal_rate)
                 
@@ -655,7 +744,8 @@ class ScenarioParserV2(SimulationParser):
             glucose_history=self.patient_model_glucose_history,
             carb_event_timeline=self.patient_model["carb_timeline"],
             bolus_event_timeline=self.patient_model["bolus_timeline"],
-            action_timeline=self.patient_model["action_timeline"]
+            action_timeline=self.patient_model["action_timeline"],
+            patient_insulin_type=self.patient_model.get("patient_insulin_type", "rapid_acting_adult")
         )
 
         patient_config.recommendation_accept_prob = 0  # Currently, all bolus are specified
@@ -671,3 +761,6 @@ class ScenarioParserV2(SimulationParser):
             carb_event_timeline=self.pump_model["carb_timeline"],
             bolus_event_timeline=self.pump_model["bolus_timeline"]
         )
+
+    def _debug_print_structure(self, override_delta, indent):
+        pass
