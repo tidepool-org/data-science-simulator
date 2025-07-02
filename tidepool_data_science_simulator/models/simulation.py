@@ -77,9 +77,14 @@ class Simulation(multiprocessing.Process):
         random_state=None,
     ):
         # To enable multiprocessing
-        super().__init__()
-        self.queue = multiprocessing.Queue()
         self.multiprocess = multiprocess
+        if multiprocess:
+            super().__init__()
+            self.queue = multiprocessing.Queue()
+        else:
+            # Don't inherit from Process for single sims
+            self.queue = None
+            self.multiprocess = False
 
         self.random_state = random_state
         if random_state is None:
@@ -97,6 +102,37 @@ class Simulation(multiprocessing.Process):
 
         # Get things setup for t=0
         self.init()
+        
+    def __del__(self):
+        """Cleanup when object is destroyed"""
+        if hasattr(self, 'queue'):
+            try:
+                self.queue.close()
+                self.queue.join_thread()
+            except:
+                pass
+    
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()
+
+    def cleanup(self):
+        """Explicit cleanup method"""
+        if hasattr(self, 'queue'):
+            try:
+                # Empty the queue first
+                while not self.queue.empty():
+                    try:
+                        self.queue.get_nowait()
+                    except:
+                        break
+                self.queue.close()
+                self.queue.join_thread()
+                self.queue = None
+            except:
+                pass
 
     def init(self):
         """
