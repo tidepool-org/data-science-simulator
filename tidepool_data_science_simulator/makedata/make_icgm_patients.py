@@ -17,7 +17,7 @@ from tidepool_data_science_simulator.models.simulation import (
 )
 from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV, PumpConfig, PatientConfig, \
     SensorConfig
-from tidepool_data_science_simulator.makedata.scenario_json_parser_v2 import CONTROLLER_MODEL_NAME_MAP
+# from tidepool_data_science_simulator.makedata.scenario_json_parser_v2 import CONTROLLER_MODEL_NAME_MAP
 from tidepool_data_science_simulator.makedata.make_patient import SINGLE_SETTING_DURATION, DATETIME_DEFAULT, \
     get_canonical_glucose_history
 from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, ActionTimeline

@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import ExperimentConfig
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.data_loader import DataLoader
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_generator import ScenarioGenerator
-from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_runner import SimulationRunner
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_runner import ScenarioRunner
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import MetricsCalculator
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.analysis.statistical_analyzer import StatisticalAnalyzer
 
@@ -73,7 +73,7 @@ def main():
     
     # 4. Run simulations
     logger.info("Running simulations...")
-    simulation_runner = SimulationRunner(config)
+    simulation_runner = ScenarioRunner(config)
     
     # Create simulation objects
     simulations = {}

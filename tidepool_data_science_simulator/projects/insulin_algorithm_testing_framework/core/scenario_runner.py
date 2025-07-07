@@ -8,9 +8,7 @@ insulin delivery algorithms (temp basal vs autobolus) using the Tidepool simulat
 import logging
 import copy
 import datetime
-import types
-from typing import Dict, Any, List, Optional, Tuple
-from pathlib import Path
+from typing import Dict, Any, List, Optional, Tuple, Iterator
 
 import pandas as pd
 import numpy as np
@@ -28,7 +26,7 @@ from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framewor
 logger = logging.getLogger(__name__)
 
 
-class SimulationRunner:
+class ScenarioRunner:
     """
     Main class for running insulin algorithm simulations.
     
@@ -125,6 +123,49 @@ class SimulationRunner:
         
         logger.debug(f"Completed simulation: {sim_id}")
         return sim_id, results_df
+    
+    def run_batch_scenarios(
+        self,
+        scenarios: Iterator[Dict[str, Any]],
+        save_dir: Optional[str] = None
+    ) -> Tuple[Dict[str, pd.DataFrame], pd.DataFrame]:
+        """
+        Run a batch of scenarios, processing them in chunks for efficiency.
+
+        Args:
+            scenarios: Iterator of scenario dictionaries.
+            save_dir: Optional directory to save results.
+
+        Returns:
+            Dictionary of simulation_id -> results DataFrame for all scenarios.
+        """
+        simulations = {}
+        sim_counter = 0
+        full_results = {}
+
+        for scenario in scenarios:
+            # Create Simulation object from scenario
+            simulation = self.create_simulation_from_scenario(scenario)
+            simulations[simulation.sim_id] = simulation
+            sim_counter += 1
+
+            if sim_counter % 14 == 0:
+                # Run batch simulations every 14 scenarios for efficiency
+                results, _ = self.run_batch_simulations(simulations)
+                # Merge new results into the full results dictionary
+                full_results = full_results | results
+                simulations = {}  # Reset for next batch
+                sim_counter = 0
+
+        if simulations:
+            # Run any remaining simulations that didn't fill a complete batch
+            results, _ = self.run_batch_simulations(simulations)
+            full_results = full_results | results  # Merge results
+
+        logger.info(f"Completed {len(full_results)} simulations")
+
+        return full_results
+
     
     def run_batch_simulations(
         self,
@@ -386,12 +427,12 @@ class SimulationRunner:
     ) -> Dict[str, float]:
         """
         Extract insulin delivery data from simulation results.
-        
+
         Args:
             results_df: Simulation results DataFrame
             start_hours: Start time in hours from simulation start
             duration_hours: Duration to extract (None for all remaining)
-            
+
         Returns:
             Dictionary with insulin delivery metrics
         """
@@ -423,3 +464,122 @@ class SimulationRunner:
             'bolus': bolus_delivered,
             'total': total_delivered
         }
+
+
+    def run_experiment(
+        config: ExperimentConfig, 
+        max_patients: Optional[int] = None
+    ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+        """
+        Run complete insulin algorithm comparison experiment.
+        
+        This function provides a simplified interface for running the entire
+        insulin algorithm testing workflow, from loading patient data through
+        statistical analysis.
+        
+        Args:
+            config: ExperimentConfig object containing all experiment settings
+            max_patients: Optional limit on number of patients (useful for testing/debugging)
+        
+        Returns:
+            Tuple of (metrics_df, comparison_results) where:
+            - metrics_df: DataFrame with detailed metrics for all simulations
+            - comparison_results: Statistical comparison results between algorithms
+        
+        Example:
+            >>> config = ExperimentConfig()
+            >>> config.set('scenarios.initial_bg.range', [100, 200])
+            >>> metrics_df, comparison_results = run_experiment(config, max_patients=5)
+            >>> print(f"Completed {len(metrics_df)} simulations")
+        """
+        logger.info(f"Starting experiment: {config.experiment_name}")
+        
+        # Import required modules (using lazy imports to avoid circular dependencies)
+        from ..core.data_loader import DataLoader
+        from ..core.scenario_generator import ScenarioGenerator
+        from ..core.metrics_calculator import MetricsCalculator
+        from ..analysis.statistical_analyzer import StatisticalAnalyzer
+        
+        try:
+            # 1. Load patient data
+            logger.info("Loading patient configurations...")
+            data_loader = DataLoader(config)
+            patient_configs = data_loader.load_patient_configs(max_patients=max_patients)
+            
+            if not patient_configs:
+                raise ValueError("No patient configurations loaded")
+            
+            logger.info(f"Loaded {len(patient_configs)} patient configurations")
+            
+            # 2. Generate scenarios
+            logger.info("Generating scenarios...")
+            scenario_generator = ScenarioGenerator(config)
+            
+            # Get scenario summary for logging
+            summary = scenario_generator.get_scenario_summary(patient_configs)
+            logger.info(f"Scenario summary: {summary}")
+            
+            # Generate all scenarios
+            scenarios = scenario_generator.generate_all_scenarios(patient_configs)
+            logger.info(f"Generated scenario iterator (estimated: {summary['estimated_total_scenarios']} scenarios)")
+            
+            # 3. Run simulations
+            logger.info("Running batch simulations...")
+            simulation_runner = ScenarioRunner(config)
+            full_results = simulation_runner.run_batch_scenarios(scenarios)
+            
+            if not full_results:
+                raise ValueError("No simulation results generated")
+            
+            logger.info(f"Completed {len(full_results)} simulations")
+            
+            # 4. Calculate metrics
+            logger.info("Calculating metrics...")
+            metrics_calculator = MetricsCalculator(config)
+            
+            # Calculate metrics for all results
+            metrics_dict = metrics_calculator.calculate_metrics_batch(full_results)
+            
+            # Create metrics DataFrame
+            metrics_df = metrics_calculator.create_metrics_dataframe(metrics_dict)
+            
+            if metrics_df.empty:
+                raise ValueError("No metrics calculated")
+            
+            logger.info(f"Calculated metrics for {len(metrics_dict)} simulations")
+            logger.info(f"Metrics columns: {list(metrics_df.columns)}")
+            
+            # 5. Statistical analysis
+            logger.info("Performing statistical analysis...")
+            statistical_analyzer = StatisticalAnalyzer(config)
+            
+            # Get enabled algorithms for comparison
+            enabled_algorithms = config.get_enabled_algorithms()
+            
+            if len(enabled_algorithms) < 2:
+                logger.warning("Statistical comparison requires at least 2 algorithms")
+                comparison_results = {}
+            else:
+                # Use first algorithm as reference, others as comparison
+                reference_algorithm = enabled_algorithms[0]
+                comparison_algorithms = enabled_algorithms[1:]
+                
+                # Perform paired comparison
+                comparison_results = statistical_analyzer.compare_algorithms(
+                    metrics_df, 
+                    reference_algorithm=reference_algorithm,
+                    comparison_algorithms=comparison_algorithms
+                )
+            
+            logger.info("Statistical analysis completed")
+            
+            # 6. Return results
+            logger.info(f"Experiment completed successfully!")
+            logger.info(f"Total simulations: {len(full_results)}")
+            logger.info(f"Metrics calculated: {len(metrics_df)}")
+            
+            return metrics_df, comparison_results
+            
+        except Exception as e:
+            logger.error(f"Experiment failed: {e}")
+            raise
