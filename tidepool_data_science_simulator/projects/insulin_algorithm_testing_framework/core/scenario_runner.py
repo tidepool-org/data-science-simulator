@@ -466,120 +466,120 @@ class ScenarioRunner:
         }
 
 
-    def run_experiment(
-        config: ExperimentConfig, 
-        max_patients: Optional[int] = None
-    ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
-        """
-        Run complete insulin algorithm comparison experiment.
+def run_experiment(
+    config: ExperimentConfig, 
+    max_patients: Optional[int] = None
+) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    """
+    Run complete insulin algorithm comparison experiment.
+    
+    This function provides a simplified interface for running the entire
+    insulin algorithm testing workflow, from loading patient data through
+    statistical analysis.
+    
+    Args:
+        config: ExperimentConfig object containing all experiment settings
+        max_patients: Optional limit on number of patients (useful for testing/debugging)
+    
+    Returns:
+        Tuple of (metrics_df, comparison_results) where:
+        - metrics_df: DataFrame with detailed metrics for all simulations
+        - comparison_results: Statistical comparison results between algorithms
+    
+    Example:
+        >>> config = ExperimentConfig()
+        >>> config.set('scenarios.initial_bg.range', [100, 200])
+        >>> metrics_df, comparison_results = run_experiment(config, max_patients=5)
+        >>> print(f"Completed {len(metrics_df)} simulations")
+    """
+    logger.info(f"Starting experiment: {config.experiment_name}")
+    
+    # Import required modules (using lazy imports to avoid circular dependencies)
+    from .data_loader import DataLoader
+    from .scenario_generator import ScenarioGenerator
+    from .metrics_calculator import MetricsCalculator
+    from ..analysis.statistical_analyzer import StatisticalAnalyzer
+    
+    try:
+        # 1. Load patient data
+        logger.info("Loading patient configurations...")
+        data_loader = DataLoader(config)
+        patient_configs = data_loader.load_patient_configs(max_patients=max_patients)
         
-        This function provides a simplified interface for running the entire
-        insulin algorithm testing workflow, from loading patient data through
-        statistical analysis.
+        if not patient_configs:
+            raise ValueError("No patient configurations loaded")
         
-        Args:
-            config: ExperimentConfig object containing all experiment settings
-            max_patients: Optional limit on number of patients (useful for testing/debugging)
+        logger.info(f"Loaded {len(patient_configs)} patient configurations")
         
-        Returns:
-            Tuple of (metrics_df, comparison_results) where:
-            - metrics_df: DataFrame with detailed metrics for all simulations
-            - comparison_results: Statistical comparison results between algorithms
+        # 2. Generate scenarios
+        logger.info("Generating scenarios...")
+        scenario_generator = ScenarioGenerator(config)
         
-        Example:
-            >>> config = ExperimentConfig()
-            >>> config.set('scenarios.initial_bg.range', [100, 200])
-            >>> metrics_df, comparison_results = run_experiment(config, max_patients=5)
-            >>> print(f"Completed {len(metrics_df)} simulations")
-        """
-        logger.info(f"Starting experiment: {config.experiment_name}")
+        # Get scenario summary for logging
+        summary = scenario_generator.get_scenario_summary(patient_configs)
+        logger.info(f"Scenario summary: {summary}")
         
-        # Import required modules (using lazy imports to avoid circular dependencies)
-        from ..core.data_loader import DataLoader
-        from ..core.scenario_generator import ScenarioGenerator
-        from ..core.metrics_calculator import MetricsCalculator
-        from ..analysis.statistical_analyzer import StatisticalAnalyzer
+        # Generate all scenarios
+        scenarios = scenario_generator.generate_all_scenarios(patient_configs)
+        logger.info(f"Generated scenario iterator (estimated: {summary['estimated_total_scenarios']} scenarios)")
         
-        try:
-            # 1. Load patient data
-            logger.info("Loading patient configurations...")
-            data_loader = DataLoader(config)
-            patient_configs = data_loader.load_patient_configs(max_patients=max_patients)
+        # 3. Run simulations
+        logger.info("Running batch simulations...")
+        simulation_runner = ScenarioRunner(config)
+        full_results = simulation_runner.run_batch_scenarios(scenarios)
+        
+        if not full_results:
+            raise ValueError("No simulation results generated")
+        
+        logger.info(f"Completed {len(full_results)} simulations")
+        
+        # 4. Calculate metrics
+        logger.info("Calculating metrics...")
+        metrics_calculator = MetricsCalculator(config)
+        
+        # Calculate metrics for all results
+        metrics_dict = metrics_calculator.calculate_metrics_batch(full_results)
+        
+        # Create metrics DataFrame
+        metrics_df = metrics_calculator.create_metrics_dataframe(metrics_dict)
+        
+        if metrics_df.empty:
+            raise ValueError("No metrics calculated")
+        
+        logger.info(f"Calculated metrics for {len(metrics_dict)} simulations")
+        logger.info(f"Metrics columns: {list(metrics_df.columns)}")
+        
+        # 5. Statistical analysis
+        logger.info("Performing statistical analysis...")
+        statistical_analyzer = StatisticalAnalyzer(config)
+        
+        # Get enabled algorithms for comparison
+        enabled_algorithms = config.get_enabled_algorithms()
+        
+        if len(enabled_algorithms) < 2:
+            logger.warning("Statistical comparison requires at least 2 algorithms")
+            comparison_results = {}
+        else:
+            # Use first algorithm as reference, others as comparison
+            reference_algorithm = enabled_algorithms[0]
+            comparison_algorithms = enabled_algorithms[1:]
             
-            if not patient_configs:
-                raise ValueError("No patient configurations loaded")
-            
-            logger.info(f"Loaded {len(patient_configs)} patient configurations")
-            
-            # 2. Generate scenarios
-            logger.info("Generating scenarios...")
-            scenario_generator = ScenarioGenerator(config)
-            
-            # Get scenario summary for logging
-            summary = scenario_generator.get_scenario_summary(patient_configs)
-            logger.info(f"Scenario summary: {summary}")
-            
-            # Generate all scenarios
-            scenarios = scenario_generator.generate_all_scenarios(patient_configs)
-            logger.info(f"Generated scenario iterator (estimated: {summary['estimated_total_scenarios']} scenarios)")
-            
-            # 3. Run simulations
-            logger.info("Running batch simulations...")
-            simulation_runner = ScenarioRunner(config)
-            full_results = simulation_runner.run_batch_scenarios(scenarios)
-            
-            if not full_results:
-                raise ValueError("No simulation results generated")
-            
-            logger.info(f"Completed {len(full_results)} simulations")
-            
-            # 4. Calculate metrics
-            logger.info("Calculating metrics...")
-            metrics_calculator = MetricsCalculator(config)
-            
-            # Calculate metrics for all results
-            metrics_dict = metrics_calculator.calculate_metrics_batch(full_results)
-            
-            # Create metrics DataFrame
-            metrics_df = metrics_calculator.create_metrics_dataframe(metrics_dict)
-            
-            if metrics_df.empty:
-                raise ValueError("No metrics calculated")
-            
-            logger.info(f"Calculated metrics for {len(metrics_dict)} simulations")
-            logger.info(f"Metrics columns: {list(metrics_df.columns)}")
-            
-            # 5. Statistical analysis
-            logger.info("Performing statistical analysis...")
-            statistical_analyzer = StatisticalAnalyzer(config)
-            
-            # Get enabled algorithms for comparison
-            enabled_algorithms = config.get_enabled_algorithms()
-            
-            if len(enabled_algorithms) < 2:
-                logger.warning("Statistical comparison requires at least 2 algorithms")
-                comparison_results = {}
-            else:
-                # Use first algorithm as reference, others as comparison
-                reference_algorithm = enabled_algorithms[0]
-                comparison_algorithms = enabled_algorithms[1:]
-                
-                # Perform paired comparison
-                comparison_results = statistical_analyzer.compare_algorithms(
-                    metrics_df, 
-                    reference_algorithm=reference_algorithm,
-                    comparison_algorithms=comparison_algorithms
-                )
-            
-            logger.info("Statistical analysis completed")
-            
-            # 6. Return results
-            logger.info(f"Experiment completed successfully!")
-            logger.info(f"Total simulations: {len(full_results)}")
-            logger.info(f"Metrics calculated: {len(metrics_df)}")
-            
-            return metrics_df, comparison_results
-            
-        except Exception as e:
-            logger.error(f"Experiment failed: {e}")
-            raise
+            # Perform paired comparison
+            comparison_results = statistical_analyzer.compare_algorithms(
+                metrics_df, 
+                reference_algorithm=reference_algorithm,
+                comparison_algorithms=comparison_algorithms
+            )
+        
+        logger.info("Statistical analysis completed")
+        
+        # 6. Return results
+        logger.info(f"Experiment completed successfully!")
+        logger.info(f"Total simulations: {len(full_results)}")
+        logger.info(f"Metrics calculated: {len(metrics_df)}")
+        
+        return metrics_df, comparison_results
+        
+    except Exception as e:
+        logger.error(f"Experiment failed: {e}")
+        raise
