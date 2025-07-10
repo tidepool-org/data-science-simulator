@@ -12,10 +12,16 @@ Usage:
 import logging
 import json
 from pathlib import Path
+import os
 
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import ExperimentConfig
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_runner import run_experiment
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.visualization.comparison_plots import ComparisonPlotter
+
+from tidepool_data_science_simulator.utils import DATA_DIR
+
+CONFIG_FILE = 'tidepool_data_science_simulator/projects/insulin_algorithm_testing_framework/config/510k_short_run_config.yaml'  # Default config file path
+OUTPUT_DIR = os.path.join(DATA_DIR, 'processed_data', 'insulin_algorithm_testing_framework', '510k_short_run')
 
 # Setup logging
 logging.basicConfig(
@@ -24,8 +30,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-CONFIG_FILE = 'tidepool_data_science_simulator/projects/insulin_algorithm_testing_framework/config/510k_short_run_config.yaml'  # Default config file path
-OUTPUT_DIR = Path('/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/510k_short_run/')
 def main():
     """Run basic comparison example using the simplified run_experiment function."""
     
