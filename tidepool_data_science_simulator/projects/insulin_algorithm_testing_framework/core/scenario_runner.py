@@ -23,6 +23,7 @@ from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import (
     ExperimentConfig, AlgorithmConfig, SimulationConfig
 )
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.utils import format_duration
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +129,7 @@ class ScenarioRunner:
     def run_batch_scenarios(
         self,
         scenarios: Iterator[Dict[str, Any]],
+        estimated_total_scenarios: Optional[int] = None,
         save_dir: Optional[str] = None
     ) -> Tuple[Dict[str, pd.DataFrame], pd.DataFrame]:
         """
@@ -160,7 +162,8 @@ class ScenarioRunner:
                     simulations, 
                     save_dir=save_dir,
                     total_scenarios=total_batch_counter,
-                    total_start_time=total_start_time
+                    total_start_time=total_start_time,
+                    num_estimated_scenarios=estimated_total_scenarios
                 )
 
                 # Merge new results into the full results dictionary
@@ -175,13 +178,14 @@ class ScenarioRunner:
                 save_dir=save_dir,
                 total_scenarios=total_batch_counter,
                 total_start_time=total_start_time,
+                num_estimated_scenarios=estimated_total_scenarios,
                 is_final_batch=True
             )
             
             full_results = full_results | results  # Merge results
 
         total_duration = time.time() - total_start_time
-        logger.info(f"Completed all {len(full_results)} simulations in {total_duration:.2f}s")
+        logger.info(f"Completed all {len(full_results)} simulations in {format_duration(total_duration)}")
 
         return full_results
 
@@ -191,6 +195,7 @@ class ScenarioRunner:
         save_dir: Optional[str] = None,
         total_scenarios: Optional[int] = None,
         total_start_time: Optional[float] = None,
+        num_estimated_scenarios: Optional[int] = None,
         is_final_batch: bool = False
     ) -> Dict[str, pd.DataFrame]:
         """
@@ -223,10 +228,19 @@ class ScenarioRunner:
         if total_scenarios is not None and total_start_time is not None:
             total_elapsed = time.time() - total_start_time
             batch_type = "final batch" if is_final_batch else "batch"
-            logger.info(f"Completed {batch_type} of {len(simulations)} simulations in {batch_duration:.2f}s "
-                       f"(total: {total_scenarios} scenarios, elapsed: {total_elapsed:.2f}s)")
-
+            logger.info(f"Completed {batch_type} of {len(simulations)} simulations in {format_duration(batch_duration)} "
+                       f"(total: {total_scenarios} scenarios, elapsed: {format_duration(total_elapsed)})")
+        
+        if num_estimated_scenarios is not None:
+            total_number_batches = (num_estimated_scenarios) // self.processing_config.parallel_processes + 1
+            number_of_batches_completed = total_scenarios // self.processing_config.parallel_processes
+            seconds_per_batch = total_elapsed / number_of_batches_completed
+            remaining_batches = total_number_batches - (total_scenarios // self.processing_config.parallel_processes)
+            remaining_time = remaining_batches * seconds_per_batch
+            logger.info(f"Estimated remaining time for {remaining_batches} batches: {format_duration(remaining_time)}")
+        
         return results
+    
     
     def _configure_algorithm(
         self,
@@ -553,12 +567,13 @@ def run_experiment(
         
         # Generate all scenarios
         scenarios = scenario_generator.generate_all_scenarios(patient_configs)
+        estimated_total_scenarios = summary['estimated_total_scenarios']
         logger.info(f"Generated scenario iterator (estimated: {summary['estimated_total_scenarios']} scenarios)")
         
         # 3. Run simulations
         logger.info("Running batch simulations...")
         simulation_runner = ScenarioRunner(config)
-        full_results = simulation_runner.run_batch_scenarios(scenarios)
+        full_results = simulation_runner.run_batch_scenarios(scenarios, estimated_total_scenarios=estimated_total_scenarios)
         
         if not full_results:
             raise ValueError("No simulation results generated")

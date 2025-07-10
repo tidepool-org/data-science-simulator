@@ -16,6 +16,53 @@ import pickle
 logger = logging.getLogger(__name__)
 
 
+def format_duration(seconds: float) -> str:
+    """
+    Format a duration in seconds into a human-readable string.
+    
+    Args:
+        seconds: Duration in seconds
+        
+    Returns:
+        Human-readable duration string (e.g., "2d 3h 45m 12.5s")
+    """
+    if seconds < 0:
+        return "0s"
+    
+    # Define time units in seconds
+    units = [
+        ('d', 86400),   # days
+        ('h', 3600),    # hours
+        ('m', 60),      # minutes
+        ('s', 1)        # seconds
+    ]
+    
+    parts = []
+    remaining = seconds
+    
+    for unit_name, unit_seconds in units:
+        if remaining >= unit_seconds:
+            if unit_name == 's':
+                # For seconds, show decimal places if less than 60 seconds total
+                if seconds < 60:
+                    value = remaining
+                    parts.append(f"{value:.1f}{unit_name}")
+                else:
+                    value = int(remaining)
+                    if value > 0:
+                        parts.append(f"{value}{unit_name}")
+            else:
+                value = int(remaining // unit_seconds)
+                parts.append(f"{value}{unit_name}")
+                remaining = remaining % unit_seconds
+    
+    # If no parts, it's less than 1 second
+    if not parts:
+        return f"{seconds:.1f}s"
+    
+    return " ".join(parts)
+
+
 class DataProcessor:
     """
     Utility class for processing simulation data.

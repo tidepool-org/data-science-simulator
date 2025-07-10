@@ -8,9 +8,10 @@ in insulin algorithm testing and analysis.
 __version__ = "1.0.0"
 __author__ = "Tidepool Data Science Team"
 
-from .data_utils import DataProcessor, ResultsAggregator
+from .data_utils import DataProcessor, ResultsAggregator, format_duration
 
 __all__ = [
     'DataProcessor',
-    'ResultsAggregator'
+    'ResultsAggregator',
+    'format_duration'
 ]
