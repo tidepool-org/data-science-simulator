@@ -51,8 +51,8 @@ class SimulationConfig:
 @dataclass
 class ProcessingConfig:
     """Configuration for processing parameters."""
-    parallel_processes: int = 14
-    batch_size: int = 30
+    parallel_processes: int = os.cpu_count()
+    batch_size: int = os.cpu_count()
     save_individual_results: bool = True
     save_summary_only: bool = False
 

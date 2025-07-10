@@ -8,6 +8,7 @@ insulin delivery algorithms (temp basal vs autobolus) using the Tidepool simulat
 import logging
 import copy
 import datetime
+import time
 from typing import Dict, Any, List, Optional, Tuple, Iterator
 
 import pandas as pd
@@ -140,52 +141,74 @@ class ScenarioRunner:
             Dictionary of simulation_id -> results DataFrame for all scenarios.
         """
         simulations = {}
-        sim_counter = 0
+        batch_counter = 0
+        total_batch_counter = 0
+        
         full_results = {}
+        total_start_time = time.time()
 
         for scenario in scenarios:
             # Create Simulation object from scenario
             simulation = self.create_simulation_from_scenario(scenario)
             simulations[simulation.sim_id] = simulation
-            sim_counter += 1
+            batch_counter += 1
+            total_batch_counter += 1
 
-            if sim_counter % 14 == 0:
-                # Run batch simulations every 14 scenarios for efficiency
-                results, _ = self.run_batch_simulations(simulations)
+            if batch_counter % self.processing_config.parallel_processes == 0:
+                # Run batch simulations every N scenarios for efficiency
+                results = self.run_parallel_batch_simulations(
+                    simulations, 
+                    save_dir=save_dir,
+                    total_scenarios=total_batch_counter,
+                    total_start_time=total_start_time
+                )
+
                 # Merge new results into the full results dictionary
                 full_results = full_results | results
                 simulations = {}  # Reset for next batch
-                sim_counter = 0
+                batch_counter = 0
 
         if simulations:
             # Run any remaining simulations that didn't fill a complete batch
-            results, _ = self.run_batch_simulations(simulations)
+            results = self.run_parallel_batch_simulations(
+                simulations, 
+                save_dir=save_dir,
+                total_scenarios=total_batch_counter,
+                total_start_time=total_start_time,
+                is_final_batch=True
+            )
+            
             full_results = full_results | results  # Merge results
 
-        logger.info(f"Completed {len(full_results)} simulations")
+        total_duration = time.time() - total_start_time
+        logger.info(f"Completed all {len(full_results)} simulations in {total_duration:.2f}s")
 
         return full_results
 
     
-    def run_batch_simulations(
-        self,
+    def run_parallel_batch_simulations(self,
         simulations: Dict[str, Simulation],
-        save_dir: Optional[str] = None
-    ) -> Tuple[Dict[str, pd.DataFrame], pd.DataFrame]:
+        save_dir: Optional[str] = None,
+        total_scenarios: Optional[int] = None,
+        total_start_time: Optional[float] = None,
+        is_final_batch: bool = False
+    ) -> Dict[str, pd.DataFrame]:
         """
         Run a batch of simulations in parallel.
         
         Args:
             simulations: Dictionary of simulation_id -> Simulation objects
             save_dir: Optional directory to save results
+            total_scenarios: Total number of scenarios processed so far
+            total_start_time: Start time of the entire batch operation
+            is_final_batch: Whether this is the final batch
             
         Returns:
-            Tuple of (full_results_dict, summary_results_df)
+            Dictionary of simulation_id -> results DataFrame
         """
-        logger.info(f"Running batch of {len(simulations)} simulations")
+        batch_start_time = time.time()
         
-        # Use the existing run_simulations function for parallel processing
-        full_results, summary_results = run_simulations(
+        results, _ = run_simulations(
             simulations,
             save_dir=save_dir or self.config.output_dir,
             save_results=self.processing_config.save_individual_results,
@@ -193,8 +216,17 @@ class ScenarioRunner:
             num_procs=self.processing_config.parallel_processes
         )
         
-        logger.info(f"Completed batch simulation with {len(full_results)} results")
-        return full_results, summary_results
+        batch_end_time = time.time()
+        batch_duration = batch_end_time - batch_start_time
+        
+        # Log timing information if tracking parameters are provided
+        if total_scenarios is not None and total_start_time is not None:
+            total_elapsed = time.time() - total_start_time
+            batch_type = "final batch" if is_final_batch else "batch"
+            logger.info(f"Completed {batch_type} of {len(simulations)} simulations in {batch_duration:.2f}s "
+                       f"(total: {total_scenarios} scenarios, elapsed: {total_elapsed:.2f}s)")
+
+        return results
     
     def _configure_algorithm(
         self,
