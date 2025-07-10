@@ -39,7 +39,7 @@ def main():
     logger.info("Loading configuration...")
     config = ExperimentConfig(CONFIG_FILE)  # Uses default config
     
-    config.set('experiment.output_dir', '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/510k_short_run/')
+    config.set('experiment.output_dir', OUTPUT_DIR)
 
     # 2. Run complete experiment
     logger.info("Running experiment...")
