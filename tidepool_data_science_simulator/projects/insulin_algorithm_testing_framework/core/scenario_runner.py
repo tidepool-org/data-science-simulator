@@ -8,9 +8,11 @@ insulin delivery algorithms (temp basal vs autobolus) using the Tidepool simulat
 import logging
 import copy
 import datetime
+import os
 import time
 from typing import Dict, Any, List, Optional, Tuple, Iterator
 
+import numexpr
 import pandas as pd
 import numpy as np
 from numpy.random import RandomState
@@ -47,6 +49,12 @@ class ScenarioRunner:
         self.sim_config = config.get_simulation_config()
         self.processing_config = config.get_processing_config()
         self.random_state = RandomState(config.random_seed)
+        
+        # Set up parallel processing environment
+        num_parallel_processes = self.processing_config.parallel_processes
+        os.environ['NUMEXPR_MAX_THREADS'] = str(num_parallel_processes)
+        numexpr.set_num_threads(num_parallel_processes)
+        logger.info(f"Set NUMEXPR_MAX_THREADS to {num_parallel_processes}")
         
         logger.info(f"Initialized SimulationRunner with config: {config}")
     
@@ -104,7 +112,7 @@ class ScenarioRunner:
         # Generate simulation ID
         sim_id = self._generate_simulation_id(
             algorithm_type, patient_config, initial_bg, meal_scenario, 
-            partial_application_factor, settings_multipliers
+            algorithm_config, partial_application_factor, settings_multipliers
         )
         
         # Create and run simulation
@@ -333,6 +341,7 @@ class ScenarioRunner:
         patient_config: Dict[str, Any],
         initial_bg: float,
         meal_scenario: Dict[str, Any],
+        algorithm_config: AlgorithmConfig,
         partial_application_factor: Optional[float] = None,
         settings_multipliers: Optional[Dict[str, float]] = None
     ) -> str:
@@ -345,7 +354,9 @@ class ScenarioRunner:
             f"alg={algorithm_type}",
             f"patient={patient_id}",
             f"ibg={initial_bg}",
-            f"meal={meal_scenario['size']}g"
+            f"meal={meal_scenario['size']}g",
+            f"posvel={algorithm_config.include_positive_velocity_and_RC}",
+            f"midisf={algorithm_config.use_mid_absorption_isf}"
         ]
         
         # Add partial application factor for autobolus
@@ -411,7 +422,7 @@ class ScenarioRunner:
         # Generate simulation ID
         sim_id = self._generate_simulation_id(
             algorithm_type, patient_config, initial_bg, meal_scenario, 
-            partial_application_factor, settings_multipliers
+            algorithm_config, partial_application_factor, settings_multipliers
         )
         
         # Create simulation

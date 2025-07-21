@@ -8,20 +8,36 @@ experiment:
 
 algorithms:
   tempbasal:
-    enabled: true
-    controller_id: "swift"
-    include_positive_velocity_and_RC: true
-    use_mid_absorption_isf: true
-    max_basal_multiplier: 3.5
+      enabled: true
+      controller_id: "swift"
+      include_positive_velocity_and_RC: false
+      use_mid_absorption_isf: true
+      max_basal_multiplier: 3.5
+
+  # tempbasal:
+  #   enabled: true
+  #   controller_id: "swift"
+  #   include_positive_velocity_and_RC: true
+  #   use_mid_absorption_isf: true
+  #   max_basal_multiplier: 3.5
   
-  autobolus:
-    enabled: true
-    controller_id: "swift"
-    include_positive_velocity_and_RC: false
-    use_mid_absorption_isf: true
-    partial_application_factors: [0.2, 0.3, 0.4, 0.5, 0.6]
-    minimum_autobolus: 0.1
-    maximum_autobolus: 100
+  # autobolus:
+  #   enabled: true
+  #   controller_id: "swift"
+  #   include_positive_velocity_and_RC: false
+  #   use_mid_absorption_isf: true
+  #   partial_application_factors: [0.2, 0.3, 0.4, 0.5, 0.6]
+  #   minimum_autobolus: 0.1
+  #   maximum_autobolus: 100
+
+  # autobolus:
+  #   enabled: true
+  #   controller_id: "swift"
+  #   include_positive_velocity_and_RC: true
+  #   use_mid_absorption_isf: true
+  #   partial_application_factors: [0.2, 0.3, 0.4, 0.5, 0.6]
+  #   minimum_autobolus: 0.1
+  #   maximum_autobolus: 100
 
 scenarios:
   initial_bg:
@@ -45,11 +61,10 @@ simulation:
   duration_hours: 8
   start_index: 137  # Skip initial stabilization period
   time_step_minutes: 5
-  safety_threshold_hours: 3  # Suspend if predicted BG < limit within this time
 
 processing:
   parallel_processes: 14
-  batch_size: 30
+  batch_size: 14
   save_individual_results: true
   save_summary_only: false
 

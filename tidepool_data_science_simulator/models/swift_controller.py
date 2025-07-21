@@ -5,8 +5,6 @@ import json
 from tidepool_data_science_simulator.models.measures import Bolus, TempBasal
 from tidepool_data_science_simulator.models.controller import AutomationControlTimeline, LoopController
 
-from tidepool_data_science_simulator import USE_LOCAL_PYLOOPKIT
-
 from loop_to_python_api.api import get_loop_recommendations
 
 
