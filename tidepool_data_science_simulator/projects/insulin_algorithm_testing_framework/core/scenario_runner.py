@@ -166,7 +166,7 @@ class ScenarioRunner:
 
             if batch_counter % self.processing_config.parallel_processes == 0:
                 # Run batch simulations every N scenarios for efficiency
-                results = self.run_parallel_batch_simulations(
+                _ = self.run_parallel_batch_simulations(
                     simulations, 
                     save_dir=save_dir,
                     total_scenarios=total_batch_counter,
@@ -175,13 +175,13 @@ class ScenarioRunner:
                 )
 
                 # Merge new results into the full results dictionary
-                full_results = full_results | results
+                # full_results = full_results | results
                 simulations = {}  # Reset for next batch
                 batch_counter = 0
 
         if simulations:
             # Run any remaining simulations that didn't fill a complete batch
-            results = self.run_parallel_batch_simulations(
+            _ = self.run_parallel_batch_simulations(
                 simulations, 
                 save_dir=save_dir,
                 total_scenarios=total_batch_counter,
@@ -190,12 +190,12 @@ class ScenarioRunner:
                 is_final_batch=True
             )
             
-            full_results = full_results | results  # Merge results
+            # full_results = full_results | results  # Merge results
 
         total_duration = time.time() - total_start_time
-        logger.info(f"Completed all {len(full_results)} simulations in {format_duration(total_duration)}")
+        # logger.info(f"Completed all {len(full_results)} simulations in {format_duration(total_duration)}")
 
-        return full_results
+        # return full_results
 
     
     def run_parallel_batch_simulations(self,
@@ -221,7 +221,7 @@ class ScenarioRunner:
         """
         batch_start_time = time.time()
         
-        results, _ = run_simulations(
+        _, _ = run_simulations(
             simulations,
             save_dir=save_dir or self.config.output_dir,
             save_results=self.processing_config.save_individual_results,
@@ -247,7 +247,7 @@ class ScenarioRunner:
             remaining_time = remaining_batches * seconds_per_batch
             logger.info(f"Estimated remaining time for {remaining_batches} batches: {format_duration(remaining_time)}")
         
-        return results
+        # return results
     
     
     def _configure_algorithm(
@@ -584,16 +584,16 @@ def run_experiment(
         # 3. Run simulations
         logger.info("Running batch simulations...")
         simulation_runner = ScenarioRunner(config)
-        full_results = simulation_runner.run_batch_scenarios(scenarios, estimated_total_scenarios=estimated_total_scenarios)
+        _ = simulation_runner.run_batch_scenarios(scenarios, estimated_total_scenarios=estimated_total_scenarios)
         
-        if not full_results:
-            raise ValueError("No simulation results generated")
+        # if not full_results:
+        #     raise ValueError("No simulation results generated")
         
-        logger.info(f"Completed {len(full_results)} simulations")
+        # logger.info(f"Completed {len(full_results)} simulations")
         
        
         
-        return full_results
+        # return full_results
         
     except Exception as e:
         logger.error(f"Experiment failed: {e}")

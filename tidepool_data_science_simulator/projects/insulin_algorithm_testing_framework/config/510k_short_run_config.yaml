@@ -47,8 +47,8 @@ simulation:
   time_step_minutes: 5
 
 processing:
-  parallel_processes: 14
-  batch_size: 14
+  # parallel_processes: 14 # Default to number of CPU cores
+  # batch_size: 14 # Default to number of CPU cores
   save_individual_results: true
   save_summary_only: false
 
