@@ -225,7 +225,7 @@ class ScenarioRunner:
             simulations,
             save_dir=save_dir or self.config.output_dir,
             save_results=self.processing_config.save_individual_results,
-            compute_summary_metrics=True,
+            compute_summary_metrics=False,  # Handled separately
             num_procs=self.processing_config.parallel_processes
         )
         
@@ -591,52 +591,9 @@ def run_experiment(
         
         logger.info(f"Completed {len(full_results)} simulations")
         
-        # 4. Calculate metrics
-        logger.info("Calculating metrics...")
-        metrics_calculator = MetricsCalculator(config)
+       
         
-        # Calculate metrics for all results
-        metrics_dict = metrics_calculator.calculate_metrics_batch(full_results)
-        
-        # Create metrics DataFrame
-        metrics_df = metrics_calculator.create_metrics_dataframe(metrics_dict)
-        
-        if metrics_df.empty:
-            raise ValueError("No metrics calculated")
-        
-        logger.info(f"Calculated metrics for {len(metrics_dict)} simulations")
-        logger.info(f"Metrics columns: {list(metrics_df.columns)}")
-        
-        # 5. Statistical analysis
-        logger.info("Performing statistical analysis...")
-        statistical_analyzer = StatisticalAnalyzer(config)
-        
-        # Get enabled algorithms for comparison
-        enabled_algorithms = config.get_enabled_algorithms()
-        
-        if len(enabled_algorithms) < 2:
-            logger.warning("Statistical comparison requires at least 2 algorithms")
-            comparison_results = {}
-        else:
-            # Use first algorithm as reference, others as comparison
-            reference_algorithm = enabled_algorithms[0]
-            comparison_algorithms = enabled_algorithms[1:]
-            
-            # Perform paired comparison
-            comparison_results = statistical_analyzer.compare_algorithms(
-                metrics_df, 
-                reference_algorithm=reference_algorithm,
-                comparison_algorithms=comparison_algorithms
-            )
-        
-        logger.info("Statistical analysis completed")
-        
-        # 6. Return results
-        logger.info(f"Experiment completed successfully!")
-        logger.info(f"Total simulations: {len(full_results)}")
-        logger.info(f"Metrics calculated: {len(metrics_df)}")
-        
-        return metrics_df, comparison_results
+        return full_results
         
     except Exception as e:
         logger.error(f"Experiment failed: {e}")

@@ -14,7 +14,9 @@ import json
 from pathlib import Path
 import os
 
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.analysis.statistical_analyzer import StatisticalAnalyzer
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import ExperimentConfig
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import MetricsCalculator
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_runner import run_experiment
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.visualization.comparison_plots import ComparisonPlotter
 
@@ -44,10 +46,55 @@ def main():
     # 2. Run complete experiment
     logger.info("Running experiment...")
     try:
-        metrics_df, comparison_results = run_experiment(config, max_patients=5)
+        full_results = run_experiment(config, max_patients=5)
         
         logger.info("Experiment completed successfully!")
         
+         # 4. Calculate metrics
+        logger.info("Calculating metrics...")
+        metrics_calculator = MetricsCalculator(config)
+        
+        # Calculate metrics for all results
+        metrics_dict = metrics_calculator.calculate_metrics_batch(full_results)
+        
+        # Create metrics DataFrame
+        metrics_df = metrics_calculator.create_metrics_dataframe(metrics_dict)
+        
+        if metrics_df.empty:
+            raise ValueError("No metrics calculated")
+        
+        logger.info(f"Calculated metrics for {len(metrics_dict)} simulations")
+        logger.info(f"Metrics columns: {list(metrics_df.columns)}")
+        
+        # 5. Statistical analysis
+        logger.info("Performing statistical analysis...")
+        statistical_analyzer = StatisticalAnalyzer(config)
+        
+        # Get enabled algorithms for comparison
+        enabled_algorithms = config.get_enabled_algorithms()
+        
+        if len(enabled_algorithms) < 2:
+            logger.warning("Statistical comparison requires at least 2 algorithms")
+            comparison_results = {}
+        else:
+            # Use first algorithm as reference, others as comparison
+            reference_algorithm = enabled_algorithms[0]
+            comparison_algorithms = enabled_algorithms[1:]
+            
+            # Perform paired comparison
+            comparison_results = statistical_analyzer.compare_algorithms(
+                metrics_df, 
+                reference_algorithm=reference_algorithm,
+                comparison_algorithms=comparison_algorithms
+            )
+        
+        logger.info("Statistical analysis completed")
+        
+        # 6. Return results
+        logger.info(f"Experiment completed successfully!")
+        logger.info(f"Total simulations: {len(full_results)}")
+        logger.info(f"Metrics calculated: {len(metrics_df)}")
+
         # 3. Display key results
         print("\n" + "="*60)
         print("BASIC COMPARISON RESULTS")
