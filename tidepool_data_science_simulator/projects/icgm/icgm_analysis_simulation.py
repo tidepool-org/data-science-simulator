@@ -42,6 +42,9 @@ from tidepool_data_science_simulator.utils import DATA_DIR
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
 
 
+PAF = 0.4
+POSITIVE_RC = False
+
 def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
     """
     Generator simulations from a base configuration that have different true bg
@@ -70,9 +73,9 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
             new_sim_base_config["patient"]["patient_model"]["glucose_history"]["value"] = glucose_history_values
             
             new_sim_base_config["controller"]["id"] = 'swift'
-            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = 0.4
+            new_sim_base_config["controller"]["settings"]["partial_application_factor"] = PAF
             new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
-            new_sim_base_config["controller"]["settings"]["include_positive_velocity_and_RC"] = False
+            new_sim_base_config["controller"]["settings"]["include_positive_velocity_and_RC"] = POSITIVE_RC
             new_sim_base_config["controller"]["settings"]["suspend_threshold"] = 70
             
             date_str_format = "%m/%d/%Y %H:%M:%S"  # ref: "8/15/2019 12:00:00"
@@ -182,8 +185,6 @@ def build_icgm_sim_generator(json_base_configs, sim_batch_size=30):
     Build simulations for the FDA AI Letter iCGM sensitivity analysis.
     """
     for i, json_config in enumerate(json_base_configs, 1):
-        # if i != 35:
-        #     continue
 
         logger.info("VP: {}. {} of {}".format(json_config["patient_id"], i, len(json_base_configs)))
 
@@ -204,17 +205,15 @@ def build_icgm_sim_generator(json_base_configs, sim_batch_size=30):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("icgm_analysis_simulation")
-    parser.add_argument("sim_batch_size", help="Number of simulations to run per batch. Should be less than the number of cores", type=int)
-    args = parser.parse_args()
 
-    sim_batch_size = args.sim_batch_size
+    sim_batch_size = os.cpu_count()
     os.environ['NUMEXPR_MAX_THREADS'] = str(sim_batch_size)
     numexpr.set_num_threads(sim_batch_size)
     
     date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S_")
     short_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()
-    result_dir = os.path.join(DATA_DIR, "processed/icgm_sensitivity_analysis_results_KF_test_" + date_string + short_hash)
+    
+    result_dir = os.path.join(DATA_DIR, f"processed/icgm_sensitivity_analysis_paf={PAF}_posrc={POSITIVE_RC}_" + date_string + short_hash)
     
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
@@ -232,6 +231,7 @@ if __name__ == "__main__":
                 sim_batch,
                 save_dir=result_dir,
                 save_results=True,
+                compute_summary_metrics=False,
                 num_procs=sim_batch_size
             )
             
