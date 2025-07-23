@@ -42,7 +42,7 @@ from tidepool_data_science_simulator.utils import DATA_DIR
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
 
 
-PAF = 0.4
+PAF = 0.2
 POSITIVE_RC = False
 
 def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed):
