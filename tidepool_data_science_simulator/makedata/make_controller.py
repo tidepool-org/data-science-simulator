@@ -9,7 +9,7 @@ from tidepool_data_science_simulator.makedata.make_patient import DATETIME_DEFAU
 def get_canonical_controller_config(t0=DATETIME_DEFAULT):
 
     controller_settings = {
-        "model": [360.0, 65],
+        "model": "novolog",
         "momentum_data_interval": 15,
         "suspend_threshold": 70,
         "dynamic_carb_absorption_enabled": True,

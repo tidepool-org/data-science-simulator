@@ -45,7 +45,25 @@ from tidepool_data_science_models.models.simple_metabolism_model import SimpleMe
 POINTER_OBJ_DIR = os.path.dirname(__file__) + "/../../scenario_configs/tidepool_risk_v2/"
 DATETIME_FORMAT = "%m/%d/%Y %H:%M:%S"
 
-CONTROLLER_MODEL_NAME_MAP = {
+SWIFT_CONTROLLER_MODEL_NAME_MAP = {
+    "rapid_acting_adult": "novolog",
+    # "rapid_acting_child": [360, 65],
+    # "walsh": [120, 15],
+    # "fiasp": [360, 55],
+    # "theoretical_fast_5": [20, 120],
+    # "theoretical_fast_3":[20, 240],
+    # "theoretical_fast_1": [29, 300],
+    # "theoretical_fast_4": [20, 240],
+    # "theoretical_fast_2": [29, 300],
+    # "u500": [360, 1110],
+    # "regular": [360, 420],
+    # "nph": [480, 1320],
+    # "degludec": [540, 1440],
+    # "glargine": [540, 1440]
+}
+
+PYLOOPKIT_CONTROLLER_MODEL_NAME_MAP = {
+    "novolog": [360, 75],
     "rapid_acting_adult": [360, 75],
     "rapid_acting_child": [360, 65],
     "walsh": [120, 15],
@@ -61,7 +79,6 @@ CONTROLLER_MODEL_NAME_MAP = {
     "degludec": [540, 1440],
     "glargine": [540, 1440]
 }
-
 
 class ScenarioParserV2(SimulationParser):
     """
@@ -127,9 +144,10 @@ class ScenarioParserV2(SimulationParser):
 
             if 'controller' in override_delta:
                 print("Contains controller overrides:")
-                if 'settings' in override_delta['controller']:
+                if override_delta['controller'] is not None and 'settings' in override_delta['controller']:
                     settings = override_delta['controller']['settings']
-                    print(f"  - controller settings: {list(settings.keys())}")
+                    print(settings)
+                    # print(f"  - controller settings: {list(settings.keys())}")
 
             override_sim_config = copy.deepcopy(self.base_sim_config)
             self.apply_config_override(override_sim_config, override_delta)
@@ -705,25 +723,27 @@ class ScenarioParserV2(SimulationParser):
 
             automation_control_timeline = self.automation_control_entries_to_timeline(automation_control_entries)
 
-            # Get model parameters from passed string in config
-            model_name = controller_settings["model"]
-            if model_name not in CONTROLLER_MODEL_NAME_MAP:
-                raise ValueError("{} not a recognized model. Available models: {}".format(model_name,
-                                                                                          CONTROLLER_MODEL_NAME_MAP.keys()))
-
-            model_params = CONTROLLER_MODEL_NAME_MAP[model_name]
-            controller_settings["model"] = model_params
-
             controller_config = ControllerConfig(
                 bolus_event_timeline=self.pump_model["bolus_timeline"],
                 carb_event_timeline=self.pump_model["carb_timeline"],
                 controller_settings=controller_settings
             )
+            
+            model_name = controller_settings["model"]
             controller_id = sim_config['controller']['id']
+            
             if 'swift' in controller_id:
+                if model_name in SWIFT_CONTROLLER_MODEL_NAME_MAP:
+                    model_name = SWIFT_CONTROLLER_MODEL_NAME_MAP[model_name]
+                controller_config.controller_settings['model'] = model_name
                 controller = SwiftLoopController(sim_start_time, controller_config, automation_control_timeline)
+
             elif 'py' in controller_id:
+                if model_name in PYLOOPKIT_CONTROLLER_MODEL_NAME_MAP:
+                    model_name = PYLOOPKIT_CONTROLLER_MODEL_NAME_MAP[model_name]
+                controller_config.controller_settings['model'] = model_name
                 controller = LoopController(sim_start_time, controller_config, automation_control_timeline)
+
             elif 'open' in controller_id:
                 controller = OpenLoopController(sim_start_time, controller_config, automation_control_timeline)
 
