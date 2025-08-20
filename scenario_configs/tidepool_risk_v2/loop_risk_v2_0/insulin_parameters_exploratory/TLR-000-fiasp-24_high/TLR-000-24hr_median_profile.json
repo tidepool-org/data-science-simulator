@@ -18,65 +18,60 @@
           "glucose_history": "reusable.glucose.flat_250_12hr",
           "carb_entries": [
             {
-              "start_time": "8/15/2019 14:40:00",
-              "type": "carb",
-              "value": 58
-            },
-            {
-              "start_time": "8/15/2019 15:00:00",
-              "type": "carb",
-              "value": 31
-            },
-            {
-              "start_time": "8/15/2019 16:15:00",
-              "type": "carb",
-              "value": 52
-            },
-            {
-              "start_time": "8/15/2019 22:25:00",
+              "start_time": "8/15/2019 15:10:00",
               "type": "carb",
               "value": 42
             },
             {
-              "start_time": "8/16/2019 5:30:00",
+              "start_time": "8/15/2019 17:35:00",
               "type": "carb",
-              "value": 53
+              "value": 55
+            },
+            {
+              "start_time": "8/15/2019 19:05:00",
+              "type": "carb",
+              "value": 57
+            },
+            {
+              "start_time": "8/15/2019 20:35:00",
+              "type": "carb",
+              "value": 80
+            },
+            {
+              "start_time": "8/16/2019 6:00:00",
+              "type": "carb",
+              "value": 67
             },
             {
               "start_time": "8/16/2019 8:25:00",
               "type": "carb",
-              "value": 59
+              "value": 36
             },
             {
-              "start_time": "8/16/2019 10:50:00",
+              "start_time": "8/16/2019 9:15:00",
               "type": "carb",
-              "value": 46
-            },
-            {
-              "start_time": "8/16/2019 11:45:00",
-              "type": "carb",
-              "value": 79
+              "value": 77
             }
           ],
           "bolus_entries": [
             {
-              "time": "8/15/2019 14:40:00",
+              "time": "8/15/2019 15:10:00",
               "value": "accept_recommendation"
             },
             {
-              "time": "8/15/2019 15:00:00",
+              "time": "8/15/2019 17:35:00",
               "value": "accept_recommendation"
             },
             {
-              "time": "8/15/2019 16:15:00",
+              "time": "8/15/2019 19:05:00",
               "value": "accept_recommendation"
             },
             {
-              "time": "8/15/2019 22:25:00",
+              "time": "8/15/2019 20:35:00",
               "value": "accept_recommendation"
             },
             {
-              "time": "8/16/2019 5:30:00",
+              "time": "8/16/2019 6:00:00",
               "value": "accept_recommendation"
             },
             {
@@ -84,11 +79,7 @@
               "value": "accept_recommendation"
             },
             {
-              "time": "8/16/2019 10:50:00",
-              "value": "accept_recommendation"
-            },
-            {
-              "time": "8/16/2019 11:45:00",
+              "time": "8/16/2019 9:15:00",
               "value": "accept_recommendation"
             }
           ]
@@ -96,49 +87,45 @@
         "pump": {
           "carb_entries": [
             {
-              "start_time": "8/15/2019 14:40:00",
-              "type": "carb",
-              "value": 58
-            },
-            {
-              "start_time": "8/15/2019 15:00:00",
-              "type": "carb",
-              "value": 31
-            },
-            {
-              "start_time": "8/15/2019 16:15:00",
-              "type": "carb",
-              "value": 52
-            },
-            {
-              "start_time": "8/15/2019 22:25:00",
+              "start_time": "8/15/2019 15:10:00",
               "type": "carb",
               "value": 42
             },
             {
-              "start_time": "8/16/2019 5:30:00",
+              "start_time": "8/15/2019 17:35:00",
               "type": "carb",
-              "value": 53
+              "value": 55
+            },
+            {
+              "start_time": "8/15/2019 19:05:00",
+              "type": "carb",
+              "value": 57
+            },
+            {
+              "start_time": "8/15/2019 20:35:00",
+              "type": "carb",
+              "value": 80
+            },
+            {
+              "start_time": "8/16/2019 6:00:00",
+              "type": "carb",
+              "value": 67
             },
             {
               "start_time": "8/16/2019 8:25:00",
               "type": "carb",
-              "value": 59
+              "value": 36
             },
             {
-              "start_time": "8/16/2019 10:50:00",
+              "start_time": "8/16/2019 9:15:00",
               "type": "carb",
-              "value": 46
-            },
-            {
-              "start_time": "8/16/2019 11:45:00",
-              "type": "carb",
-              "value": 79
+              "value": 77
             }
           ]
         }
       },
       "controller": {
+        "id": "swift",
         "settings": {
           "model": "fiasp"
         }

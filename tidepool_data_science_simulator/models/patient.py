@@ -481,6 +481,34 @@ class VirtualPatient(SimulationComponent):
         bbg = self.patient_config.basal_blood_glucose_schedule.get_state()
         ipr = self.patient_config.insulin_production_rate_schedule.get_state()
 
+        def instantiate_metabolism_model(self):
+            """
+            Get instance of metabolism model from the current state of settings.
+            Uses patient's actual insulin type, not controller's assumptions.
+            """
+            isf = self.patient_config.insulin_sensitivity_schedule.get_state()
+            cir = self.patient_config.carb_ratio_schedule.get_state()
+            gsf = self.patient_config.glucose_sensitivity_factor_schedule.get_state()
+            bbg = self.patient_config.basal_blood_glucose_schedule.get_state()
+            ipr = self.patient_config.insulin_production_rate_schedule.get_state()
+
+            print(
+                f"DEBUG: Creating metabolism model with patient_insulin_type={self.patient_config.patient_insulin_type}")
+
+            metabolism_model_instance = self.metabolism_model(
+                insulin_sensitivity_factor=isf.value,
+                carb_insulin_ratio=cir.value,
+                glucose_sensitivity_factor=gsf.value,
+                basal_blood_glucose=bbg.value,
+                insulin_production_rate=ipr.value,
+                patient_insulin_type=self.patient_config.patient_insulin_type  # NEW
+            )
+
+            print(
+                f"DEBUG: Created model with tau1={metabolism_model_instance.insulin_model._tau1}, tau2={metabolism_model_instance.insulin_model._tau2}")
+
+            return metabolism_model_instance
+
         # Get patient's actual insulin type (add this to PatientConfig)
         patient_insulin_type = getattr(self.patient_config, 'actual_insulin_type', 'rapid_acting_adult')
 

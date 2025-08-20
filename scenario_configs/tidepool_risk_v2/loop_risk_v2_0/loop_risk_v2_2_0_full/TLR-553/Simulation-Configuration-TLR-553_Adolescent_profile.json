@@ -73,6 +73,7 @@
           ]
         },
         "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_20_8h_v1",
           "carb_entries": [
             {
               "type": "carb",

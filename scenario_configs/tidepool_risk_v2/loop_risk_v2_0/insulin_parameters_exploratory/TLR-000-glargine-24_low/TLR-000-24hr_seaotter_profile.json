@@ -139,6 +139,7 @@
         }
       },
       "controller": {
+        "id": "pyloopkit_v1",
         "settings": {
           "model": "glargine",
           "insulin_delay": 360

@@ -102,6 +102,7 @@
         }
       },
       "controller": {
+        "id": "pyloopkit_v1",
         "settings": {
           "model": "u500",
           "insulin_delay": 30

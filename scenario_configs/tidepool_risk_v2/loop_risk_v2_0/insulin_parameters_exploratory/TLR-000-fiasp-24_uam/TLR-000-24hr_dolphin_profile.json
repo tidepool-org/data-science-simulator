@@ -116,6 +116,7 @@
         }
       },
       "controller": {
+        "id": "swift",
         "settings": {
           "model": "fiasp"
         }

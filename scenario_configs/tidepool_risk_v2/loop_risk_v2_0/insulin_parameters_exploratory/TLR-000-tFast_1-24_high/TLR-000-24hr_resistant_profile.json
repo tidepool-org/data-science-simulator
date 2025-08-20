@@ -111,6 +111,7 @@
         }
       },
       "controller": {
+        "id": "pyloopkit_v1",
         "settings": {
           "model": "theoretical_fast_1",
           "insulin_delay": 5

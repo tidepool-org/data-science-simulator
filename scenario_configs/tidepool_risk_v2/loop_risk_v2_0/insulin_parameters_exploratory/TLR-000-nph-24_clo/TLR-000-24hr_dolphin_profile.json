@@ -139,6 +139,7 @@
         }
       },
       "controller": {
+        "id": "pyloopkit_v1",
         "automation_control_timeline": [
             {"dosing_enabled": false,
             "time": "08/15/2019 12:00:00"}

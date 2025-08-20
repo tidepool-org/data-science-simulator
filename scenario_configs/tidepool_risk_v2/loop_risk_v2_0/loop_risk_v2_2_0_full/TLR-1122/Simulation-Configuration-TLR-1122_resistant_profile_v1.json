@@ -1,0 +1,79 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1122",
+    "simulation_id": "TLR-1122-base_resistant",
+    "risk_description": "Activity Preset when not exercising",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_20_v1",
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00", "20:00:00"],
+            "lower_values": [70, 150, 70],
+            "upper_values": [90, 170, 90]
+          },
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1"
+          }
+        }
+      },
+    {"sim_id": "pre-noLoop_t1_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+          {
+            "time": "8/15/2019 12:00:00",
+            "value":0.62
+          }
+            ]
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_20_v1",
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00", "20:00:00"],
+            "lower_values": [70, 150, 70],
+            "upper_values": [90, 170, 90]
+          },
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+            "time": "8/15/2019 12:00:00",
+            "value": 0.62
+          }
+            ]
+          }
+        }
+      },
+    {"sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_20_8h_v1",
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00", "20:00:00"],
+            "lower_values": [100, 150, 100],
+            "upper_values": [105, 170, 105]
+          },
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1"
+          }
+        },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_swift"
+      }
+      }
+  ]
+}

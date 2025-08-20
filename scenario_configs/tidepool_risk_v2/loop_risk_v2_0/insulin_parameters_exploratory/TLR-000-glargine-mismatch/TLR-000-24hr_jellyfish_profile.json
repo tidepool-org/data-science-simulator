@@ -111,6 +111,7 @@
         }
       },
       "controller": {
+        "id": "pyloopkit_v1",
         "settings": {
           "model": "rapid_acting_adult",
           "insulin_delay": 360

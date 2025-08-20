@@ -125,6 +125,7 @@
         }
       },
       "controller": {
+        "id": "pyloopkit_v1",
         "settings": {
           "model": "regular",
           "insulin_delay": 45
