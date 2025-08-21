@@ -158,9 +158,6 @@ def compute_score_risk_table(summary_df, concurrency_table=None):
         low_true_axis.append(low_true)
         low_icgm_axis.append(low_icgm)
 
-        # if low_true == 40 and (low_icgm == 40 or low_icgm == 61):
-        #     continue
-
         # Backward compatibility with old versions of the results file. 
         if "true_start_bg" in summary_df:
             # Current version
@@ -201,27 +198,34 @@ def compute_score_risk_table(summary_df, concurrency_table=None):
         
         sim_prob_start = []
         sim_prob_valid = []
-        for s_idx, severity_band in enumerate(severity_bands, 0):
-            severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
-            num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
-            sim_prob_start.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
-            
-            risk_prob_sim = sim_prob_start[s_idx] * p_corr_bolus_given_error * p_error
-            num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
 
-            severity_event_count[s_idx] += num_risk_events_sim
-            ####
-            # if "lbgi_icgm_valid" in summary_df:
-            #     severity_mask = (lbgi_data_valid >= severity_band[0]) & (lbgi_data_valid < severity_band[1])
-            #     num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
-            #     sim_prob_valid.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
+        if low_true == 40 and (low_icgm == 40 or low_icgm == 61):
+            mean_lbgi_start.append(np.zeros(5))
+
+        else:
+            for s_idx, severity_band in enumerate(severity_bands, 0):
+                severity_mask = (lbgi_data >= severity_band[0]) & (lbgi_data < severity_band[1])
+                num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
+                sim_prob_start.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
                 
-            #     risk_prob_sim = sim_prob_valid[s_idx] * p_corr_bolus_given_error * p_error
-            #     num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
+                risk_prob_sim = sim_prob_start[s_idx] * p_corr_bolus_given_error * p_error
+                num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
 
-            #     severity_event_count[s_idx] += num_risk_events_sim
+                severity_event_count[s_idx] += num_risk_events_sim
+                ####
+                # if "lbgi_icgm_valid" in summary_df:
+                #     severity_mask = (lbgi_data_valid >= severity_band[0]) & (lbgi_data_valid < severity_band[1])
+                #     num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
+                #     sim_prob_valid.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
+                    
+                #     risk_prob_sim = sim_prob_valid[s_idx] * p_corr_bolus_given_error * p_error
+                #     num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
 
-        mean_lbgi_start.append(sim_prob_start)
+                #     severity_event_count[s_idx] += num_risk_events_sim
+
+       
+        
+            mean_lbgi_start.append(sim_prob_start)
         # mean_lbgi_valid.append(sim_prob_valid)
 
 
@@ -232,18 +236,27 @@ def compute_score_risk_table(summary_df, concurrency_table=None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("icgm_analysis_evaluation")
-    parser.add_argument("mode", help="process or summarize", type=str)
-    parser.add_argument("path", help="simulation data directory (process) or summary file path (summarize)", type=str)
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser("icgm_analysis_evaluation")
+    # parser.add_argument("mode", help="process or summarize", type=str)
+    # parser.add_argument("path", help="simulation data directory (process) or summary file path (summarize)", type=str)
+    # args = parser.parse_args()
 
-    mode = args.mode
-    path = args.path
+    # mode = args.mode
+    # path = args.path
+
+    mode = 'process'
+    path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d'
+    path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a'
+    path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.6_posrc=False_2025_07_24_T_14_00_27_658d0e12'
+    path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.8_posrc=False_2025_07_24_T_20_07_52_14d7f7d4'
+    # mode = 'summarize'
+    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d.csv'
+    # # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a.csv'
 
     match mode:
         case 'process': 
             summary_result_filepath = process_simulation_data(path)
        
         case 'summarize': 
-            summary_df = pd.read_csv(path, sep=",")
-            print(compute_score_risk_table(summary_df))
+            summary_df = pd.read_csv(path, sep="\t")
+            print(compute_score_risk_table(summary_df, 'coastal'))

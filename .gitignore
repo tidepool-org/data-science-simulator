@@ -107,3 +107,10 @@ venv.bak/
 scenario_configs/tidepool_risk_v2/reusable/metabolism_settings/update.py
 *.swp
 *.swo
+memory-bank/activeContext.md
+memory-bank/productContext.md
+memory-bank/progress.md
+memory-bank/projectbrief.md
+memory-bank/systemPatterns.md
+memory-bank/techContext.md
+.clinerules/memory-bank.md

@@ -24,73 +24,159 @@ pd.set_option('display.float_format', '{:.2e}'.format)
 
 # risk_lbgi_2021 = mean_lbgi_2021_valid[:,risk_idx]
 
-data_dir = '/Users/mconn/Google Drive/My Drive/projects/Sensitivity Analysis/processed_data/'
+# data_dir = '/Users/mconn/Google Drive/My Drive/projects/Sensitivity Analysis/processed_data/'
+data_dir = ''
 
-data_name = 'icgm_sensitivity_analysis_results_AUTOBOLUS_04_2024_11_20_619381e.csv'
-data_name = 'icgm_sensitivity_analysis_results_AUTOBOLUS_04_positive_bias_correction_2024_12_12_T_18_32_28_7dd54a9.csv'
-data_name = 'icgm_sensitivity_analysis_results_TEMPBASAL_NO_MANUAL_2024_12_20_T_14_04_39_748cf5e.csv'
-# data_name = 'icgm_sensitivity_analysis_results_AUTOBOLUS_05_positive_bias_correction_2025_01_13_T_13_21_21_76026e7.csv'
-# data_name = 'icgm_sensitivity_analysis_results_AUTOBOLUS_06_positive_bias_correction_2025_01_16_T_03_50_48_eed0c90.csv'
-# data_name = 'icgm_sensitivity_analysis_results_MANUAL_2024_11_13_0da14e7.csv'
-# data_name = 'icgm_sensitivity_analysis_results_MANUAL_BOLUS_positive_bias_correction_2025_02_03_T_16_12_06_d997c998.csv'
-
-data_path = data_dir + data_name
-summary_df = pd.read_csv(data_path, sep="\t")
-severity_event_probability_df, (low_icgm_axis, low_true_axis, mean_lbgi_swift_start, joint_prob_swift) = compute_score_risk_table(summary_df, concurrency_table='adult')
-
-severity_event_probability_df = severity_event_probability_df #* 48
-print('Severity Event Probability')
-print(severity_event_probability_df)
-print()
-
-risk_index = [get_probability_index(p) for p in severity_event_probability_df[0]]
-risk_index = np.array(risk_index)
-print('Risk Scores')
-print(risk_index * np.array([1,2,3,4,5]))
-
-lw = 2 
-# ticks = [40, 61, 81, 121, 161, 201, 251, 301, 351]
-# ticklabels = ['40-60','61-80','81-120','121-160','161-200','201-250','251-300','301-350','351-400']
-ticks = range(40, 400, 5)
-rotation = 20
-vmax = [0.01583,
-        0.00170,
-        6.01944e-05]
-fig, ax = plt.subplots(1,3,figsize=(18, 6))
-
-for risk_index in range(2, 5):
-
-    plot_idx = risk_index-2
-    risk_lbgi_swift_start = mean_lbgi_swift_start[:,risk_index]
-
-    a = risk_lbgi_swift_start * joint_prob_swift
-    # a = np.concatenate(([0,0],a))
-    # a[0:2] = [0, 0]
-    vmin = min(a)
-    # vmax = max(a)
-    print(vmax)                          
-    dim = int(np.sqrt(len(low_icgm_axis)))
-    dims = (dim, dim)
-
-    true_grid = np.reshape(low_true_axis, dims)
-    icgm_grid = np.reshape(low_icgm_axis, dims)
+# List of all data files to process
+data_names = [
+    # Commented out files that could be included if needed:
+    # 'icgm_sensitivity_analysis_results_AUTOBOLUS_04_2024_11_20_619381e.csv',
+    # 'icgm_sensitivity_analysis_results_AUTOBOLUS_04_positive_bias_correction_2024_12_12_T_18_32_28_7dd54a9.csv',
+    # 'icgm_sensitivity_analysis_results_TEMPBASAL_NO_MANUAL_2024_12_20_T_14_04_39_748cf5e.csv',
     
-    ax[plot_idx].pcolormesh(true_grid, icgm_grid, np.reshape(a, dims), vmin=vmin, vmax=vmax[plot_idx], edgecolors='k', linewidths=lw)
-    ax[plot_idx].invert_yaxis()    
+    '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d.csv',
+    '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a.csv',
+    '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.6_posrc=False_2025_07_24_T_14_00_27_658d0e12.csv',
+    '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.8_posrc=False_2025_07_24_T_20_07_52_14d7f7d4.csv',
+    
+    # Additional commented out files that could be included if needed:
+    # 'icgm_sensitivity_analysis_results_AUTOBOLUS_05_positive_bias_correction_2025_01_13_T_13_21_21_76026e7.csv',
+    # 'icgm_sensitivity_analysis_results_AUTOBOLUS_06_positive_bias_correction_2025_01_16_T_03_50_48_eed0c90.csv',
+    # 'icgm_sensitivity_analysis_results_MANUAL_2024_11_13_0da14e7.csv',
+    # 'icgm_sensitivity_analysis_results_MANUAL_BOLUS_positive_bias_correction_2025_02_03_T_16_12_06_d997c998.csv'
+]
 
-    ax[plot_idx].set_xlabel("True Blood Glucose")
+# Initialize matrices to store results from all files
+all_severity_events = []
+all_risk_indices = []
+file_names_processed = []
+
+# Loop through each data file
+for i, data_name in enumerate(data_names):
+    print(f"\n{'='*80}")
+    print(f"Processing file {i+1}/{len(data_names)}: {data_name}")
+    print(f"{'='*80}")
+    
+    data_path = data_dir + data_name
+    try:
+        summary_df = pd.read_csv(data_path, sep="\t")
+        severity_event_probability_df, (low_icgm_axis, low_true_axis, mean_lbgi_swift_start, joint_prob_swift) = compute_score_risk_table(summary_df, concurrency_table='adult')
+
+        severity_event_probability_df = severity_event_probability_df * 48
+        print('Severity Event Probability')
+        print(severity_event_probability_df)
+        print()
+
+        risk_index = [get_probability_index(p) for p in severity_event_probability_df[0]]
+        risk_index = np.array(risk_index)
+        print('Risk Scores')
+        print(risk_index * np.array([1,2,3,4,5]))
+        print()
+        
+        # Store results in matrices
+        all_severity_events.append(severity_event_probability_df)
+        all_risk_indices.append(risk_index * np.array([1,2,3,4,5]))
+        file_names_processed.append(data_name)
+        
+    except FileNotFoundError:
+        print(f"ERROR: File not found: {data_path}")
+        continue
+    except Exception as e:
+        print(f"ERROR processing {data_name}: {str(e)}")
+        continue
+
+# Convert lists to numpy arrays for matrix operations
+if len(all_severity_events) > 0:
+    all_severity_events_matrix = np.array(all_severity_events)
+    all_risk_indices_matrix = np.array(all_risk_indices)
+    
+    print(f"\n{'='*80}")
+    print("SUMMARY OF ALL PROCESSED FILES")
+    print(f"{'='*80}")
+    print(f"Total files processed: {len(file_names_processed)}")
+    print()
+    
+    print("File names processed:")
+    for i, fname in enumerate(file_names_processed):
+        print(f"  {i+1}. {fname}")
+    print()
+    
+    print("All Severity Events Matrix Shape:", all_severity_events_matrix.shape)
+    print("All Risk Indices Matrix Shape:", all_risk_indices_matrix.shape)
+    print()
+    
+    print("All Severity Events Matrix:")
+    print(all_severity_events_matrix)
+    print()
+    
+    print("All Risk Indices Matrix:")
+    print(all_risk_indices_matrix)
+    print()
+    
+    # Summary statistics
+    print("Summary Statistics:")
+    print("Mean severity events across files:")
+    print(np.mean(all_severity_events_matrix, axis=0))
+    print()
+    
+    print("Mean risk indices across files:")
+    print(np.mean(all_risk_indices_matrix, axis=0))
+    print()
+    
+    print("Standard deviation of severity events across files:")
+    print(np.std(all_severity_events_matrix, axis=0))
+    print()
+    
+    print("Standard deviation of risk indices across files:")
+    print(np.std(all_risk_indices_matrix, axis=0))
+    print()
+else:
+    print("No files were successfully processed.")
+
+# lw = 2
+# # ticks = [40, 61, 81, 121, 161, 201, 251, 301, 351]
+# # ticklabels = ['40-60','61-80','81-120','121-160','161-200','201-250','251-300','301-350','351-400']
+# ticks = range(40, 400, 5)
+
+# rotation = 20
+# vmax = [0.01583,
+#         0.00170,
+#         6.01944e-05]
+# fig, ax = plt.subplots(1,3,figsize=(18, 6))
+
+# for risk_index in range(2, 5):
+
+#     plot_idx = risk_index-2
+#     risk_lbgi_swift_start = mean_lbgi_swift_start[:,risk_index]
+
+#     a = risk_lbgi_swift_start * joint_prob_swift
+#     # a = np.concatenate(([0,0],a))
+#     # a[0:2] = [0, 0]
+#     vmin = min(a)
+#     # vmax = max(a)
+#     print(vmax)                          
+#     dim = int(np.sqrt(len(low_icgm_axis)))
+#     dims = (dim, dim)
+
+#     true_grid = np.reshape(low_true_axis, dims)
+#     icgm_grid = np.reshape(low_icgm_axis, dims)
+    
+#     ax[plot_idx].pcolormesh(true_grid, icgm_grid, np.reshape(a, dims), vmin=vmin, vmax=vmax[plot_idx], edgecolors='k', linewidths=lw)
+#     ax[plot_idx].invert_yaxis()    
+
+#     ax[plot_idx].set_xlabel("True Blood Glucose")
     
     
-    ax[plot_idx].set_xticks(ticks)
-    # ax[plot_idx].set_xticklabels(ticklabels, rotation=rotation)
+#     ax[plot_idx].set_xticks(ticks)
+#     # ax[plot_idx].set_xticklabels(ticklabels, rotation=rotation)
 
-    ax[plot_idx].set_yticks(ticks)
-    # ax[plot_idx].set_yticklabels(ticklabels)
+#     ax[plot_idx].set_yticks(ticks)
+#     # ax[plot_idx].set_yticklabels(ticklabels)
     
-    ax[plot_idx].set_title('Risk Severity: {}'.format(risk_index+1))
+#     ax[plot_idx].set_title('Risk Severity: {}'.format(risk_index+1))
 
-ax[0].set_ylabel("Sensor Blood  Glucose")
-plt.show()
+# ax[0].set_ylabel("Sensor Blood  Glucose")
+# plt.show()
 
 #####
 #####
