@@ -28,9 +28,6 @@ def _get_scenario_generator():
     from .core.scenario_generator import ScenarioGenerator
     return ScenarioGenerator
 
-def _get_metrics_calculator():
-    from .core.metrics_calculator import MetricsCalculator
-    return MetricsCalculator
 
 # Make classes available at module level
 import sys
@@ -50,11 +47,8 @@ class _LazyLoader:
 setattr(module, 'ExperimentRunner', _LazyLoader(_get_experiment_runner))
 setattr(module, 'SimulationRunner', _LazyLoader(_get_simulation_runner))
 setattr(module, 'ScenarioGenerator', _LazyLoader(_get_scenario_generator))
-setattr(module, 'MetricsCalculator', _LazyLoader(_get_metrics_calculator))
-
 __all__ = [
     'ExperimentRunner',
     'SimulationRunner', 
-    'ScenarioGenerator',
-    'MetricsCalculator'
+    'ScenarioGenerator'
 ]

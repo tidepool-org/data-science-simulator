@@ -21,7 +21,10 @@ from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framewor
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.data_loader import DataLoader
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_generator import ScenarioGenerator
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_runner import ScenarioRunner
-from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import MetricsCalculator
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import (
+    calculate_metrics_batch,
+    create_metrics_dataframe
+)
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.analysis.statistical_analyzer import StatisticalAnalyzer
 
 # Setup logging
@@ -88,13 +91,12 @@ def main():
     
     # 5. Calculate metrics
     logger.info("Calculating metrics...")
-    metrics_calculator = MetricsCalculator(config)
     
-    # Calculate metrics for all results
-    metrics_dict = metrics_calculator.calculate_metrics_batch(full_results)
+    # Calculate metrics for all results using functional interface
+    metrics_dict = calculate_metrics_batch(full_results)
     
     # Create metrics DataFrame
-    metrics_df = metrics_calculator.create_metrics_dataframe(metrics_dict)
+    metrics_df = create_metrics_dataframe(metrics_dict)
     
     logger.info(f"Calculated metrics for {len(metrics_dict)} simulations")
     

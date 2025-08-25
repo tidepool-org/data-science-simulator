@@ -16,7 +16,10 @@ import os
 
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.analysis.statistical_analyzer import StatisticalAnalyzer
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import ExperimentConfig
-from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import MetricsCalculator
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import (
+    calculate_metrics_batch,
+    create_metrics_dataframe
+)
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_runner import run_experiment
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.visualization.comparison_plots import ComparisonPlotter
 

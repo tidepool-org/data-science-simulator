@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class MetricsResult:
-    """Container for calculated metrics."""
+class PointMetricsResult:
+    """Container for calculated point metrics (scalar values only)."""
     
     # Time in range metrics
     time_in_range_70_180: float
@@ -79,6 +79,10 @@ class MetricsResult:
             'time_in_tight_range_70_140': self.time_in_tight_range_70_140,
             'coefficient_of_variation': self.coefficient_of_variation
         }
+
+
+# Backward compatibility - keep the old class name as an alias
+MetricsResult = PointMetricsResult
 
 
 # Core data extraction functions
@@ -231,10 +235,37 @@ def calculate_insulin_metrics(insulin_data: Dict[str, float]) -> Dict[str, float
     }
 
 
+def calculate_cumulative_sum_insulin(
+    results_df: pd.DataFrame,
+    start_hours: float = 0,
+    duration_hours: Optional[float] = None
+) -> np.ndarray:
+    """
+    Calculate cumulative sum of insulin delivered over time as an array.
+
+    Args:
+        results_df: Simulation results DataFrame
+        start_hours: Start time in hours from simulation start
+        duration_hours: Duration to analyze (None for all remaining)
+
+    Returns:
+        Numpy array of cumulative insulin sum at each time point.
+    """
+    active_data = results_df[results_df['active'] == 1]
+    start_idx = int(start_hours * 12)
+    end_idx = start_idx + int(duration_hours * 12) if duration_hours else len(active_data)
+    sliced_data = active_data.iloc[start_idx:end_idx]
+
+    basal_cumsum = sliced_data['delivered_basal_insulin'].fillna(0).cumsum().values
+    bolus_cumsum = sliced_data['true_bolus'].fillna(0).cumsum().values
+    total_cumsum = basal_cumsum + bolus_cumsum
+    return total_cumsum
+
+
 # Main calculation functions
 def create_empty_metrics() -> MetricsResult:
     """Create empty metrics result for error cases."""
-    return MetricsResult(
+    metrics = MetricsResult(
         time_in_range_70_180=0.0,
         time_below_70=0.0,
         time_below_54=0.0,
@@ -255,13 +286,14 @@ def create_empty_metrics() -> MetricsResult:
         time_in_tight_range_70_140=0.0,
         coefficient_of_variation=0.0
     )
-
+    metrics.cumulative_sum_insulin = np.array([])
+    return metrics
 
 def calculate_all_metrics(
     results_df: pd.DataFrame,
     start_hours: float = 0,
     duration_hours: Optional[float] = None
-) -> MetricsResult:
+) -> PointMetricsResult:
     """
     Calculate all metrics for a simulation result.
     
@@ -271,32 +303,69 @@ def calculate_all_metrics(
         duration_hours: Duration to analyze (None for all remaining)
         
     Returns:
-        MetricsResult object with all calculated metrics
+        PointMetricsResult with all calculated metrics.
     """
-    # Extract data
-    glucose_data, insulin_data = extract_data_slice(results_df, start_hours, duration_hours)
+    point_metrics = calculate_point_metrics(
+        results_df, start_hours, duration_hours
+    )
+
+    timeseries_metrics = calculate_timeseries_metrics(
+        results_df, start_hours, duration_hours
+    )
+
+    return point_metrics, timeseries_metrics
+
+def calculate_point_metrics(
+    results_df: pd.DataFrame,
+    start_hours: float = 0,
+    duration_hours: Optional[float] = None
+) -> Tuple[PointMetricsResult]:
+    """
+    Calculate all metrics for a simulation result.
     
+    Returns:
+        Tuple of (point_metrics, cumulative_sum_insulin_array)
+    """
+    glucose_data, insulin_data = extract_data_slice(results_df, start_hours, duration_hours)
     if len(glucose_data) == 0:
         logger.warning("No data available for metrics calculation")
-        return create_empty_metrics()
+        return create_empty_metrics(), np.array([])
     
-    # Calculate all metric groups
     glucose_metrics = calculate_glucose_metrics(glucose_data)
     insulin_metrics = calculate_insulin_metrics(insulin_data)
-    
-    # Add GMI calculation
     glucose_metrics['glucose_management_indicator'] = calculate_glucose_management_indicator(glucose_data)
+    point_metrics = PointMetricsResult(**glucose_metrics, **insulin_metrics)
     
-    # Combine all metrics
-    return MetricsResult(**glucose_metrics, **insulin_metrics)
+    return point_metrics
+
+
+def calculate_timeseries_metrics(
+    results_df: pd.DataFrame,
+    start_hours: float = 0,
+    duration_hours: Optional[float] = None
+) -> np.ndarray:
+    """
+    Calculate cumulative sum of insulin delivered over time as an array.
+    
+    Args:
+        results_df: Simulation results DataFrame
+        start_hours: Start time in hours from simulation start
+        duration_hours: Duration to analyze (None for all remaining)
+        
+    Returns:
+        Numpy array of cumulative insulin sum at each time point.
+    """
+    return calculate_cumulative_sum_insulin(results_df, start_hours, duration_hours)
 
 
 # Batch processing functions
 def calculate_metrics_batch(
     results_dict: Dict[str, pd.DataFrame],
     start_hours: float = 0,
-    duration_hours: Optional[float] = None
-) -> Dict[str, MetricsResult]:
+    duration_hours: Optional[float] = None,
+    calculate_point_metrics_bool: bool = True,
+    calculate_timeseries_metrics_bool: bool = True
+) -> Tuple[Dict[str, PointMetricsResult], Dict[str, np.ndarray]]:
     """
     Calculate metrics for multiple simulation results.
     
@@ -306,13 +375,53 @@ def calculate_metrics_batch(
         duration_hours: Duration to analyze (None for all remaining)
         
     Returns:
-        Dictionary of simulation_id -> MetricsResult
+        Tuple of (point_metrics_dict, timeseries_metrics_dict)
+    """
+    point_metrics_dict = {}
+    timeseries_metrics_dict = {}
+    
+    for sim_id, results_df in results_dict.items():
+        try:
+            if calculate_point_metrics_bool:
+                point_metrics_dict[sim_id] = calculate_point_metrics(results_df, start_hours, duration_hours)
+            else:
+                point_metrics_dict[sim_id] = create_empty_metrics()
+
+            if calculate_timeseries_metrics_bool:
+                timeseries_metrics_dict[sim_id] = calculate_timeseries_metrics(results_df, start_hours, duration_hours)
+            else:
+                timeseries_metrics_dict[sim_id] = np.array([])
+
+        except Exception as e:
+            logger.error(f"Error calculating metrics for {sim_id}: {e}")
+            point_metrics_dict[sim_id] = create_empty_metrics()
+            timeseries_metrics_dict[sim_id] = np.array([])
+    
+    return point_metrics_dict, timeseries_metrics_dict
+
+
+def calculate_metrics_batch_legacy(
+    results_dict: Dict[str, pd.DataFrame],
+    start_hours: float = 0,
+    duration_hours: Optional[float] = None
+) -> Dict[str, MetricsResult]:
+    """
+    Legacy version of calculate_metrics_batch.
+    Calculate metrics for multiple simulation results with cumulative_sum_insulin as attribute.
+    
+    Args:
+        results_dict: Dictionary of simulation_id -> results_df
+        start_hours: Start time in hours from simulation start
+        duration_hours: Duration to analyze (None for all remaining)
+        
+    Returns:
+        Dictionary of simulation_id -> MetricsResult (with cumulative_sum_insulin attribute)
     """
     metrics_dict = {}
     
     for sim_id, results_df in results_dict.items():
         try:
-            metrics = calculate_all_metrics(results_df, start_hours, duration_hours)
+            metrics = calculate_all_metrics_legacy(results_df, start_hours, duration_hours)
             metrics_dict[sim_id] = metrics
         except Exception as e:
             logger.error(f"Error calculating metrics for {sim_id}: {e}")
@@ -379,6 +488,110 @@ def calculate_paired_metrics(
     return ref_metrics, comp_metrics, differences
 
 
+def construct_timeseries_array(
+    timeseries_dict: Dict[str, np.ndarray], 
+    sim_ids: List[str]
+) -> np.ndarray:
+    """
+    Convert dict of {sim_id: 1D_array} to 2D array (n_sims, max_time_points).
+    
+    Args:
+        timeseries_dict: Dictionary of simulation_id -> 1D timeseries array
+        sim_ids: List of simulation IDs in the desired order (matching CSV rows)
+        
+    Returns:
+        2D numpy array of shape (n_sims, max_time_points), NaN-padded
+    """
+    if not timeseries_dict or not sim_ids:
+        return np.array([])
+    
+    # Find the maximum length across all arrays
+    max_length = 0
+    for sim_id in sim_ids:
+        if sim_id in timeseries_dict and len(timeseries_dict[sim_id]) > 0:
+            max_length = max(max_length, len(timeseries_dict[sim_id]))
+    
+    if max_length == 0:
+        logger.warning("All timeseries arrays are empty")
+        return np.array([])
+    
+    # Create 2D array pre-filled with NaN
+    n_sims = len(sim_ids)
+    result_array = np.full((n_sims, max_length), np.nan)
+    
+    # Fill the array maintaining the order of sim_ids
+    for i, sim_id in enumerate(sim_ids):
+        if sim_id in timeseries_dict:
+            array = timeseries_dict[sim_id]
+            if len(array) > 0:
+                # Copy the array data, padding with NaN if shorter than max_length
+                result_array[i, :len(array)] = array
+    
+    return result_array
+
+
+def create_point_metrics_dataframe(
+    point_metrics_dict: Dict[str, PointMetricsResult],
+    include_simulation_info: bool = True
+) -> pd.DataFrame:
+    """
+    Create a DataFrame from point metrics results only.
+    
+    Args:
+        point_metrics_dict: Dictionary of simulation_id -> PointMetricsResult
+        include_simulation_info: Whether to parse simulation info from IDs
+        
+    Returns:
+        DataFrame with point metrics for each simulation
+    """
+    data = []
+    
+    for sim_id, metrics in point_metrics_dict.items():
+        row = {'simulation_id': sim_id}
+        row.update(metrics.to_dict())
+        
+        # Parse simulation info from ID if requested
+        if include_simulation_info:
+            sim_info = parse_simulation_id(sim_id)
+            row.update(sim_info)
+        
+        data.append(row)
+    
+    return pd.DataFrame(data)
+
+
+def save_timeseries_metrics(
+    timeseries_dict: Dict[str, np.ndarray],
+    sim_ids: List[str],
+    output_dir: str,
+    metric_name: str = "cumulative_sum_insulin"
+) -> str:
+    """
+    Save timeseries metrics as a 2D numpy array.
+    
+    Args:
+        timeseries_dict: Dictionary of simulation_id -> 1D timeseries array
+        sim_ids: List of simulation IDs in the desired order (matching CSV rows)
+        output_dir: Directory to save the .npy file
+        metric_name: Name of the metric (used for filename)
+        
+    Returns:
+        Path to the saved .npy file
+    """
+    import os
+    
+    # Construct the 2D array
+    timeseries_array = construct_timeseries_array(timeseries_dict, sim_ids)
+    
+    # Save the array
+    output_path = os.path.join(output_dir, f"{metric_name}.npy")
+    np.save(output_path, timeseries_array)
+    
+    logger.info(f"Saved {metric_name} timeseries array with shape {timeseries_array.shape} to {output_path}")
+    
+    return output_path
+
+
 # Utility functions
 def parse_simulation_id(sim_id: str) -> Dict[str, Any]:
     """Parse simulation information from simulation ID."""
@@ -441,35 +654,3 @@ def create_metrics_dataframe(
         data.append(row)
     
     return pd.DataFrame(data)
-
-
-# Metric extractors
-def extract_safety_metrics(metrics: MetricsResult) -> Dict[str, float]:
-    """Extract safety-focused metrics."""
-    return {
-        'time_below_70': metrics.time_below_70,
-        'time_below_54': metrics.time_below_54,
-        'lbgi': metrics.lbgi,
-        'lbgi_risk_score': metrics.lbgi_risk_score
-    }
-
-
-def extract_efficacy_metrics(metrics: MetricsResult) -> Dict[str, float]:
-    """Extract efficacy-focused metrics."""
-    return {
-        'time_in_range_70_180': metrics.time_in_range_70_180,
-        'time_above_180': metrics.time_above_180,
-        'mean_glucose': metrics.mean_glucose,
-        'cv_glucose': metrics.cv_glucose,
-        'hbgi': metrics.hbgi
-    }
-
-
-def extract_insulin_metrics(metrics: MetricsResult) -> Dict[str, float]:
-    """Extract insulin delivery metrics."""
-    return {
-        'cumulative_insulin': metrics.cumulative_insulin,
-        'basal_insulin': metrics.basal_insulin,
-        'bolus_insulin': metrics.bolus_insulin
-    }
-

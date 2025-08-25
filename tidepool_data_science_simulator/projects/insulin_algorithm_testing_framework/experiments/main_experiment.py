@@ -17,7 +17,10 @@ from ..config.experiment_config import ExperimentConfig
 from ..core.data_loader import DataLoader
 from ..core.scenario_generator import ScenarioGenerator
 from ..core.scenario_runner import ScenarioRunner
-from ..core.metrics_calculator import MetricsCalculator
+from ..core.metrics_calculator import (
+    calculate_metrics_batch,
+    create_metrics_dataframe
+)
 from ..analysis.statistical_analyzer import StatisticalAnalyzer
 
 logger = logging.getLogger(__name__)

@@ -554,7 +554,11 @@ def run_experiment(
     # Import required modules (using lazy imports to avoid circular dependencies)
     from .data_loader import DataLoader
     from .scenario_generator import ScenarioGenerator
-    from .metrics_calculator import MetricsCalculator
+    from .metrics_calculator import (
+        calculate_all_metrics,
+        calculate_metrics_batch,
+        create_metrics_dataframe
+    )
     from ..analysis.statistical_analyzer import StatisticalAnalyzer
     
     try:
