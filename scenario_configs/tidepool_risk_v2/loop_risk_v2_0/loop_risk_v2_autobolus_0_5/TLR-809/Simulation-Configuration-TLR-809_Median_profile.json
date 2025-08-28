@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "risk-id": "TLR-809",
+    "simulation_id": "TLR-809-median",
+    "risk_description": "Minimum bolus value 0.2U",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_autobolus",
+  "override_config": [
+    {
+      "sim_id": "pre-NoLoop_t1_median",
+      "patient": {
+        "patient_model":{
+          "glucose_history": "reusable.glucose.flat_115_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.2
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_115_12hr"
+        }
+      }
+    },
+    {
+      "sim_id": "post-LoopWithMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_115_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.2
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_115_12hr"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "pre-LoopNoMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_115_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.2
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_115_12hr"
+        },
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+    }
+  ]
+}

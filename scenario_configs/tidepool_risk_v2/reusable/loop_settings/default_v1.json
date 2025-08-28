@@ -11,13 +11,15 @@
   "rate_rounder": 0.05,
   "insulin_delay": 10,
   "carb_delay": 10,
+  "minimum_autobolus": 0.0,
+  "maximum_autobolus": 30.0,
   "default_absorption_times": [
     120.0,
     180.0,
     240.0
   ],
   "retrospective_correction_enabled": true,
-  "partial_application_factor": 0.4,
+  "partial_application_factor": 0.0,
   "use_mid_absorption_isf": false,
-  "carb_absorption_model": "piecewiseLinear"
+  "carb_absorption_model": "linear"
 }

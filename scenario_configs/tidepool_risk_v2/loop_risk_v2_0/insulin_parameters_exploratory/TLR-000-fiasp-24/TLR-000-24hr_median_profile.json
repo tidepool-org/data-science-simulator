@@ -1,0 +1,120 @@
+{
+  "metadata": {
+    "risk-id": "TLR-000",
+    "simulation_id": "TLR-000-base_median",
+    "risk_description": "Base for HF—24 hours happy",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_2_0_v1",
+  "override_config": [
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_median",
+      "duration_hours": 24.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_100_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_100_12hr",
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 13:10:00",
+              "type": "carb",
+              "value": 59
+            },
+            {
+              "start_time": "8/15/2019 14:20:00",
+              "type": "carb",
+              "value": 80
+            },
+            {
+              "start_time": "8/15/2019 18:10:00",
+              "type": "carb",
+              "value": 57
+            },
+            {
+              "start_time": "8/16/2019 8:15:00",
+              "type": "carb",
+              "value": 36
+            },
+            {
+              "start_time": "8/16/2019 9:40:00",
+              "type": "carb",
+              "value": 76
+            },
+            {
+              "start_time": "8/16/2019 9:45:00",
+              "type": "carb",
+              "value": 51
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:10:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 14:20:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 18:10:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 8:15:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 9:40:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 9:45:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 13:10:00",
+              "type": "carb",
+              "value": 59
+            },
+            {
+              "start_time": "8/15/2019 14:20:00",
+              "type": "carb",
+              "value": 80
+            },
+            {
+              "start_time": "8/15/2019 18:10:00",
+              "type": "carb",
+              "value": 57
+            },
+            {
+              "start_time": "8/16/2019 8:15:00",
+              "type": "carb",
+              "value": 36
+            },
+            {
+              "start_time": "8/16/2019 9:40:00",
+              "type": "carb",
+              "value": 76
+            },
+            {
+              "start_time": "8/16/2019 9:45:00",
+              "type": "carb",
+              "value": 51
+            }
+          ]
+        }
+      },
+      "controller": {
+        "settings": {
+          "model": "fiasp"
+        }
+      }
+    }
+  ]
+}

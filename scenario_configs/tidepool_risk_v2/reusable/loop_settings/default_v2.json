@@ -12,12 +12,14 @@
   "insulin_delay": 10,
   "carb_delay": 10,
   "default_absorption_times": [
+    5.0,
     30.0,
     180.0,
     300.0
   ],
   "retrospective_correction_enabled": true,
-  "partial_application_factor": 0.4,
-  "use_mid_absorption_isf": false,
+  "partial_application_factor": 0.0,
+  "use_mid_absorption_isf": true,
   "carb_absorption_model": "piecewiseLinear"
+
 }

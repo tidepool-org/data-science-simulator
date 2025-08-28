@@ -1,0 +1,120 @@
+{
+  "metadata": {
+    "risk-id": "TLR-000",
+    "simulation_id": "TLR-000-base_jellyfish",
+    "risk_description": "Base for HF—24 hours happy",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_jellyfish_2_0_v1",
+  "override_config": [
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_jellyfish",
+      "duration_hours": 24.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_110_12hr"
+        },
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 72
+            },
+            {
+              "start_time": "8/15/2019 20:45:00",
+              "type": "carb",
+              "value": 30
+            },
+            {
+              "start_time": "8/15/2019 22:20:00",
+              "type": "carb",
+              "value": 76
+            },
+            {
+              "start_time": "8/15/2019 22:35:00",
+              "type": "carb",
+              "value": 43
+            },
+            {
+              "start_time": "8/16/2019 9:30:00",
+              "type": "carb",
+              "value": 42
+            },
+            {
+              "start_time": "8/16/2019 11:40:00",
+              "type": "carb",
+              "value": 55
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 20:45:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 22:20:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 22:35:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 9:30:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 11:40:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "type": "carb",
+              "value": 72
+            },
+            {
+              "start_time": "8/15/2019 20:45:00",
+              "type": "carb",
+              "value": 30
+            },
+            {
+              "start_time": "8/15/2019 22:20:00",
+              "type": "carb",
+              "value": 76
+            },
+            {
+              "start_time": "8/15/2019 22:35:00",
+              "type": "carb",
+              "value": 43
+            },
+            {
+              "start_time": "8/16/2019 9:30:00",
+              "type": "carb",
+              "value": 42
+            },
+            {
+              "start_time": "8/16/2019 11:40:00",
+              "type": "carb",
+              "value": 55
+            }
+          ]
+        }
+      },
+      "controller": {
+        "settings": {
+          "model": "degludec",
+          "insulin_delay": 120
+        }
+      }
+    }
+  ]
+}

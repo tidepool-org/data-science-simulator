@@ -1,0 +1,34 @@
+{
+  "metadata": {
+    "risk_id": "TLR-795",
+    "simulation_id": "TLR-795-Resistant",
+    "risk_description": "Safety settings too aggressive: Max basal",
+    "config_format_version": "1.0"
+  },
+  "base_config": "reusable.simulations.base_median_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop-NoMitigations_t1_resistant",
+      "controller": {
+          "settings": {
+            "max_basal_rate": 8
+          }
+        }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_resistant",
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_resistant",
+      "patient": {
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+        "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_swift"
+      }
+    }
+  ]
+}

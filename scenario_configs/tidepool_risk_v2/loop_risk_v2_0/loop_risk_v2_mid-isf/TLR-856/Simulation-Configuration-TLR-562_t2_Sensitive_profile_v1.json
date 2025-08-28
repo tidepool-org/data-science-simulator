@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "risk-id": "TLR-856",
+    "simulation_id": "TLR-856-sensitive",
+    "risk_description": "Accidental enabling of override",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_sensitive",
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_sensitive_preset_130_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t2_sensitive",
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_sensitive_preset_130_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_sensitive",
+      "patient": {
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.t2_sensitive_preset_130_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_sensitive_swift"
+      }
+    }
+  ]
+}

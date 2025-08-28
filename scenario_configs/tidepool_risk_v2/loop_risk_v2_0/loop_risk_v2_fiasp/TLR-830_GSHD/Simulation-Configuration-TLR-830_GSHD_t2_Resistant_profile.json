@@ -1,0 +1,46 @@
+{
+  "metadata": {
+    "risk-id": "TLR-830_GSHD",
+    "simulation_id": "TLR-830_GSHD-resistant",
+    "risk_description": "Debugging features released",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_resistant_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop-NoMitigations_t2_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        },
+        "pump": {
+          "bolus_entries": "reusable.insulin_doses.gen_simulated_historical_v1"
+        }
+      }
+    },
+    {"sim_id": "pre-NoLoop_t2_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        },
+        "pump": {
+          "bolus_entries": "reusable.insulin_doses.gen_simulated_historical_v1"
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "pre-Loop-WithMitigations_t2_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.sim_historical_data_12hr"
+        },
+        "pump": {
+          "bolus_entries": "reusable.insulin_doses.gen_simulated_historical_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_v1"
+      }
+    }
+  ]
+}

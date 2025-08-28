@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "risk-id": "TLR-891_corr03",
+    "simulation_id": "TLR-891_corr03-sensitive",
+    "risk_description": "0.2 bolus inaccuracy, corr 03",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_swift",
+  "duration_hours": 23.0,
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_134_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.85
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.2
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_134_12hr"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_134_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.85
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.2
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_134_12hr"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_134_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.85
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.2
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_134_12hr"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_IM_swift"
+      }
+    }
+]
+}

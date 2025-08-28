@@ -1,0 +1,79 @@
+{
+  "metadata": {
+    "risk-id": "TLR-842A",
+    "simulation_id": "TLR-842A-median",
+    "risk_description": "Unintended quick bolus 0.4",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.4
+            }
+          ]
+          },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.4
+            }
+          ]
+        }
+        }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_median",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.4
+            }
+          ]
+          },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.4
+            }
+          ]
+        }
+        },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.4
+            }
+          ]
+          },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 0.4
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+        },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "metadata": {
+    "risk-id": "TLR-554",
+    "simulation_id": "TLR-554-adolescent",
+    "risk_description": "Use of off-label insulin",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 35
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [3.8]
+            }
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                3.8
+              ]
+            }
+          }
+        }
+    }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 35
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [3.8]
+            }
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                3.8
+              ]
+            }
+          }
+        }
+    },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 27.9
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [3.8]
+            }
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                3.8
+              ]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+    },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_swift"
+      }
+    }
+
+  ]
+}

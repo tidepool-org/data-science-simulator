@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "risk-id": "TLR-868_corr",
+    "simulation_id": "TLR-868_corr-resistant",
+    "risk_description": "MTB too short a time",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.preset_70_resistant_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_resistant",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ]
+    },
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.47
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          }
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.47
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_resistant",
+      "controller": null,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.47
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          }
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3.47
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 13:00:00"
+          }
+        ],
+        "settings": {
+            "glucose_safety_limit": 75,
+            "max_basal_rate": 1.75
+          }
+    },
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.95
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          }
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 2.95
+            }
+          ],
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "13:00:00"],
+              "values": [0.8, 0.56, 0.8]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "risk-id": "TLR-954",
+    "simulation_id": "TLR-954-base_adolescent",
+    "risk_description": "System error prevents save of SBR",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [1.9, 0.0, 1.9]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [1.9, 0.0, 1.9]
+            }
+          }
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [1.9, 0.0, 1.9]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [1.9, 0.0, 1.9]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [1.9, 0.0, 1.9]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "16:00:00"],
+              "values": [1.9, 0.0, 1.9]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_swift"
+      }
+    }
+]
+}

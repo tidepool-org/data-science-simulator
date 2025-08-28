@@ -1,0 +1,61 @@
+{
+  "metadata": {
+    "risk-id": "TLR-843",
+    "simulation_id": "TLR-843-sensitive",
+    "risk_description": "GST set at upper bound of Correction Range",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_sensitive",
+      "duration_hours": 23.0,
+      "controller": {
+        "settings": {
+          "glucose_safety_limit": 180
+        }
+      },
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t2_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.t2_sensitive_profile_v1"
+        },
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_sensitive_v1"
+      }
+    }
+  ]
+}

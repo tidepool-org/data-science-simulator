@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "risk_id": "TLR-736",
+    "simulation_id": "TLR-736-Resistant-270",
+    "risk_description": "Bolus is initiated by user but delivery is delayed",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_resistant_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop-NoMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 16:30:00",
+              "value": 8.25
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 8.25
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 16:30:00",
+              "value": 8.25
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 8.25
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 16:30:00",
+              "value": 8.25
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 8.25
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_swift"
+      }
+    }
+  ]
+}

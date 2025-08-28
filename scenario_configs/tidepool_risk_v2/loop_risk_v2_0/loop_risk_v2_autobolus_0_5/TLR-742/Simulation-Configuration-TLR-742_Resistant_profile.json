@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "risk-id": "TLR-742",
+    "simulation_id": "TLR-742-resistant",
+    "risk_description": "Accidental override of rec bolus on watch",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_autobolus",
+  "override_config": [
+    {
+      "sim_id": "pre-LoopNoMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 3.63
+          }
+            ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries":[
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 3.63
+          }
+            ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 3.64
+          }
+            ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries":[
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 3.64
+          }
+            ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-LoopWithMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 3.18
+          }
+            ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries":[
+          {
+            "time": "8/15/2019 12:00:00",
+            "value": 3.18
+          }
+            ],
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+    }
+  ]
+}

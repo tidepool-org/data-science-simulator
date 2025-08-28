@@ -1,0 +1,18 @@
+{
+  "metadata": {
+    "risk-id": "TLR-752",
+    "simulation_id": "TLR-752-median",
+    "risk_description": "Noisy sensor",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations",
+      "patient": {
+        "sensor": {
+        }
+      }
+    }
+]
+}

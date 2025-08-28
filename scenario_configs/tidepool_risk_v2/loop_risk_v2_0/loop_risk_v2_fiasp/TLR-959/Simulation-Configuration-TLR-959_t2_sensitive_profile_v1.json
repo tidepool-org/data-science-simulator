@@ -1,0 +1,120 @@
+{
+  "metadata": {
+    "risk-id": "TLR-959",
+    "simulation_id": "TLR-959-base_median",
+    "risk_description": "Resume before appropriate",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.suspend_1h_t2_median_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00",
+              "12:00:00",
+              "12:15:00"],
+              "values": [0.4,
+              0.0,
+              0.4]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00",
+              "12:00:00",
+              "12:15:00"],
+              "values": [0.4,
+              0.0,
+              0.4]
+            }
+          }
+        }
+      },
+      "controller": {
+          "automation_control_timeline": [
+            {"dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"},
+            {"dosing_enabled": true,
+            "time": "8/15/2019 12:15:00"}
+          ]
+      }
+    },
+    {"sim_id": "pre-noLoop_t2_median",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00",
+              "12:00:00",
+              "12:15:00"],
+              "values": [0.4,
+              0.0,
+              0.4]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00",
+              "12:00:00",
+              "12:15:00"],
+              "values": [0.4,
+              0.0,
+              0.4]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00",
+              "12:00:00",
+              "12:15:00"],
+              "values": [0.4,
+              0.0,
+              0.4]
+            }
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00",
+              "12:00:00",
+              "12:15:00"],
+              "values": [0.4,
+              0.0,
+              0.4]
+            }
+          }
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:15:00"
+          }
+        ],
+        "settings": {
+          "glucose_safety_limit": 75,
+          "max_basal_rate": 1.4
+        }
+      }
+    }
+]
+}
