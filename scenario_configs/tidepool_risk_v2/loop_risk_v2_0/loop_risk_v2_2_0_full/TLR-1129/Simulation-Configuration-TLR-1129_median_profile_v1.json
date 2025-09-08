@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1129",
+    "simulation_id": "TLR-1129-base_median",
+    "risk_description": "Bolus resumes insulin delivery",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.suspend_1h_median_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1"
+        }
+      }
+    }
+]
+}
