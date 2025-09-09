@@ -299,7 +299,7 @@ class ScenarioParserV2(SimulationParser):
 
     def load_pointer(self, pointer_string):
         """
-        Load file object pointed to.
+        Load file object pointed to. Searches in subdirectories if not found in main directory.
         """
         pointer_segments = pointer_string.split(".")
         folder_path = os.path.join("/".join(pointer_segments[:-1]))
@@ -307,14 +307,36 @@ class ScenarioParserV2(SimulationParser):
         json_filename = "{}.json".format(filename_no_ext)
         csv_filename = "{}.csv".format(filename_no_ext)
 
-        json_path = os.path.join(self.pointer_object_dir, folder_path, json_filename)
-        csv_path = os.path.join(self.pointer_object_dir, folder_path, csv_filename)
-        if os.path.isfile(json_path):
-            obj = json.load(open(json_path, "r"))
-        elif os.path.isfile(csv_path):
-            obj = pd.read_csv(csv_path).to_dict()
-        else:
-            raise Exception("Could not load pointer file {}/{}".format(folder_path, filename_no_ext))
+        # Define subdirectory search paths based on folder type
+        subdirectories = []
+        if "simulations" in folder_path:
+            subdirectories = ["base", "suspend", "loop_versions", "specialized"]
+        elif "metabolism_settings" in folder_path:
+            subdirectories = ["profiles", "suspensions", "presets", "versions", "types"]
+        
+        # Build search paths: original location first, then subdirectories
+        search_paths = [folder_path]
+        for subdir in subdirectories:
+            search_paths.append(os.path.join(folder_path, subdir))
+
+        # Search for JSON files
+        for search_path in search_paths:
+            json_path = os.path.join(self.pointer_object_dir, search_path, json_filename)
+            if os.path.isfile(json_path):
+                obj = json.load(open(json_path, "r"))
+                return obj
+
+        # Search for CSV files
+        for search_path in search_paths:
+            csv_path = os.path.join(self.pointer_object_dir, search_path, csv_filename)
+            if os.path.isfile(csv_path):
+                obj = pd.read_csv(csv_path).to_dict()
+                return obj
+
+        # If not found anywhere, raise exception with detailed search info
+        searched_paths = [os.path.join(self.pointer_object_dir, path, filename_no_ext) for path in search_paths]
+        raise Exception("Could not load pointer file {}. Searched in: {}".format(
+            filename_no_ext, ", ".join(searched_paths)))
 
         return obj
 

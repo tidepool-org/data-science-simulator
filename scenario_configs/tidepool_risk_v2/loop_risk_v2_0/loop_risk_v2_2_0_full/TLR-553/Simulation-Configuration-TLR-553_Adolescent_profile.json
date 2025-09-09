@@ -24,7 +24,7 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 120
+              "value": 120.0
             }
           ]
         }
@@ -38,7 +38,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 35
+              "value": 35.0
             }
           ]
         },
@@ -47,13 +47,13 @@
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 120
+              "value": 120.0
             }
           ],
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 35
+              "value": 35.0
             }
           ]
         }
@@ -73,12 +73,11 @@
           ]
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_20_8h_v1",
           "carb_entries": [
             {
               "type": "carb",
               "start_time": "8/15/2019 12:00:00",
-              "value": 120
+              "value": 120.0
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
