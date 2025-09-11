@@ -51,10 +51,11 @@ class SimulationState(object):
 
     def __repr__(self):
 
-        return "BG: {:.2f}, IOB: {:.2f} Temp Basal: {}".format(
+        return "BG: {:.2f}, IOB: {:.2f} Temp Basal: {}, Heart Rate: {}".format(
             self.patient_state.bg,
             self.patient_state.iob,
             self.patient_state.pump_state.temp_basal_rate,
+            self.patient_state.heart_rate
         )
 
 
@@ -438,9 +439,17 @@ class SettingSchedule24Hr(SimulationComponent):
         if self.percentage_change is not None:
             raise ValueError("Cannot set multiple overrides.")
 
-        for (start_time, end_time), setting in self.schedule.items():
-            setting.value = setting.value * (1.0 + percentage_change)
-            self.schedule[(start_time, end_time)] = setting
+        # for (start_time, end_time), setting in self.schedule.items():
+        #     setting.value = setting.value * (1.0 + percentage_change)
+        #     self.schedule[(start_time, end_time)] = setting
+        # self.percentage_change = percentage_change
+
+        index = 0
+        for (start_time, end_time), setting in self.schedule.items(): # hack --> will work bc 1 activity
+            if index <= 1: # set preset before and during activity
+                setting.value = setting.value * (1.0 + percentage_change)
+                self.schedule[(start_time, end_time)] = setting
+            index += 1
         self.percentage_change = percentage_change
 
     def unset_override(self):

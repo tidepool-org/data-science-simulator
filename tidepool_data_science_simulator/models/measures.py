@@ -179,6 +179,13 @@ class ManualBolus(Bolus):
     def __init__(self, value, units):
         super().__init__(value, units)
 
+class HeartRate(Measure):
+    """
+    Heart Rate
+    """
+    def __init__(self, value, units):
+        super().__init__(value, units)
+
 
 class Carb(Measure):
     """
@@ -342,3 +349,50 @@ class GlucoseTrace(object):
             loop_bg_datetimes = self.datetimes
 
         return loop_bg_datetimes, loop_bg_values
+    
+class PhysicalActivity(object):
+    """
+    Physical activity with an activity name and duration
+    """
+    def __init__(self, activity='', duration=0):
+        self.activity = activity
+        self.duration = duration
+        
+class HeartRateTrace(object):
+    def __init__(self, datetimes=None, values=None):
+        self.datetimes = []
+        if datetimes is not None:
+            self.datetimes = datetimes
+        self.hr_values = []
+        if values is not None:
+            self.hr_values = values
+    def __iter__(self):
+        for dt, hr_val in zip(self.datetimes, self.hr_values):
+            yield dt, hr_val
+    def get_last(self):
+        """
+        Get most recent value
+        Returns
+        -------
+        (datetime, int)
+        """
+        return self.datetimes[-1], self.hr_values[-1]
+    
+    def get_heart_rate(self, dt):
+        """
+        get heart rate at the given time
+        """
+        idx = np.searchsorted(self.datetimes, dt, side='right')
+        return self.hr_values[idx - 1]
+    def append(self, date, hr):
+        """
+        Add a new value
+        Parameters
+        ----------
+        date: datetime
+        hr: int
+        Returns
+        -------
+        """
+        self.datetimes.append(date)
+        self.bg_values.append(hr)

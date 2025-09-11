@@ -9,7 +9,11 @@ import logging
 from tidepool_data_science_simulator.models.events import EventTimeline
 
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
-from tidepool_data_science_simulator.models.measures import GlucoseTrace, Bolus, TempBasal
+from tidepool_data_science_simulator.models.measures import (
+    GlucoseTrace,
+    Bolus,
+    TempBasal,
+)
 
 from pyloopkit.loop_data_manager import update as loop_predict
 from loop_to_python_api.api import get_loop_recommendations
@@ -21,7 +25,12 @@ logger = logging.getLogger(__name__)
 if USE_LOCAL_PYLOOPKIT:
     import pyloopkit
     import os
-    logger.debug("NOTE: Using local pyloopkit at: {}. {}".format(os.path.abspath(pyloopkit.__file__), "\n**************************"))
+
+    logger.debug(
+        "NOTE: Using local pyloopkit at: {}. {}".format(
+            os.path.abspath(pyloopkit.__file__), "\n**************************"
+        )
+    )
 
 
 class BaseControllerClass(SimulationComponent):
@@ -39,13 +48,9 @@ class BaseControllerClass(SimulationComponent):
     def get_info_stateless(self):
 
         if self.controller_config is not None:
-            stateless_info = {
-                "config": self.controller_config.get_info_stateless()
-            }
+            stateless_info = {"config": self.controller_config.get_info_stateless()}
         else:
-            stateless_info = {
-                "config": None
-            }
+            stateless_info = {"config": None}
 
         return stateless_info
 
@@ -55,6 +60,7 @@ class DoNothingController(BaseControllerClass):
     A controller that does nothing, which means that pump schedules
     are the only modulation.
     """
+
     def __init__(self, time, controller_config):
         self.name = "Do Nothing"
         self.time = time
@@ -88,13 +94,19 @@ class LoopController(BaseControllerClass):
     """
     A controller class for the Pyloopkit algorithm
     """
+
     def __repr__(self):
         return "PyLoopkit_v0.1"
 
     def __str__(self):
         return "PyLoopkit_v0.1"
 
-    def __init__(self, time, controller_config, automation_control_timeline=AutomationControlTimeline([], [])):
+    def __init__(
+        self,
+        time,
+        controller_config,
+        automation_control_timeline=AutomationControlTimeline([], []),
+    ):
 
         self.name = "PyLoopkit v0.1"
         self.time = time
@@ -107,13 +119,13 @@ class LoopController(BaseControllerClass):
         self.carb_event_timeline = controller_config.carb_event_timeline
         self.automation_control_timeline = automation_control_timeline
 
-        self.num_hours_history = 8  # how many hours of recent events to pass to Pyloopkit
+        self.num_hours_history = (
+            8  # how many hours of recent events to pass to Pyloopkit
+        )
 
     def get_state(self):
 
-        return ControllerState(
-            pyloopkit_recommendations=self.recommendations
-        )
+        return ControllerState(pyloopkit_recommendations=self.recommendations)
 
     def get_dose_event_timelines(self, virtual_patient):
         """
@@ -128,8 +140,9 @@ class LoopController(BaseControllerClass):
         (BolusTimeline, CarbTimeline, TempBasalTimeline)
         """
         # Loop data store for doses is technically on pump in simulator.
-        bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = \
+        bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = (
             virtual_patient.get_pump_events()
+        )
 
         # Merge Controller-specific data store, e.g. user inputs manual bolus while pump is inactive
         bolus_event_timeline.merge_timeline(self.bolus_event_timeline)
@@ -153,32 +166,60 @@ class LoopController(BaseControllerClass):
         """
         glucose_dates, glucose_values = virtual_patient.sensor.get_loop_inputs()
 
-        bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = self.get_dose_event_timelines(virtual_patient)
+        bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = (
+            self.get_dose_event_timelines(virtual_patient)
+        )
 
-        bolus_dose_types, bolus_dose_values, bolus_start_times, bolus_end_times, bolus_delivered_units = \
-            bolus_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+        (
+            bolus_dose_types,
+            bolus_dose_values,
+            bolus_start_times,
+            bolus_end_times,
+            bolus_delivered_units,
+        ) = bolus_event_timeline.get_loop_inputs(
+            self.time, num_hours_history=self.num_hours_history
+        )
 
-        temp_basal_dose_types, temp_basal_dose_values, temp_basal_start_times, temp_basal_end_times, temp_basal_delivered_units = \
-            temp_basal_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+        (
+            temp_basal_dose_types,
+            temp_basal_dose_values,
+            temp_basal_start_times,
+            temp_basal_end_times,
+            temp_basal_delivered_units,
+        ) = temp_basal_event_timeline.get_loop_inputs(
+            self.time, num_hours_history=self.num_hours_history
+        )
 
-        carb_values, carb_start_times, carb_durations = \
-            carb_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
+        carb_values, carb_start_times, carb_durations = (
+            carb_event_timeline.get_loop_inputs(
+                self.time, num_hours_history=self.num_hours_history
+            )
+        )
 
-        basal_rate_values, basal_rate_start_times, basal_rate_durations = \
+        basal_rate_values, basal_rate_start_times, basal_rate_durations = (
             virtual_patient.pump.pump_config.basal_schedule.get_loop_inputs()
+        )
 
-        isf_values, isf_start_times, isf_end_times = \
+        isf_values, isf_start_times, isf_end_times = (
             virtual_patient.pump.pump_config.insulin_sensitivity_schedule.get_loop_inputs()
+        )
 
-        cir_values, cir_start_times, cir_end_times = \
+        cir_values, cir_start_times, cir_end_times = (
             virtual_patient.pump.pump_config.carb_ratio_schedule.get_loop_inputs()
+        )
 
-        tr_min_values, tr_max_values, tr_start_times, tr_end_times = \
+        tr_min_values, tr_max_values, tr_start_times, tr_end_times = (
             virtual_patient.pump.pump_config.target_range_schedule.get_loop_inputs()
+        )
 
         last_temp_basal = None
         if len(temp_basal_dose_types) > 0:
-            last_temp_basal = [temp_basal_dose_types[-1], temp_basal_start_times[-1], temp_basal_end_times[-1], temp_basal_dose_values[-1]]
+            last_temp_basal = [
+                temp_basal_dose_types[-1],
+                temp_basal_start_times[-1],
+                temp_basal_end_times[-1],
+                temp_basal_dose_values[-1],
+            ]
 
         loop_inputs_dict = {
             "time_to_calculate_at": self.time,
@@ -219,7 +260,6 @@ class LoopController(BaseControllerClass):
 
         return loop_inputs_dict
 
-
     def get_loop_recommendations(self, time, **kwargs):
         """
         Get recommendations from the pyloopkit algorithm, based on
@@ -239,13 +279,16 @@ class LoopController(BaseControllerClass):
             return loop_algorithm_output
 
     def get_current_basal(self, virtual_patient, loop_algorithm_output):
-        '''
-        
-        '''
-        scheduled_basal_rec = virtual_patient.pump.pump_config.basal_schedule.get_state()
-        return TempBasal(self.time, value=scheduled_basal_rec.value, duration_minutes=30, units=scheduled_basal_rec.units)
-         
-        
+        """ """
+        scheduled_basal_rec = (
+            virtual_patient.pump.pump_config.basal_schedule.get_state()
+        )
+        return TempBasal(
+            self.time,
+            value=scheduled_basal_rec.value,
+            duration_minutes=30,
+            units=scheduled_basal_rec.units,
+        )
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
         """
@@ -256,24 +299,35 @@ class LoopController(BaseControllerClass):
         virtual_patient
         loop_algorithm_output
         """
-        manual_bolus_rec = self.get_recommended_bolus(loop_algorithm_output=loop_algorithm_output)
-        autobolus_rec = self.get_recommended_autobolus(loop_algorithm_output=loop_algorithm_output)
+        manual_bolus_rec = self.get_recommended_bolus(
+            loop_algorithm_output=loop_algorithm_output
+        )
+        autobolus_rec = self.get_recommended_autobolus(
+            loop_algorithm_output=loop_algorithm_output
+        )
         temp_basal_rec = self.get_recommended_temp_basal(loop_algorithm_output)
-                
-        if manual_bolus_rec is not None and virtual_patient.does_accept_bolus_recommendation(manual_bolus_rec):
+
+        if (
+            manual_bolus_rec is not None
+            and virtual_patient.does_accept_bolus_recommendation(manual_bolus_rec)
+        ):
             self.set_bolus_recommendation_event(virtual_patient, manual_bolus_rec)
-        
+
         elif autobolus_rec is not None:
             if autobolus_rec.value:
                 # Set the autobolus and maintain the temp basal at the sbr
-                self.set_bolus_recommendation_event(virtual_patient, autobolus_rec)                
-                scheduled_basal_rec = self.get_current_basal(virtual_patient, loop_algorithm_output)
+                self.set_bolus_recommendation_event(virtual_patient, autobolus_rec)
+                scheduled_basal_rec = self.get_current_basal(
+                    virtual_patient, loop_algorithm_output
+                )
                 self.modulate_temp_basal(virtual_patient, scheduled_basal_rec)
 
             elif not temp_basal_rec:
-                temp_basal_rec = TempBasal(self.time, value=0, duration_minutes=30, units="U/hr")
+                temp_basal_rec = TempBasal(
+                    self.time, value=0, duration_minutes=30, units="U/hr"
+                )
                 self.modulate_temp_basal(virtual_patient, temp_basal_rec)
-        
+
         elif temp_basal_rec is not None:
             self.modulate_temp_basal(virtual_patient, temp_basal_rec)
         # elif not self.open_loop and temp_basal_rec is not None:
@@ -282,14 +336,11 @@ class LoopController(BaseControllerClass):
         #         virtual_patient.pump.deactivate_temp_basal()
         #     else:
         #         self.modulate_temp_basal(virtual_patient, temp_basal_rec)
-        
+
         else:
             pass  # no recommendations
 
         self.recommendations = loop_algorithm_output
-
-    
-
 
     def get_recommended_bolus(self, loop_algorithm_output):
         """
@@ -305,7 +356,9 @@ class LoopController(BaseControllerClass):
         """
 
         bolus = None
-        bolus_value = loop_algorithm_output.get('recommended_bolus')[0]  # TODO: potential error here
+        bolus_value = loop_algorithm_output.get("recommended_bolus")[
+            0
+        ]  # TODO: potential error here
         if bolus_value > 0:
             bolus = Bolus(bolus_value, "U")
 
@@ -325,14 +378,13 @@ class LoopController(BaseControllerClass):
         """
 
         autobolus = None
-        autobolus_value_array = loop_algorithm_output.get('recommended_autobolus')
+        autobolus_value_array = loop_algorithm_output.get("recommended_autobolus")
 
         if autobolus_value_array:
             autobolus_value = autobolus_value_array[0]
             autobolus = Bolus(autobolus_value, "U")
 
         return autobolus
-    
 
     def get_recommended_temp_basal(self, loop_algorithm_output):
         """
@@ -349,11 +401,12 @@ class LoopController(BaseControllerClass):
 
         temp_basal = None
         if loop_algorithm_output.get("recommended_temp_basal") is not None:
-            loop_temp_basal, duration = loop_algorithm_output.get("recommended_temp_basal")
+            loop_temp_basal, duration = loop_algorithm_output.get(
+                "recommended_temp_basal"
+            )
             temp_basal = TempBasal(self.time, loop_temp_basal, duration, "U/hr")
 
         return temp_basal
-
 
     def set_bolus_recommendation_event(self, virtual_patient, bolus):
         """
@@ -387,10 +440,6 @@ class LoopController(BaseControllerClass):
         temp_basal
         """
         virtual_patient.pump.set_temp_basal(temp_basal)
-
-
-
-    
 
 
 class LoopControllerDisconnector(LoopController):
@@ -441,9 +490,7 @@ class LoopControllerDisconnector(LoopController):
 
 class ControllerState(object):
 
-    def __init__(self,
-                 pyloopkit_recommendations
-                 ):
+    def __init__(self, pyloopkit_recommendations):
         self.pyloopkit_recommendations = pyloopkit_recommendations
 
 
@@ -461,10 +508,10 @@ class OpenLoopController(LoopController):
         pass
 
     def get_loop_recommendations(self, time, virtual_patient=None):
-        
+
         self.time = time
         suspend_threshold = self.controller_config.controller_settings['suspend_threshold']
-        
+
         bg_current = virtual_patient.bg_current
 
         basal_rate = 0 if bg_current < suspend_threshold else virtual_patient.pump.get_scheduled_basal_rate().value
@@ -478,16 +525,16 @@ class OpenLoopController(LoopController):
                     }
                 }
             }
-        
+
         return swift_output_json
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
         automatic_data = loop_algorithm_output.get('automatic')
-        temp_basal_data = automatic_data.get('basalAdjustment') 
+        temp_basal_data = automatic_data.get('basalAdjustment')
         units_per_hour = temp_basal_data.get('unitsPerHour') or 0
 
         temp_basal = TempBasal(self.time, units_per_hour, 30, "U/hr")
         self.modulate_temp_basal(virtual_patient, temp_basal)
-        
+
         self.recommendations = loop_algorithm_output
 
