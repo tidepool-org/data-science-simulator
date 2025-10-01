@@ -10,7 +10,7 @@
     {"sim_id": "pre-Loop_NoMitigations_t1_median_a_np",
       "patient": {
         "patient_model": {
-          "physical_activity_entries": "reusable.physical_activities.profiles.light_exercise_v1"
+          "physical_activity_entries": "reusable.physical_activities.profiles.walking_v1"
         }
         }
       },
@@ -18,7 +18,7 @@
       "sim_id": "pre-noLoop_t1_median_a_np",
       "patient": {
         "patient_model": {
-          "physical_activity_entries": "reusable.physical_activities.profiles.light_exercise_v1"
+          "physical_activity_entries": "reusable.physical_activities.profiles.walking_v1"
         }
       },
       "controller": null

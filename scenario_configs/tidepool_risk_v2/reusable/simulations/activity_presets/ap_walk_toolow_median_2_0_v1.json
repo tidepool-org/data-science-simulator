@@ -22,11 +22,7 @@
       "glucose_history": "reusable.glucose.flat_120_12hr",
       "bolus_entries": [],
       "carb_entries": [],
-      "physical_activity_entries": [],
-      "w_hr": 1.0,
-      "a": -0.002462,
-      "tau": 0.9989,
-      "n": 28
+      "physical_activity_entries": []
     }
   },
   "controller": {

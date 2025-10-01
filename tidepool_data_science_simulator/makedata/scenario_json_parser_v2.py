@@ -158,6 +158,33 @@ class ScenarioParserV2(SimulationParser):
         self.resolve_pointers(override_delta)
 
         num_overrides = self.count_leaf_nodes(override_delta)
+        
+        # Diagnose what will be applied
+        print("\n" + "="*80)
+        print(f"DIAGNOSING OVERRIDES")
+        print("="*80)
+        applied_paths, failed_paths = self.diagnose_override_application(
+            base_sim_config, override_delta
+        )
+        
+        print(f"\n📊 OVERRIDE SUMMARY:")
+        print(f"   Total override values: {num_overrides}")
+        print(f"   Expected to apply: {len(applied_paths)}")
+        print(f"   Expected to fail: {len(failed_paths)}")
+        
+        if failed_paths:
+            print(f"\n🔴 FAILED OVERRIDES ({len(failed_paths)}):")
+            for path in sorted(failed_paths):
+                print(f"   - {path}")
+        
+        if applied_paths:
+            print(f"\n🟢 SUCCESSFUL OVERRIDES ({len(applied_paths)}):")
+            for path in sorted(applied_paths):
+                print(f"   - {path}")
+        
+        print("="*80 + "\n")
+        
+        # Now actually apply the overrides
         num_overrides_applied = self.resolve_override(base_sim_config, override_delta)
 
         if num_overrides_applied != num_overrides:
@@ -166,10 +193,64 @@ class ScenarioParserV2(SimulationParser):
 
 
 
+    def diagnose_override_application(self, base_dict, override_dict, path="", applied_paths=None, failed_paths=None):
+        """
+        Recursively diagnose which override paths succeed or fail.
+        Returns sets of applied and failed paths.
+        """
+        if applied_paths is None:
+            applied_paths = set()
+        if failed_paths is None:
+            failed_paths = set()
+        
+        # Handle lists - they replace entirely
+        if isinstance(override_dict, list):
+            current_path = path if path else "<root>"
+            if isinstance(base_dict, list) or not isinstance(base_dict, dict):
+                applied_paths.add(f"{current_path} (list replacement)")
+            else:
+                failed_paths.add(f"{current_path} (TYPE_MISMATCH: base is not a list)")
+            return applied_paths, failed_paths
+        
+        # Handle non-dict overrides
+        if not isinstance(override_dict, dict):
+            return applied_paths, failed_paths
+        
+        for key, value in override_dict.items():
+            current_path = f"{path}.{key}" if path else key
+            
+            if key not in base_dict:
+                failed_paths.add(f"{current_path} (KEY_NOT_FOUND)")
+                print(f"❌ Override FAILED: '{current_path}' - key doesn't exist in base config")
+                continue
+            
+            base_value = base_dict[key]
+            
+            # If override is a dict and base is also a dict, recurse
+            if isinstance(value, dict) and isinstance(base_value, dict):
+                self.diagnose_override_application(base_value, value, current_path, applied_paths, failed_paths)
+            # If override is a list or not a dict, it's a leaf replacement
+            else:
+                # Check type compatibility
+                if type(value) != type(base_value) and base_value is not None:
+                    failed_paths.add(f"{current_path} (TYPE_MISMATCH: expected {type(base_value).__name__}, got {type(value).__name__})")
+                    print(f"❌ Override FAILED: '{current_path}' - type mismatch")
+                    print(f"   Expected: {type(base_value).__name__} = {base_value}")
+                    print(f"   Got: {type(value).__name__} = {value}")
+                else:
+                    applied_paths.add(current_path)
+                    print(f"✓ Override will apply: '{current_path}' = {value}")
+        
+        return applied_paths, failed_paths
+    
     def count_leaf_nodes(self, obj):
         """
         Count the number of non-dict values in the object. Used to later
         validate that all overrides have been applied.
+        
+        Lists are treated as atomic values (single leaf nodes) because they
+        represent complete replacement values in overrides, not structures
+        to traverse for individual leaf overrides.
 
         Parameters
         ----------
@@ -179,12 +260,22 @@ class ScenarioParserV2(SimulationParser):
         -------
         int: Number of non-dict values
         """
+        # Lists are treated as single leaf nodes (atomic values)
+        if isinstance(obj, list):
+            return 1
+        
+        # Non-dict, non-list values are leaf nodes
+        if not isinstance(obj, dict):
+            return 1
+            
+        # For dicts, recursively count leaf nodes
         num_leaf_nodes = 0
         for k, v in obj.items():
-            if not isinstance(v, dict):
-                num_leaf_nodes += 1
-            else:
+            if isinstance(v, dict):
                 num_leaf_nodes += self.count_leaf_nodes(v)
+            else:
+                # Both lists and primitive values count as 1 leaf node
+                num_leaf_nodes += 1
         return num_leaf_nodes
 
     def resolve_pointers(self, value, key_prefix=""):
@@ -192,27 +283,71 @@ class ScenarioParserV2(SimulationParser):
         Recursively traverse the simulation config obj and replace any pointers with their objects.
 
         """
+        # Handle lists
+        if isinstance(value, list):
+            for i, item in enumerate(value):
+                if self.is_config_file_pointer(item):
+                    value[i] = self.load_pointer(item)
+                elif isinstance(item, dict):
+                    self.resolve_pointers(item, f"{key_prefix}[{i}]")
+                elif isinstance(item, list):
+                    self.resolve_pointers(item, f"{key_prefix}[{i}]")
+            return
+        
+        # Handle dicts (original logic)
+        if not isinstance(value, dict):
+            return
+            
         for k, v in value.items():
             current_key = f"{key_prefix}.{k}" if key_prefix else k
             
             if self.is_config_file_pointer(v):
-                value[k] = self.load_pointer(v)
+                loaded_value = self.load_pointer(v)
+                
+                # Special handling for physical_activity_entries pointing to profiles
+                # If we're loading a PA profile (which has both metadata and entries),
+                # and the key is 'physical_activity_entries', extract just the entries list
+                if k == "physical_activity_entries" and isinstance(loaded_value, dict):
+                    if "physical_activity_entries" in loaded_value:
+                        # This is a profile with metadata - extract just the entries
+                        value[k] = loaded_value["physical_activity_entries"]
+                        logger.info(f"Extracted PA entries from profile for key '{current_key}'")
+                    else:
+                        # Regular pointer resolution
+                        value[k] = loaded_value
+                else:
+                    value[k] = loaded_value
             elif isinstance(v, dict):
+                self.resolve_pointers(v, current_key)
+            elif isinstance(v, list):
                 self.resolve_pointers(v, current_key)
 
     def resolve_override(self, obj, override_obj, key_prefix=""):
         """
         Recursively traverse the simulation config obj and apply specified leaf overrides.
         """
+        # Handle the case where obj is a list (shouldn't happen in normal override flow,
+        # but adding for robustness)
+        if isinstance(obj, list) or isinstance(override_obj, list):
+            # Lists are treated as leaf nodes that get replaced entirely
+            return 0
+        
+        # Both obj and override_obj should be dicts at this point
+        if not isinstance(obj, dict) or not isinstance(override_obj, dict):
+            return 0
+            
         num_overides_applied = 0
 
         for k, v in obj.items():
             current_key = f"{key_prefix}.{k}" if key_prefix else k
 
             if k in override_obj:
-                if not isinstance(override_obj[k], dict):  # key is there and it's a leaf node
+                override_value = override_obj[k]
+                
+                # If override value is not a dict (or is a list), treat it as a leaf node replacement
+                if not isinstance(override_value, dict) or isinstance(override_value, list):
                     old_value = obj[k]
-                    new_value = override_obj[k]
+                    new_value = override_value
                     obj[k] = new_value
 
                     # Record the override details at instance level
@@ -224,10 +359,15 @@ class ScenarioParserV2(SimulationParser):
                     })
 
                     num_overides_applied += 1
-                else:  # key is there and it's an object that should be explored for leaf overrides
-
-                    sub_overrides = self.resolve_override(v, override_obj[k], current_key)
-                    num_overides_applied += sub_overrides
+                else:  # key is there and it's a dict that should be explored for leaf overrides
+                    # Only recurse if the base value is also a dict
+                    if isinstance(v, dict):
+                        sub_overrides = self.resolve_override(v, override_value, current_key)
+                        num_overides_applied += sub_overrides
+                    else:
+                        # Base value is not a dict but override is, replace entirely
+                        obj[k] = override_value
+                        num_overides_applied += 1
 
         return num_overides_applied
 
@@ -636,13 +776,32 @@ class ScenarioParserV2(SimulationParser):
             duration_minutes=insulin_production_rate_duration_minutes
         )
         
+        # Physical activity processing - ONLY for patient model
+        pa_entries = model_config.get("physical_activity_entries", [])
+        
+        # If pa_entries is a string, it's a reusable profile reference - wrap it in a list
+        if isinstance(pa_entries, str) and pa_entries.startswith("reusable."):
+            pa_entries = [pa_entries]  # Wrap in list for processing
+        
+        # Extract metabolism parameters from PA profiles if available
+        pa_metabolism_params = self.extract_metabolism_params_from_pa_profiles(pa_entries)
+        
         # Physical activity and metabolism model parameters with defaults
+        # Priority: explicit model_config > explicit metabolism_settings > profile defaults > global defaults
         # IMPORTANT: Check both metabolism_settings AND model_config top level for PA parameters
         # This ensures PA parameters are preserved when metabolism_settings is overridden
-        model["w_hr"] = model_config.get("w_hr", metabolism_settings.get("w_hr", 0.0))
-        model["a"] = model_config.get("a", metabolism_settings.get("a", 1.0))
-        model["tau"] = model_config.get("tau", metabolism_settings.get("tau", 60.0))
-        model["n"] = model_config.get("n", metabolism_settings.get("n", 1.0))
+        model["w_hr"] = model_config.get("w_hr", 
+                          metabolism_settings.get("w_hr", 
+                              pa_metabolism_params.get("w_hr", 0.0)))
+        model["a"] = model_config.get("a",
+                       metabolism_settings.get("a",
+                           pa_metabolism_params.get("a", 1.0)))
+        model["tau"] = model_config.get("tau",
+                         metabolism_settings.get("tau",
+                             pa_metabolism_params.get("tau", 60.0)))
+        model["n"] = model_config.get("n",
+                       metabolism_settings.get("n",
+                           pa_metabolism_params.get("n", 1.0)))
 
         # Specific to pump
         if "target_range" in model_config:
@@ -671,14 +830,7 @@ class ScenarioParserV2(SimulationParser):
         bolus_entries = model_config["bolus_entries"]
         model["bolus_timeline"] = self.bolus_entries_to_timeline(bolus_entries)
 
-        
-        # Physical activity processing - ONLY for patient model
-        pa_entries = model_config.get("physical_activity_entries", [])
-        
-        # If pa_entries is a string, it's a reusable profile reference - wrap it in a list
-        if isinstance(pa_entries, str) and pa_entries.startswith("reusable."):
-            pa_entries = [pa_entries]  # Wrap in list for processing
-        
+        # Physical activity timeline (pa_entries already extracted above for parameter extraction)
         model["pa_timeline"] = self.enhanced_physical_activity_entries_to_timeline(pa_entries)
 
         model["action_timeline"] = ActionTimeline()
@@ -736,6 +888,110 @@ class ScenarioParserV2(SimulationParser):
 
     # ===== PHASE 2 & 3: PHYSICAL ACTIVITY SUPPORT WITH VALIDATION =====
     
+    def validate_metabolism_parameters(self, params):
+        """
+        Validate PA metabolism parameters.
+        
+        Parameters
+        ----------
+        params : dict
+            Dictionary of metabolism parameters to validate
+            
+        Returns
+        -------
+        list
+            List of validation errors (empty if valid)
+        """
+        errors = []
+        
+        if 'w_hr' in params:
+            try:
+                w_hr = float(params['w_hr'])
+                if not -10.0 <= w_hr <= 10.0:
+                    errors.append(f"w_hr {w_hr} outside expected range [-10, 10]")
+            except (ValueError, TypeError):
+                errors.append(f"w_hr must be numeric, got: {params['w_hr']}")
+        
+        if 'a' in params:
+            try:
+                a = float(params['a'])
+                if not -1.0 <= a <= 1.0:
+                    errors.append(f"a {a} outside expected range [-1, 1]")
+            except (ValueError, TypeError):
+                errors.append(f"a must be numeric, got: {params['a']}")
+        
+        if 'tau' in params:
+            try:
+                tau = float(params['tau'])
+                if not 0.0 < tau <= 1000.0:
+                    errors.append(f"tau {tau} outside expected range (0, 1000]")
+            except (ValueError, TypeError):
+                errors.append(f"tau must be numeric, got: {params['tau']}")
+        
+        if 'n' in params:
+            try:
+                n = float(params['n'])
+                if not 0.0 < n <= 100.0:
+                    errors.append(f"n {n} outside expected range (0, 100]")
+            except (ValueError, TypeError):
+                errors.append(f"n must be numeric, got: {params['n']}")
+        
+        return errors
+    
+    def extract_metabolism_params_from_pa_profiles(self, pa_entries):
+        """
+        Extract metabolism parameters from PA profile configurations.
+        
+        Parameters
+        ----------
+        pa_entries : list
+            List of PA entries (may include reusable profile references)
+            
+        Returns
+        -------
+        dict
+            Dictionary of metabolism parameters found in profiles (may be empty)
+        """
+        pa_metabolism_params = {}
+        
+        if not pa_entries:
+            return pa_metabolism_params
+        
+        # Check each entry for profile references with metabolism parameters
+        for entry in pa_entries:
+            try:
+                # Check if this is a profile reference string
+                if isinstance(entry, str) and entry.startswith('reusable.'):
+                    profile_config = self.load_reusable_pa_config(entry)
+                    
+                    # Extract metabolism_parameters if present
+                    if 'metabolism_parameters' in profile_config:
+                        profile_params = profile_config['metabolism_parameters']
+                        
+                        # Validate parameters
+                        validation_errors = self.validate_metabolism_parameters(profile_params)
+                        if validation_errors:
+                            error_msg = f"Metabolism parameter validation errors in {entry}:\n" + "\n".join(validation_errors)
+                            logger.error(error_msg)
+                            raise ValueError(error_msg)
+                        
+                        # Use parameters from first profile with metabolism_parameters
+                        # (Priority is given to the first profile encountered)
+                        if not pa_metabolism_params:
+                            pa_metabolism_params = profile_params.copy()
+                            logger.info(f"Extracted metabolism parameters from PA profile: {entry}")
+                            break
+                        
+            except ValueError:
+                # Re-raise validation errors
+                raise
+            except Exception as e:
+                # Log but don't fail for other errors - just skip this entry
+                logger.warning(f"Could not extract metabolism parameters from PA entry: {e}")
+                continue
+        
+        return pa_metabolism_params
+    
     def physical_activity_entries_to_timeline(self, pa_entries):
         """
         Convert physical activity entries from JSON to PhysicalActivityTimeline
@@ -784,8 +1040,10 @@ class ScenarioParserV2(SimulationParser):
         if path_parts[0] != 'reusable':
             raise ValueError(f"Reusable config path must start with 'reusable', got: {config_path}")
         
-        # Build file path - remove 'reusable' prefix and add .json extension
-        relative_path = '/'.join(path_parts[1:]) + '.json'
+        # Build file path - keep 'reusable' in path and add .json extension
+        # pointer_object_dir already points to scenario_configs/tidepool_risk_v2/
+        # so we need to include 'reusable' in the relative path
+        relative_path = '/'.join(path_parts) + '.json'
         file_path = os.path.join(self.pointer_object_dir, relative_path)
         
         try:

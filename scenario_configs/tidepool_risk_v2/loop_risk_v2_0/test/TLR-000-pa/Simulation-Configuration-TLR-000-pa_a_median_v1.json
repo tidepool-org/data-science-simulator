@@ -10,7 +10,7 @@
     {"sim_id": "pre-Loop_NoMitigations_t1_median_a",
       "patient": {
         "patient_model": {
-          "physical_activity_entries": "reusable.physical_activities.profiles.light_exercise_v1"
+          "physical_activity_entries": "reusable.physical_activities.profiles.walking_v1"
         },
         "pump": {
           "metabolism_settings": "reusable.metabolism_settings.activity_presets.median_preset_23_90m_v1"

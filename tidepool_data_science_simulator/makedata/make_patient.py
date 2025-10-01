@@ -338,6 +338,10 @@ def get_canonical_risk_patient_config(
     pa_timeline=None,
     sim_length=0,
     heart_rate_trace=None,
+    w_hr=0.0,
+    a=1.0,
+    tau=60.0,
+    n=1.0,
 ):
     """
     Get canonical patient config
@@ -442,6 +446,10 @@ def get_canonical_risk_patient_config(
         bolus_event_timeline=patient_bolus_timeline,
         pa_timeline=pa_timeline,
         action_timeline=ActionTimeline(),
+        w_hr=w_hr,
+        a=a,
+        tau=tau,
+        n=n,
     )
 
     patient_config.recommendation_accept_prob = (
