@@ -382,8 +382,19 @@ class HeartRateTrace(object):
         """
         get heart rate at the given time
         """
+        # Defensive check for empty trace
+        if len(self.datetimes) == 0 or len(self.hr_values) == 0:
+            return 0
+        
         idx = np.searchsorted(self.datetimes, dt, side='right')
-        return self.hr_values[idx - 1]
+        
+        # Bound check to prevent negative indexing issues
+        if idx == 0:
+            result_hr = self.hr_values[0]
+        else:
+            result_hr = self.hr_values[idx - 1]
+        
+        return result_hr
     def append(self, date, hr):
         """
         Add a new value
@@ -395,4 +406,4 @@ class HeartRateTrace(object):
         -------
         """
         self.datetimes.append(date)
-        self.bg_values.append(hr)
+        self.hr_values.append(hr)

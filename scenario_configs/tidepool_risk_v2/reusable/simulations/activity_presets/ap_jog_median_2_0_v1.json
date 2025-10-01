@@ -1,0 +1,37 @@
+{
+  "sim_id": "ap_walk_median_v1",
+  "time_to_calculate_at": "8/15/2019 12:00:00",
+  "duration_hours": 8.0,
+  "offset_applied_to_dates": 0,
+  "patient": {
+    "sensor": {
+      "glucose_history": "reusable.glucose.flat_120_12hr"
+    },
+    "pump": {
+      "metabolism_settings": "reusable.metabolism_settings.median_v1",
+      "bolus_entries": [],
+      "carb_entries": [],
+      "target_range": {
+        "start_times": ["0:00:00"],
+        "lower_values": [150],
+        "upper_values": [170]
+      }
+    },
+    "patient_model": {
+      "metabolism_settings": "reusable.metabolism_settings.activity_presets.median_preset_23_30m_v1",
+      "glucose_history": "reusable.glucose.flat_120_12hr",
+      "bolus_entries": [],
+      "carb_entries": [],
+      "physical_activity_entries": [],
+      "w_hr": 1.0,
+      "a": -0.002462,
+      "tau": 0.9989,
+      "n": 28
+    }
+  },
+  "controller": {
+    "id": "swift",
+    "settings": "reusable.loop_settings.2_0_v1",
+    "automation_control_timeline": []
+  }
+}

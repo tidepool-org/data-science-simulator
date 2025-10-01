@@ -23,7 +23,7 @@ dependencies:
   - pip:
     - pip-chill==1.0.0
     - python-dotenv==0.13.0
-    - git+https://github.com/tidepool-org/data-science-models@dev
+    - -e file:/Users/shawnfoster/PycharmProjects/data-science-models
     - git+https://github.com/tidepool-org/Pyloopkit@dev
     - git+https://github.com/tidepool-org/data-science-metrics
     - -e file:/Users/shawnfoster/PycharmProjects/data-science-simulator-v2/LoopAlgorithmToPython

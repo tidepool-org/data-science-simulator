@@ -68,22 +68,27 @@ def get_heartrate_trace(pa_timeline, t0, sim_length, heart_rate_trace=None):
     Can be changed to a list of traces corresponding to each PA in the pa_timeline
     """
 
-    num_steps = sim_length * 3600 // 10
-    hr_times = [t0 + timedelta(seconds=10 * i) for i in range(num_steps)]
+    # IMPORTANT: Use 5-minute intervals to match simulation timesteps, not 10-second intervals
+    num_steps = int(sim_length * 60 // 5)  # 5-minute intervals
+    if num_steps <= 0:
+        num_steps = 1  # Ensure at least one step
+    
+    hr_times = [t0 + timedelta(minutes=5 * i) for i in range(num_steps)]
     hr_vals = [0] * num_steps  # initialize heart rate with all 0s
 
     for dt in pa_timeline.events:
         pa = pa_timeline.events[dt]
-        start_index = int((dt - t0).total_seconds() // 10)
-        end_index = start_index + (pa.duration * 60 // 10)
+        start_index = int((dt - t0).total_seconds() // 60 // 5)  # Convert to 5-minute index
+        end_index = start_index + (pa.duration // 5)  # Duration in 5-minute steps
         hr_index = 0
         for i in range(start_index, end_index):
-            if i < num_steps:
-                if heart_rate_trace:
+            if i < num_steps and i >= 0:
+                if heart_rate_trace and hr_index < len(heart_rate_trace):
                     hr_vals[i] = heart_rate_trace[hr_index]
                     hr_index += 1
                 else:
                     hr_vals[i] = 150  # default heart rate if no trace is provided
+    
     hr_trace = HeartRateTrace(datetimes=hr_times, values=hr_vals)
     return hr_trace
 

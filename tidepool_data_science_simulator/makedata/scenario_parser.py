@@ -14,7 +14,7 @@ from tidepool_data_science_simulator.legacy.read_fda_risk_input_scenarios_ORIG i
 from tidepool_data_science_simulator.models.simulation import (
     SettingSchedule24Hr, TargetRangeSchedule24hr, BasalSchedule24hr
 )
-from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, TempBasalTimeline, ActionTimeline
+from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, TempBasalTimeline, ActionTimeline, PhysicalActivityTimeline
 from tidepool_data_science_simulator.models.measures import (
     Carb,
     Bolus,
@@ -379,7 +379,8 @@ class ScenarioParserCSV(SimulationParser):
             carb_event_timeline=self.patient_carb_events,
             bolus_event_timeline=self.patient_bolus_events,
             glucose_history=copy.deepcopy(self.patient_glucose_history),
-            action_timeline=ActionTimeline()
+            action_timeline=ActionTimeline(),
+            pa_timeline=PhysicalActivityTimeline()  # Add empty physical activity timeline for CSV parser
         )
 
         patient_config.recommendation_accept_prob = 0.0  # Does not accept any bolus recommendations
@@ -464,6 +465,10 @@ class PatientConfig(object):
         basal_blood_glucose_schedule=None,
         insulin_production_rate_schedule=None,
         patient_insulin_type="rapid_acting_adult",
+        w_hr=0.0,
+        a=1.0,
+        tau=60.0,
+        n=1.0,
     ):
         """
         Configuration object for virtual patient.
@@ -527,6 +532,15 @@ class PatientConfig(object):
         self.pa_timeline = pa_timeline
         self.action_timeline = action_timeline
         self.patient_insulin_type = patient_insulin_type
+        
+        # Physical activity and metabolism model parameters
+        self.w_hr = w_hr
+        self.a = a
+        self.tau = tau
+        self.n = n
+        
+        # For backward compatibility, make hr_trace an alias for pa_timeline
+        self.hr_trace = pa_timeline
 
         self.glucose_history = glucose_history
 

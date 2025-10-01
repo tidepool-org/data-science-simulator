@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1119",
+    "simulation_id": "TLR-1119-ap_median",
+    "risk_description": "Activity preset no exercise",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.activity_presets.ap_walk_median_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median_a_np",
+      "patient": {
+        "patient_model": {
+          "physical_activity_entries": "reusable.physical_activities.profiles.light_exercise_v1"
+        }
+        }
+      },
+    {
+      "sim_id": "pre-noLoop_t1_median_a_np",
+      "patient": {
+        "patient_model": {
+          "physical_activity_entries": "reusable.physical_activities.profiles.light_exercise_v1"
+        }
+      },
+      "controller": null
+    }
+]
+}

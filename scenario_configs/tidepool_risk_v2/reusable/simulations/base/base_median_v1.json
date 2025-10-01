@@ -21,7 +21,8 @@
       "metabolism_settings": "reusable.metabolism_settings.median_v1",
       "glucose_history": "reusable.glucose.flat_110_12hr",
       "bolus_entries": [],
-      "carb_entries": []
+      "carb_entries": [],
+      "physical_activity_entries": []
     }
   },
   "controller": {

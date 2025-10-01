@@ -199,15 +199,20 @@ class VirtualPatient(SimulationComponent):
 
         Returns
         _______
-        (Insulin Event, Carb Event)
+        (Insulin Event, Carb Event, Heart Rate)
         """
         # Get boluses at time
         bolus = self.bolus_event_timeline.get_event(self.time)
 
         # Get carbs at time
         carb = self.carb_event_timeline.get_event(self.time)
+        
+        # Get heart rate at current time (default to None if not available)
+        heart_rate_val = None
+        if hasattr(self, 'hr_trace') and self.hr_trace is not None:
+            heart_rate_val = self.hr_trace.get_heart_rate(self.time)
 
-        return bolus, carb
+        return bolus, carb, heart_rate_val
 
     def update(self, time, **kwargs):
         """
@@ -521,6 +526,7 @@ class VirtualPatient(SimulationComponent):
         # Get patient's actual insulin type (add this to PatientConfig)
         patient_insulin_type = getattr(self.patient_config, 'actual_insulin_type', 'rapid_acting_adult')
 
+        # Physical activity parameters
         w_hr = self.patient_config.w_hr
         # w_egp = self.patient_config.w_egp
 
@@ -541,9 +547,8 @@ class VirtualPatient(SimulationComponent):
             # w_egp = w_egp,
             a = a,
             tau = tau,
-            n = n
+            n = n,
             # pa_egp = pa_egp
-            insulin_production_rate=ipr.value,
             patient_insulin_type=self.patient_config.patient_insulin_type
         )
 
