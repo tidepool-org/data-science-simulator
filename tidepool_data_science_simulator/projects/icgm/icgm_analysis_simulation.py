@@ -208,8 +208,8 @@ if __name__ == "__main__":
     numexpr.set_num_threads(sim_batch_size)
     
     # Define parameter lists to iterate through
-    paf_values = [0.8]  # Add more values as needed, e.g., [0.1, 0.2, 0.3]
-    positive_rc_values = [False]  # Add more values as needed, e.g., [True, False]
+    paf_values = [0.4]  # Add more values as needed, e.g., [0.1, 0.2, 0.3]
+    positive_rc_values = [True]  
     
     date_string = datetime.datetime.now().strftime(r"%Y_%m_%d_T_%H_%M_%S_")
     short_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()
