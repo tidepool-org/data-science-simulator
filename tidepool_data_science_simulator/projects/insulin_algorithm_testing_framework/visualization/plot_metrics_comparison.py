@@ -70,8 +70,8 @@ def create_weighted_boxplot_comparison(df, metric_col='time_in_range_70_180',
     colors = []
     
     # Define colors for posvel true (blue) and false (red)
-    color_true = '#1f77b4'  # Blue
-    color_false = '#ff7f0e'  # Orange
+    color_true = '#627cff'  # Blue
+    color_false = '#271b44'  # Dark Blue
     
     print(f"\nStatistical Summary for {metric_col} by PAF and RC Mitigation:")
     print("-" * 80)
@@ -141,7 +141,7 @@ def create_weighted_boxplot_comparison(df, metric_col='time_in_range_70_180',
         group_labels.append(labels[i])
     
     # Create the boxplot with custom positions
-    fig, ax = plt.subplots(figsize=(14, 8))
+    fig, ax = plt.subplots(figsize=(6, 8))
     
     box_plot = ax.boxplot(box_data, patch_artist=True, 
                          showmeans=True, meanline=True, positions=positions,
@@ -150,7 +150,7 @@ def create_weighted_boxplot_comparison(df, metric_col='time_in_range_70_180',
     # Color the boxes
     for patch, color in zip(box_plot['boxes'], colors):
         patch.set_facecolor(color)
-        patch.set_alpha(0.7)
+        patch.set_alpha(1)
     
     # Style the plot
     ax.set_title(title, fontsize=14, fontweight='bold')
@@ -164,9 +164,14 @@ def create_weighted_boxplot_comparison(df, metric_col='time_in_range_70_180',
     
     # Add legend
     from matplotlib.patches import Patch
-    legend_elements = [Patch(facecolor=color_false, alpha=0.7, label='RC Mitigation=False'),
-                      Patch(facecolor=color_true, alpha=0.7, label='RC Mitigation=True')]
-    ax.legend(handles=legend_elements, loc='upper right')
+    legend_elements = [Patch(facecolor=color_false, alpha=0.9, label='RC Mitigation=False'),
+                      Patch(facecolor=color_true, alpha=0.9, label='RC Mitigation=True')]
+    # ax.legend(handles=legend_elements, loc='upper right')
+    
+
+    # KLUDGE REMOVE
+    ax.set_xticks([1, 1.4])
+    ax.set_xticklabels(["Temp Basal", "Autobolus"], rotation=45, ha='right')
     
     plt.tight_layout()
     return fig, ax
@@ -301,6 +306,12 @@ def main():
     df = pd.read_csv(METRICS_PATH)
     print(f"Loaded {len(df)} simulation results")
     
+    # Keep only rows where (paf == 0 and posvel == True) or (paf == 0.4 and posvel == False)
+    df = df[
+        ((df['paf'].isna()) & (df['posvel'] == True)) |
+        ((df['paf'] == 0.4) & (df['posvel'] == False))
+    ].copy()
+
     # Load weights
     print("Loading IBG distribution weights...")
     weights_dict = load_histogram_weights(HISTOGRAM_PATH)
@@ -309,7 +320,7 @@ def main():
     print("Filtering and weighting data...")
     df_weighted = filter_and_weight_data(df, weights_dict)
     print(f"After filtering: {len(df_weighted)} simulations with valid weights")
-    
+
     # Get unique PAF values
     paf_values = sorted(df_weighted['paf'].unique())
     print(f"PAF values found: {paf_values}")
@@ -320,7 +331,7 @@ def main():
         df_weighted, 
         metric_col='time_in_range_70_180',
         paf_values=paf_values,
-        title='Time in Range (70-180 mg/dL) by PAF Value and RC Mitigation'
+        title='Time in Range (70-180 mg/dL)'
     )
     
     # Perform statistical tests
@@ -350,7 +361,7 @@ def main():
                 df_weighted,
                 metric_col=metric_col,
                 paf_values=paf_values,
-                title=f'{title} by PAF Value and RC Mitigation'
+                title=f'{title}'
             )
             
             # perform_pairwise_statistical_tests(
@@ -359,7 +370,10 @@ def main():
             #     paf_values=paf_values,
             #     reference_paf='none'
             # )
-    
+    fig1.savefig("time_in_range_comparison.png", dpi=300, bbox_inches='tight')
+    for metric_col, title in other_metrics:
+        if metric_col in df_weighted.columns:
+            fig.savefig(f"{metric_col}_comparison.png", dpi=300, bbox_inches='tight')
     plt.show()
 
 if __name__ == "__main__":

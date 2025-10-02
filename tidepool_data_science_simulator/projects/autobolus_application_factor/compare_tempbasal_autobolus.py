@@ -21,7 +21,7 @@ RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_ba
 RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_basal_cap_PAF_04_RC_true2025_06_03_T_12_08_27"
 RESULT_DIR = PROJECT_ROOT / "autobolus_tempbasal_comparison_unannounced_meals_basal_cap_PAF_04_RC_true2025_06_16_T_13_47_07"
 
-HISTOGRAM_PATH = Path("/Users/mconn/Downloads/BG_Distribution_Histogram.csv")
+HISTOGRAM_PATH = Path("/Users/mconn/data/simulator/BG_Distribution_Histogram.csv")
 METRIC_NAMES = [
     'Percent Time in Range (70 - 180 mg/dL)', 
     'Percent below Range (< 70 mg/dL)', 

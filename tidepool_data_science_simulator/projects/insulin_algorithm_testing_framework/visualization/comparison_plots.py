@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
-
-from ..config.experiment_config import ExperimentConfig
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import ExperimentConfig
+# from ..config.experiment_config import ExperimentConfig
 
 logger = logging.getLogger(__name__)
 
