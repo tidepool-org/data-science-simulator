@@ -41,7 +41,6 @@ from tidepool_data_science_simulator.makedata.scenario_json_parser_v2 import Sce
 from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.utils import DATA_DIR
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
-logging.getLogger("tidepool_data_science_simulator.run").disabled = True 
 
 def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, paf, positive_rc):
     """
@@ -203,6 +202,9 @@ def build_icgm_sim_generator(json_base_configs, paf, positive_rc, sim_batch_size
 
 
 if __name__ == "__main__":
+
+    logging.getLogger("tidepool_data_science_simulator.run").disabled = True 
+    logging.getLogger("tidepool_data_science_simulator.utils").disabled = True 
 
     sim_batch_size = os.cpu_count()
     os.environ['NUMEXPR_MAX_THREADS'] = str(sim_batch_size)
