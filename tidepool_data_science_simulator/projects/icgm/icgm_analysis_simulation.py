@@ -14,6 +14,7 @@ import time
 import os
 import datetime
 import argparse
+import math
 
 from tidepool_data_science_simulator.makedata.make_icgm_patients import transform_icgm_json_to_v2_parser
 from tidepool_data_science_simulator.run import run_simulations
@@ -40,7 +41,7 @@ from tidepool_data_science_simulator.makedata.scenario_json_parser_v2 import Sce
 from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.utils import DATA_DIR
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
-
+logging.getLogger("tidepool_data_science_simulator.run").disabled = True 
 
 def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, paf, positive_rc):
     """
@@ -206,7 +207,7 @@ if __name__ == "__main__":
     sim_batch_size = os.cpu_count()
     os.environ['NUMEXPR_MAX_THREADS'] = str(sim_batch_size)
     numexpr.set_num_threads(sim_batch_size)
-    
+
     # Define parameter lists to iterate through
     paf_values = [0.4]  # Add more values as needed, e.g., [0.1, 0.2, 0.3]
     positive_rc_values = [True]  
@@ -215,6 +216,20 @@ if __name__ == "__main__":
     short_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()
     
     json_base_configs = transform_icgm_json_to_v2_parser()
+    
+    # Calculate total expected batches for progress tracking
+    # Each config generates 73*73=5329 simulations (range(40,405,5) for both true and error values)
+    sims_per_config = 73 * 73  # 5329 simulations per virtual patient
+    batches_per_config = math.ceil(sims_per_config / sim_batch_size)
+    total_expected_batches = len(json_base_configs) * batches_per_config * len(paf_values) * len(positive_rc_values)
+    
+    logger.info(f"Expected to process {total_expected_batches} total batches across {len(json_base_configs)} virtual patients")
+    logger.info(f"Simulations per config: {sims_per_config}, Batch size: {sim_batch_size}, Batches per config: {batches_per_config}")
+    
+    # Initialize batch tracking variables
+    completed_batches = 0
+    batch_durations = []  # Track recent batch durations for rolling average
+    overall_start_time = time.time()
     
     # Iterate through all combinations of PAF and POSITIVE_RC values
     for paf in paf_values:
@@ -229,7 +244,7 @@ if __name__ == "__main__":
 
             sim_batch_generator = build_icgm_sim_generator(json_base_configs, paf=paf, positive_rc=positive_rc, sim_batch_size=sim_batch_size)
 
-            start_time = time.time()
+            parameter_start_time = time.time()
             for i, sim_batch in enumerate(sim_batch_generator):
                 if sim_batch:
                     batch_start_time = time.time()
@@ -289,10 +304,36 @@ if __name__ == "__main__":
                             plot_sim_results({sim_id: sim_results_df})
 
                     
-                    batch_total_time = (time.time() - batch_start_time) / 60
-                    run_total_time = (time.time() - start_time) / 60
-                    logger.info("Batch {}".format(i))
-                    logger.info("Minutes to build sim batch {} of {} sensors. Total minutes {}".format(batch_total_time, len(sim_batch), run_total_time))
+                    # Track batch timing and progress
+                    batch_duration_minutes = (time.time() - batch_start_time) / 60
+                    batch_durations.append(batch_duration_minutes)
+                    completed_batches += 1
+                    
+                    # Keep only last 10 batch durations for rolling average
+                    if len(batch_durations) > 10:
+                        batch_durations.pop(0)
+                    
+                    # Calculate progress statistics
+                    progress_percentage = (completed_batches / total_expected_batches) * 100
+                    average_batch_time = sum(batch_durations) / len(batch_durations)
+                    remaining_batches = total_expected_batches - completed_batches
+                    estimated_remaining_minutes = remaining_batches * average_batch_time
+                    
+                    # Calculate total elapsed time
+                    total_elapsed_minutes = (time.time() - overall_start_time) / 60
+                    parameter_elapsed_minutes = (time.time() - parameter_start_time) / 60
+                    
+                    # Enhanced logging with progress and ETA
+                    logger.info(f"=== BATCH PROGRESS ===")
+                    logger.info(f"Batch {completed_batches}/{total_expected_batches} ({progress_percentage:.1f}% complete)")
+                    logger.info(f"Current batch: {batch_duration_minutes:.2f} min | {len(sim_batch)} simulations")
+                    logger.info(f"Average batch time: {average_batch_time:.2f} min (last {len(batch_durations)} batches)")
+                    logger.info(f"Estimated time remaining: {estimated_remaining_minutes:.1f} min ({estimated_remaining_minutes/60:.1f} hrs)")
+                    logger.info(f"Total elapsed: {total_elapsed_minutes:.1f} min | Parameter set elapsed: {parameter_elapsed_minutes:.1f} min")
+                    logger.info(f"PAF={paf}, POSITIVE_RC={positive_rc}")
             
-            total_run_time = (time.time() - start_time) / 60
-            logger.info(f"Completed simulations for PAF={paf}, POSITIVE_RC={positive_rc}. Total time: {total_run_time:.2f} minutes")
+            parameter_total_time = (time.time() - parameter_start_time) / 60
+            logger.info(f"=== PARAMETER SET COMPLETE ===")
+            logger.info(f"Completed simulations for PAF={paf}, POSITIVE_RC={positive_rc}")
+            logger.info(f"Parameter set time: {parameter_total_time:.2f} minutes ({parameter_total_time/60:.2f} hours)")
+            logger.info(f"Overall progress: {completed_batches}/{total_expected_batches} batches completed")
