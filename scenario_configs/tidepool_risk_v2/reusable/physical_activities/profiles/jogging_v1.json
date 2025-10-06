@@ -11,7 +11,7 @@
             "activity": "running",
             "duration": 30,
             "intensity": "moderate",
-            "expected_hr_increase": 152
+            "expected_hr": 152
         }
     ]
 }

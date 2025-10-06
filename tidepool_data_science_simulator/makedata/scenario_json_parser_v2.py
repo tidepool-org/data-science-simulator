@@ -1012,8 +1012,13 @@ class ScenarioParserV2(SimulationParser):
             pa_datetime = datetime.datetime.strptime(pa_entry["start_time"], DATETIME_FORMAT)
             activity_name = pa_entry.get("activity", "exercise")
             duration_minutes = pa_entry.get("duration", 30)
+            expected_hr = pa_entry.get("expected_hr", None)  # NEW: Extract heart rate
             
-            pa_obj = PhysicalActivity(activity=activity_name, duration=duration_minutes)
+            pa_obj = PhysicalActivity(
+                activity=activity_name, 
+                duration=duration_minutes,
+                expected_hr=expected_hr  # NEW: Pass heart rate
+            )
             
             pa_datetimes.append(pa_datetime)
             pa_events.append(pa_obj)
@@ -1115,14 +1120,21 @@ class ScenarioParserV2(SimulationParser):
             if pa_entry['intensity'] not in valid_intensities:
                 errors.append(f"{entry_desc}: Invalid intensity '{pa_entry['intensity']}'. Must be one of: {valid_intensities}")
         
-        # Validate expected_hr_increase if present
-        if 'expected_hr_increase' in pa_entry:
+        # Validate expected_hr if present
+        if 'expected_hr' in pa_entry:
             try:
-                hr_increase = float(pa_entry['expected_hr_increase'])
-                if hr_increase < 0 or hr_increase > 200:  # Reasonable heart rate increase range
-                    errors.append(f"{entry_desc}: Heart rate increase must be between 0 and 200 bpm, got: {hr_increase}")
+                hr_value = float(pa_entry['expected_hr'])
+                if hr_value < 40 or hr_value > 220:  # Physiological heart rate range
+                    errors.append(f"{entry_desc}: Heart rate must be between 40 and 220 bpm, got: {hr_value}")
             except (ValueError, TypeError):
-                errors.append(f"{entry_desc}: Heart rate increase must be numeric, got: {pa_entry['expected_hr_increase']}")
+                errors.append(f"{entry_desc}: Heart rate must be numeric, got: {pa_entry['expected_hr']}")
+        
+        # Handle legacy field name (it's actually absolute HR despite the name)
+        if 'expected_hr' in pa_entry:
+            logger.warning(f"{entry_desc}: 'expected_hr' is deprecated, use 'expected_hr' instead")
+            if 'expected_hr' not in pa_entry:
+                # Despite the name, expected_hr contains absolute HR values in existing profiles
+                pa_entry['expected_hr'] = pa_entry['expected_hr']
         
         return errors
     
@@ -1178,7 +1190,7 @@ class ScenarioParserV2(SimulationParser):
         Returns
         -------
         list
-            Processed and validated PA entries
+            Processed and validated PA entries with heart rate information
         """
         if not pa_entries:
             return []
@@ -1198,6 +1210,9 @@ class ScenarioParserV2(SimulationParser):
                         all_errors.append(f"Profile {entry}: Missing 'physical_activity_entries'")
                         continue
                     
+                    # Extract default heart rate from profile if available
+                    profile_default_hr = profile_config.get('default_heart_rate', None)
+                    
                     # Add all entries from the profile
                     for profile_entry in profile_config['physical_activity_entries']:
                         # Validate each entry from the profile
@@ -1205,6 +1220,11 @@ class ScenarioParserV2(SimulationParser):
                         if errors:
                             all_errors.extend(errors)
                             continue
+                        
+                        # Add profile's default heart rate if entry doesn't specify one
+                        if 'expected_hr' not in profile_entry and profile_default_hr is not None:
+                            profile_entry['expected_hr'] = profile_default_hr
+                            logger.debug(f"Applied default_heart_rate {profile_default_hr} from profile to PA entry")
                         
                         processed_entries.append(profile_entry)
                 

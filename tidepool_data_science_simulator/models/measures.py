@@ -352,11 +352,28 @@ class GlucoseTrace(object):
     
 class PhysicalActivity(object):
     """
-    Physical activity with an activity name and duration
+    Physical activity with an activity name, duration, and optional expected heart rate
     """
-    def __init__(self, activity='', duration=0):
+    def __init__(self, activity='', duration=0, expected_hr=None):
+        """
+        Parameters
+        ----------
+        activity : str
+            Type of activity (e.g., "walking", "running", "cycling")
+        duration : int
+            Duration in minutes
+        expected_hr : float, optional
+            Expected heart rate during this activity in bpm
+            If None, will use a default based on activity type
+        """
         self.activity = activity
         self.duration = duration
+        self.expected_hr = expected_hr
+        # Maintain backward compatibility - 'value' property for activity name
+        self.value = activity
+        
+    def __repr__(self):
+        return f"PhysicalActivity({self.activity}, duration={self.duration}min, hr={self.expected_hr}bpm)"
         
 class HeartRateTrace(object):
     def __init__(self, datetimes=None, values=None):

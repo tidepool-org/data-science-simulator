@@ -64,11 +64,41 @@ DATETIME_DEFAULT = datetime.datetime(
 def get_heartrate_trace(pa_timeline, t0, sim_length, heart_rate_trace=None):
     """
     Get the heart rate trace for the simulation, given the physical activity timeline.
-    Note --> a single heart rate trace is passed in the current version, supporting 1 activity per simulation.
-    Can be changed to a list of traces corresponding to each PA in the pa_timeline
+    
+    Parameters
+    ----------
+    pa_timeline : PhysicalActivityTimeline
+        Timeline of physical activities
+    t0 : datetime.datetime
+        Start time of simulation
+    sim_length : float
+        Length of simulation in hours
+    heart_rate_trace : list, optional
+        Pre-defined heart rate trace (overrides activity-specific HRs)
+    
+    Returns
+    -------
+    HeartRateTrace
+        Heart rate trace with 5-minute intervals
+    
+    Notes
+    -----
+    Heart rate values are determined in this priority order:
+    1. Provided heart_rate_trace (highest priority)
+    2. Activity-specific expected_hr from PhysicalActivity object
+    3. Activity type defaults (e.g., "walking" = 110 bpm)
+    4. Global default of 110 bpm (lowest priority)
     """
+    # Activity type to default heart rate mapping
+    ACTIVITY_HR_DEFAULTS = {
+        "walking": 110,
+        "biking": 130,
+        "jogging": 140,
+        "strength_training": 110,
+    }
+    GLOBAL_DEFAULT_HR = 110  # Default for unknown activities
 
-    # IMPORTANT: Use 5-minute intervals to match simulation timesteps, not 10-second intervals
+    # IMPORTANT: Use 5-minute intervals to match simulation timesteps
     num_steps = int(sim_length * 60 // 5)  # 5-minute intervals
     if num_steps <= 0:
         num_steps = 1  # Ensure at least one step
@@ -81,13 +111,26 @@ def get_heartrate_trace(pa_timeline, t0, sim_length, heart_rate_trace=None):
         start_index = int((dt - t0).total_seconds() // 60 // 5)  # Convert to 5-minute index
         end_index = start_index + (pa.duration // 5)  # Duration in 5-minute steps
         hr_index = 0
-        for i in range(start_index, end_index):
+        
+        for i in range(start_index, end_index + 1):
             if i < num_steps and i >= 0:
+                # Priority 1: Use provided heart_rate_trace if available
                 if heart_rate_trace and hr_index < len(heart_rate_trace):
                     hr_vals[i] = heart_rate_trace[hr_index]
                     hr_index += 1
+                # Priority 2: Use activity-specific expected_hr if provided
+                elif hasattr(pa, 'expected_hr') and pa.expected_hr is not None:
+                    hr_vals[i] = pa.expected_hr
+                # Priority 3: Use activity type default
+                elif pa.activity in ACTIVITY_HR_DEFAULTS:
+                    hr_vals[i] = ACTIVITY_HR_DEFAULTS[pa.activity]
+                # Priority 4: Use global default
                 else:
-                    hr_vals[i] = 150  # default heart rate if no trace is provided
+                    hr_vals[i] = GLOBAL_DEFAULT_HR
+                    logger.warning(
+                        f"No heart rate specified for activity '{pa.activity}', "
+                        f"using default {GLOBAL_DEFAULT_HR} bpm"
+                    )
     
     hr_trace = HeartRateTrace(datetimes=hr_times, values=hr_vals)
     return hr_trace

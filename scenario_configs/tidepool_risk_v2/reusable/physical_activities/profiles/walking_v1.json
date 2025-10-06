@@ -11,7 +11,7 @@
             "activity": "walking",
             "duration": 30,
             "intensity": "light",
-            "expected_hr_increase": 112
+            "expected_hr": 112
         }
 ]
 }

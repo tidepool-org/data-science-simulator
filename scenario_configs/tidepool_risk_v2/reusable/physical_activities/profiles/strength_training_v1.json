@@ -11,7 +11,7 @@
             "activity": "strength training",
             "duration": 30,
             "intensity": "high",
-            "expected_hr_increase": 105
+            "expected_hr": 105
         }
     ]
 }
