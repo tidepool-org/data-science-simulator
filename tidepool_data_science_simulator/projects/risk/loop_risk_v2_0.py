@@ -33,7 +33,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
 
     # Define the base directory and selected subdirectory
     BASE_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/")
-    SELECTED_SUBDIR = "test"  # Change this to select different subdirectories
+    SELECTED_SUBDIR = "loop_risk_v2_2_0_full"  # Change this to select different subdirectories
 
     # Construct the full path to the selected subdirectory
     SELECTED_DIR_PATH = os.path.join(BASE_DIR, SELECTED_SUBDIR)
@@ -48,7 +48,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
     for risk_dir_name in risk_dirs:
         print(f"Processing risk directory: {risk_dir_name}")
         #  for use in filtering to just one risk. If wanting to run all of them, comment out lines 35-37
-        if ("TLR-000-pa") not in risk_dir_name:
+        if ("TLR-1119") not in risk_dir_name:
             print(f"Skipping {risk_dir_name} as it doesn't contain selected subdirectory")
             continue
         print(f"Processing: {risk_dir_name}")
@@ -103,7 +103,8 @@ if __name__ == "__main__":
                 full_results_dict, summary_results_df = run_simulations(sim_suite,
                                                                         save_dir=risk_result_dirpath,
                                                                         save_results=True,
-                                                                        num_procs=4)
+                                                                        num_procs=4,
+                                                                        name=scenario_json_name)
 
                 if summary_results_df.empty:
                     print(f"Warning: Empty summary results for {risk_name}, {scenario_json_name}")
