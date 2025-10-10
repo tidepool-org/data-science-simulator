@@ -193,6 +193,30 @@ class ScenarioParserV2(SimulationParser):
 
 
 
+    def are_types_compatible(self, value1, value2):
+        """
+        Check if two values have compatible types for override purposes.
+        
+        Returns True if:
+        - Types are exactly the same
+        - Both are numeric (int or float, but not bool)
+        """
+        type1 = type(value1)
+        type2 = type(value2)
+        
+        # Exact match
+        if type1 == type2:
+            return True
+        
+        # Numeric compatibility (int and float are compatible)
+        # Exclude bool even though it's technically an int subclass
+        numeric_types = (int, float)
+        if (type1 in numeric_types and type2 in numeric_types and 
+            not isinstance(value1, bool) and not isinstance(value2, bool)):
+            return True
+        
+        return False
+
     def diagnose_override_application(self, base_dict, override_dict, path="", applied_paths=None, failed_paths=None):
         """
         Recursively diagnose which override paths succeed or fail.
@@ -232,7 +256,11 @@ class ScenarioParserV2(SimulationParser):
             # If override is a list or not a dict, it's a leaf replacement
             else:
                 # Check type compatibility
-                if type(value) != type(base_value) and base_value is not None:
+                # None is always a valid override (used to disable/clear config)
+                if value is None:
+                    applied_paths.add(current_path)
+                    print(f"✓ Override will apply: '{current_path}' = {value}")
+                elif not self.are_types_compatible(value, base_value) and base_value is not None:
                     failed_paths.add(f"{current_path} (TYPE_MISMATCH: expected {type(base_value).__name__}, got {type(value).__name__})")
                     print(f"❌ Override FAILED: '{current_path}' - type mismatch")
                     print(f"   Expected: {type(base_value).__name__} = {base_value}")

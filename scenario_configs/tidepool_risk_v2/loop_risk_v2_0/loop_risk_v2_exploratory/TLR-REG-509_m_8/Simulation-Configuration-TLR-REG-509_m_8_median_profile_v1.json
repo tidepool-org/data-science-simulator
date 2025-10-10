@@ -5,7 +5,7 @@
     "risk_description": "Duration cap for 10%",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.base_median_2_0_v1",
+  "base_config": "reusable.simulations.custom_presets.preset_10_median_2_0_v1",
   "override_config": [
     {"sim_id": "pre-Loop_NoMitigations_t1_median",
       "duration_hours": 24.0,
@@ -13,12 +13,12 @@
         "patient_model": {
           "carb_entries": [
             {
-              "start_time": "08/15/2019 20:00:00", "value": 43,"type": "carb"
+              "start_time": "08/15/2019 20:05:00", "value": 43,"type": "carb"
             }
           ],
           "bolus_entries": [
             {
-              "time": "08/15/2019 20:00:00", "value": "accept_recommendation"
+              "time": "08/15/2019 20:05:00", "value": "accept_recommendation"
             }
           ]
         },
@@ -26,7 +26,7 @@
           "metabolism_settings": "reusable.metabolism_settings.presets.median_preset_10_8h_v1",
           "carb_entries": [
             {
-              "start_time": "08/15/2019 20:00:00", "value": 43,"type": "carb"
+              "start_time": "08/15/2019 20:05:00", "value": 43,"type": "carb"
             }
           ]
         }
@@ -38,12 +38,12 @@
         "patient_model": {
           "carb_entries": [
             {
-              "start_time": "08/15/2019 20:00:00", "value": 43,"type": "carb"
+              "start_time": "08/15/2019 20:05:00", "value": 43,"type": "carb"
             }
           ],
           "bolus_entries": [
             {
-              "time": "08/15/2019 20:00:00", "value": 3.3
+              "time": "08/15/2019 20:05:00", "value": 3.3
             }
           ]
         },
@@ -51,12 +51,12 @@
           "metabolism_settings": "reusable.metabolism_settings.presets.median_preset_10_8h_v1",
           "carb_entries": [
             {
-              "start_time": "08/15/2019 20:00:00", "value": 43,"type": "carb"
+              "start_time": "08/15/2019 20:05:00", "value": 43,"type": "carb"
             }
           ],
           "bolus_entries": [
             {
-              "time": "08/15/2019 20:00:00", "value": 3.3
+              "time": "08/15/2019 20:05:00", "value": 3.3
             }
           ]
         }
@@ -69,12 +69,12 @@
         "patient_model": {
           "carb_entries": [
             {
-              "start_time": "08/15/2019 20:00:00", "value": 43,"type": "carb"
+              "start_time": "08/15/2019 20:05:00", "value": 43,"type": "carb"
             }
           ],
           "bolus_entries": [
             {
-              "time": "08/15/2019 20:00:00", "value": "accept_recommendation"
+              "time": "08/15/2019 20:05:00", "value": "accept_recommendation"
             }
           ]
         },
@@ -82,7 +82,7 @@
           "metabolism_settings": "reusable.metabolism_settings.presets.median_preset_10_8h_v1",
           "carb_entries": [
             {
-              "start_time": "08/15/2019 20:00:00", "value": 43,"type": "carb"
+              "start_time": "08/15/2019 20:05:00", "value": 43,"type": "carb"
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"

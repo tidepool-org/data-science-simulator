@@ -88,7 +88,7 @@
           "metabolism_settings": "reusable.metabolism_settings.presets.adolescent_preset_10_12h_v1",
           "carb_entries": [
             {
-              "start_time": "08/15/2019 00:00:0060", "value": 60 ,"type": "carb"
+              "start_time": "08/15/2019 00:00:00", "value": 60 ,"type": "carb"
             }
           ],
           "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
