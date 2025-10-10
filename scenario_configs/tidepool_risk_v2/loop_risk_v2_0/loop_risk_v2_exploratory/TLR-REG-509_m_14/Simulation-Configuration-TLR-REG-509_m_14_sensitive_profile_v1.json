@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "risk-id": "TLR-REG-509_2",
+    "simulation_id": "TLR-REG-509_2-base_sensitive",
+    "risk_description": "Mitigation-related risk, 8 hours",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.custom_presets.preset_10_sensitive_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "duration_hours": 24.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 02:00:00", "value": 25,"type": "carb"
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 02:00:00", "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.presets.sensitive_preset_10_12h_v1",
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 02:00:00", "value": 25,"type": "carb"
+            }
+          ]
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "duration_hours": 24.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 02:00:00", "value": 25,"type": "carb"
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 02:00:00", "value": 1.65
+            }
+          ]
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.presets.sensitive_preset_10_12h_v1",
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 02:00:00", "value": 25,"type": "carb"
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 02:00:00", "value": 1.65
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "duration_hours": 24.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 02:00:00", "value": 25,"type": "carb"
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 02:00:00", "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.presets.sensitive_preset_10_12h_v1",
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 02:00:00", "value": 25,"type": "carb"
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_swift"
+      }
+    }
+]
+}
