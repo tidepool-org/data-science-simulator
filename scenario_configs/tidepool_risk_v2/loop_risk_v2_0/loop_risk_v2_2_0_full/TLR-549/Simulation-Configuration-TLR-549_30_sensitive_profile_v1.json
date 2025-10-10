@@ -1,16 +1,16 @@
 {
   "metadata": {
     "risk-id": "TLR-549_30",
-    "simulation_id": "TLR-549_30-base_median",
+    "simulation_id": "TLR-549_30-base_sensitive",
     "risk_description": "Exercise, no mods",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.activity_presets.ap_bike_median_2_0_v1",
+  "base_config": "reusable.simulations.activity_presets.ap_bike_sensitive_2_0_v1",
   "override_config": [
-    {"sim_id": "pre-Loop_NoMitigations_t1_median",
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
       "patient": {
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.profiles.median_v1",
+          "metabolism_settings": "reusable.metabolism_settings.profiles.sensitive_v1",
           "target_range": {
             "start_times": ["00:00:00"],
             "lower_values": [70],
@@ -26,10 +26,10 @@
         }
       }
     },
-    {"sim_id": "pre-noLoop_t1_median",
+    {"sim_id": "pre-noLoop_t1_sensitive",
       "patient": {
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.profiles.median_v1",
+          "metabolism_settings": "reusable.metabolism_settings.profiles.sensitive_v1",
           "target_range": {
             "start_times": ["00:00:00"],
             "lower_values": [70],
@@ -46,11 +46,11 @@
       },
       "controller": null
     },
-    {"sim_id": "post-Loop-WithMitigations_t1_median",
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
       "patient": {
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.profiles.median_v1",
-          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+          "metabolism_settings": "reusable.metabolism_settings.profiles.sensitive_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
           },
         "patient_model": {
           "physical_activity_entries": "reusable.physical_activities.profiles.biking_v1",
@@ -61,7 +61,7 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_swift"
       }
     }
 ]
