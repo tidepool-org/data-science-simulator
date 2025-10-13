@@ -1,6 +1,7 @@
+__author__ = "Shawn Foster"
 #!/usr/bin/env python3
 """
-Create RTF shell documents for Tidepool Risk Severity Evaluation results.
+Create RTF shell documents for Tidepool Risk Severity Assessment results.
 
 This script generates placeholder RTF documents for each TLR-* subdirectory
 in a simulation results directory, ready to be populated with actual analysis results.
@@ -109,14 +110,15 @@ def count_profiles(tlr_dir):
     return len(csv_files)
 
 
-def create_rtf_shell(subdirectory_name, timestamp, tir_averages, tar_averages, profile_count, output_path):
+def create_rtf_shell(subdirectory_name, timestamp, tir_averages, tbr_averages, tar_averages, profile_count, output_path):
     """
-    Create an RTF shell document with metric data populated.
+    Create an RTF document with metric data populated.
     
     Args:
         subdirectory_name: The full subdirectory name (e.g., "TLR-1119_bike" or "TLR-1119")
         timestamp: Simulation run timestamp
         tir_averages: Dictionary with TIR average values for each stage
+        tbr_averages: Dictionary with TBR average values for each stage
         tar_averages: Dictionary with TAR average values for each stage
         profile_count: Number of virtual patient profiles
         output_path: Full path where the RTF file should be saved
@@ -147,7 +149,7 @@ Auto-generated output from Tidepool Risk Severity Evaluation Simulator Tool
 \pard\intbl {\b Harm}\cell
 \pard\intbl {\b Severity}\cell
 \pard\intbl {\b TIR % (70 - 180 mg/dL)}\cell
-\pard\intbl {\b TBR % (<54 mg/dL}\cell
+\pard\intbl {\b TBR % (<54 mg/dL)}\cell
 \pard\intbl {\b TAR % (>180 mg/dL)}\cell
 \row
 
@@ -157,7 +159,7 @@ Auto-generated output from Tidepool Risk Severity Evaluation Simulator Tool
 \pard\intbl TBD\cell
 \pard\intbl TBD\cell
 \pard\intbl """ + tir_averages['pre'] + r"""\cell
-\pard\intbl TBD\cell
+\pard\intbl """ + tbr_averages['pre'] + r"""\cell
 \pard\intbl """ + tar_averages['pre'] + r"""\cell
 \row
 
@@ -167,7 +169,7 @@ Auto-generated output from Tidepool Risk Severity Evaluation Simulator Tool
 \pard\intbl TBD\cell
 \pard\intbl TBD\cell
 \pard\intbl """ + tir_averages['no_loop'] + r"""\cell
-\pard\intbl TBD\cell
+\pard\intbl """ + tbr_averages['no_loop'] + r"""\cell
 \pard\intbl """ + tar_averages['no_loop'] + r"""\cell
 \row
 
@@ -177,7 +179,7 @@ Auto-generated output from Tidepool Risk Severity Evaluation Simulator Tool
 \pard\intbl TBD\cell
 \pard\intbl TBD\cell
 \pard\intbl """ + tir_averages['post'] + r"""\cell
-\pard\intbl TBD\cell
+\pard\intbl """ + tbr_averages['post'] + r"""\cell
 \pard\intbl """ + tar_averages['post'] + r"""\cell
 \row
 
@@ -283,6 +285,10 @@ def process_results_directory(results_dir):
         tir_data = extract_metric_data(tlr_dir, 'percent_values_ge_70_le_180')
         tir_averages = calculate_stage_averages(tir_data)
         
+        # Extract TBR data from CSV files
+        tbr_data = extract_metric_data(tlr_dir, 'percent_cgm_lt_54')
+        tbr_averages = calculate_stage_averages(tbr_data)
+        
         # Extract TAR data from CSV files
         tar_data = extract_metric_data(tlr_dir, 'percent_cgm_gt_180')
         tar_averages = calculate_stage_averages(tar_data)
@@ -292,6 +298,7 @@ def process_results_directory(results_dir):
         
         print(f"  Profile count: {profile_count}")
         print(f"  TIR averages: Pre={tir_averages['pre']}, No Loop={tir_averages['no_loop']}, Post={tir_averages['post']}")
+        print(f"  TBR averages: Pre={tbr_averages['pre']}, No Loop={tbr_averages['no_loop']}, Post={tbr_averages['post']}")
         print(f"  TAR averages: Pre={tar_averages['pre']}, No Loop={tar_averages['no_loop']}, Post={tar_averages['post']}")
         
         # Get subdirectory name for the header
@@ -299,7 +306,7 @@ def process_results_directory(results_dir):
         
         # Create RTF shell document with metric data
         output_path = os.path.join(tlr_dir, f"risk_summary_{simulation_id}.rtf")
-        create_rtf_shell(subdirectory_name, timestamp, tir_averages, tar_averages, profile_count, output_path)
+        create_rtf_shell(subdirectory_name, timestamp, tir_averages, tbr_averages, tar_averages, profile_count, output_path)
 
 
 def main():
@@ -307,7 +314,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description='Create RTF shell documents for risk severity evaluation results'
+        description='Create RTF documents for risk severity evaluation results'
     )
     parser.add_argument(
         'results_dir',
