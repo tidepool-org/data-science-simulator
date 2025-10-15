@@ -14,7 +14,8 @@
             "physical_activity_entries": "reusable.physical_activities.profiles.walking_v1"
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_21_90m_v1"
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_21_90m_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
         }
       }
     },
@@ -25,7 +26,8 @@
             "physical_activity_entries": "reusable.physical_activities.profiles.walking_v1"
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_21_90m_v1"
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_21_90m_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
         }
       },
       "controller": null
@@ -38,7 +40,7 @@
         },
         "pump": {
           "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_21_90m_v1",
-          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
         }
       },
       "controller": {

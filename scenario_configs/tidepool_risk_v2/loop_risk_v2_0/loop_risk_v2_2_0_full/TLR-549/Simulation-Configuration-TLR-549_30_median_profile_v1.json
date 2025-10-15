@@ -18,7 +18,8 @@
           }
         },
         "patient_model": {
-          "physical_activity_entries": "reusable.physical_activities.profiles.biking_v1",
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1",
+          "metabolism_settings": "reusable.metabolism_settings.profiles.adolescent_v1",
           "glucose_history": "reusable.glucose.flat_110_12hr"
         },
         "sensor": {
@@ -37,7 +38,8 @@
           }
         },
         "patient_model": {
-          "physical_activity_entries": "reusable.physical_activities.profiles.biking_v1",
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1",
+          "metabolism_settings": "reusable.metabolism_settings.profiles.adolescent_v1",
           "glucose_history": "reusable.glucose.flat_110_12hr"
         },
         "sensor": {
@@ -53,7 +55,7 @@
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
           },
         "patient_model": {
-          "physical_activity_entries": "reusable.physical_activities.profiles.biking_v1",
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1",
           "glucose_history": "reusable.glucose.flat_110_12hr"
         },
         "sensor": {

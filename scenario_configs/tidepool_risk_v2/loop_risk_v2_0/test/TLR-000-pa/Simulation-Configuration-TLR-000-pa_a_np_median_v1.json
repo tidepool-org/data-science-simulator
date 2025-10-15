@@ -2,15 +2,16 @@
   "metadata": {
     "risk-id": "TLR-1119",
     "simulation_id": "TLR-1119-ap_median",
-    "risk_description": "Activity preset no exercise",
+    "risk_description": "No Activity preset with exercise",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.activity_presets.ap_bike_median_2_0_v1",
+  "base_config": "reusable.simulations.activity_presets.ap_jog_median_2_0_v1",
   "override_config": [
     {"sim_id": "pre-Loop_NoMitigations_t1_median_a_np",
       "patient": {
         "patient_model": {
-          "physical_activity_entries": "reusable.physical_activities.profiles.biking_v1"
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.median_preset_21_30m_v1"
         }
         }
       },
@@ -18,7 +19,8 @@
       "sim_id": "pre-noLoop_t1_median_a_np",
       "patient": {
         "patient_model": {
-          "physical_activity_entries": "reusable.physical_activities.profiles.biking_v1"
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.median_preset_21_30m_v1"
         }
       },
       "controller": null
