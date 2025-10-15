@@ -325,6 +325,8 @@ def calculate_hyperglycemia_score(tar_value):
         return 1
     
     tar_float = float(tar_value)
+    if tar_float == 0.0:
+        return 0
     if tar_float < 12.0:
         return 1
     else:
@@ -343,6 +345,10 @@ def determine_harm_and_severity(lbgi_score, dka_score, hyperglycemia_score):
     Returns:
         Tuple of (harm_type, severity_score) as strings
     """
+    # If all three scores are 0, severity is equal to baseline
+    if lbgi_score == 0 and dka_score == 0 and hyperglycemia_score == 0:
+        return ("Severity = baseline", "0")
+    
     # If both lbgi and dka are 0, use hyperglycemia
     if lbgi_score == 0 and dka_score == 0:
         return ("Hyperglycemia", str(hyperglycemia_score))
