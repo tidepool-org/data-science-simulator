@@ -349,8 +349,8 @@ def determine_harm_and_severity(lbgi_score, dka_score, hyperglycemia_score):
     if lbgi_score == 0 and dka_score == 0 and hyperglycemia_score == 0:
         return ("Severity = baseline", "0")
     
-    # If both lbgi and dka are 0, use hyperglycemia
-    if lbgi_score == 0 and dka_score == 0:
+    # If both lbgi and dka are baseline, use hyperglycemia
+    if lbgi_score <= 1 and dka_score == 0:
         return ("Hyperglycemia", str(hyperglycemia_score))
     
     # If lbgi >= dka (lbgi takes priority in ties), use hypoglycemia
