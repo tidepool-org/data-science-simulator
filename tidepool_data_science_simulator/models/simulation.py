@@ -9,10 +9,13 @@ import copy
 import datetime
 import pandas as pd
 import copy
+import logging
 from numpy.random import RandomState
 
 
 from tidepool_data_science_simulator.models.state import VirtualPatientState, PumpState
+
+logger = logging.getLogger(__name__)
 
 
 class SimulationComponent(object):
@@ -167,6 +170,34 @@ class Simulation(multiprocessing.Process):
         early_stop_datetime: datetime
             Optional stop time for the simulation.
         """
+        # Configure logging for this child process (multiprocessing doesn't inherit parent's config)
+        if self.multiprocess:
+            import os
+            from tidepool_data_science_simulator.utils import DATA_DIR
+            
+            logs_dir = os.path.join(DATA_DIR, 'logs')
+            log_file = os.path.join(logs_dir, f'sim_{self.sim_id}_debug.log')
+            
+            # Clear any existing handlers
+            for handler in logging.root.handlers[:]:
+                logging.root.removeHandler(handler)
+            
+            # Configure root logger for this process
+            logging.basicConfig(
+                level=logging.DEBUG,
+                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S',
+                filename=log_file,
+                filemode='w',
+                force=True
+            )
+            
+            # Explicitly set level for simulation and controller loggers
+            simulation_logger = logging.getLogger('tidepool_data_science_simulator.models.simulation')
+            simulation_logger.setLevel(logging.DEBUG)
+            
+            controller_logger = logging.getLogger('tidepool_data_science_simulator.models.controller')
+            controller_logger.setLevel(logging.DEBUG)
 
         while not (self.is_finished() or early_stop_datetime == self.time):
             self.step()
@@ -240,66 +271,113 @@ class Simulation(multiprocessing.Process):
                 delivered_basal_insulin = pump_state.delivered_basal_insulin
                 undelivered_basal_insulin = pump_state.undelivered_basal_insulin
             
-            # Loop output
-            try:
-                loop_out = simulation_state.controller_state.pyloopkit_recommendations
-                loop_cob = loop_out["carbs_on_board"]
-            except AttributeError:
-                loop_cob = None
-            except Exception:
-                loop_out = None
+            # Loop output - handle Swift Loop API format
+            # Swift Loop returns: {'automatic': {'bolusUnits': X, 'basalAdjustment': {...}}, 'manual': {'amount': Y}}
+            loop_cob = None
+            loop_out = None
+            final_predicted_glucose = None
+            pred_horizon_minutes = None
+            final_insulin_effect = None
+            insulin_effect_horizon_minutes = None
+            final_carb_effect = None
+            carb_effect_horizon_minutes = None
+            final_counteraction_effect = None
+            counteraction_effect_horizon_minutes = None
+            final_momentum_effect = None
+            momentum_effect_horizon_minutes = None
+            final_rc_effect = None
+            rc_effect_horizon_minutes = None
+            loop_temp_basal_rec = None
+            loop_bolus_rec = None
+            loop_automatic_bolus_rec = None
+            loop_manual_bolus_rec = None
+            loop_temp_basal_duration_sec = None
 
-            try:
-                pred_horizon_minutes = len(loop_out["predicted_glucose_values"]) * 5
-                final_predicted_glucose = loop_out["predicted_glucose_values"][-1]
-            except Exception as e:
-                pred_horizon_minutes = None
-                final_predicted_glucose = None
-
-            try:
-                insulin_effect_horizon_minutes = len(loop_out["insulin_effect_values"]) * 5
-                final_insulin_effect = loop_out["insulin_effect_values"][-1]
-            except Exception as e:
-                insulin_effect_horizon_minutes = None
-                final_insulin_effect = None
-
-            try:
-                carb_effect_horizon_minutes = len(loop_out["carb_effect_values"]) * 5
-                final_carb_effect = loop_out["carb_effect_values"][-1]
-            except Exception as e:
-                carb_effect_horizon_minutes = None
-                final_carb_effect = None
-
-            try:
-                counteraction_effect_horizon_minutes = len(loop_out["counteraction_effect_values"]) * 5
-                final_counteraction_effect = loop_out["counteraction_effect_values"][-1]
-            except Exception as e:
-                counteraction_effect_horizon_minutes = None
-                final_counteraction_effect = None
-
-            try:
-                momentum_effect_horizon_minutes = len(loop_out["momentum_effect_values"]) * 5
-                final_momentum_effect = loop_out["momentum_effect_values"][-1]
-            except Exception as e:
-                momentum_effect_horizon_minutes = None
-                final_momentum_effect = None
-
-            try:
-                rc_effect_horizon_minutes = len(loop_out["retrospective_effect_values"]) * 5
-                final_rc_effect = loop_out["retrospective_effect_values"][-1]
-            except Exception as e:
-                rc_effect_horizon_minutes = None
-                final_rc_effect = None
-
-            try:
-                loop_temp_basal_rec = loop_out["recommended_temp_basal"][0]
-            except:
-                loop_temp_basal_rec = None
-
-            try:
-                loop_bolus_rec = loop_out["recommended_bolus"][0]
-            except:
-                loop_bolus_rec = None
+            if simulation_state.controller_state is not None:
+                try:
+                    loop_out = simulation_state.controller_state.pyloopkit_recommendations
+                    
+                    if loop_out is not None:
+                        # Check if this is Swift Loop API format (has 'automatic' and 'manual' keys)
+                        if 'automatic' in loop_out and isinstance(loop_out['automatic'], dict):
+                            automatic = loop_out['automatic']
+                            
+                            # Extract automatic bolus recommendation
+                            loop_automatic_bolus_rec = automatic.get('bolusUnits')
+                            
+                            # Extract temp basal recommendation
+                            if 'basalAdjustment' in automatic and isinstance(automatic['basalAdjustment'], dict):
+                                basal_adj = automatic['basalAdjustment']
+                                loop_temp_basal_rec = basal_adj.get('unitsPerHour')
+                                loop_temp_basal_duration_sec = basal_adj.get('duration')
+                        
+                        # Extract manual bolus recommendation
+                        if 'manual' in loop_out and isinstance(loop_out['manual'], dict):
+                            loop_manual_bolus_rec = loop_out['manual'].get('amount')
+                        
+                        # Legacy pyloopkit format support (if data exists in that format)
+                        # Try different possible key names for COB
+                        loop_cob = loop_out.get("carbs_on_board") or loop_out.get("carbsOnBoard") or loop_out.get("cob")
+                        
+                        # Extract glucose predictions (if available)
+                        pred_values = loop_out.get("predicted_glucose_values") or loop_out.get("predictedGlucoseValues")
+                        if pred_values and len(pred_values) > 0:
+                            pred_horizon_minutes = len(pred_values) * 5
+                            final_predicted_glucose = pred_values[-1]
+                        
+                        # Extract insulin effect (if available)
+                        insulin_values = loop_out.get("insulin_effect_values") or loop_out.get("insulinEffectValues")
+                        if insulin_values and len(insulin_values) > 0:
+                            insulin_effect_horizon_minutes = len(insulin_values) * 5
+                            final_insulin_effect = insulin_values[-1]
+                        
+                        # Extract carb effect (if available)
+                        carb_values = loop_out.get("carb_effect_values") or loop_out.get("carbEffectValues")
+                        if carb_values and len(carb_values) > 0:
+                            carb_effect_horizon_minutes = len(carb_values) * 5
+                            final_carb_effect = carb_values[-1]
+                        
+                        # Extract counteraction effect (if available)
+                        counter_values = loop_out.get("counteraction_effect_values") or loop_out.get("counteractionEffectValues")
+                        if counter_values and len(counter_values) > 0:
+                            counteraction_effect_horizon_minutes = len(counter_values) * 5
+                            final_counteraction_effect = counter_values[-1]
+                        
+                        # Extract momentum effect (if available)
+                        momentum_values = loop_out.get("momentum_effect_values") or loop_out.get("momentumEffectValues")
+                        if momentum_values and len(momentum_values) > 0:
+                            momentum_effect_horizon_minutes = len(momentum_values) * 5
+                            final_momentum_effect = momentum_values[-1]
+                        
+                        # Extract retrospective correction effect (if available)
+                        rc_values = loop_out.get("retrospective_effect_values") or loop_out.get("retrospectiveEffectValues")
+                        if rc_values and len(rc_values) > 0:
+                            rc_effect_horizon_minutes = len(rc_values) * 5
+                            final_rc_effect = rc_values[-1]
+                        
+                        # Extract legacy format recommendations (if available)
+                        temp_basal = loop_out.get("recommended_temp_basal") or loop_out.get("recommendedTempBasal")
+                        if temp_basal and len(temp_basal) > 0:
+                            if loop_temp_basal_rec is None:  # Only use if Swift format didn't provide it
+                                loop_temp_basal_rec = temp_basal[0]
+                        
+                        bolus = loop_out.get("recommended_bolus") or loop_out.get("recommendedBolus")
+                        if bolus and len(bolus) > 0:
+                            if loop_bolus_rec is None:  # Only use if Swift format didn't provide it
+                                loop_bolus_rec = bolus[0]
+                    
+                    elif simulation_state.active == 1:
+                        # Only log if this should have data (active=1) - minimal logging
+                        pass
+                
+                except (AttributeError, TypeError, KeyError, IndexError) as e:
+                    # Silently handle expected extraction errors
+                    pass
+                except Exception as e:
+                    # Log unexpected errors only
+                    if simulation_state.active == 1:
+                        logger.warning(f"Unexpected error extracting loop outputs at {time}: {e}")
+            # No logging needed when controller_state is None - that's expected during init
 
             row = {
                 "time": time,
@@ -333,7 +411,11 @@ class Simulation(multiprocessing.Process):
                 "loop_final_rc_effect": final_rc_effect,
                 "loop_recommended_temp_basal_value": loop_temp_basal_rec,
                 "loop_recommended_bolus_value": loop_bolus_rec,
-                "loop_cob": loop_cob
+                "loop_cob": loop_cob,
+                # Swift Loop API specific fields
+                "loop_automatic_bolus_rec": loop_automatic_bolus_rec,
+                "loop_manual_bolus_rec": loop_manual_bolus_rec,
+                "loop_temp_basal_duration_sec": loop_temp_basal_duration_sec
             }
 
             # Controller stuff

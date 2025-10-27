@@ -10,10 +10,36 @@ import datetime
 import pandas as pd
 import subprocess
 import json
+import logging
 
+# CRITICAL: Configure logging BEFORE importing project modules
+# Some imported modules may configure logging, and basicConfig only works on first call
+from tidepool_data_science_simulator.utils import PROJECT_ROOT_DIR, DATA_DIR
+
+LOGS_DIR = os.path.join(DATA_DIR, 'logs')
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)
+
+LOG_FILE_PATH = os.path.join(LOGS_DIR, 'simulator_debug.log')
+
+# Force reconfiguration of root logger
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    filename=LOG_FILE_PATH,
+    filemode='w',
+    force=True  # Python 3.8+ forces reconfiguration
+)
+print(f"Debug logging enabled. Log file: {LOG_FILE_PATH}")
+
+# Now import other project modules
 from tidepool_data_science_simulator.makedata.scenario_json_parser_v2 import ScenarioParserV2
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
-from tidepool_data_science_simulator.utils import timing, PROJECT_ROOT_DIR, DATA_DIR
+from tidepool_data_science_simulator.utils import timing
 from tidepool_data_science_simulator.run import run_simulations
 
 
@@ -48,7 +74,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
     for risk_dir_name in risk_dirs:
         print(f"Processing risk directory: {risk_dir_name}")
         #  for use in filtering to just one risk. If wanting to run all of them, comment out lines 35-37
-        if ("TLR-1117") not in risk_dir_name:
+        if ("TLR-1130") not in risk_dir_name:
             print(f"Skipping {risk_dir_name} as it doesn't contain selected subdirectory")
             continue
         print(f"Processing: {risk_dir_name}")

@@ -25,6 +25,7 @@ class SwiftLoopController(LoopController):
     def __init__(self, time, controller_config, automation_control_timeline=AutomationControlTimeline([], [])):
         super().__init__(time, controller_config, automation_control_timeline)
         self.name = "SwiftLoopKit v0.1"
+        self.loop_algorithm_input_history = []
 
 
     def prepare_inputs(self, virtual_patient):
@@ -210,6 +211,12 @@ class SwiftLoopController(LoopController):
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
             
+            # Store the input for later retrieval
+            self.loop_algorithm_input_history.append({
+                'time': time.isoformat(),
+                'input': loop_inputs_dict
+            })
+            
             # Recommendation type is set in the prepare_inputs() to an automatic value
             swift_output_automatic = get_loop_recommendations(loop_inputs_dict)
             swift_output_decode_automatic = swift_output_automatic.decode('utf-8')
@@ -282,3 +289,11 @@ class SwiftLoopController(LoopController):
             pass
 
         self.recommendations = loop_algorithm_output
+
+    def get_info_stateless(self):
+        """
+        Override to include the Loop algorithm input history.
+        """
+        stateless_info = super().get_info_stateless()
+        stateless_info['loop_algorithm_input_history'] = self.loop_algorithm_input_history
+        return stateless_info
