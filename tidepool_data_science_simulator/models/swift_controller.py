@@ -210,6 +210,11 @@ class SwiftLoopController(LoopController):
             swift_output_decode = swift_output.decode('utf-8')
             swift_output_json = json.loads(swift_output_decode)
 
+            # Write out output dict to file named loop_algo_output_<timestamp>.json
+            output_filename = f"loop_algo_output_{timestamp_str}.json"
+            with open(output_filename, 'w') as f:
+                json.dump(swift_output_json, f, indent=4)
+
             return swift_output_json
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
