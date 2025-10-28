@@ -198,7 +198,14 @@ class SwiftLoopController(LoopController):
 
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
-                        
+
+            # Write out input dict to file named loop_algo_input_<timestamp>.json
+            format_string = r'%Y-%m-%dT%H:%M:%SZ'
+            timestamp_str = self.time.strftime(format_string)
+            filename = f"loop_algo_input_{timestamp_str}.json"
+            with open(filename, 'w') as f:
+                json.dump(loop_inputs_dict, f, indent=4)
+
             swift_output = get_loop_recommendations(loop_inputs_dict)
             swift_output_decode = swift_output.decode('utf-8')
             swift_output_json = json.loads(swift_output_decode)
