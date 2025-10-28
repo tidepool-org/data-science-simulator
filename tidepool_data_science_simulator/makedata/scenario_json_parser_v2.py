@@ -122,7 +122,13 @@ class ScenarioParserV2(SimulationParser):
 
     def get_sims(self, override_json_save_dir=None):
         """
-        Get simulation objects as specified by the config file.
+        Get simulation objects as specified by the config file. By design there is one simulation for
+        each override config. The base simulation configuration is not built, but if an empty dict
+        is passed in the override list, this is a sim with the base config and no overrides.
+
+        Returns
+        -------
+            list: [Simulation]
         """
         simulations = dict()
 
@@ -158,7 +164,7 @@ class ScenarioParserV2(SimulationParser):
         self.resolve_pointers(override_delta)
 
         num_overrides = self.count_leaf_nodes(override_delta)
-        
+
         # Diagnose what will be applied
         print("\n" + "="*80)
         print(f"DIAGNOSING OVERRIDES")
@@ -166,24 +172,24 @@ class ScenarioParserV2(SimulationParser):
         applied_paths, failed_paths = self.diagnose_override_application(
             base_sim_config, override_delta
         )
-        
+
         print(f"\n📊 OVERRIDE SUMMARY:")
         print(f"   Total override values: {num_overrides}")
         print(f"   Expected to apply: {len(applied_paths)}")
         print(f"   Expected to fail: {len(failed_paths)}")
-        
+
         if failed_paths:
             print(f"\n🔴 FAILED OVERRIDES ({len(failed_paths)}):")
             for path in sorted(failed_paths):
                 print(f"   - {path}")
-        
+
         if applied_paths:
             print(f"\n🟢 SUCCESSFUL OVERRIDES ({len(applied_paths)}):")
             for path in sorted(applied_paths):
                 print(f"   - {path}")
-        
+
         print("="*80 + "\n")
-        
+
         # Now actually apply the overrides
         num_overrides_applied = self.resolve_override(base_sim_config, override_delta)
 
@@ -196,25 +202,25 @@ class ScenarioParserV2(SimulationParser):
     def are_types_compatible(self, value1, value2):
         """
         Check if two values have compatible types for override purposes.
-        
+
         Returns True if:
         - Types are exactly the same
         - Both are numeric (int or float, but not bool)
         """
         type1 = type(value1)
         type2 = type(value2)
-        
+
         # Exact match
         if type1 == type2:
             return True
-        
+
         # Numeric compatibility (int and float are compatible)
         # Exclude bool even though it's technically an int subclass
         numeric_types = (int, float)
-        if (type1 in numeric_types and type2 in numeric_types and 
+        if (type1 in numeric_types and type2 in numeric_types and
             not isinstance(value1, bool) and not isinstance(value2, bool)):
             return True
-        
+
         return False
 
     def diagnose_override_application(self, base_dict, override_dict, path="", applied_paths=None, failed_paths=None):
@@ -226,7 +232,7 @@ class ScenarioParserV2(SimulationParser):
             applied_paths = set()
         if failed_paths is None:
             failed_paths = set()
-        
+
         # Handle lists - they replace entirely
         if isinstance(override_dict, list):
             current_path = path if path else "<root>"
@@ -235,21 +241,21 @@ class ScenarioParserV2(SimulationParser):
             else:
                 failed_paths.add(f"{current_path} (TYPE_MISMATCH: base is not a list)")
             return applied_paths, failed_paths
-        
+
         # Handle non-dict overrides
         if not isinstance(override_dict, dict):
             return applied_paths, failed_paths
-        
+
         for key, value in override_dict.items():
             current_path = f"{path}.{key}" if path else key
-            
+
             if key not in base_dict:
                 failed_paths.add(f"{current_path} (KEY_NOT_FOUND)")
                 print(f"❌ Override FAILED: '{current_path}' - key doesn't exist in base config")
                 continue
-            
+
             base_value = base_dict[key]
-            
+
             # If override is a dict and base is also a dict, recurse
             if isinstance(value, dict) and isinstance(base_value, dict):
                 self.diagnose_override_application(base_value, value, current_path, applied_paths, failed_paths)
@@ -268,17 +274,13 @@ class ScenarioParserV2(SimulationParser):
                 else:
                     applied_paths.add(current_path)
                     print(f"✓ Override will apply: '{current_path}' = {value}")
-        
+
         return applied_paths, failed_paths
-    
+
     def count_leaf_nodes(self, obj):
         """
         Count the number of non-dict values in the object. Used to later
         validate that all overrides have been applied.
-        
-        Lists are treated as atomic values (single leaf nodes) because they
-        represent complete replacement values in overrides, not structures
-        to traverse for individual leaf overrides.
 
         Parameters
         ----------
@@ -291,11 +293,11 @@ class ScenarioParserV2(SimulationParser):
         # Lists are treated as single leaf nodes (atomic values)
         if isinstance(obj, list):
             return 1
-        
+
         # Non-dict, non-list values are leaf nodes
         if not isinstance(obj, dict):
             return 1
-            
+
         # For dicts, recursively count leaf nodes
         num_leaf_nodes = 0
         for k, v in obj.items():
@@ -309,7 +311,8 @@ class ScenarioParserV2(SimulationParser):
     def resolve_pointers(self, value, key_prefix=""):
         """
         Recursively traverse the simulation config obj and replace any pointers with their objects.
-
+        The relied on assumption to make this simply is the value is a pointer if its type is string
+        and it has the pointer keyword in it.
         """
         # Handle lists
         if isinstance(value, list):
@@ -321,17 +324,17 @@ class ScenarioParserV2(SimulationParser):
                 elif isinstance(item, list):
                     self.resolve_pointers(item, f"{key_prefix}[{i}]")
             return
-        
+
         # Handle dicts (original logic)
         if not isinstance(value, dict):
             return
-            
+
         for k, v in value.items():
             current_key = f"{key_prefix}.{k}" if key_prefix else k
-            
+
             if self.is_config_file_pointer(v):
                 loaded_value = self.load_pointer(v)
-                
+
                 # Special handling for physical_activity_entries pointing to profiles
                 # If we're loading a PA profile (which has both metadata and entries),
                 # and the key is 'physical_activity_entries', extract just the entries list
@@ -359,11 +362,11 @@ class ScenarioParserV2(SimulationParser):
         if isinstance(obj, list) or isinstance(override_obj, list):
             # Lists are treated as leaf nodes that get replaced entirely
             return 0
-        
+
         # Both obj and override_obj should be dicts at this point
         if not isinstance(obj, dict) or not isinstance(override_obj, dict):
             return 0
-            
+
         num_overides_applied = 0
 
         for k, v in obj.items():
@@ -371,7 +374,7 @@ class ScenarioParserV2(SimulationParser):
 
             if k in override_obj:
                 override_value = override_obj[k]
-                
+
                 # If override value is not a dict (or is a list), treat it as a leaf node replacement
                 if not isinstance(override_value, dict) or isinstance(override_value, list):
                     old_value = obj[k]
@@ -421,7 +424,7 @@ class ScenarioParserV2(SimulationParser):
             subdirectories = ["base", "suspend", "loop_versions", "specialized"]
         elif "metabolism_settings" in folder_path:
             subdirectories = ["profiles", "suspensions", "presets", "versions", "types"]
-        
+
         # Build search paths: original location first, then subdirectories
         search_paths = [folder_path]
         for subdir in subdirectories:
@@ -682,7 +685,7 @@ class ScenarioParserV2(SimulationParser):
     def build_model_from_config(self, sim_start_time, model_config):
 
         model = dict()
-        
+
         metabolism_settings = model_config["metabolism_settings"]
 
         # model patient's actual insulin type
@@ -803,23 +806,23 @@ class ScenarioParserV2(SimulationParser):
             ],
             duration_minutes=insulin_production_rate_duration_minutes
         )
-        
+
         # Physical activity processing - ONLY for patient model
         pa_entries = model_config.get("physical_activity_entries", [])
-        
+
         # If pa_entries is a string, it's a reusable profile reference - wrap it in a list
         if isinstance(pa_entries, str) and pa_entries.startswith("reusable."):
             pa_entries = [pa_entries]  # Wrap in list for processing
-        
+
         # Extract metabolism parameters from PA profiles if available
         pa_metabolism_params = self.extract_metabolism_params_from_pa_profiles(pa_entries)
-        
+
         # Physical activity and metabolism model parameters with defaults
         # Priority: explicit model_config > explicit metabolism_settings > profile defaults > global defaults
         # IMPORTANT: Check both metabolism_settings AND model_config top level for PA parameters
         # This ensures PA parameters are preserved when metabolism_settings is overridden
-        model["w_hr"] = model_config.get("w_hr", 
-                          metabolism_settings.get("w_hr", 
+        model["w_hr"] = model_config.get("w_hr",
+                          metabolism_settings.get("w_hr",
                               pa_metabolism_params.get("w_hr", 0.0)))
         model["a"] = model_config.get("a",
                        metabolism_settings.get("a",
@@ -892,10 +895,10 @@ class ScenarioParserV2(SimulationParser):
                 carb_event_timeline=self.pump_model["carb_timeline"],
                 controller_settings=controller_settings
             )
-            
+
             model_name = controller_settings["model"]
             controller_id = sim_config['controller']['id']
-            
+
             if 'swift' in controller_id:
                 if model_name in SWIFT_CONTROLLER_MODEL_NAME_MAP:
                     model_name = SWIFT_CONTROLLER_MODEL_NAME_MAP[model_name]
@@ -914,24 +917,24 @@ class ScenarioParserV2(SimulationParser):
         return controller
 
 
-    # ===== PHASE 2 & 3: PHYSICAL ACTIVITY SUPPORT WITH VALIDATION =====
-    
+    # ===== PHYSICAL ACTIVITY SUPPORT WITH VALIDATION =====
+
     def validate_metabolism_parameters(self, params):
         """
         Validate PA metabolism parameters.
-        
+
         Parameters
         ----------
         params : dict
             Dictionary of metabolism parameters to validate
-            
+
         Returns
         -------
         list
             List of validation errors (empty if valid)
         """
         errors = []
-        
+
         if 'w_hr' in params:
             try:
                 w_hr = float(params['w_hr'])
@@ -939,7 +942,7 @@ class ScenarioParserV2(SimulationParser):
                     errors.append(f"w_hr {w_hr} outside expected range [-10, 10]")
             except (ValueError, TypeError):
                 errors.append(f"w_hr must be numeric, got: {params['w_hr']}")
-        
+
         if 'a' in params:
             try:
                 a = float(params['a'])
@@ -947,7 +950,7 @@ class ScenarioParserV2(SimulationParser):
                     errors.append(f"a {a} outside expected range [-1, 1]")
             except (ValueError, TypeError):
                 errors.append(f"a must be numeric, got: {params['a']}")
-        
+
         if 'tau' in params:
             try:
                 tau = float(params['tau'])
@@ -955,7 +958,7 @@ class ScenarioParserV2(SimulationParser):
                     errors.append(f"tau {tau} outside expected range (0, 1000]")
             except (ValueError, TypeError):
                 errors.append(f"tau must be numeric, got: {params['tau']}")
-        
+
         if 'n' in params:
             try:
                 n = float(params['n'])
@@ -963,53 +966,53 @@ class ScenarioParserV2(SimulationParser):
                     errors.append(f"n {n} outside expected range (0, 100]")
             except (ValueError, TypeError):
                 errors.append(f"n must be numeric, got: {params['n']}")
-        
+
         return errors
-    
+
     def extract_metabolism_params_from_pa_profiles(self, pa_entries):
         """
         Extract metabolism parameters from PA profile configurations.
-        
+
         Parameters
         ----------
         pa_entries : list
             List of PA entries (may include reusable profile references)
-            
+
         Returns
         -------
         dict
             Dictionary of metabolism parameters found in profiles (may be empty)
         """
         pa_metabolism_params = {}
-        
+
         if not pa_entries:
             return pa_metabolism_params
-        
+
         # Check each entry for profile references with metabolism parameters
         for entry in pa_entries:
             try:
                 # Check if this is a profile reference string
                 if isinstance(entry, str) and entry.startswith('reusable.'):
                     profile_config = self.load_reusable_pa_config(entry)
-                    
+
                     # Extract metabolism_parameters if present
                     if 'metabolism_parameters' in profile_config:
                         profile_params = profile_config['metabolism_parameters']
-                        
+
                         # Validate parameters
                         validation_errors = self.validate_metabolism_parameters(profile_params)
                         if validation_errors:
                             error_msg = f"Metabolism parameter validation errors in {entry}:\n" + "\n".join(validation_errors)
                             logger.error(error_msg)
                             raise ValueError(error_msg)
-                        
+
                         # Use parameters from first profile with metabolism_parameters
                         # (Priority is given to the first profile encountered)
                         if not pa_metabolism_params:
                             pa_metabolism_params = profile_params.copy()
                             logger.info(f"Extracted metabolism parameters from PA profile: {entry}")
                             break
-                        
+
             except ValueError:
                 # Re-raise validation errors
                 raise
@@ -1017,52 +1020,52 @@ class ScenarioParserV2(SimulationParser):
                 # Log but don't fail for other errors - just skip this entry
                 logger.warning(f"Could not extract metabolism parameters from PA entry: {e}")
                 continue
-        
+
         return pa_metabolism_params
-    
+
     def physical_activity_entries_to_timeline(self, pa_entries):
         """
         Convert physical activity entries from JSON to PhysicalActivityTimeline
-        
+
         Parameters
         ----------
         pa_entries: list
             List of physical activity entry dictionaries
-            
+
         Returns
         -------
         PhysicalActivityTimeline
         """
         pa_datetimes = []
         pa_events = []
-        
+
         for pa_entry in pa_entries:
             pa_datetime = datetime.datetime.strptime(pa_entry["start_time"], DATETIME_FORMAT)
             activity_name = pa_entry.get("activity", "exercise")
             duration_minutes = pa_entry.get("duration", 30)
             expected_hr = pa_entry.get("expected_hr", None)  # NEW: Extract heart rate
-            
+
             pa_obj = PhysicalActivity(
-                activity=activity_name, 
+                activity=activity_name,
                 duration=duration_minutes,
                 expected_hr=expected_hr  # NEW: Pass heart rate
             )
-            
+
             pa_datetimes.append(pa_datetime)
             pa_events.append(pa_obj)
-        
+
         return PhysicalActivityTimeline(pa_datetimes, pa_events)
-    
+
     def load_reusable_pa_config(self, config_path):
         """
         Load a reusable physical activity configuration file.
-        
+
         Parameters
         ----------
         config_path : str
             Path to the reusable configuration in dot notation
             (e.g., "reusable.physical_activities.profiles.moderate_exercise_v1")
-            
+
         Returns
         -------
         dict
@@ -1072,36 +1075,36 @@ class ScenarioParserV2(SimulationParser):
         path_parts = config_path.split('.')
         if path_parts[0] != 'reusable':
             raise ValueError(f"Reusable config path must start with 'reusable', got: {config_path}")
-        
+
         # Build file path - keep 'reusable' in path and add .json extension
         # pointer_object_dir already points to scenario_configs/tidepool_risk_v2/
         # so we need to include 'reusable' in the relative path
         relative_path = '/'.join(path_parts) + '.json'
         file_path = os.path.join(self.pointer_object_dir, relative_path)
-        
+
         try:
             with open(file_path, 'r') as f:
                 config = json.load(f)
-            
+
             logger.info(f"Loaded reusable PA config: {config_path} from {file_path}")
             return config
-            
+
         except FileNotFoundError:
             raise FileNotFoundError(f"Reusable PA config not found: {file_path}")
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in reusable PA config {file_path}: {e}")
-    
+
     def validate_pa_entry(self, pa_entry, entry_index=None):
         """
         Validate a physical activity entry.
-        
+
         Parameters
         ----------
         pa_entry : dict
             Physical activity entry to validate
         entry_index : int, optional
             Index of entry for error reporting
-            
+
         Returns
         -------
         list
@@ -1109,30 +1112,30 @@ class ScenarioParserV2(SimulationParser):
         """
         errors = []
         entry_desc = f"PA entry {entry_index}" if entry_index is not None else "PA entry"
-        
+
         # Required fields
         required_fields = ['start_time']
         for field in required_fields:
             if field not in pa_entry:
                 errors.append(f"{entry_desc}: Missing required field '{field}'")
-        
+
         # Must have either 'activity' or 'activity_ref'
         if 'activity' not in pa_entry and 'activity_ref' not in pa_entry:
             errors.append(f"{entry_desc}: Must have either 'activity' or 'activity_ref'")
-        
+
         # Validate activity reference format
         if 'activity_ref' in pa_entry:
             ref = pa_entry['activity_ref']
             if not isinstance(ref, str) or not ref.startswith('reusable.'):
                 errors.append(f"{entry_desc}: Invalid activity_ref format: {ref}")
-        
+
         # Validate start_time format
         if 'start_time' in pa_entry:
             try:
                 datetime.datetime.strptime(pa_entry['start_time'], DATETIME_FORMAT)
             except ValueError:
                 errors.append(f"{entry_desc}: Invalid start_time format. Expected {DATETIME_FORMAT}")
-        
+
         # Validate duration if present
         if 'duration' in pa_entry:
             try:
@@ -1141,13 +1144,13 @@ class ScenarioParserV2(SimulationParser):
                     errors.append(f"{entry_desc}: Duration must be between 0 and 480 minutes, got: {duration}")
             except (ValueError, TypeError):
                 errors.append(f"{entry_desc}: Duration must be numeric, got: {pa_entry['duration']}")
-        
+
         # Validate intensity if present
         if 'intensity' in pa_entry:
             valid_intensities = ['light', 'moderate', 'high']
             if pa_entry['intensity'] not in valid_intensities:
                 errors.append(f"{entry_desc}: Invalid intensity '{pa_entry['intensity']}'. Must be one of: {valid_intensities}")
-        
+
         # Validate expected_hr if present
         if 'expected_hr' in pa_entry:
             try:
@@ -1156,25 +1159,25 @@ class ScenarioParserV2(SimulationParser):
                     errors.append(f"{entry_desc}: Heart rate must be between 40 and 220 bpm, got: {hr_value}")
             except (ValueError, TypeError):
                 errors.append(f"{entry_desc}: Heart rate must be numeric, got: {pa_entry['expected_hr']}")
-        
+
         # Handle legacy field name (it's actually absolute HR despite the name)
         if 'expected_hr' in pa_entry:
             logger.warning(f"{entry_desc}: 'expected_hr' is deprecated, use 'expected_hr' instead")
             if 'expected_hr' not in pa_entry:
                 # Despite the name, expected_hr contains absolute HR values in existing profiles
                 pa_entry['expected_hr'] = pa_entry['expected_hr']
-        
+
         return errors
-    
+
     def resolve_pa_activity_ref(self, pa_entry):
         """
         Resolve physical activity reference to actual configuration.
-        
+
         Parameters
         ----------
         pa_entry : dict
             PA entry that may contain an activity_ref
-            
+
         Returns
         -------
         dict
@@ -1182,39 +1185,39 @@ class ScenarioParserV2(SimulationParser):
         """
         if 'activity_ref' not in pa_entry:
             return pa_entry
-        
+
         # Load the referenced configuration
         activity_ref = pa_entry['activity_ref']
         try:
             referenced_config = self.load_reusable_pa_config(activity_ref)
-            
+
             # Create resolved entry by merging reference with overrides
             resolved_entry = copy.deepcopy(pa_entry)
             del resolved_entry['activity_ref']  # Remove the reference
-            
+
             # Apply defaults from referenced config, but don't override explicit values
             if 'physical_activity_entries' in referenced_config and referenced_config['physical_activity_entries']:
                 ref_entry = referenced_config['physical_activity_entries'][0]  # Use first entry as template
-                
+
                 for key, value in ref_entry.items():
                     if key not in resolved_entry:  # Don't override explicit values
                         resolved_entry[key] = value
-            
+
             logger.debug(f"Resolved activity reference {activity_ref} for PA entry")
             return resolved_entry
-            
+
         except Exception as e:
             raise ValueError(f"Failed to resolve activity reference '{activity_ref}': {e}")
-    
+
     def process_pa_entries_with_validation(self, pa_entries):
         """
         Process physical activity entries with validation and reference resolution.
-        
+
         Parameters
         ----------
         pa_entries : list
             List of PA entries (may include reusable references)
-            
+
         Returns
         -------
         list
@@ -1222,25 +1225,25 @@ class ScenarioParserV2(SimulationParser):
         """
         if not pa_entries:
             return []
-        
+
         processed_entries = []
         all_errors = []
-        
+
         for i, entry in enumerate(pa_entries):
             try:
                 # Check if this is a profile reference
                 if isinstance(entry, str) and entry.startswith('reusable.physical_activities.profiles.'):
                     # Load entire profile configuration
                     profile_config = self.load_reusable_pa_config(entry)
-                    
+
                     # Validate profile has required structure
                     if 'physical_activity_entries' not in profile_config:
                         all_errors.append(f"Profile {entry}: Missing 'physical_activity_entries'")
                         continue
-                    
+
                     # Extract default heart rate from profile if available
                     profile_default_hr = profile_config.get('default_heart_rate', None)
-                    
+
                     # Add all entries from the profile
                     for profile_entry in profile_config['physical_activity_entries']:
                         # Validate each entry from the profile
@@ -1248,46 +1251,46 @@ class ScenarioParserV2(SimulationParser):
                         if errors:
                             all_errors.extend(errors)
                             continue
-                        
+
                         # Add profile's default heart rate if entry doesn't specify one
                         if 'expected_hr' not in profile_entry and profile_default_hr is not None:
                             profile_entry['expected_hr'] = profile_default_hr
                             logger.debug(f"Applied default_heart_rate {profile_default_hr} from profile to PA entry")
-                        
+
                         processed_entries.append(profile_entry)
-                
+
                 else:
                     # Validate entry
                     errors = self.validate_pa_entry(entry, i)
                     if errors:
                         all_errors.extend(errors)
                         continue
-                    
+
                     # Resolve activity references
                     resolved_entry = self.resolve_pa_activity_ref(entry)
                     processed_entries.append(resolved_entry)
-                    
+
             except Exception as e:
                 all_errors.append(f"PA entry {i}: {str(e)}")
-        
+
         # Report validation errors
         if all_errors:
             error_msg = "Physical Activity validation errors:\n" + "\n".join(all_errors)
             logger.error(error_msg)
             raise ValueError(error_msg)
-        
+
         logger.info(f"Successfully processed {len(processed_entries)} PA entries")
         return processed_entries
-    
+
     def enhanced_physical_activity_entries_to_timeline(self, pa_entries):
         """
         Enhanced version of physical_activity_entries_to_timeline with Phase 3 features.
-        
+
         Parameters
         ----------
         pa_entries : list
             List of physical activity entries (may include reusable references)
-            
+
         Returns
         -------
         PhysicalActivityTimeline
@@ -1295,13 +1298,13 @@ class ScenarioParserV2(SimulationParser):
         """
         if not pa_entries:
             return PhysicalActivityTimeline()
-        
+
         # Process entries with validation and reference resolution
         processed_entries = self.process_pa_entries_with_validation(pa_entries)
-        
+
         # Convert to timeline using the existing method
         return self.physical_activity_entries_to_timeline(processed_entries)
-    
+
     # ===== END PHASE 2 & 3 =====
 
     def get_sensor_config(self):

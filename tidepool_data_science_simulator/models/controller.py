@@ -276,7 +276,7 @@ class LoopController(BaseControllerClass):
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
             loop_algorithm_output = loop_predict(loop_inputs_dict)
-            
+
             return loop_algorithm_output
 
     def get_current_basal(self, virtual_patient, loop_algorithm_output):

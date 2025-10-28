@@ -10,7 +10,6 @@ from tidepool_data_science_simulator import USE_LOCAL_PYLOOPKIT
 
 from loop_to_python_api.api import get_loop_recommendations
 
-
 class SwiftLoopController(LoopController):
     """
     Loop controller class that intefaces with the Swift verion of Loop.
@@ -83,7 +82,7 @@ class SwiftLoopController(LoopController):
         data['suspendThreshold'] = settings_dictionary['suspend_threshold']
         data['automaticBolusApplicationFactor'] = settings_dictionary['partial_application_factor']
         data['useMidAbsorptionISF'] = settings_dictionary['use_mid_absorption_isf']
-              
+
         if settings_dictionary.get('partial_application_factor'):
             data['recommendationType'] = 'automaticBolus'
             data['includePositiveVelocityAndRC'] = False
@@ -214,15 +213,29 @@ class SwiftLoopController(LoopController):
             with open(filename, 'w') as f:
                 json.dump(loop_inputs_dict, f, indent=4)
 
+            # Write out input dict to file named loop_algo_input_<timestamp>.json
+            format_string = r'%Y-%m-%dT%H:%M:%SZ'
+            timestamp_str = self.time.strftime(format_string)
+            filename = f"loop_algo_input_{timestamp_str}.json"
+            with open(filename, 'w') as f:
+                json.dump(loop_inputs_dict, f, indent=4)
             swift_output = get_loop_recommendations(loop_inputs_dict)
             swift_output_decode = swift_output.decode('utf-8')
             swift_output_json = json.loads(swift_output_decode)
+
+            swift_output = get_loop_recommendations(loop_inputs_dict)
+            swift_output_decode = swift_output.decode('utf-8')
+            swift_output_json = json.loads(swift_output_decode)
+            # Write out output dict to file named loop_algo_output_<timestamp>.json
+            output_filename = f"loop_algo_output_{timestamp_str}.json"
+            with open(output_filename, 'w') as f:
+                json.dump(swift_output_json, f, indent=4)
 
             return swift_output_json
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
         """
-        Apply the recommendations from the Swift Loop algorithm.
+        Apply the recommendations from the pyloopkit algo.
 
         Parameters
         ----------

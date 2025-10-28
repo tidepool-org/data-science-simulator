@@ -653,7 +653,7 @@ def score_risk_table_CS_Aug_2024(summary_df):
 
             total_sims += num_total_sims
 
-    # risk_table_per_sim_ALL.print()
+    risk_table_per_sim_ALL.print()
 
     # logger.info(f"Total sims {total_sims}")
     # print(total_sensor_prob)
