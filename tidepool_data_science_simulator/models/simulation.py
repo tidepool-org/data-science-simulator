@@ -204,7 +204,14 @@ class Simulation(multiprocessing.Process):
             self.store_state()
 
         if self.multiprocess:
-            self.queue.put(self.get_results_df())
+            # Return both the results dataframe and the loop algorithm input history
+            self.queue.put({
+                'results_df': self.get_results_df(),
+                'loop_algorithm_input_history': self.controller.loop_algorithm_input_history if hasattr(self.controller, 'loop_algorithm_input_history') else []
+            })
+        else:
+            # For non-multiprocess, history is already stored in controller
+            pass
 
         return self.simulation_results
 

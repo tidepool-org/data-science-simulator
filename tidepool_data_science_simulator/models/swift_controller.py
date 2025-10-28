@@ -211,10 +211,12 @@ class SwiftLoopController(LoopController):
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
             
-            # Store the input for later retrieval
+            # Store a deep copy of the input for later retrieval
+            # Note: loop_inputs_dict already has all datetimes as ISO strings from prepare_inputs()
+            import copy
             self.loop_algorithm_input_history.append({
                 'time': time.isoformat(),
-                'input': loop_inputs_dict
+                'input': copy.deepcopy(loop_inputs_dict)
             })
             
             # Recommendation type is set in the prepare_inputs() to an automatic value
