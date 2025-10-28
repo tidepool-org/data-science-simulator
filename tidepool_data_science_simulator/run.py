@@ -75,19 +75,7 @@ def run_simulations(sims, save_dir,
         if len(running_sims) >= num_procs or sim_ctr >= num_sims:  # Batch condition
 
             # Gather results from sim queues
-            batch_results = {}
-            for id, sim in running_sims.items():
-                queue_result = sim.queue.get()
-                
-                # Handle different return formats (dict vs DataFrame)
-                if isinstance(queue_result, dict) and 'results_df' in queue_result:
-                    batch_results[id] = queue_result['results_df']
-                    # Store the loop algorithm input history back in the controller
-                    if 'loop_algorithm_input_history' in queue_result:
-                        sim.controller.loop_algorithm_input_history = queue_result['loop_algorithm_input_history']
-                else:
-                    # Legacy format - just the DataFrame
-                    batch_results[id] = queue_result
+            batch_results = {id: sim.queue.get() for id, sim in running_sims.items()}
             # [sim.join() for id, sim in running_sims.items()]
             for sim_id, sim in running_sims.items():
                 sim.join()
