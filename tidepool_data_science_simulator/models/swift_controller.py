@@ -25,7 +25,6 @@ class SwiftLoopController(LoopController):
     def __init__(self, time, controller_config, automation_control_timeline=AutomationControlTimeline([], [])):
         super().__init__(time, controller_config, automation_control_timeline)
         self.name = "SwiftLoopKit v0.1"
-        self.loop_algorithm_input_history = []
 
 
     def prepare_inputs(self, virtual_patient):
@@ -78,15 +77,13 @@ class SwiftLoopController(LoopController):
         settings_dictionary = self.controller_config.controller_settings
 
         data['predictionStart'] = t_now.strftime(format=format_string)
-        data['maxBasalRate'] = settings_dictionary.get('max_basal_rate')
-        data['maxBolus'] = settings_dictionary.get('max_bolus')
-        data['suspendThreshold'] = settings_dictionary.get('suspend_threshold') or 70.0
-        data['automaticBolusApplicationFactor'] = settings_dictionary.get('partial_application_factor') or 0.4
-        data['useMidAbsorptionISF'] = settings_dictionary.get('use_mid_absorption_isf') or True
-        data['carbAbsorptionModel'] = settings_dictionary.get('carb_absorption_model') or 'piecewiseLinear'
-        data['recommendationInsulinType'] = settings_dictionary.get('model') or 'novolog'
-
-        # Set the recommendation and includePositiveVelocityAndRC based on the partial_application_factor
+        data['recommendationInsulinType'] = 'novolog'
+        data['maxBasalRate'] = settings_dictionary['max_basal_rate']
+        data['maxBolus'] = settings_dictionary['max_bolus']
+        data['suspendThreshold'] = settings_dictionary['suspend_threshold']
+        data['automaticBolusApplicationFactor'] = settings_dictionary['partial_application_factor']
+        data['useMidAbsorptionISF'] = settings_dictionary['use_mid_absorption_isf']
+              
         if settings_dictionary.get('partial_application_factor'):
             data['recommendationType'] = 'automaticBolus'
             data['includePositiveVelocityAndRC'] = False
@@ -200,7 +197,6 @@ class SwiftLoopController(LoopController):
         Get recommendations from the Loop Algorithm, based on
         virtual_patient dosing and glucose.
         """
-        format_string = r'%Y-%m-%dT%H:%M:%SZ'
         self.time = time
 
         automation_control_event = self.automation_control_timeline.get_event(time)
@@ -210,49 +206,18 @@ class SwiftLoopController(LoopController):
 
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
-            
-            # Store the input for later retrieval
-            self.loop_algorithm_input_history.append({
-                'time': time.isoformat(),
-                'input': loop_inputs_dict
-            })
-            
-            # Recommendation type is set in the prepare_inputs() to an automatic value
-            swift_output_automatic = get_loop_recommendations(loop_inputs_dict)
-            swift_output_decode_automatic = swift_output_automatic.decode('utf-8')
-            swift_output_json_automatic = json.loads(swift_output_decode_automatic)
 
-            loop_inputs_dict['recommendationType'] = 'manualBolus'
-            loop_inputs_dict['includePositiveVelocityAndRC'] = False
+            # Write out input dict to file named loop_algo_input_<timestamp>.json
+            format_string = r'%Y-%m-%dT%H:%M:%SZ'
+            timestamp_str = self.time.strftime(format_string)
+            filename = f"loop_algo_input_{timestamp_str}.json"
+            with open(filename, 'w') as f:
+                json.dump(loop_inputs_dict, f, indent=4)
 
-            # A manual bolus will always occur after the most recent dose recommendation has already been logged 
-            if swift_output_json_automatic['automatic'].get('bolusUnits'):
-                 
-                 loop_inputs_dict['doses'].append(
-                    {
-                        "startDate": time.strftime(format=format_string),
-                        "endDate": (time + datetime.timedelta(seconds=1)).strftime(format=format_string),
-                        "volume": swift_output_json_automatic['automatic']['bolusUnits'],
-                        "type": "bolus"
-                    }
-                 )
-            
-            else:
-                
-                loop_inputs_dict['doses'].append(
-                    {
-                        "startDate": time.strftime(format=format_string),
-                        "endDate": (time + datetime.timedelta(minutes=30)).strftime(format=format_string),
-                        "volume": swift_output_json_automatic['automatic']['basalAdjustment']['unitsPerHour']/2,
-                        "type": "basal"
-                    }
-                )
+            swift_output = get_loop_recommendations(loop_inputs_dict)
+            swift_output_decode = swift_output.decode('utf-8')
+            swift_output_json = json.loads(swift_output_decode)
 
-            swift_output_manual = get_loop_recommendations(loop_inputs_dict)
-            swift_output_decode_manual = swift_output_manual.decode('utf-8')
-            swift_output_json_manual = json.loads(swift_output_decode_manual)
-            
-            swift_output_json = swift_output_json_automatic | swift_output_json_manual
             return swift_output_json
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
@@ -270,10 +235,9 @@ class SwiftLoopController(LoopController):
         if manual_data:
             manual_bolus_rec = manual_data['amount']
             if virtual_patient.does_accept_bolus_recommendation(manual_bolus_rec):
-                bolus = Bolus(manual_bolus_rec, "U")
-                self.set_bolus_recommendation_event(virtual_patient, bolus)            
+                self.set_bolus_recommendation_event(virtual_patient, manual_bolus_rec)
 
-        if automatic_data:
+        elif automatic_data:
             autobolus_rec = automatic_data.get('bolusUnits')
             temp_basal_data = automatic_data.get('basalAdjustment')
             
@@ -289,11 +253,3 @@ class SwiftLoopController(LoopController):
             pass
 
         self.recommendations = loop_algorithm_output
-
-    def get_info_stateless(self):
-        """
-        Override to include the Loop algorithm input history.
-        """
-        stateless_info = super().get_info_stateless()
-        stateless_info['loop_algorithm_input_history'] = self.loop_algorithm_input_history
-        return stateless_info
