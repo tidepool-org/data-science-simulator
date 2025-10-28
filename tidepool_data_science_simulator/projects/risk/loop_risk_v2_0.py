@@ -125,6 +125,15 @@ if __name__ == "__main__":
             if not os.path.exists(risk_result_dirpath):
                 os.mkdir(risk_result_dirpath)
 
+                # Create subdirectory for Loop algorithm I/O files
+                loop_algo_io_dir = os.path.join(risk_result_dirpath, "loop_algo_io")
+                os.makedirs(loop_algo_io_dir, exist_ok=True)
+
+                # Set the directory on each simulation's controller
+                for sim_id, sim in sim_suite.items():
+                    if hasattr(sim.controller, 'loop_algo_io_dir'):
+                        sim.controller.loop_algo_io_dir = loop_algo_io_dir
+
             try:
                 full_results_dict, summary_results_df = run_simulations(sim_suite,
                                                                         save_dir=risk_result_dirpath,
