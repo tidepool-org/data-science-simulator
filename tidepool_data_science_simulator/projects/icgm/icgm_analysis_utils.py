@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from tidepool_data_science_simulator.evaluation.inspect_results import load_results
 from tidepool_data_science_simulator.models.sensor_icgm import DexcomG6ValueModel
-from tidepool_data_science_simulator.projects.icgm.icgm_analysis_evaluation import TPRiskTableRev7, compute_score_risk_table
+from tidepool_data_science_simulator.projects.icgm.icgm_analysis_evaluation import compute_score_risk_table
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 
 logger = logging.getLogger(__name__)

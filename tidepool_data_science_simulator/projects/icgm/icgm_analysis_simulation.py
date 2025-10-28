@@ -42,19 +42,33 @@ from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.utils import DATA_DIR
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
 
-def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, paf, positive_rc):
+def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, paf, positive_rc, 
+                                         true_bg_values=None, sensor_bg_values=None):
     """
     Generator simulations from a base configuration that have different true bg
     starting points and different t0 sensor error values.
+    
+    Args:
+        json_sim_base_config: Base simulation configuration
+        base_sim_seed: Random seed
+        paf: Partial application factor
+        positive_rc: Include positive RC and momentum
+        true_bg_values: Optional list/range of true glucose values (default: range(40, 405, 5))
+        sensor_bg_values: Optional list/range of sensor glucose values (default: reversed true_bg_values)
     """
     IDEAL = True
     num_history_values = len(json_sim_base_config["patient"]["sensor"]["glucose_history"]["value"])
 
-    true_glucose_start_values = range(40, 405, 5)
-    error_glucose_values = [v for v in true_glucose_start_values[::-1]]
-
-    # true_glucose_start_values = [45]  # testing
-    # error_glucose_values = [120]
+    # Use provided values or defaults
+    if true_bg_values is None:
+        true_glucose_start_values = range(40, 405, 5)
+    else:
+        true_glucose_start_values = true_bg_values
+    
+    if sensor_bg_values is None:
+        error_glucose_values = [v for v in true_glucose_start_values[::-1]]
+    else:
+        error_glucose_values = sensor_bg_values
 
     random_state = RandomState(base_sim_seed)
 
@@ -177,9 +191,18 @@ def get_initial_offset_sensor(t0_init, t0, random_state, initial_error_value):
     return sensor
 
 
-def build_icgm_sim_generator(json_base_configs, paf, positive_rc, sim_batch_size=30):
+def build_icgm_sim_generator(json_base_configs, paf, positive_rc, sim_batch_size=30, 
+                             true_bg_values=None, sensor_bg_values=None):
     """
     Build simulations for the FDA AI Letter iCGM sensitivity analysis.
+    
+    Args:
+        json_base_configs: List of base simulation configurations
+        paf: Partial application factor
+        positive_rc: Include positive RC and momentum
+        sim_batch_size: Number of simulations per batch
+        true_bg_values: Optional list/range of true glucose values
+        sensor_bg_values: Optional list/range of sensor glucose values
     """
     for i, json_config in enumerate(json_base_configs, 1):
 
@@ -188,7 +211,8 @@ def build_icgm_sim_generator(json_base_configs, paf, positive_rc, sim_batch_size
         sim_ctr = 0
         sims = {}
 
-        for sim in generate_icgm_point_error_simulations(json_config, base_sim_seed=i, paf=paf, positive_rc=positive_rc):
+        for sim in generate_icgm_point_error_simulations(json_config, base_sim_seed=i, paf=paf, positive_rc=positive_rc,
+                                                         true_bg_values=true_bg_values, sensor_bg_values=sensor_bg_values):
 
             sims[sim.sim_id] = sim
             sim_ctr += 1
@@ -199,6 +223,60 @@ def build_icgm_sim_generator(json_base_configs, paf, positive_rc, sim_batch_size
                 sim_ctr = 0
 
         yield sims
+
+
+def run_icgm_simulations(paf, positive_rc, result_dir, num_vps=None, 
+                         true_bg_values=None, sensor_bg_values=None):
+    """
+    Pipeline wrapper to run iCGM simulations with configurable parameters.
+    
+    Args:
+        paf: Partial application factor
+        positive_rc: Include positive RC and momentum
+        result_dir: Directory to save simulation results
+        num_vps: Number of virtual patients (None = all available)
+        true_bg_values: Optional list/range of true glucose values
+        sensor_bg_values: Optional list/range of sensor glucose values
+    
+    Returns:
+        result_dir: Path where results were saved
+    """
+    # Ensure result directory exists
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+        logger.info(f"Created results directory: {result_dir}")
+    
+    # Get virtual patient configurations
+    json_base_configs = transform_icgm_json_to_v2_parser()
+    
+    # Limit to specified number of VPs if requested
+    if num_vps is not None:
+        json_base_configs = json_base_configs[:num_vps]
+    
+    sim_batch_size = os.cpu_count() or 1
+    
+    # Build and run simulations
+    sim_batch_generator = build_icgm_sim_generator(
+        json_base_configs, 
+        paf=paf, 
+        positive_rc=positive_rc, 
+        sim_batch_size=sim_batch_size,
+        true_bg_values=true_bg_values,
+        sensor_bg_values=sensor_bg_values
+    )
+    
+    for sim_batch in sim_batch_generator:
+        if sim_batch:
+            run_simulations(
+                sim_batch,
+                save_dir=result_dir,
+                save_results=True,
+                compute_summary_metrics=False,
+                num_procs=sim_batch_size
+            )
+    
+    logger.info(f"Completed simulations. Results saved to: {result_dir}")
+    return result_dir
 
 
 if __name__ == "__main__":

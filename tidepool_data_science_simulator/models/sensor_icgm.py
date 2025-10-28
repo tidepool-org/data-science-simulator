@@ -1196,7 +1196,7 @@ class DexcomG6ValueModel(SensoriCGMModelOverlayBase):
 
     def __init__(self, concurrency_table="adult"):
 
-        if concurrency_table == "adult":
+        if concurrency_table == None or concurrency_table == "adult":
             self.p_icgm_given_true = np.array(DEXCOM_CONCURRENCY_PG23_ADULT)
             self.comparator_totals = [27, 1180, 2191, 3503, 2910, 2457, 2755, 2383, 1601, 437, 23]
         elif concurrency_table == "pediatric":

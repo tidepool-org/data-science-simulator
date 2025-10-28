@@ -5,6 +5,11 @@ import re
 import logging
 import datetime
 import warnings
+import os
+import itertools
+import time
+import glob
+from multiprocessing import Pool, cpu_count
 
 import numpy as np
 import pandas as pd
@@ -35,26 +40,25 @@ def get_probability_index(event_probability):
 
     raise Exception("Probability not in indices.")
 
-def process_simulation_data(result_dir):
 
-    # Get rid of unnecessary warnings for low/high BG
-    warnings.filterwarnings('ignore')
+def _process_single_simulation(args):
+    """
+    Worker function to process a single simulation.
     
-    sim_id_pattern_regex="vp.*bg.*.json" 
-
-    sim_results = collect_sims_and_results_generator(
-        result_dir, 
-        sim_id_pattern=sim_id_pattern_regex, 
-        max_sims=1e12
-    )
+    This function is designed to be called in parallel via multiprocessing.
+    It must be a top-level function (not nested) to be picklable.
     
-    summary_data = []
-    i = 0
-    for sim_id, sim_json_info in sim_results:
-        
-        i += 1
-        if i % 1000 == 0:
-            logger.info("%s",i)
+    Args:
+        args: Tuple of (sim_id, sim_json_info)
+    
+    Returns:
+        dict: Summary row for this simulation, or None if processing failed
+    """
+    sim_id, sim_json_info = args
+    
+    try:
+        # Suppress warnings in worker processes
+        warnings.filterwarnings('ignore')
         
         # Load data and calculate risk metrics
         _, df_results = load_result(sim_json_info["result_path"])
@@ -98,7 +102,7 @@ def process_simulation_data(result_dir):
         max_bolus_delivered = df_results["true_bolus"].max()
         traditional_bolus_delivered = max(0, (sensor_bg_start - target_bg) / isf)
 
-        # Create table row and append to summary
+        # Create table row
         row = {
             "sim_id": sim_id,
             "lbgi_icgm_start": lbgi_icgm_start,
@@ -115,8 +119,105 @@ def process_simulation_data(result_dir):
             "traditional_bolus_delivered": traditional_bolus_delivered,
             "bolus_diff": max_bolus_delivered - traditional_bolus_delivered
         }
+        
+        return row
+        
+    except Exception as e:
+        logger.error(f"Error processing simulation {sim_id}: {str(e)}")
+        return None
 
-        summary_data.append(row)
+
+def process_simulation_data(result_dir, num_workers=None, batch_size=1000):
+    """
+    Process simulation data with parallel processing using batches to manage memory.
+    
+    Args:
+        result_dir: Directory containing simulation results
+        num_workers: Number of parallel workers (default: CPU count)
+        batch_size: Number of simulations to process per batch (default: 1000)
+        
+    
+    Returns:
+        str: Path to the saved summary CSV file
+    """
+
+    # Get rid of unnecessary warnings for low/high BG
+    warnings.filterwarnings('ignore')
+    
+    # Determine number of workers
+    if num_workers is None:
+        num_workers = cpu_count() - 1 # Leave one CPU free
+    
+    logger.info(f"Processing simulations with {num_workers} parallel workers in batches of {batch_size}")
+    
+    sim_id_pattern_regex = "vp.*bg.*.json"
+    sim_id_pattern_glob = "*vp*bg*.json"
+
+    # Count total files for progress tracking
+    pattern = os.path.join(result_dir, sim_id_pattern_glob)
+    matching_files = glob.glob(pattern)
+    total_files = len(matching_files)
+    expected_batches = (total_files + batch_size - 1) // batch_size  # Ceiling division
+    
+    logger.info(f"Found {total_files} simulation files to process")
+    logger.info(f"Expected batches: {expected_batches}")
+
+    sim_results = collect_sims_and_results_generator(
+        result_dir, 
+        sim_id_pattern=sim_id_pattern_regex, 
+        max_sims=1e12
+    )
+    
+    # Process simulations in batches to avoid memory issues
+    summary_data = []
+    total_processed = 0
+    batch_num = 0
+    batch_times = []
+    overall_start_time = time.time()
+    
+    # Process each batch with a fresh pool
+    while True:
+        # Get next batch of simulations
+        batch = list(itertools.islice(sim_results, batch_size))
+        if not batch:
+            break  # No more simulations
+        
+        batch_num += 1
+        batch_start = total_processed + 1
+        batch_end = total_processed + len(batch)
+        
+        logger.info(f"Processing batch {batch_num}/{expected_batches}: simulations {batch_start}-{batch_end}")
+        
+        # Process this batch with a fresh pool and time it
+        batch_start_time = time.time()
+        with Pool(processes=num_workers) as pool:
+            batch_results = pool.map(_process_single_simulation, batch, chunksize=10)
+        batch_duration = time.time() - batch_start_time
+        batch_times.append(batch_duration)
+        
+        # Collect results from this batch
+        batch_data = [r for r in batch_results if r is not None]
+        summary_data.extend(batch_data)
+        
+        total_processed += len(batch)
+        
+        # Calculate progress and ETA
+        progress_pct = (batch_num / expected_batches) * 100
+        avg_batch_time = sum(batch_times) / len(batch_times)
+        remaining_batches = expected_batches - batch_num
+        estimated_remaining_sec = remaining_batches * avg_batch_time
+        estimated_remaining_min = estimated_remaining_sec / 60
+        elapsed_min = (time.time() - overall_start_time) / 60
+        
+        logger.info(f"Batch {batch_num}/{expected_batches} complete: {len(batch_data)}/{len(batch)} successful | "
+                   f"Progress: {progress_pct:.1f}% | "
+                   f"Batch time: {batch_duration:.1f}s | "
+                   f"Avg: {avg_batch_time:.1f}s | "
+                   f"ETA: {estimated_remaining_min:.1f} min | "
+                   f"Elapsed: {elapsed_min:.1f} min")
+    
+    total_elapsed_min = (time.time() - overall_start_time) / 60
+    logger.info(f"Completed processing all {total_processed} simulations across {batch_num} batches in {total_elapsed_min:.1f} minutes")
 
     summary_df = pd.DataFrame(summary_data)
     
@@ -134,16 +235,8 @@ def compute_score_risk_table(summary_df, concurrency_table=None):
     bg_ranges = [(40, 60),(61, 80), (81, 120), (121, 160), (161, 200), 
                  (201, 250), (251, 300), (301, 350), (351, 400)]  
     
-    # bg_ranges = [(i, i+4) for i in range(36, 400, 5)]
-
     bg_range_pairs = [(true_range,icgm_range) for true_range in bg_ranges for icgm_range in bg_ranges]
-    # bg_range_pairs = bg_range_pairs[2:]
-
-    # bg_range_pairs = [((121, 125), (246, 250))]
-    # bg_range_pairs = [((124, 129), (244, 249))]
-    # bg_range_pairs = [((41, 45), (46, 50))]
-    # bg_range_pairs = [((41,45),(i,i+4)) for i in range(36,120,5)]
-    # bg_range_pairs = [((40, 45), (56, 60))]
+    
     severity_bands = [(0.0, 2.5), (2.5, 5.0), (5.0, 10.0), (10.0, 20.0), (20.0, np.inf)]
 
     severity_event_count = [0,0,0,0,0]
@@ -248,7 +341,7 @@ if __name__ == "__main__":
     path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d'
     path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a'
     path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.6_posrc=False_2025_07_24_T_14_00_27_658d0e12'
-    path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.8_posrc=False_2025_07_24_T_20_07_52_14d7f7d4'
+    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.8_posrc=False_2025_07_24_T_20_07_52_14d7f7d4'
     # mode = 'summarize'
     # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d.csv'
     # # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a.csv'
