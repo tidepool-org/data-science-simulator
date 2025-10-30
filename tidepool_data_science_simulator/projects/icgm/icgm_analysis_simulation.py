@@ -254,7 +254,7 @@ def run_icgm_simulations(paf_values=None, positive_rc_values=None, base_result_d
         sensor_bg_values = range(80, 120, 5)
     
     # Setup for multiprocessing
-    sim_batch_size = os.cpu_count() *5 or 1
+    sim_batch_size = os.cpu_count() or 1
     os.environ['NUMEXPR_MAX_THREADS'] = str(sim_batch_size)
     numexpr.set_num_threads(sim_batch_size)
     
