@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
 from tidepool_data_science_simulator.projects.icgm.icgm_analysis_evaluation import compute_score_risk_table, get_probability_index
-from tidepool_data_science_simulator.projects.icgm.icgm_eval_tmp import score_risk_table_CS_Aug_2024
+# from tidepool_data_science_simulator.projects.icgm.icgm_eval_tmp import score_risk_table_CS_Aug_2024
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -33,7 +33,7 @@ data_names = [
     # 'icgm_sensitivity_analysis_results_AUTOBOLUS_04_2024_11_20_619381e.csv',
     # 'icgm_sensitivity_analysis_results_AUTOBOLUS_04_positive_bias_correction_2024_12_12_T_18_32_28_7dd54a9.csv',
     # 'icgm_sensitivity_analysis_results_TEMPBASAL_NO_MANUAL_2024_12_20_T_14_04_39_748cf5e.csv',
-    
+    '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_2025_10_04_T_15_51_23_77f12fe3_merged.csv',
     '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d.csv',
     '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a.csv',
     '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.6_posrc=False_2025_07_24_T_14_00_27_658d0e12.csv',

@@ -270,8 +270,7 @@ def compute_score_risk_table(summary_df, concurrency_table=None):
         lbgi_data_valid = []
 
         if "lbgi_icgm" in summary_df:
-            lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"]
-            
+            lbgi_data = summary_df[concurrency_square_mask]["lbgi_icgm"] 
         elif "lbgi" in summary_df:
             lbgi_data = summary_df[concurrency_square_mask]["lbgi"]        
         elif "lbgi_icgm_valid" in summary_df:
@@ -338,18 +337,23 @@ if __name__ == "__main__":
     # path = args.path
 
     mode = 'process'
-    path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d'
-    path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a'
-    path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.6_posrc=False_2025_07_24_T_14_00_27_658d0e12'
+    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d'
+    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a'
+    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.6_posrc=False_2025_07_24_T_14_00_27_658d0e12'
     # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.8_posrc=False_2025_07_24_T_20_07_52_14d7f7d4'
+    # path = '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_2025_10_15_T_17_04_34_77f12fe3'
+    path = '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=10_wide'
+
     # mode = 'summarize'
     # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d.csv'
-    # # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a.csv'
-
+    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a.csv'
+    # path = '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_2025_10_04_T_15_51_23_77f12fe3_merged_20251029_091426.csv'
+    
     match mode:
         case 'process': 
             summary_result_filepath = process_simulation_data(path)
        
         case 'summarize': 
-            summary_df = pd.read_csv(path, sep="\t")
-            print(compute_score_risk_table(summary_df, 'coastal'))
+            summary_df = pd.read_csv(path, sep=",")
+            severity_event_probability_df, (low_icgm_axis, low_true_axis, mean_lbgi_swift_start, joint_prob_swift) = compute_score_risk_table(summary_df)
+            print(severity_event_probability_df)
