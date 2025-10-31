@@ -6,15 +6,43 @@ plt.style.use('seaborn-v0_8-whitegrid')
 plt.rcParams.update({'font.size': 12, 'font.family': 'sans-serif'})
 
 risk_scores = [
-    [9.09E-01, 2.54E-02, 4.04E-04, 6.02E-05, 0.00E+00],
-    [9.06E-01, 2.80E-02, 4.40E-04, 7.49E-05, 2.19E-07],
-    [9.03E-01, 3.13E-02, 5.16E-04, 9.05E-05, 6.57E-07],
-    [8.99E-01, 3.44E-02, 6.70E-04, 1.11E-04, 1.25E-06],
+    [9.09E-01, 2.54E-02, 4.04E-04, 6.02E-05, 0.00E+00], # PAF 0.2
+    [9.06E-01, 2.80E-02, 4.40E-04, 7.49E-05, 2.19E-07], # PAF 0.4
+    [9.03E-01, 3.13E-02, 5.16E-04, 9.05E-05, 6.57E-07], # PAF 0.6
+    [8.99E-01, 3.44E-02, 6.70E-04, 1.11E-04, 1.25E-06], # PAF 0.8
+    [8.96E-01, 3.79E-02, 4.58E-04, 7.60E-05, 2.19E-07], # PAF 0.4 rc+momentum Mitigated (max jump 20)
+    [0.889915, 0.042124, 0.002172, 0.000302, 0.000060] # PAF 0.4 rc+momentum Unmitigated
 ]
 
-tir = [54.6, 57.4, 58.3, 58.7]
+tir = [54.6, 57.4, 58.3, 58.7, 61.4, 64.2]
 safety_thresholds = [1, 1e-1, 1e-2, 1e-4, 1e-6]
-paf_labels = [0.2, 0.4, 0.6, 0.8]
+
+# Define colors and labels for each data point
+# Hardcoded 4-color gradient (light green -> green -> medium green -> dark green)
+gradient_colors = ['#A8E6CF', '#66D19A', '#2FB06A', '#206B3B']
+
+point_colors = gradient_colors + ['#627cfb', "#9A0A0A" ]
+
+point_labels = [
+    '',
+    '',
+    '',
+    '',
+    'PAF 0.4 Mitigated',
+    'PAF 0.4 Unmitigated'
+]
+
+legend_labels = [
+    'PAF 0.2, RCM False',
+    'PAF 0.4, RCM False',
+    'PAF 0.6, RCM False',
+    'PAF 0.8, RCM False',
+    'PAF 0.4, RCM True Mitigated',
+    'PAF 0.4, RCM True, Unmitigated'
+]
+
+# First 4 points are open circles, last 2 are filled
+point_fill_styles = ['none', 'none', 'none', 'none', 'full', 'full']
 
 # Convert to numpy array for easier column extraction
 risk_scores_array = np.array(risk_scores)
@@ -32,8 +60,6 @@ risk_labels = [
 fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 axes = axes.flatten()
 
-# Color palette for better visual appeal
-colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#592E83']
 marker_size = 120
 
 # Plot each column of risk scores against TIR
@@ -41,38 +67,42 @@ for i in range(5):
     ax = axes[i]
     risk_column = risk_scores_array[:, i]
     
-    # Create scatter plot with distinct colors and larger markers
-    scatter = ax.scatter(risk_column, tir, c=colors[i], s=marker_size, 
-                        alpha=0.8, edgecolors='white', linewidth=2, zorder=3)
-    
-    # Add trend line if there's a clear relationship
-    # if len(risk_column) > 2:
-    #     z = np.polyfit(risk_column, tir, 1)
-    #     p = np.poly1d(z)
-    #     x_trend = np.linspace(np.min(risk_column), np.max(risk_column), 100)
-    #     ax.plot(x_trend, p(x_trend), color=colors[i], alpha=0.5, linewidth=2, linestyle=':', zorder=1)
-    
-    # Add PAF labels with better styling
-    for j, (risk_val, tir_val, paf_label) in enumerate(zip(risk_column, tir, paf_labels)):
-        ax.annotate(f'PAF {paf_label}', 
+    # Plot each point with its own color and label
+    for j, (risk_val, tir_val) in enumerate(zip(risk_column, tir)):
+        # Create scatter plot for individual point with appropriate fill style
+        if point_fill_styles[j] == 'none':
+            # Open circle (unfilled)
+            ax.scatter(risk_val, tir_val, facecolors='none', edgecolors=point_colors[j], 
+                      s=marker_size, linewidth=3, alpha=0.8, zorder=2)
+        else:
+            # Filled circle
+            ax.scatter(risk_val, tir_val, c=point_colors[j], s=marker_size, 
+                      alpha=0.8, edgecolors=point_colors[j], linewidth=2, zorder=2)
+        
+        # Add label with better styling
+        ha = 'left'
+        if i >= 3 and j == 5:
+            ha = 'right'
+
+        ax.annotate(point_labels[j], 
                    (risk_val, tir_val), 
                    xytext=(10, 10), 
                    textcoords='offset points', 
                    fontsize=11, 
                    fontweight='bold',
-                   ha='left',
+                   ha=ha,
                    bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8),
                    zorder=4)
     
     # Add safety threshold line with better styling and label
     threshold_line = ax.axvline(x=safety_thresholds[i], color='darkred', 
-                               linestyle='--', linewidth=3, alpha=0.9, zorder=2)
+                               linestyle='--', linewidth=3, alpha=0.9, zorder=3)
     
     # Add threshold label
     y_pos = ax.get_ylim()[1] * 0.95
-    ax.text(safety_thresholds[i], y_pos, f'Safety Threshold\n{safety_thresholds[i]:.0e}',
-           rotation=0, ha='center', va='top', fontsize=10, fontweight='bold',
-           bbox=dict(boxstyle='round,pad=0.3', facecolor='lightcoral', alpha=0.8))
+    # ax.text(safety_thresholds[i], y_pos, f'Safety Threshold\n{safety_thresholds[i]:.0e}',
+    #        rotation=0, ha='center', va='top', fontsize=10, fontweight='bold',
+    #        bbox=dict(boxstyle='round,pad=0.3', facecolor='lightcoral', alpha=0.8))
     
     # Extend x-axis with intelligent padding
     # x_min, x_max = np.max(risk_column), np.min(risk_column)
@@ -85,7 +115,7 @@ for i in range(5):
     #     ax.set_xlim(x_min - x_padding, x_max + x_padding)
     
     # Set Y-axis limits to show more context
-    ax.set_ylim(52, 61)
+    ax.set_ylim(52, 65)
     
     # Enhanced labels and styling
     ax.set_xlabel('Probability of Risk Event', fontsize=14, fontweight='bold', labelpad=15)
@@ -115,12 +145,26 @@ fig.suptitle('Partial Application Factor (PAF) Impact on Risk Scores vs Time in 
     fontsize=20, fontweight='bold', y=0.95)
 
 # Create legend for PAF values
-legend_elements = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='gray', 
-    markersize=10, label=f'PAF Setting')]
+legend_elements = []
+for j in range(len(legend_labels)):
+    if point_fill_styles[j] == 'none':
+        # Open circle legend entry
+        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
+                                         markerfacecolor='none', 
+                                         markeredgecolor=point_colors[j],
+                                         markeredgewidth=2,
+                                         markersize=10, label=legend_labels[j]))
+    else:
+        # Filled circle legend entry
+        legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
+                                         markerfacecolor=point_colors[j],
+                                         markeredgecolor=point_colors[j], 
+                                         markeredgewidth=2,
+                                         markersize=10, label=legend_labels[j]))
 legend_elements.append(plt.Line2D([0], [0], color='darkred', linestyle='--', 
     linewidth=3, label='Safety Threshold'))
 
-fig.legend(handles=legend_elements, loc='lower right', bbox_to_anchor=(0.8, 0.2), 
+fig.legend(handles=legend_elements, loc='lower right', bbox_to_anchor=(0.9, 0.225), 
     frameon=True, fancybox=True, shadow=True, fontsize=12)
 
 # Adjust layout with more space

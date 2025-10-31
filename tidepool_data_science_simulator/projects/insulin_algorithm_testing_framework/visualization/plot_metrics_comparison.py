@@ -309,7 +309,7 @@ def main():
     # Keep only rows where (paf == 0 and posvel == True) or (paf == 0.4 and posvel == False)
     df = df[
         ((df['paf'].isna()) & (df['posvel'] == True)) |
-        ((df['paf'] == 0.4) & (df['posvel'] == False))
+        ((df['paf'] == 0.4) )
     ].copy()
 
     # Load weights

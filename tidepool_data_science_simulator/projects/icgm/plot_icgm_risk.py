@@ -17,10 +17,11 @@ data_dir = ''
 data_names = [
     '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=False_original.csv',
     '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_original.csv',
-    '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=10_merged.csv',
-    '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=10_wide_merged.csv',
-    '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=25_merged.csv',
-    '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=40_merged.csv',
+    '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=20_full.csv',
+    # '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=10_merged.csv',
+    # '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=10_wide_merged.csv',
+    # '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=25_merged.csv',
+    # '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=40_merged.csv',
 ]
 
 # Initialize storage for all data
