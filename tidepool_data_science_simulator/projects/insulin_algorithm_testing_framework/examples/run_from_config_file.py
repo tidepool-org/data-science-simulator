@@ -25,8 +25,8 @@ from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framewor
 
 from tidepool_data_science_simulator.utils import DATA_DIR
 
-CONFIG_FILE = 'tidepool_data_science_simulator/projects/insulin_algorithm_testing_framework/config/510k_short_run_config.yaml'  # Default config file path
-OUTPUT_DIR = os.path.join(DATA_DIR, 'processed_data', 'insulin_algorithm_testing_framework', '510k_short_run_example')
+CONFIG_FILE = 'tidepool_data_science_simulator/projects/insulin_algorithm_testing_framework/config/510k_short_run_config_mitigation.yaml'  # Default config file path
+OUTPUT_DIR = os.path.join(DATA_DIR, 'processed_data', 'insulin_algorithm_testing_framework', '510k_short_run_example_mitigation')
 
 # Setup logging
 logging.basicConfig(
@@ -45,6 +45,15 @@ def main():
     config = ExperimentConfig(CONFIG_FILE)  # Uses default config
     
     config.set('experiment.output_dir', OUTPUT_DIR)
+    
+    # Ensure the output directory exists
+    output_dir = Path(OUTPUT_DIR)
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Ensured output directory exists: {output_dir}")
+    except Exception as e:
+        logger.error(f"Failed to create output directory {output_dir}: {e}")
+        raise
 
     # 2. Run complete experiment
     logger.info("Running experiment...")
