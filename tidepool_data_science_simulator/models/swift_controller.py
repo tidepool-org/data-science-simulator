@@ -81,6 +81,7 @@ class SwiftLoopController(LoopController):
         data['useMidAbsorptionISF'] = settings_dictionary.get('use_mid_absorption_isf') or True
         data['carbAbsorptionModel'] = settings_dictionary.get('carb_absorption_model') or 'piecewiseLinear'
         data['recommendationInsulinType'] = settings_dictionary.get('model') or 'novolog'
+        data['gradualTransitionsThreshold'] = settings_dictionary.get('gradual_transitions_threshold') or 20.0
 
         # Set the recommendation and includePositiveVelocityAndRC based on the partial_application_factor
         if settings_dictionary.get('partial_application_factor'):

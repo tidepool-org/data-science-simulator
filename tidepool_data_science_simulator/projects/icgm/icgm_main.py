@@ -11,8 +11,9 @@ if __name__ == '__main__':
     TEST_PARAMS = {
         'paf_values': [0.4],
         'positive_rc_values': [True],
-        'num_vps': None ,  # Use all available virtual patients
-        'true_bg_values': range(40, 405, 5),  # 73 values
+        'gradual_transitions_threshold_values': [10.0, 30.0, 50.0, 500.0],
+        'num_vps': None,  # Use all available virtual patients
+        'true_bg_values': range(40, 45, 5),  # 73 values
         'sensor_bg_values': range(40, 405, 5), # 73 values
     }
 

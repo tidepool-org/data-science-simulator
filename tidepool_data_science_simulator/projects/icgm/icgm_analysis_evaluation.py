@@ -221,7 +221,7 @@ def process_simulation_data(result_dir, num_workers=None, batch_size=1000):
 
     summary_df = pd.DataFrame(summary_data)
     
-    summary_result_filepath = result_dir + '.csv'
+    summary_result_filepath = result_dir + '.tsv'
     summary_df.to_csv(summary_result_filepath, sep="\t")
     logger.info("Saved summary results to %s", summary_result_filepath)
 

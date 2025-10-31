@@ -15,6 +15,7 @@ import os
 import datetime
 import argparse
 import math
+import itertools
 
 from tidepool_data_science_simulator.makedata.make_icgm_patients import transform_icgm_json_to_v2_parser
 from tidepool_data_science_simulator.run import run_simulations
@@ -42,7 +43,7 @@ from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.utils import DATA_DIR
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
 
-def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, paf, positive_rc, 
+def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, paf, positive_rc, gradual_transitions_threshold,
                                          true_bg_values=None, sensor_bg_values=None):
     """
     Generator simulations from a base configuration that have different true bg
@@ -88,6 +89,7 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, p
             new_sim_base_config["controller"]["settings"]["use_mid_absorption_isf"] = True
             new_sim_base_config["controller"]["settings"]["include_positive_velocity_and_RC"] = positive_rc
             new_sim_base_config["controller"]["settings"]["suspend_threshold"] = 70
+            new_sim_base_config["controller"]["settings"]["gradual_transitions_threshold"] = gradual_transitions_threshold
             
             date_str_format = "%m/%d/%Y %H:%M:%S"  # ref: "8/15/2019 12:00:00"
             glucose_datetimes = [datetime.datetime.strptime(dt_str, date_str_format)
@@ -132,12 +134,6 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, p
         
     return
 
-
-# def get_ideal_sensor(t0, sim_parser):
-
-#     ideal_sensor_config = SensorConfig(sensor_bg_history=sim_parser.patient_glucose_history)
-#     sensor = IdealSensor(time=t0, sensor_config=ideal_sensor_config)
-#     return sensor
 
 def get_ideal_sensor(t0, sim_parser):
 
@@ -191,7 +187,7 @@ def get_initial_offset_sensor(t0_init, t0, random_state, initial_error_value):
     return sensor
 
 
-def build_icgm_sim_generator(json_base_configs, paf, positive_rc, sim_batch_size=30, 
+def build_icgm_sim_generator(json_base_configs, paf, positive_rc, gradual_transitions_threshold, sim_batch_size=30, 
                              true_bg_values=None, sensor_bg_values=None):
     """
     Build simulations for the FDA AI Letter iCGM sensitivity analysis.
@@ -200,6 +196,7 @@ def build_icgm_sim_generator(json_base_configs, paf, positive_rc, sim_batch_size
         json_base_configs: List of base simulation configurations
         paf: Partial application factor
         positive_rc: Include positive RC and momentum
+        gradual_transitions_threshold: Gradual transitions threshold value
         sim_batch_size: Number of simulations per batch
         true_bg_values: Optional list/range of true glucose values
         sensor_bg_values: Optional list/range of sensor glucose values
@@ -212,6 +209,7 @@ def build_icgm_sim_generator(json_base_configs, paf, positive_rc, sim_batch_size
         sims = {}
 
         for sim in generate_icgm_point_error_simulations(json_config, base_sim_seed=i, paf=paf, positive_rc=positive_rc,
+                                                         gradual_transitions_threshold=gradual_transitions_threshold,
                                                          true_bg_values=true_bg_values, sensor_bg_values=sensor_bg_values):
 
             sims[sim.sim_id] = sim
@@ -225,14 +223,15 @@ def build_icgm_sim_generator(json_base_configs, paf, positive_rc, sim_batch_size
         yield sims
 
 
-def run_icgm_simulations(paf_values=None, positive_rc_values=None, base_result_dir=None, 
-                         num_vps=None, true_bg_values=None, sensor_bg_values=None):
+def run_icgm_simulations(paf_values=None, positive_rc_values=None, gradual_transitions_threshold_values=None,
+                         base_result_dir=None, num_vps=None, true_bg_values=None, sensor_bg_values=None):
     """
     Pipeline wrapper to run iCGM simulations with configurable parameters.
     
     Args:
         paf_values: List of partial application factor values to test (default: [0.4])
         positive_rc_values: List of positive RC boolean values to test (default: [True])
+        gradual_transitions_threshold_values: List of gradual transitions threshold values to test (default: [30])
         base_result_dir: Base directory for results (default: DATA_DIR/processed/)
         num_vps: Number of virtual patients (None = all available)
         true_bg_values: Optional list/range of true glucose values (default: range(40, 80, 5))
@@ -246,6 +245,8 @@ def run_icgm_simulations(paf_values=None, positive_rc_values=None, base_result_d
         paf_values = [0.4]
     if positive_rc_values is None:
         positive_rc_values = [True]
+    if gradual_transitions_threshold_values is None:
+        gradual_transitions_threshold_values = [30]
     if base_result_dir is None:
         base_result_dir = os.path.join(DATA_DIR, "processed")
     if true_bg_values is None:
@@ -276,7 +277,7 @@ def run_icgm_simulations(paf_values=None, positive_rc_values=None, base_result_d
     # Calculate total expected batches for progress tracking
     sims_per_config = len(true_bg_values) * len(sensor_bg_values)  
     batches_per_config = math.ceil(sims_per_config / sim_batch_size)
-    total_expected_batches = len(json_base_configs) * batches_per_config * len(paf_values) * len(positive_rc_values)
+    total_expected_batches = len(json_base_configs) * batches_per_config * len(paf_values) * len(positive_rc_values) * len(gradual_transitions_threshold_values)
     
     logger.info(f"Expected to process {total_expected_batches} total batches across {len(json_base_configs)} virtual patients")
     logger.info(f"Simulations per config: {sims_per_config}, Batch size: {sim_batch_size}, Batches per config: {batches_per_config}")
@@ -288,74 +289,77 @@ def run_icgm_simulations(paf_values=None, positive_rc_values=None, base_result_d
     
     result_dirs = []
     
-    # Iterate through all combinations of PAF and POSITIVE_RC values
-    for paf in paf_values:
-        for positive_rc in positive_rc_values:
-            logger.info(f"Running simulations with PAF={paf}, POSITIVE_RC={positive_rc}")
-            
-            result_dir = os.path.join(base_result_dir, f"icgm_sensitivity_analysis_paf={paf}_posrc={positive_rc}_" + date_string + short_hash)
-            
-            if not os.path.exists(result_dir):
-                os.makedirs(result_dir)
-                logger.info("Made directory for results: {}".format(result_dir))
-            
-            result_dirs.append(result_dir)
+    # Generate all parameter combinations using itertools.product
+    parameter_combinations = list(itertools.product(paf_values, positive_rc_values, gradual_transitions_threshold_values))
+    
+    # Iterate through all parameter combinations
+    for paf, positive_rc, gradual_transitions_threshold in parameter_combinations:
+        logger.info(f"Running simulations with PAF={paf}, POSITIVE_RC={positive_rc}, GRADUAL_THRESHOLD={gradual_transitions_threshold}")
+        
+        result_dir = os.path.join(base_result_dir, f"icgm_sensitivity_analysis_paf={paf}_posrc={positive_rc}_gradthresh={gradual_transitions_threshold}_" + date_string + short_hash)
+        
+        if not os.path.exists(result_dir):
+            os.makedirs(result_dir)
+            logger.info("Made directory for results: {}".format(result_dir))
+        
+        result_dirs.append(result_dir)
 
-            sim_batch_generator = build_icgm_sim_generator(
-                json_base_configs, 
-                paf=paf, 
-                positive_rc=positive_rc, 
-                sim_batch_size=sim_batch_size, 
-                true_bg_values=true_bg_values, 
-                sensor_bg_values=sensor_bg_values
-            )
+        sim_generator = build_icgm_sim_generator(
+            json_base_configs, 
+            paf=paf, 
+            positive_rc=positive_rc, 
+            gradual_transitions_threshold=gradual_transitions_threshold,
+            sim_batch_size=sim_batch_size, 
+            true_bg_values=true_bg_values, 
+            sensor_bg_values=sensor_bg_values
+        )
 
-            parameter_start_time = time.time()
-            for i, sim_batch in enumerate(sim_batch_generator):
-                if sim_batch:
-                    batch_start_time = time.time()
+        parameter_start_time = time.time()
+        for i, sim_batch in enumerate(sim_generator):
+            if sim_batch:
+                batch_start_time = time.time()
 
-                    full_results, summary_results_df = run_simulations(
-                        sim_batch,
-                        save_dir=result_dir,
-                        save_results=True,
-                        compute_summary_metrics=False,
-                        num_procs=sim_batch_size
-                    )
-                    
-                    # Track batch timing and progress
-                    batch_duration_minutes = (time.time() - batch_start_time) / 60
-                    batch_durations.append(batch_duration_minutes)
-                    completed_batches += 1
-                    
-                    # Keep only last 10 batch durations for rolling average
-                    if len(batch_durations) > 10:
-                        batch_durations.pop(0)
-                    
-                    # Calculate progress statistics
-                    progress_percentage = (completed_batches / total_expected_batches) * 100
-                    average_batch_time = sum(batch_durations) / len(batch_durations)
-                    remaining_batches = total_expected_batches - completed_batches
-                    estimated_remaining_minutes = remaining_batches * average_batch_time
-                    
-                    # Calculate total elapsed time
-                    total_elapsed_minutes = (time.time() - overall_start_time) / 60
-                    parameter_elapsed_minutes = (time.time() - parameter_start_time) / 60
-                    
-                    # Enhanced logging with progress and ETA
-                    logger.info(f"=== BATCH PROGRESS ===")
-                    logger.info(f"Batch {completed_batches}/{total_expected_batches} ({progress_percentage:.1f}% complete)")
-                    logger.info(f"Current batch: {batch_duration_minutes:.2f} min | {len(sim_batch)} simulations")
-                    logger.info(f"Average batch time: {average_batch_time:.2f} min (last {len(batch_durations)} batches)")
-                    logger.info(f"Estimated time remaining: {estimated_remaining_minutes:.1f} min ({estimated_remaining_minutes/60:.1f} hrs)")
-                    logger.info(f"Total elapsed: {total_elapsed_minutes:.1f} min | Parameter set elapsed: {parameter_elapsed_minutes:.1f} min")
-                    logger.info(f"PAF={paf}, POSITIVE_RC={positive_rc}")
-            
-            parameter_total_time = (time.time() - parameter_start_time) / 60
-            logger.info(f"=== PARAMETER SET COMPLETE ===")
-            logger.info(f"Completed simulations for PAF={paf}, POSITIVE_RC={positive_rc}")
-            logger.info(f"Parameter set time: {parameter_total_time:.2f} minutes ({parameter_total_time/60:.2f} hours)")
-            logger.info(f"Overall progress: {completed_batches}/{total_expected_batches} batches completed")
+                full_results, summary_results_df = run_simulations(
+                    sim_batch,
+                    save_dir=result_dir,
+                    save_results=True,
+                    compute_summary_metrics=False,
+                    num_procs=sim_batch_size
+                )
+                
+                # Track batch timing and progress
+                batch_duration_minutes = (time.time() - batch_start_time) / 60
+                batch_durations.append(batch_duration_minutes)
+                completed_batches += 1
+                
+                # Keep only last 10 batch durations for rolling average
+                if len(batch_durations) > 10:
+                    batch_durations.pop(0)
+                
+                # Calculate progress statistics
+                progress_percentage = (completed_batches / total_expected_batches) * 100
+                average_batch_time = sum(batch_durations) / len(batch_durations)
+                remaining_batches = total_expected_batches - completed_batches
+                estimated_remaining_minutes = remaining_batches * average_batch_time
+                
+                # Calculate total elapsed time
+                total_elapsed_minutes = (time.time() - overall_start_time) / 60
+                parameter_elapsed_minutes = (time.time() - parameter_start_time) / 60
+                
+                # Enhanced logging with progress and ETA
+                logger.info(f"=== BATCH PROGRESS ===")
+                logger.info(f"Batch {completed_batches}/{total_expected_batches} ({progress_percentage:.1f}% complete)")
+                logger.info(f"Current batch: {batch_duration_minutes:.2f} min | {len(sim_batch)} simulations")
+                logger.info(f"Average batch time: {average_batch_time:.2f} min (last {len(batch_durations)} batches)")
+                logger.info(f"Estimated time remaining: {estimated_remaining_minutes:.1f} min ({estimated_remaining_minutes/60:.1f} hrs)")
+                logger.info(f"Total elapsed: {total_elapsed_minutes:.1f} min | Parameter set elapsed: {parameter_elapsed_minutes:.1f} min")
+                logger.info(f"PAF={paf}, POSITIVE_RC={positive_rc}, GRADUAL_THRESHOLD={gradual_transitions_threshold}")
+        
+        parameter_total_time = (time.time() - parameter_start_time) / 60
+        logger.info(f"=== PARAMETER SET COMPLETE ===")
+        logger.info(f"Completed simulations for PAF={paf}, POSITIVE_RC={positive_rc}, GRADUAL_THRESHOLD={gradual_transitions_threshold}")
+        logger.info(f"Parameter set time: {parameter_total_time:.2f} minutes ({parameter_total_time/60:.2f} hours)")
+        logger.info(f"Overall progress: {completed_batches}/{total_expected_batches} batches completed")
     
     logger.info(f"All simulations complete. Results saved to: {result_dirs}")
     return result_dirs
