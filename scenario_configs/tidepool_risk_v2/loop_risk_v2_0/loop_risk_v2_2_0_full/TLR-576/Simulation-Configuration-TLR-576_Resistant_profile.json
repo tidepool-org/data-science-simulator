@@ -53,7 +53,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop_WithMitigations_t1_resistant",
+      "sim_id": "post-Loop-WithMitigations_t1_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",
@@ -74,7 +74,12 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_swift"
+        "settings": {
+          "max_bolus": 4.65,
+          "max_basal_rate": 2.8,
+          "suspend_threshold": 75,
+          "max_active_insulin_modifier": 2.0
+        }
       }
     }
   ]

@@ -26,10 +26,15 @@
         "pump": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1"
         }
+      },
+      "controller": {
+        "settings": {
+          "max_active_insulin_modifier": 3.0
+        }
       }
     },
     {
-      "sim_id": "pre-NoLoop_t1_sensitive",
+      "sim_id": "pre-noLoop_t1_sensitive",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
@@ -75,10 +80,10 @@
       },
       "controller": {
         "settings": {
-          "max_bolus": 2.47,
+          "max_active_insulin_modifier": 3.0,
+          "suspend_threshold": 80,
           "max_basal_rate": 0.9,
-          "suspend_threshold": 0.9,
-          "max_active_insulin_modifier": 2.0
+          "max_bolus": 2.47
         }
       }
     }

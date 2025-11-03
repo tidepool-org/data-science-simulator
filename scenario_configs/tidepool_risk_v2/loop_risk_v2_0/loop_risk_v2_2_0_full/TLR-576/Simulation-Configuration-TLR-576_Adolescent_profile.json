@@ -53,7 +53,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop_WithMitigations_t1_adolescent",
+      "sim_id": "post-Loop-WithMitigations_t1_adolescent",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
@@ -74,7 +74,12 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_swift"
+        "settings": {
+          "max_bolus": 18.75,
+          "max_basal_rate": 5.7,
+          "max_active_insulin_modifier": 2.0,
+          "suspend_threshold": 75
+        }
       }
     }
   ]
