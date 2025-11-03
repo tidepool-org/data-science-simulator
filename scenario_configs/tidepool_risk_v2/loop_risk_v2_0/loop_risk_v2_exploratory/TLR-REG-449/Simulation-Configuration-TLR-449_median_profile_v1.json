@@ -1,0 +1,61 @@
+{
+  "metadata": {
+    "risk-id": "TLR-REG-449",
+    "simulation_id": "TLR-REG-449-base_median",
+    "risk_description": "Extended zero delivery",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median_preset",
+      "duration_hours": 23.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "patient_model": {
+          "metabolism_settings": "reusable.metabolism_settings.presets.median_preset_60_v1",
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.presets.median_preset_60_v1",
+          "target_range": {
+            "start_times": ["00:00:00"],
+            "upper_values": [170],
+            "lower_values": [160]
+          }
+        }
+      }
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_median_preset",
+      "duration_hours": 23.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "patient_model": {
+          "metabolism_settings": "reusable.metabolism_settings.presets.median_preset_60_v1",
+          "glucose_history": "reusable.glucose.flat_70_12hr",
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 13:00:00", "value": 0.05
+            }
+          ]
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.presets.median_preset_60_v1",
+          "target_range": {
+            "start_times": ["00:00:00"],
+            "upper_values": [170],
+            "lower_values": [160]
+          },
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 13:00:00", "value": 0.05
+            }
+          ]
+        }
+      }
+    }
+]
+}

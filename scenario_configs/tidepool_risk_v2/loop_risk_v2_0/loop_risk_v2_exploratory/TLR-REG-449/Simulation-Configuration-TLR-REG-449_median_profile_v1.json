@@ -5,23 +5,57 @@
     "risk_description": "Extended zero delivery",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.activity_presets.ap_jog_median_2_0_v1",
+  "base_config": "reusable.simulations.activity_presets.ap_walk_median_2_0_v1",
   "override_config": [
     {"sim_id": "pre-Loop_NoMitigations_t1_median",
       "duration_hours": 23.0,
       "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_54_12hr"
+        },
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_54_12hr",
-          "physical_activity_entries": "reusable.physical_activities.extended_duration.jogging_6h_v1",
+          "physical_activity_entries": "reusable.physical_activities.extended_duration.walking_8h_v1",
           "metabolism_settings": {
             "insulin_sensitivity_factor": {
-              "start_times": ["00:00:00", "12:00:00", "18:00:00"],
-              "values": [13, 62, 13]
+              "start_times": ["00:00:00", "12:00:00", "19:00:00"],
+              "values": [50, 217, 50]
             },
             "carb_insulin_ratio": {
-              "start_times": []
+              "start_times": ["00:00:00", "12:00:00", "19:00:00"],
+              "values": [13, 57, 13]
+            },
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "19:00:00"],
+              "values": [0.5, 0.12, 0.5]
             }
-          }
+          },
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 13:00:00", "value": 0.05
+            }
+          ]
+        },
+        "pump": {
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00", "12:00:00", "19:00:00"],
+              "values": [50, 217, 50]
+            },
+            "carb_insulin_ratio": {
+              "start_times": ["00:00:00", "12:00:00", "19:00:00"],
+              "values": [13, 57, 13]
+            },
+            "basal_rate": {
+              "start_times": ["0:00:00", "12:00:00", "19:00:00"],
+              "values": [0.5, 0.12, 0.5]
+            }
+          },
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 13:00:00", "value": 0.05
+            }
+          ]
         }
       }
     }

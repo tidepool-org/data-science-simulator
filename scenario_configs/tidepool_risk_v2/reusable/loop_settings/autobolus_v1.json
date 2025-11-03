@@ -22,5 +22,6 @@
     240.0
   ],
   "retrospective_correction_enabled": true,
-  "use_mid_absorption_isf": true
+  "use_mid_absorption_isf": true,
+  "max_active_insulin_multiplier": 10.0
 }

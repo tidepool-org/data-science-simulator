@@ -1,14 +1,14 @@
 {
   "metadata": {
     "risk-id": "TLR-844_170_corr",
-    "simulation_id": "TLR-844_170_corr-median",
+    "simulation_id": "TLR-844_170_corr-adolescent",
     "risk_description": "Too-aggressive override 170",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.preset_130_median_swift",
+  "base_config": "reusable.simulations.custom_presets.preset_130_adolescent_2_0_v1",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "sim_id": "pre-Loop_NoMitigations_t1_adolescent",
       "patient": {
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
@@ -22,12 +22,12 @@
           ]
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.median_preset_170_v1"
+          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_170_v1"
         }
       }
     },
     {
-      "sim_id": "pre-noLoop_t1_median",
+      "sim_id": "pre-noLoop_t1_adolescent",
       "patient": {
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
@@ -47,13 +47,13 @@
               "value": 19.83
             }
           ],
-          "metabolism_settings": "reusable.metabolism_settings.median_preset_170_v1"
+          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_170_v1"
         }
       },
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t1_median",
+      "sim_id": "post-Loop-WithMitigations_t1_adolescent",
       "patient": {
         "sensor": {
           "glucose_history": "reusable.glucose.flat_250_12hr"
@@ -68,12 +68,15 @@
           ]
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.median_preset_170_v1",
-          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+          "metabolism_settings": "reusable.metabolism_settings.adolescent_preset_170_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+        "settings": {
+          "suspend_threshold": 110,
+          "max_basal_rate": 5.7
+        }
       }
     }
   ]
