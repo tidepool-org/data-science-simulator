@@ -807,6 +807,26 @@ class ScenarioParserV2(SimulationParser):
             duration_minutes=insulin_production_rate_duration_minutes
         )
 
+        def validate_max_active_insulin_multiplier(self, multiplier):
+            """
+            Validate max active insulin multiplier in the config.
+
+            Parameters
+            ----------
+            multiplier : float
+                The multiplier value (typically 2.0, but configurable for testing)
+            """
+            if not isinstance(multiplier, (float, int)):
+                raise ValueError("max_active_insulin_multiplier must be numeric")
+
+            if not 0.0 < multiplier <= 10.0:
+                raise ValueError(f"max_active_insulin_multiplier {multiplier} outside "
+                                 "expected range (0, 10]. Typical value is 2.0")
+
+            # Warn if not using the standard 2.0 multiplier
+            if multiplier != 2.0:
+                logger.warning(f"Using non-standard max_active_insulin_multiplier: {multiplier}")
+
         # Physical activity processing - ONLY for patient model
         pa_entries = model_config.get("physical_activity_entries", [])
 

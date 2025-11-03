@@ -23,5 +23,6 @@
   ],
   "retrospective_correction_enabled": true,
   "use_mid_absorption_isf": false,
-  "carb_absorption_model": "piecewiseLinear"
+  "carb_absorption_model": "piecewiseLinear",
+  "max_active_insulin_modifier": 10.0
 }

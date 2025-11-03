@@ -21,6 +21,7 @@
   "partial_application_factor": 0.4,
   "use_mid_absorption_isf": true,
   "includePositiveVelocityAndRC": false,
-  "carb_absorption_model": "piecewiseLinear"
+  "carb_absorption_model": "piecewiseLinear",
+  "max_active_insulin_modifier": 2.0
 
 }

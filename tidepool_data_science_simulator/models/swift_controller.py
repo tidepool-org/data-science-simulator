@@ -85,6 +85,8 @@ class SwiftLoopController(LoopController):
         data['suspendThreshold'] = settings_dictionary['suspend_threshold']
         data['automaticBolusApplicationFactor'] = settings_dictionary['partial_application_factor']
         data['useMidAbsorptionISF'] = settings_dictionary['use_mid_absorption_isf']
+        # Default to 2.0 for backward compatibility if not specified
+        data['maxActiveInsulinMultiplier'] = settings_dictionary.get('max_active_insulin_multiplier', 2.0)
 
         if settings_dictionary.get('partial_application_factor'):
             data['recommendationType'] = 'automaticBolus'

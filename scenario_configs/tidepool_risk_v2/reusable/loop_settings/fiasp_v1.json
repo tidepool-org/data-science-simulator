@@ -21,5 +21,6 @@
     180.0,
     240.0
   ],
-  "retrospective_correction_enabled": true
+  "retrospective_correction_enabled": true,
+  "max_active_insulin_modifier": 10.0
 }
