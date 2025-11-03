@@ -1,0 +1,81 @@
+{
+    "metadata": {
+        "risk_id": "TLR-788",
+        "simulation_id": "TLR-788-sensitive",
+        "risk_description": "Metabolic settings are too aggressive",
+        "config_format_version": "v1.0"
+    },
+    "base_config": "reusable.simulations.base_sensitive_autobolus",
+    "override_config": [
+        {
+            "sim_id": "pre-Loop-NoMitigations_t1_sensitive",
+            "patient": {
+              "patient_model": {
+                "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+                "bolus_entries": [
+                  {
+                    "time": "8/15/2019 12:00:00",
+                    "value": "accept_recommendation"
+                  }
+                ]
+              },
+              "pump": {
+                "metabolism_settings": {
+                  "insulin_sensitivity_factor": {
+                    "start_times": ["00:00:00"],
+                            "values": [10]
+                        }
+                    },
+                  "carb_entries": "reusable.carb_doses.sensitive_profile_v1"
+                }
+            }
+            },
+      {
+            "sim_id": "pre-noLoop_t1_sensitive",
+            "patient": {
+              "patient_model": {
+                "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+                "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
+              },
+              "pump": {
+                "metabolism_settings": {
+                  "insulin_sensitivity_factor": {
+                    "start_times": ["00:00:00"],
+                            "values": [10]
+                        }
+                    },
+                  "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+                  "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
+                }
+            },
+            "controller": null
+            },
+      {
+            "sim_id": "post-Loop-WithMitigations_t1_sensitive",
+            "patient": {
+              "patient_model": {
+                "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+                "bolus_entries": [
+                  {
+                    "time": "8/15/2019 12:00:00",
+                    "value": "accept_recommendation"
+                  }
+                ]
+              },
+              "pump": {
+                "metabolism_settings": {
+                  "insulin_sensitivity_factor": {
+                    "start_times": ["00:00:00"],
+                            "values": [10]
+                        }
+                    },
+                  "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+                "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+                }
+            },
+        "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+            }
+    ]
+}

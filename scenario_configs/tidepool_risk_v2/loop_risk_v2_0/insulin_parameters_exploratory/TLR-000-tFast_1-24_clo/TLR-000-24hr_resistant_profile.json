@@ -1,0 +1,126 @@
+{
+  "metadata": {
+    "risk-id": "TLR-000",
+    "simulation_id": "TLR-000-base_resistant",
+    "risk_description": "Base for HF—24 hours happy",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_2_0_v1",
+  "override_config": [
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "duration_hours": 24.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_54_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_54_12hr",
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 14:50:00",
+              "type": "carb",
+              "value": 44
+            },
+            {
+              "start_time": "8/15/2019 17:20:00",
+              "type": "carb",
+              "value": 60
+            },
+            {
+              "start_time": "8/15/2019 18:50:00",
+              "type": "carb",
+              "value": 73
+            },
+            {
+              "start_time": "8/16/2019 6:15:00",
+              "type": "carb",
+              "value": 59
+            },
+            {
+              "start_time": "8/16/2019 8:40:00",
+              "type": "carb",
+              "value": 71
+            },
+            {
+              "start_time": "8/16/2019 11:45:00",
+              "type": "carb",
+              "value": 77
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 14:50:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 17:20:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 18:50:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 6:15:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 8:40:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 11:45:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 14:50:00",
+              "type": "carb",
+              "value": 44
+            },
+            {
+              "start_time": "8/15/2019 17:20:00",
+              "type": "carb",
+              "value": 60
+            },
+            {
+              "start_time": "8/15/2019 18:50:00",
+              "type": "carb",
+              "value": 73
+            },
+            {
+              "start_time": "8/16/2019 6:15:00",
+              "type": "carb",
+              "value": 59
+            },
+            {
+              "start_time": "8/16/2019 8:40:00",
+              "type": "carb",
+              "value": 71
+            },
+            {
+              "start_time": "8/16/2019 11:45:00",
+              "type": "carb",
+              "value": 77
+            }
+          ]
+        }
+      },
+      "controller": {
+        "id": "pyloopkit_v1",
+        "automation_control_timeline": [
+            {"dosing_enabled": false,
+            "time": "08/15/2019 12:00:00"}
+          ],
+        "settings": {
+          "model": "theoretical_fast_1",
+          "insulin_delay": 5
+        }
+      }
+    }
+  ]
+}

@@ -3,7 +3,7 @@ __author__ = "Cameron Summers"
 import datetime
 import numpy as np
 
-from tidepool_data_science_simulator.models.measures import Carb, Bolus, TempBasal
+from tidepool_data_science_simulator.models.measures import Carb, Bolus, TempBasal, PhysicalActivity
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 from pyloopkit.dose import DoseType
 
@@ -272,6 +272,10 @@ class CarbTimeline(EventTimeline):
 
         return carb_values, carb_start_times, carb_durations
 
+class PhysicalActivityTimeline(EventTimeline):
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = PhysicalActivity
 
 class ActionTimeline(EventTimeline):
     def __init__(self, datetimes=None, events=None):

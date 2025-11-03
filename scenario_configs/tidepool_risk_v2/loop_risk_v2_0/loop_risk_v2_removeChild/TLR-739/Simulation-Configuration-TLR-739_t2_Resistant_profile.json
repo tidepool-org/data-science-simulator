@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "risk-id": "TLR-739",
+    "simulation_id": "TLR-739-resistant",
+    "risk_description": "Low glucose meal entry, closed loop off",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_resistant_v1",
+  "override_config": [
+    { "sim_id": "pre-noLoop_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 7.6
+            }
+          ],
+            "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 13:00:00",
+              "type": "carb",
+              "value": 31
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 7.6
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        }
+    },
+      "controller": null
+    }
+  ]
+}

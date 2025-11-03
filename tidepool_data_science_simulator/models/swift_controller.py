@@ -1,6 +1,8 @@
 
 import datetime
 import json
+import os
+
 
 from tidepool_data_science_simulator.models.measures import Bolus, TempBasal
 from tidepool_data_science_simulator.models.controller import AutomationControlTimeline, LoopController
@@ -20,9 +22,11 @@ class SwiftLoopController(LoopController):
     def __str__(self):
         return "SwiftLoopKit.1"
 
-    def __init__(self, time, controller_config, automation_control_timeline=AutomationControlTimeline([], [])):
+    def __init__(self, time, controller_config, automation_control_timeline=AutomationControlTimeline([], []),
+                 loop_algo_io_dir=None):
         super().__init__(time, controller_config, automation_control_timeline)
         self.name = "SwiftLoopKit v0.1"
+        self.loop_algo_io_dir = loop_algo_io_dir
 
 
     def prepare_inputs(self, virtual_patient):
@@ -81,11 +85,18 @@ class SwiftLoopController(LoopController):
         data['suspendThreshold'] = settings_dictionary['suspend_threshold']
         data['automaticBolusApplicationFactor'] = settings_dictionary['partial_application_factor']
         data['useMidAbsorptionISF'] = settings_dictionary['use_mid_absorption_isf']
-              
+        data['maxActiveInsulinMultiplier'] = settings_dictionary['max_active_insulin_multiplier']
+
         if settings_dictionary.get('partial_application_factor'):
-            data['recommendationType'] = 'automaticBolus' 
+            data['recommendationType'] = 'automaticBolus'
+            data['includePositiveVelocityAndRC'] = False
         else:
             data['recommendationType'] = 'tempBasal'
+            data['includePositiveVelocityAndRC'] = True
+
+        # If includePositiveVelocityAndRC is set in the settings, override the default value
+        if settings_dictionary.get('includePositiveVelocityAndRC'):
+            data['includePositiveVelocityAndRC'] = settings_dictionary['include_positive_velocity_and_RC']
 
         # BASAL RATE
         data_entries = []
@@ -198,12 +209,34 @@ class SwiftLoopController(LoopController):
 
         if virtual_patient.pump is not None:
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
-                        
+
+            # Construct file paths based on whether directory is set
+            format_string = r'%Y-%m-%dT%H:%M:%SZ'
+            timestamp_str = self.time.strftime(format_string)
+            
+            if self.loop_algo_io_dir is not None:
+                input_filename = os.path.join(self.loop_algo_io_dir, f"loop_algo_input_{timestamp_str}.json")
+                output_filename = os.path.join(self.loop_algo_io_dir, f"loop_algo_output_{timestamp_str}.json")
+            else:
+                # Fallback to current directory for backward compatibility
+                input_filename = f"loop_algo_input_{timestamp_str}.json"
+                output_filename = f"loop_algo_output_{timestamp_str}.json"
+            
+            # Write out input dict to file
+            with open(input_filename, 'w') as f:
+                json.dump(loop_inputs_dict, f, indent=4)
+            
+            # Get Loop recommendations
             swift_output = get_loop_recommendations(loop_inputs_dict)
             swift_output_decode = swift_output.decode('utf-8')
             swift_output_json = json.loads(swift_output_decode)
+            
+            # Write out output dict to file
+            with open(output_filename, 'w') as f:
+                json.dump(swift_output_json, f, indent=4)
 
             return swift_output_json
+        
 
     def apply_loop_recommendations(self, virtual_patient, loop_algorithm_output):
         """

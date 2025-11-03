@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1049_7",
+    "simulation_id": "TLR-1049_7-base_sensitive",
+    "risk_description": "Workout duration set too long",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00", "19:00:00"],
+            "lower_values": [70, 170, 70],
+            "upper_values": [90, 180, 90]
+          }
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00", "19:00:00"],
+            "lower_values": [70, 170, 70],
+            "upper_values": [90, 180, 90]
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00", "19:00:00"],
+            "lower_values": [100, 170, 100],
+            "upper_values": [115, 180, 115]
+          }
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_IM_swift"
+      }
+    }
+]
+}

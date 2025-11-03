@@ -1,0 +1,5 @@
+{
+    "glucose_safety_limit": 75,
+    "max_basal_rate": 3.15,
+    "max_bolus": 13.33
+  }

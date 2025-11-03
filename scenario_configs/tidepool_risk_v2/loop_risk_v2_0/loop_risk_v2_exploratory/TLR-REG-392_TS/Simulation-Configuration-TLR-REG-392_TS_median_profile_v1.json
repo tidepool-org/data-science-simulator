@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "risk-id": "TLR-REG-392_TS",
+    "simulation_id": "TLR-REG-392_TS-base_median",
+    "risk_description": "AI-recommended settings changes",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "metabolism_settings": {
+            "carb_insulin_ratio": {
+              "start_times": [
+                "00:00:00"
+              ],
+              "values": [
+                12
+              ]
+            },
+            "basal_rate": {
+              "start_times": [
+                "00:00:00",
+                "15:00:00"
+              ],
+              "values": [
+                0.9,
+                0.75
+              ]
+            }
+          },
+          "target_range": {
+            "start_times": [
+              "00:00:00"
+            ],
+            "lower_values": [
+              120
+            ],
+            "upper_values": [
+              125
+            ]
+          }
+        }
+      },
+      "controller": {
+        "settings": {
+          "suspend_threshold": 75,
+          "max_bolus": 10.0
+          }
+        }
+      }
+]
+}

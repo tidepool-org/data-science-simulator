@@ -1,0 +1,34 @@
+{
+  "metadata": {
+    "risk_id": "TLR-792",
+    "simulation_id": "TLR-792-Median",
+    "risk_description": "Safety setting too aggressive: Glucose Safety Limit",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_autobolus",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop-noMitigations_t1_median",
+      "controller": {
+        "settings": {
+          "suspend_threshold": 54
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_median",
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_median",
+      "patient": {
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+    }
+  ]
+}

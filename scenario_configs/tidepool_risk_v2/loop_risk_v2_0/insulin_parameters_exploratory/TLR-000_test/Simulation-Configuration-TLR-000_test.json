@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "risk-id": "TLR-000_test",
+    "simulation_id": "TLR-000_test-base_median",
+    "risk_description": "test insulin model changes",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_2_0_v1",
+  "override_config": [
+    {"sim_id": "post-Loop-WithMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "patient_insulin_type": "glargine"
+          },
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1"
+        }
+      },
+      "controller": {
+        "id": "pyloopkit_v1",
+        "settings": {
+          "insulin_delay": 10,
+          "model": "fiasp"
+        }
+      }
+    }
+]
+}

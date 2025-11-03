@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1081_w",
+    "simulation_id": "TLR-1081_w-t2_resistant",
+    "risk_description": "Accept incorrect preset values",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_resistant_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t2_resistant",
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00"],
+            "lower_values": [70, 250],
+            "upper_values": [90, 250]
+          }
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t2_resistant",
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00"],
+            "lower_values": [70, 250],
+            "upper_values": [90, 250]
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t2_resistant",
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00"],
+            "lower_values": [100, 250],
+            "upper_values": [115, 250]
+          }
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_Swift"
+      }
+    }
+]
+}

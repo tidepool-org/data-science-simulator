@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "risk-id": "TLR-593",
+    "simulation_id": "TLR-593-median",
+    "risk_description": "Conflicting settings",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "duration_hours": 23.0,
+      "controller": {
+        "settings": {
+          "max_basal_rate": 0.25
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_median",
+      "duration_hours": 23.0,
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
+    }
+  ]
+}
