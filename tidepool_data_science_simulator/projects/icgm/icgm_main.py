@@ -9,22 +9,25 @@ import shutil
 if __name__ == '__main__':
     # freeze_support()
     
-    TEST_PARAMS = {
-        'paf_values': [0.4],
-        'positive_rc_values': [True],
-        'gradual_transitions_threshold_values': [30.0, 50.0, 10.0, 500.0],
-        'num_vps': None,  # Use all available virtual patients
-        'true_bg_values': range(40, 405, 5),  # 73 values
-        'sensor_bg_values': range(40, 405, 5), # 73 values
-    }
+    gradual_transitions_threshold_values = [30.0, 50.0, 10.0, 500.0]
+    
+    for gradual_transitions_threshold in gradual_transitions_threshold_values:
+        TEST_PARAMS = {
+            'paf_values': [0.4],
+            'positive_rc_values': [True],
+            'gradual_transitions_threshold_values': [gradual_transitions_threshold],
+            'num_vps': 3,  # Use all available virtual patients
+            'true_bg_values': range(40, 45, 5),  # 73 values
+            'sensor_bg_values': range(40, 45, 5), # 73 values
+        }
 
-    result_dirs = run_icgm_simulations(
-        base_result_dir=os.path.join(DATA_DIR, "processed"),
-        **TEST_PARAMS
-    )
+        result_dir = run_icgm_simulations(
+            base_result_dir=os.path.join(DATA_DIR, "processed"),
+            **TEST_PARAMS
+        )
+        result_dir = result_dir[0] 
 
-    # Process each result directory
-    for result_dir in result_dirs:
+        # Process each result directory
         summary_csv = process_simulation_data(result_dir)
 
         parent_dir = os.path.dirname(result_dir)
