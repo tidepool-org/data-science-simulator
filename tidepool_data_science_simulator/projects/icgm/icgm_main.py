@@ -16,9 +16,9 @@ if __name__ == '__main__':
             'paf_values': [0.4],
             'positive_rc_values': [True],
             'gradual_transitions_threshold_values': [gradual_transitions_threshold],
-            'num_vps': 3,  # Use all available virtual patients
-            'true_bg_values': range(40, 45, 5),  # 73 values
-            'sensor_bg_values': range(40, 45, 5), # 73 values
+            'num_vps': None,  # Use all available virtual patients
+            'true_bg_values': range(40, 405, 5),  # 73 values
+            'sensor_bg_values': range(40, 405, 5), # 73 values
         }
 
         result_dir = run_icgm_simulations(
