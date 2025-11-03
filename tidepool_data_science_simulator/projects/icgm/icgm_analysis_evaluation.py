@@ -1,9 +1,7 @@
 __author__ = "Mark Connolly"
 
-import argparse
 import re
 import logging
-import datetime
 import warnings
 import os
 import itertools
@@ -13,7 +11,6 @@ from multiprocessing import Pool, cpu_count
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from tidepool_data_science_metrics.glucose.glucose import blood_glucose_risk_index
 from tidepool_data_science_metrics.insulin.insulin import dka_index
@@ -303,19 +300,7 @@ def compute_score_risk_table(summary_df, concurrency_table=None):
                 risk_prob_sim = sim_prob_start[s_idx] * p_corr_bolus_given_error * p_error
                 num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
 
-                severity_event_count[s_idx] += num_risk_events_sim
-                ####
-                # if "lbgi_icgm_valid" in summary_df:
-                #     severity_mask = (lbgi_data_valid >= severity_band[0]) & (lbgi_data_valid < severity_band[1])
-                #     num_sims_in_severity_band = len(summary_df[concurrency_square_mask][severity_mask])
-                #     sim_prob_valid.append(num_sims_in_severity_band / num_sims_in_concurrency_square)
-                    
-                #     risk_prob_sim = sim_prob_valid[s_idx] * p_corr_bolus_given_error * p_error
-                #     num_risk_events_sim = risk_prob_sim * num_cgm_per_100k_person_years
-
-                #     severity_event_count[s_idx] += num_risk_events_sim
-
-       
+                severity_event_count[s_idx] += num_risk_events_sim       
         
             mean_lbgi_start.append(sim_prob_start)
         # mean_lbgi_valid.append(sim_prob_valid)
@@ -327,33 +312,4 @@ def compute_score_risk_table(summary_df, concurrency_table=None):
     return severity_event_probability_df, (low_icgm_axis, low_true_axis, np.array(mean_lbgi_start), np.array(joint_prob))
 
 
-if __name__ == "__main__":
-    # parser = argparse.ArgumentParser("icgm_analysis_evaluation")
-    # parser.add_argument("mode", help="process or summarize", type=str)
-    # parser.add_argument("path", help="simulation data directory (process) or summary file path (summarize)", type=str)
-    # args = parser.parse_args()
 
-    # mode = args.mode
-    # path = args.path
-
-    mode = 'process'
-    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d'
-    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a'
-    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.6_posrc=False_2025_07_24_T_14_00_27_658d0e12'
-    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.8_posrc=False_2025_07_24_T_20_07_52_14d7f7d4'
-    # path = '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_2025_10_15_T_17_04_34_77f12fe3'
-    path = '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=10_wide'
-
-    # mode = 'summarize'
-    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d.csv'
-    # path = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/icgm_sensitivity_analysis_paf=0.2_posrc=False_2025_07_23_T_19_49_26_0f59469a.csv'
-    # path = '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_2025_10_04_T_15_51_23_77f12fe3_merged_20251029_091426.csv'
-    
-    match mode:
-        case 'process': 
-            summary_result_filepath = process_simulation_data(path)
-       
-        case 'summarize': 
-            summary_df = pd.read_csv(path, sep=",")
-            severity_event_probability_df, (low_icgm_axis, low_true_axis, mean_lbgi_swift_start, joint_prob_swift) = compute_score_risk_table(summary_df)
-            print(severity_event_probability_df)

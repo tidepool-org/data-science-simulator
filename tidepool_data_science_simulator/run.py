@@ -28,7 +28,8 @@ from tidepool_data_science_metrics.insulin.insulin import (
 def run_simulations(sims, save_dir,
                     save_results=True,
                     compute_summary_metrics=True,
-                    num_procs=1):
+                    num_procs=1,
+                    return_full_results=True):
     """
     Run the simulations passed as argument and optionally process, save, or plot the results.
 
@@ -51,6 +52,9 @@ def run_simulations(sims, save_dir,
 
     num_procs: int
         Number of processes for multiprocessing
+    
+    return_full_results: bool
+        If True, return full_results dictionary. Set to False to save memory when results are saved to disk.
     """
     current_commit = subprocess.check_output(["git", "describe", "--always"]).strip().decode("utf-8")
 
@@ -139,7 +143,8 @@ def run_simulations(sims, save_dir,
                 if save_results:
                     save_df(results_df, sim_id, save_dir)
 
-                full_results[sim_id] = results_df
+                if return_full_results:
+                    full_results[sim_id] = results_df
 
         sim_ctr += 1
 

@@ -27,7 +27,8 @@ from numpy.random import RandomState
 import time
 import os
 import copy
-import numexpr 
+import numexpr
+import gc
 
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.sensor import IdealSensor
@@ -324,23 +325,48 @@ def run_icgm_simulations(paf_values=None, positive_rc_values=None, gradual_trans
                     save_dir=result_dir,
                     save_results=True,
                     compute_summary_metrics=False,
-                    num_procs=sim_batch_size
+                    num_procs=sim_batch_size,
+                    return_full_results=False  # Save memory by not returning full results
                 )
+                
+                # Explicitly delete results and force garbage collection
+                del full_results
+                del summary_results_df
+                gc.collect()
                 
                 # Track batch timing and progress
                 batch_duration_minutes = (time.time() - batch_start_time) / 60
                 batch_durations.append(batch_duration_minutes)
                 completed_batches += 1
                 
-                # Keep only last 10 batch durations for rolling average
-                if len(batch_durations) > 10:
+                # Keep only last 20 batch durations for more stable estimates
+                if len(batch_durations) > 20:
                     batch_durations.pop(0)
                 
-                # Calculate progress statistics
+                # Calculate progress statistics with median for robustness
                 progress_percentage = (completed_batches / total_expected_batches) * 100
-                average_batch_time = sum(batch_durations) / len(batch_durations)
+                
+                # Use median instead of mean for more robust estimate
+                import statistics
+                if len(batch_durations) >= 5:
+                    median_batch_time = statistics.median(batch_durations)
+                    # Detect upward trend (memory pressure) by comparing recent vs older batches
+                    if len(batch_durations) >= 10:
+                        recent_avg = sum(batch_durations[-5:]) / 5
+                        older_avg = sum(batch_durations[:5]) / 5
+                        trend_factor = recent_avg / older_avg if older_avg > 0 else 1.0
+                        # Apply trend factor if batches are getting slower
+                        if trend_factor > 1.1:  # More than 10% slower
+                            estimated_batch_time = median_batch_time * trend_factor
+                        else:
+                            estimated_batch_time = median_batch_time
+                    else:
+                        estimated_batch_time = median_batch_time
+                else:
+                    estimated_batch_time = sum(batch_durations) / len(batch_durations)
+                
                 remaining_batches = total_expected_batches - completed_batches
-                estimated_remaining_minutes = remaining_batches * average_batch_time
+                estimated_remaining_minutes = remaining_batches * estimated_batch_time
                 
                 # Calculate total elapsed time
                 total_elapsed_minutes = (time.time() - overall_start_time) / 60
@@ -350,7 +376,12 @@ def run_icgm_simulations(paf_values=None, positive_rc_values=None, gradual_trans
                 logger.info(f"=== BATCH PROGRESS ===")
                 logger.info(f"Batch {completed_batches}/{total_expected_batches} ({progress_percentage:.1f}% complete)")
                 logger.info(f"Current batch: {batch_duration_minutes:.2f} min | {len(sim_batch)} simulations")
-                logger.info(f"Average batch time: {average_batch_time:.2f} min (last {len(batch_durations)} batches)")
+                logger.info(f"Estimated batch time: {estimated_batch_time:.2f} min (median of last {len(batch_durations)} batches)")
+                if len(batch_durations) >= 10:
+                    recent_avg = sum(batch_durations[-5:]) / 5
+                    older_avg = sum(batch_durations[:5]) / 5
+                    trend_factor = recent_avg / older_avg if older_avg > 0 else 1.0
+                    logger.info(f"Batch time trend: {trend_factor:.2f}x ({'slowing down' if trend_factor > 1.1 else 'stable'})")
                 logger.info(f"Estimated time remaining: {estimated_remaining_minutes:.1f} min ({estimated_remaining_minutes/60:.1f} hrs)")
                 logger.info(f"Total elapsed: {total_elapsed_minutes:.1f} min | Parameter set elapsed: {parameter_elapsed_minutes:.1f} min")
                 logger.info(f"PAF={paf}, POSITIVE_RC={positive_rc}, GRADUAL_THRESHOLD={gradual_transitions_threshold}")
