@@ -10,7 +10,7 @@ import multiprocessing
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
+# from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_simulator.evaluation.jaeb_utils import (
     load_jaeb_issue_report_time_series_data
 )
@@ -279,7 +279,7 @@ if __name__ == "__main__":
     sim_population_results = {input_id_sim_id_map[input_id]: sim_population_results[input_id_sim_id_map[input_id]].iloc[start_idx: end_idx]
                               for input_id in input_ids_to_inspect}
 
-    plot_sim_results(sim_population_results)
+    # plot_sim_results(sim_population_results)
     # compare_bg_delta_distributions(sim_population_results)
     # compare_bg_distributions(sim_population_results)
 

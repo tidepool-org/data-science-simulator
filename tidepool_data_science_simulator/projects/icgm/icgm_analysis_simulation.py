@@ -225,7 +225,7 @@ def build_icgm_sim_generator(json_base_configs, paf, positive_rc, gradual_transi
 
 
 def run_icgm_simulations(paf_values=None, positive_rc_values=None, gradual_transitions_threshold_values=None,
-                         base_result_dir=None, num_vps=None, true_bg_values=None, sensor_bg_values=None):
+                         base_result_dir=None, vp_ids=None, true_bg_values=None, sensor_bg_values=None):
     """
     Pipeline wrapper to run iCGM simulations with configurable parameters.
     
@@ -234,7 +234,7 @@ def run_icgm_simulations(paf_values=None, positive_rc_values=None, gradual_trans
         positive_rc_values: List of positive RC boolean values to test (default: [True])
         gradual_transitions_threshold_values: List of gradual transitions threshold values to test (default: [30])
         base_result_dir: Base directory for results (default: DATA_DIR/processed/)
-        num_vps: Number of virtual patients (None = all available)
+        vp_ids: List of virtual patient IDs to include (e.g., [1, 2, 3]). None = all available
         true_bg_values: Optional list/range of true glucose values (default: range(40, 80, 5))
         sensor_bg_values: Optional list/range of sensor glucose values (default: range(80, 120, 5))
     
@@ -271,9 +271,14 @@ def run_icgm_simulations(paf_values=None, positive_rc_values=None, gradual_trans
     # Get virtual patient configurations
     json_base_configs = transform_icgm_json_to_v2_parser()
     
-    # Limit to specified number of VPs if requested
-    if num_vps is not None:
-        json_base_configs = json_base_configs[:num_vps]
+    # Filter to specified VP indices if requested
+    if vp_ids is not None:
+        filtered_configs = []
+        for idx in vp_ids:
+            if idx < len(json_base_configs):
+                filtered_configs.append(json_base_configs[idx])
+        json_base_configs = filtered_configs
+        logger.info(f"Filtered to {len(json_base_configs)} VPs at indices: {vp_ids}")
     
     # Calculate total expected batches for progress tracking
     sims_per_config = len(true_bg_values) * len(sensor_bg_values)  
