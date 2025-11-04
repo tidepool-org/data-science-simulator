@@ -12,16 +12,12 @@ import matplotlib.colors as mcolors
 
 from tidepool_data_science_simulator.projects.icgm.icgm_analysis_evaluation import compute_score_risk_table, get_probability_index
 
-data_dir = ''
+data_dir = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/'
 
 data_names = [
-    '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=False_original.csv',
-    '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_original.csv',
-    '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=20_full.csv',
-    # '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=10_merged.csv',
-    # '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=10_wide_merged.csv',
-    # '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=25_merged.csv',
-    # '/Users/mconn/data/simulator/processed/icgm_sensitivity_analysis_paf=0.4_posrc=True_maxjump=40_merged.csv',
+    'without_gradual_transition_mitigation/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d.tsv',
+    'with_gradual_transition_mitigation/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=20.0_2025_11_03_T_19_56_16_3747cf91.tsv',
+    'with_gradual_transition_mitigation/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=30.0_2025_11_03_T_13_55_07_18165682.tsv',
 ]
 
 # Initialize storage for all data
@@ -39,7 +35,18 @@ for i, data_name in enumerate(data_names):
     
     data_path = data_dir + data_name
     try:
-        summary_df = pd.read_csv(data_path, sep="\t")
+        # Detect file extension and use appropriate separator
+        file_ext = os.path.splitext(data_path)[1].lower()
+        if file_ext == '.tsv':
+            separator = '\t'
+        elif file_ext == '.csv':
+            separator = ','
+        else:
+            # Default to comma if extension is unknown
+            separator = ','
+            print(f"  Warning: Unknown file extension '{file_ext}', defaulting to comma separator")
+        
+        summary_df = pd.read_csv(data_path, sep=separator)
         severity_event_probability_df, (low_icgm_axis, low_true_axis, mean_lbgi_swift_start, joint_prob_swift) = compute_score_risk_table(summary_df, concurrency_table='adult')
 
         severity_event_probability_df = severity_event_probability_df * 48

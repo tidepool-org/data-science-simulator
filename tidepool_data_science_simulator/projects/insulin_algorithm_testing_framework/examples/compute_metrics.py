@@ -23,6 +23,8 @@ DEBUG_BREAK = False  # Set to True to break after first batch for debugging
 # Other configuration
 OUTPUT_DIR = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/unannounced_meals/510k_short_run'
 OUTPUT_DIR = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/510k_short_run_example_mitigation/'
+OUTPUT_DIR = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/510k_short_run_example_mitigation_new'
+
 BATCH_SIZE = 500  # Process files in batches to avoid memory issues
 
 def load_simulation_results(tsv_file):

@@ -5,7 +5,6 @@ from multiprocessing import freeze_support
 from tidepool_data_science_simulator.projects.icgm.icgm_analysis_evaluation import process_simulation_data
 from tidepool_data_science_simulator.projects.icgm.icgm_analysis_simulation import run_icgm_simulations
 from tidepool_data_science_simulator.utils import DATA_DIR
-from tidepool_data_science_simulator.visualization.sim_viz import load_and_plot_tsv
 import shutil
 
 logger = logging.getLogger(__name__)

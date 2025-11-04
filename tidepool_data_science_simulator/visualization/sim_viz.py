@@ -10,6 +10,8 @@ import itertools
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
+from tidepool_data_science_simulator.evaluation.inspect_results import load_result
+
 # style.use("seaborn-poster")  # sets the size of the charts
 # style.use("ggplot")
 
@@ -187,3 +189,29 @@ def plot_sim_results_missing_insulin(all_results):
         print("Undelivered Basal", undelivered_sum, undelivered_sum / total)
 
     plt.show()
+
+def load_and_plot_tsv(tsv_path: str, save: bool = False, save_path: str = None):
+    """
+    Load a TSV file and plot simulation results.
+    
+    Args:
+        tsv_path: Path to the TSV file
+        save: Whether to save the plot instead of displaying it
+        save_path: Path to save the plot (if save=True)
+    """
+    # Load the TSV file
+    sim_id, result_df = load_result(tsv_path, ext="tsv")
+    
+    # Wrap in dictionary format expected by plot_sim_results
+    all_results = {sim_id: result_df}
+    
+    # Plot the results
+    plot_sim_results(all_results, save=save, save_path=save_path)
+
+
+if __name__ == "__main__":
+    data_dir = "/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing_framework/icgm_spurious/with_gradual_transition_mitigation/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=20.0_2025_11_03_T_19_56_16_3747cf91/"
+    file_name = "icgm_analysis_vp_35_65a71e48e64827646838032c8d29d3ac91ac36da94de018be6f668559ff4f9c2_tbg=40_sbg=100.tsv"
+    file_path = os.path.join(data_dir, file_name)
+
+    load_and_plot_tsv(file_path, save=False)

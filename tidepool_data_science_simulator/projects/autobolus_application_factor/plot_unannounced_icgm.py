@@ -11,17 +11,19 @@ risk_scores = [
     [9.03E-01, 3.13E-02, 5.16E-04, 9.05E-05, 6.57E-07], # PAF 0.6
     [8.99E-01, 3.44E-02, 6.70E-04, 1.11E-04, 1.25E-06], # PAF 0.8
     [8.96E-01, 3.79E-02, 4.58E-04, 7.60E-05, 2.19E-07], # PAF 0.4 rc+momentum Mitigated (max jump 20)
-    [0.889915, 0.042124, 0.002172, 0.000302, 0.000060] # PAF 0.4 rc+momentum Unmitigated
+    [0.889915, 0.042124, 0.002172, 0.000302, 0.000060], # PAF 0.4 rc+momentum Unmitigated
+    [0.893475, 0.039198, 0.000678, 0.000153, 0.000003], # PAF 0.4 rc+momentum Mitigated [new] (max jump 20)
+    [0.894541, 0.040216, 0.000726, 0.000153, 0.000003], # PAF 0.4 rc+momentum Mitigated [new] (max jump 30)
 ]
 
-tir = [54.6, 57.4, 58.3, 58.7, 61.4, 64.2]
+tir = [54.6, 57.4, 58.3, 58.7, 61.4, 64.2, 63.65, 64.18]
 safety_thresholds = [1, 1e-1, 1e-2, 1e-4, 1e-6]
 
 # Define colors and labels for each data point
 # Hardcoded 4-color gradient (light green -> green -> medium green -> dark green)
 gradient_colors = ['#A8E6CF', '#66D19A', '#2FB06A', '#206B3B']
 
-point_colors = gradient_colors + ['#627cfb', "#9A0A0A" ]
+point_colors = gradient_colors + ['#627cfb', "#9A0A0A", "#f6fb62", "#df4908"]  # Last two points in distinct colors]
 
 point_labels = [
     '',
@@ -29,7 +31,8 @@ point_labels = [
     '',
     '',
     'PAF 0.4 Mitigated',
-    'PAF 0.4 Unmitigated'
+    'PAF 0.4 Unmitigated',
+    'PAF 0.4 Mitigated (new)',
 ]
 
 legend_labels = [
@@ -37,12 +40,14 @@ legend_labels = [
     'PAF 0.4, RCM False',
     'PAF 0.6, RCM False',
     'PAF 0.8, RCM False',
-    'PAF 0.4, RCM True Mitigated',
-    'PAF 0.4, RCM True, Unmitigated'
+    'PAF 0.4, RCM True Mitigated 20 mg/dL (old)',
+    'PAF 0.4, RCM True, Unmitigated',
+    'PAF 0.4, RCM True Mitigated 20 mg/dL (new)',
+    'PAF 0.4, RCM True Mitigated 30 mg/dL (new)',
 ]
 
 # First 4 points are open circles, last 2 are filled
-point_fill_styles = ['none', 'none', 'none', 'none', 'full', 'full']
+point_fill_styles = ['none', 'none', 'none', 'none', 'full', 'full', 'full', 'full']
 
 # Convert to numpy array for easier column extraction
 risk_scores_array = np.array(risk_scores)
@@ -77,22 +82,29 @@ for i in range(5):
         else:
             # Filled circle
             ax.scatter(risk_val, tir_val, c=point_colors[j], s=marker_size, 
-                      alpha=0.8, edgecolors=point_colors[j], linewidth=2, zorder=2)
+                      alpha=0.8, edgecolors='black', linewidth=2, zorder=2)
         
         # Add label with better styling
         ha = 'left'
+        va = 'bottom'
+        xytext=(10, 10)
+
         if i >= 3 and j == 5:
             ha = 'right'
 
-        ax.annotate(point_labels[j], 
-                   (risk_val, tir_val), 
-                   xytext=(10, 10), 
-                   textcoords='offset points', 
-                   fontsize=11, 
-                   fontweight='bold',
-                   ha=ha,
-                   bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8),
-                   zorder=4)
+        if j == 6:
+            xytext=(10, -10)
+
+        # ax.annotate(point_labels[j], 
+        #            (risk_val, tir_val), 
+        #             xytext=xytext, 
+        #             textcoords='offset points', 
+        #             fontsize=11, 
+        #             fontweight='bold',
+        #             ha=ha,
+        #             va=va,
+        #             bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8),
+        #             zorder=4)
     
     # Add safety threshold line with better styling and label
     threshold_line = ax.axvline(x=safety_thresholds[i], color='darkred', 
@@ -158,13 +170,13 @@ for j in range(len(legend_labels)):
         # Filled circle legend entry
         legend_elements.append(plt.Line2D([0], [0], marker='o', color='w', 
                                          markerfacecolor=point_colors[j],
-                                         markeredgecolor=point_colors[j], 
+                                         markeredgecolor='black', 
                                          markeredgewidth=2,
                                          markersize=10, label=legend_labels[j]))
 legend_elements.append(plt.Line2D([0], [0], color='darkred', linestyle='--', 
     linewidth=3, label='Safety Threshold'))
 
-fig.legend(handles=legend_elements, loc='lower right', bbox_to_anchor=(0.9, 0.225), 
+fig.legend(handles=legend_elements, loc='lower right', bbox_to_anchor=(0.95, 0.2025), 
     frameon=True, fancybox=True, shadow=True, fontsize=12)
 
 # Adjust layout with more space
