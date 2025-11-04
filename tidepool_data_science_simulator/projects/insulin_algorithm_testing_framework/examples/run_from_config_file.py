@@ -26,7 +26,7 @@ from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framewor
 from tidepool_data_science_simulator.utils import DATA_DIR
 
 CONFIG_FILE = 'tidepool_data_science_simulator/projects/insulin_algorithm_testing_framework/config/510k_short_run_config_mitigation.yaml'  # Default config file path
-OUTPUT_DIR = os.path.join(DATA_DIR, 'processed_data', 'insulin_algorithm_testing_framework', '510k_short_run_example_mitigation')
+OUTPUT_DIR = os.path.join(DATA_DIR, 'processed_data', 'insulin_algorithm_testing_framework', '510k_short_run_example_mitigation_30')
 
 # Setup logging
 logging.basicConfig(
