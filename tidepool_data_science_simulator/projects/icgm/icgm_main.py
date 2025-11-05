@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 if __name__ == '__main__':
     # freeze_support()
     
-    gradual_transitions_threshold_values = [20.0, 30.0, 40.0]
+    gradual_transitions_threshold_values = [50.0]
     
     for gradual_transitions_threshold in gradual_transitions_threshold_values:
         TEST_PARAMS = {
