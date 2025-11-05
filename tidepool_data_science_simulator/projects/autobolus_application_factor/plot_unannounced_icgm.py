@@ -10,20 +10,37 @@ risk_scores = [
     [9.06E-01, 2.80E-02, 4.40E-04, 7.49E-05, 2.19E-07], # PAF 0.4
     [9.03E-01, 3.13E-02, 5.16E-04, 9.05E-05, 6.57E-07], # PAF 0.6
     [8.99E-01, 3.44E-02, 6.70E-04, 1.11E-04, 1.25E-06], # PAF 0.8
-    [8.96E-01, 3.79E-02, 4.58E-04, 7.60E-05, 2.19E-07], # PAF 0.4 rc+momentum Mitigated (max jump 20)
+    # [8.96E-01, 3.79E-02, 4.58E-04, 7.60E-05, 2.19E-07], # PAF 0.4 rc+momentum Mitigated (max jump 20)
+    # [0.893475, 0.039198, 0.000678, 0.000153, 0.000003], # PAF 0.4 rc+momentum Mitigated [new] (max jump 20)
+    # [0.894541, 0.040216, 0.000726, 0.000153, 0.000003], # PAF 0.4 rc+momentum Mitigated [new] (max jump 30)
+    [8.966994e-01, 3.733984e-02, 4.584713e-04, 7.595446e-05, 2.188889e-07], # PAF 0.4 rc+momentum Mitigated (max jump 20)
+    [8.954493e-01, 3.855087e-02, 4.974576e-04, 7.595446e-05, 2.188889e-07], # PAF 0.4 rc+momentum Mitigated (max jump 30)
+    [8.939179e-01, 3.990848e-02, 6.697710e-04, 7.748669e-05, 2.188889e-07], # PAF 0.4 rc+momentum Mitigated (max jump 40)
     [0.889915, 0.042124, 0.002172, 0.000302, 0.000060], # PAF 0.4 rc+momentum Unmitigated
-    [0.893475, 0.039198, 0.000678, 0.000153, 0.000003], # PAF 0.4 rc+momentum Mitigated [new] (max jump 20)
-    [0.894541, 0.040216, 0.000726, 0.000153, 0.000003], # PAF 0.4 rc+momentum Mitigated [new] (max jump 30)
+
 ]
 
-tir = [54.6, 57.4, 58.3, 58.7, 61.4, 64.2, 63.65, 64.18]
+tir = [
+    54.6, # PAF 0.2
+    57.4, # PAF 0.4
+    58.3, # PAF 0.6
+    58.7, # PAF 0.8
+    # 61.4, # PAF 0.4 rc+momentum Mitigated (max jump 20)
+    # 63.65, # PAF 0.4 rc+momentum Mitigated [new] (max jump 20)
+    # 64.18, # PAF 0.4 rc+momentum Mitigated [new] (max jump 30)
+    63.39, # PAF 0.4 rc+momentum Mitigated (max jump 20)
+    63.97, # PAF 0.4 rc+momentum Mitigated (max jump 30)
+    64.35, # PAF 0.4 rc+momentum Mitigated (max jump 40)
+    64.2, # PAF 0.4 rc+momentum Unmitigated
+] 
+
 safety_thresholds = [1, 1e-1, 1e-2, 1e-4, 1e-6]
 
 # Define colors and labels for each data point
 # Hardcoded 4-color gradient (light green -> green -> medium green -> dark green)
 gradient_colors = ['#A8E6CF', '#66D19A', '#2FB06A', '#206B3B']
 
-point_colors = gradient_colors + ['#627cfb', "#9A0A0A", "#f6fb62", "#df4908"]  # Last two points in distinct colors]
+point_colors = gradient_colors + ['#627cfb', "#f6fb62", "#df4908", "#9A0A0A"]  # Last two points in distinct colors]
 
 point_labels = [
     '',
@@ -40,10 +57,14 @@ legend_labels = [
     'PAF 0.4, RCM False',
     'PAF 0.6, RCM False',
     'PAF 0.8, RCM False',
-    'PAF 0.4, RCM True Mitigated 20 mg/dL (old)',
-    'PAF 0.4, RCM True, Unmitigated',
-    'PAF 0.4, RCM True Mitigated 20 mg/dL (new)',
-    'PAF 0.4, RCM True Mitigated 30 mg/dL (new)',
+    # 'PAF 0.4, RCM True Mitigated 20 mg/dL (old)',
+    # 'PAF 0.4, RCM True Mitigated 20 mg/dL (new)',
+    # 'PAF 0.4, RCM True Mitigated 30 mg/dL (new)',
+    'PAF 0.4, RCM True Mitigated 20 mg/dL',
+    'PAF 0.4, RCM True Mitigated 30 mg/dL',
+    'PAF 0.4, RCM True Mitigated 40 mg/dL',
+    'PAF 0.4, RCM True Unmitigated',
+
 ]
 
 # First 4 points are open circles, last 2 are filled
