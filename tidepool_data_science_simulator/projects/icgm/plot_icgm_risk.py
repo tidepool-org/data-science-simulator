@@ -16,8 +16,11 @@ data_dir = '/Users/mconn/data/simulator/processed_data/insulin_algorithm_testing
 
 data_names = [
     'without_gradual_transition_mitigation/icgm_sensitivity_analysis_paf=0.4_posrc=False_2025_07_23_T_13_56_44_ae0a0c7d.tsv',
-    'with_gradual_transition_mitigation/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=20.0_2025_11_03_T_19_56_16_3747cf91.tsv',
-    'with_gradual_transition_mitigation/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=30.0_2025_11_03_T_13_55_07_18165682.tsv',
+    # 'with_gradual_transition_mitigation/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=20.0_2025_11_03_T_19_56_16_3747cf91.tsv',
+    # 'with_gradual_transition_mitigation/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=30.0_2025_11_03_T_13_55_07_18165682.tsv',
+    'with_gradual_transition_mitigation_RC_momentum/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=20.0_2025_11_04_T_20_08_33_f18580ee.tsv',
+    'with_gradual_transition_mitigation_RC_momentum/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=30.0_2025_11_05_T_01_16_29_f18580ee.tsv',
+    'with_gradual_transition_mitigation_RC_momentum/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=40.0_2025_11_05_T_07_53_52_f18580ee.tsv',
 ]
 
 # Initialize storage for all data

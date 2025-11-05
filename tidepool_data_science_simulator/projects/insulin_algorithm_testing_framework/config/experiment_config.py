@@ -21,7 +21,7 @@ class AlgorithmConfig:
     use_mid_absorption_isf: bool = True
     max_basal_multiplier: float = 3.5
     partial_application_factors: List[float] = field(default_factory=lambda: [0.2, 0.3, 0.4, 0.5, 0.6])
-    # gradual_transition_threshold: List[float] =[20.0]  # in mg/dL per min
+    gradual_transition_thresholds: List[float] = field(default_factory=lambda: [20.0, 30.0, 40.0])  # in mg/dL per min
     minimum_autobolus: float = 0.1
     maximum_autobolus: float = 100.0
 

@@ -30,7 +30,8 @@ RAW_DATA_DIR = os.path.join(DATA_DIR, "raw/")
 ICGM_SCENARIOS_DIR = os.path.join(DATA_DIR, "raw/icgm-sensitivity-analysis-scenarios-2020-07-10/")
 PROCESSED_DATA_DIR = os.path.join(DATA_DIR, "processed/")
 
-ICGM_SETTINGS_FILEPATH = os.path.join(PROCESSED_DATA_DIR, "icgm", "icgm_patient_settings.json")
+ICGM_USER_DATA_DIR = os.path.join(DATA_DIR, "user_profiles/")
+ICGM_SETTINGS_FILEPATH = os.path.join(ICGM_USER_DATA_DIR, "icgm", "icgm_patient_settings.json")
 
 logger = logging.getLogger(__name__)
 

@@ -115,29 +115,32 @@ class ScenarioGenerator:
         for initial_bg in self._generate_initial_bg_values():
             for meal_scenario in self._generate_meal_scenarios():
                 for settings_multipliers in self._generate_settings_mismatches():
-                    
-                    if algorithm == 'tempbasal':
-                        # Temp basal doesn't use partial application factor
-                        yield {
-                            'algorithm_type': algorithm,
-                            'patient_config': patient_config,
-                            'initial_bg': initial_bg,
-                            'meal_scenario': meal_scenario,
-                            'settings_multipliers': settings_multipliers,
-                            'partial_application_factor': None
-                        }
-                    
-                    elif algorithm == 'autobolus':
-                        # Generate scenarios for each partial application factor
-                        for paf in algorithm_config.partial_application_factors:
+                    for gradual_threshold in algorithm_config.gradual_transition_thresholds:
+                        
+                        if algorithm == 'tempbasal':
+                            # Temp basal doesn't use partial application factor
                             yield {
                                 'algorithm_type': algorithm,
                                 'patient_config': patient_config,
                                 'initial_bg': initial_bg,
                                 'meal_scenario': meal_scenario,
                                 'settings_multipliers': settings_multipliers,
-                                'partial_application_factor': paf
+                                'partial_application_factor': None,
+                                'gradual_transition_threshold': gradual_threshold
                             }
+                        
+                        elif algorithm == 'autobolus':
+                            # Generate scenarios for each partial application factor
+                            for paf in algorithm_config.partial_application_factors:
+                                yield {
+                                    'algorithm_type': algorithm,
+                                    'patient_config': patient_config,
+                                    'initial_bg': initial_bg,
+                                    'meal_scenario': meal_scenario,
+                                    'settings_multipliers': settings_multipliers,
+                                    'partial_application_factor': paf,
+                                    'gradual_transition_threshold': gradual_threshold
+                                }
     
     def _generate_initial_bg_values(self) -> List[float]:
         """Generate initial blood glucose values."""
@@ -197,7 +200,9 @@ class ScenarioGenerator:
             else:
                 num_paf = len(algorithm_config.partial_application_factors)
             
-            algorithm_scenarios = num_patients * num_initial_bg * num_meals * num_settings * num_paf
+            num_gradual_thresholds = len(algorithm_config.gradual_transition_thresholds)
+            
+            algorithm_scenarios = num_patients * num_initial_bg * num_meals * num_settings * num_paf * num_gradual_thresholds
             total += algorithm_scenarios
         
         return total
@@ -298,6 +303,7 @@ class ScenarioGenerator:
                 'meal_timing': scenario['meal_scenario']['timing'],
                 'meal_absorption_time': scenario['meal_scenario']['absorption_time'],
                 'partial_application_factor': scenario.get('partial_application_factor'),
+                'gradual_transition_threshold': scenario.get('gradual_transition_threshold'),
             }
             
             # Add settings multipliers
@@ -416,6 +422,7 @@ class ScenarioGenerator:
         # Add algorithm-specific details
         for algorithm in algorithms:
             algorithm_config = self.config.get_algorithm_config(algorithm)
+            summary[f'{algorithm}_gradual_transition_thresholds'] = algorithm_config.gradual_transition_thresholds
             if algorithm == 'autobolus':
                 summary[f'{algorithm}_partial_application_factors'] = algorithm_config.partial_application_factors
         

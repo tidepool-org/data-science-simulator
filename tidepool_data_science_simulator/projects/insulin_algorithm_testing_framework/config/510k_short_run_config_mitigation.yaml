@@ -14,7 +14,7 @@ algorithms:
     include_positive_velocity_and_RC: true
     use_mid_absorption_isf: true
     partial_application_factors: [0.4]
-    # gradual_transition_threshold_mg_dl_per_min: 30.0
+    gradual_transition_thresholds: [20.0, 30.0, 40.0]
     minimum_autobolus: 0.1
     maximum_autobolus: 100
 

@@ -255,7 +255,8 @@ class ScenarioRunner:
         sim_config: Dict[str, Any],
         algorithm_type: str,
         algorithm_config: AlgorithmConfig,
-        partial_application_factor: Optional[float] = None
+        partial_application_factor: Optional[float] = None,
+        gradual_transition_threshold: Optional[float] = None
     ) -> None:
         """Configure algorithm-specific settings."""
         
@@ -265,6 +266,13 @@ class ScenarioRunner:
         # Set basal rate cap
         basal_rate = sim_config['patient']['patient_model']['metabolism_settings']['basal_rate']['values'][0]
         sim_config['controller']['settings']['max_basal_rate'] = basal_rate * algorithm_config.max_basal_multiplier
+        
+        # Set gradual transition threshold (common to both algorithms)
+        if gradual_transition_threshold is not None:
+            sim_config["controller"]["settings"]["gradual_transitions_threshold"] = gradual_transition_threshold
+        else:
+            # Use first value from config if not specified
+            sim_config["controller"]["settings"]["gradual_transitions_threshold"] = algorithm_config.gradual_transition_thresholds[0]
         
         # Algorithm-specific settings
         if algorithm_type == 'tempbasal':
@@ -343,7 +351,8 @@ class ScenarioRunner:
         meal_scenario: Dict[str, Any],
         algorithm_config: AlgorithmConfig,
         partial_application_factor: Optional[float] = None,
-        settings_multipliers: Optional[Dict[str, float]] = None
+        settings_multipliers: Optional[Dict[str, float]] = None,
+        gradual_transition_threshold: Optional[float] = None
     ) -> str:
         """Generate unique simulation ID."""
         
@@ -362,6 +371,10 @@ class ScenarioRunner:
         # Add partial application factor for autobolus
         if partial_application_factor is not None:
             id_parts.append(f"paf={partial_application_factor}")
+        
+        # Add gradual transition threshold
+        if gradual_transition_threshold is not None:
+            id_parts.append(f"gradthresh={gradual_transition_threshold}")
         
         # Add settings mismatches
         if settings_multipliers:
@@ -390,6 +403,7 @@ class ScenarioRunner:
         meal_scenario = scenario['meal_scenario']
         partial_application_factor = scenario.get('partial_application_factor')
         settings_multipliers = scenario.get('settings_multipliers')
+        gradual_transition_threshold = scenario.get('gradual_transition_threshold')
         
         # Create a deep copy of the base configuration
         sim_config = copy.deepcopy(patient_config)
@@ -403,7 +417,7 @@ class ScenarioRunner:
         
         # Configure algorithm-specific settings
         algorithm_config = self.config.get_algorithm_config(algorithm_type)
-        self._configure_algorithm(sim_config, algorithm_type, algorithm_config, partial_application_factor)
+        self._configure_algorithm(sim_config, algorithm_type, algorithm_config, partial_application_factor, gradual_transition_threshold)
         
         # Apply settings mismatches if specified
         if settings_multipliers:
@@ -422,7 +436,7 @@ class ScenarioRunner:
         # Generate simulation ID
         sim_id = self._generate_simulation_id(
             algorithm_type, patient_config, initial_bg, meal_scenario, 
-            algorithm_config, partial_application_factor, settings_multipliers
+            algorithm_config, partial_application_factor, settings_multipliers, gradual_transition_threshold
         )
         
         # Create simulation
