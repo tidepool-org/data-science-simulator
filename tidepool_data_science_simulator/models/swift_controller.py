@@ -27,6 +27,7 @@ class SwiftLoopController(LoopController):
         super().__init__(time, controller_config, automation_control_timeline)
         self.name = "SwiftLoopKit v0.1"
         self.loop_algo_io_dir = loop_algo_io_dir
+        self.pump_history_initialized = False  # Track whether pump history has been populated
 
 
     def prepare_inputs(self, virtual_patient):
@@ -209,6 +210,15 @@ class SwiftLoopController(LoopController):
             self.open_loop = not automation_control_event.dosing_enabled
 
         if virtual_patient.pump is not None:
+            # On first activation of Loop, populate the pump's historical dose data
+            # This ensures Loop has access to pre-Loop basal doses for accurate IOB
+            if not self.pump_history_initialized:
+                virtual_patient.pump.populate_historical_basal_doses(
+                    current_time=time,
+                    num_hours_history=self.num_hours_history
+                )
+                self.pump_history_initialized = True
+            
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
 
             # Construct file paths based on whether directory is set

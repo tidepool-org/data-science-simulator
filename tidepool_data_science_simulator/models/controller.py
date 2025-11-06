@@ -122,6 +122,10 @@ class LoopController(BaseControllerClass):
         self.num_hours_history = (
             8  # how many hours of recent events to pass to Pyloopkit
         )
+        
+        # Flag to track whether pump historical doses have been initialized
+        # This is set to True after the first call to populate_historical_basal_doses
+        self.pump_history_initialized = False
 
     def get_state(self):
 
@@ -274,6 +278,15 @@ class LoopController(BaseControllerClass):
 
         virtual_patient = kwargs["virtual_patient"]
         if virtual_patient.pump is not None:
+            # On first activation of Loop, populate the pump's historical dose data
+            # This ensures Loop has access to pre-Loop basal doses for accurate IOB
+            if not self.pump_history_initialized:
+                virtual_patient.pump.populate_historical_basal_doses(
+                    current_time=time,
+                    num_hours_history=self.num_hours_history
+                )
+                self.pump_history_initialized = True
+            
             loop_inputs_dict = self.prepare_inputs(virtual_patient)
             loop_algorithm_output = loop_predict(loop_inputs_dict)
 
