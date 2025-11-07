@@ -3,6 +3,7 @@ import os
 import logging
 import pandas as pd
 import glob
+import argparse
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import (
     calculate_metrics_batch, 
     create_point_metrics_dataframe,
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration - Set these to control which metrics to calculate
 CALCULATE_POINT_METRICS = True      # Calculate scalar metrics (CSV output)
-CALCULATE_TIMESERIES_METRICS = False # Calculate timeseries metrics (.npy output)
+CALCULATE_TIMESERIES_METRICS = True # Calculate timeseries metrics (.npy output)
 
 DEBUG_BREAK = False  # Set to True to break after first batch for debugging
 
@@ -72,8 +73,14 @@ def process_batch(tsv_files):
     else:
         return {}, {}
 
-def main():
-    """Main function to compute metrics for all simulation results."""
+def main(output_dir=None):
+    """Main function to compute metrics for all simulation results.
+    
+    Args:
+        output_dir (str, optional): Path to override OUTPUT_DIR. If None, uses module-level OUTPUT_DIR.
+    """
+    # Use provided path or fall back to module-level OUTPUT_DIR
+    dir_to_process = output_dir if output_dir is not None else OUTPUT_DIR
     
     # Validate configuration
     if not CALCULATE_POINT_METRICS and not CALCULATE_TIMESERIES_METRICS:
@@ -84,13 +91,13 @@ def main():
     logger.info(f"Configuration: Point metrics: {CALCULATE_POINT_METRICS}, Timeseries metrics: {CALCULATE_TIMESERIES_METRICS}")
     
     # Find all TSV files in the output directory
-    tsv_pattern = os.path.join(OUTPUT_DIR, "*.tsv")
+    tsv_pattern = os.path.join(dir_to_process, "*.tsv")
     tsv_files = glob.glob(tsv_pattern)
     
     logger.info(f"Found {len(tsv_files)} TSV files to process")
     
     if not tsv_files:
-        logger.error(f"No TSV files found in {OUTPUT_DIR}")
+        logger.error(f"No TSV files found in {dir_to_process}")
         return
     
     # Process files in batches
@@ -115,7 +122,7 @@ def main():
             break
     
     # Save results using new separated approach
-    parent_dir = os.path.dirname(OUTPUT_DIR)
+    parent_dir = os.path.dirname(dir_to_process)
     point_metrics_df = None
     
     # Save point metrics if enabled and available
@@ -175,4 +182,9 @@ def main():
         logger.error("No metrics calculated - no valid simulation results found")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Compute metrics for simulation results')
+    parser.add_argument('--output-dir', type=str, default=None,
+                       help='Path to directory containing simulation TSV files. Overrides OUTPUT_DIR if provided.')
+    
+    args = parser.parse_args()
+    main(output_dir=args.output_dir)
