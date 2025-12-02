@@ -30,11 +30,16 @@ scenarios:
     range: [70, 180]  # mg/dL
     step: 10
     
-  meal_scenarios:
+  true_meal_scenarios:
     unannounced_meals: [20, 40, 60]  # grams CHO
     meal_timing: 0  # minutes from start (t0)
     absorption_time: 240  # minutes
-    
+  
+  reported_meal_scenarios:
+    unannounced_meals: [20, 40, 60]  # grams CHO
+    meal_timing: 0  # minutes from start (t0)
+    absorption_time: 240  # minutes
+
   settings_mismatches:
     multipliers: [0.5, 0.75, 1.0, 1.25, 1.5]
     apply_to: ["isf", "cir", "basal"]

@@ -31,7 +31,7 @@ tir = [
     63.39, # PAF 0.4 rc+momentum Mitigated (max jump 20)
     63.97, # PAF 0.4 rc+momentum Mitigated (max jump 30)
     64.35, # PAF 0.4 rc+momentum Mitigated (max jump 40)
-    64.2, # PAF 0.4 rc+momentum Unmitigated
+    65.51, # PAF 0.4 rc+momentum Unmitigated
 ] 
 
 safety_thresholds = [1, 1e-1, 1e-2, 1e-4, 1e-6]
@@ -148,7 +148,7 @@ for i in range(5):
     #     ax.set_xlim(x_min - x_padding, x_max + x_padding)
     
     # Set Y-axis limits to show more context
-    ax.set_ylim(52, 65)
+    ax.set_ylim(52, 66.5)
     
     # Enhanced labels and styling
     ax.set_xlabel('Probability of Risk Event', fontsize=14, fontweight='bold', labelpad=15)

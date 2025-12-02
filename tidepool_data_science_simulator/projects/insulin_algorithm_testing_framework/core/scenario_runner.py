@@ -348,7 +348,8 @@ class ScenarioRunner:
         algorithm_type: str,
         patient_config: Dict[str, Any],
         initial_bg: float,
-        meal_scenario: Dict[str, Any],
+        true_meal_scenario: Optional[Dict[str, Any]],
+        reported_meal_scenario: Optional[Dict[str, Any]],
         algorithm_config: AlgorithmConfig,
         partial_application_factor: Optional[float] = None,
         settings_multipliers: Optional[Dict[str, float]] = None,
@@ -363,7 +364,8 @@ class ScenarioRunner:
             f"alg={algorithm_type}",
             f"patient={patient_id}",
             f"ibg={initial_bg}",
-            f"meal={meal_scenario['size']}g",
+            f"true_meal_size={true_meal_scenario['size']}g" if reported_meal_scenario else "reported_meal_size=None",
+            f"reported_meal_size={reported_meal_scenario['size']}g" if reported_meal_scenario else "reported_meal_size=None",
             f"posvel={algorithm_config.include_positive_velocity_and_RC}",
             f"midisf={algorithm_config.use_mid_absorption_isf}"
         ]
@@ -400,7 +402,8 @@ class ScenarioRunner:
         algorithm_type = scenario['algorithm_type']
         patient_config = scenario['patient_config']
         initial_bg = scenario['initial_bg']
-        meal_scenario = scenario['meal_scenario']
+        true_meal_scenario = scenario.get('true_meal_scenario')
+        reported_meal_scenario = scenario.get('reported_meal_scenario')
         partial_application_factor = scenario.get('partial_application_factor')
         settings_multipliers = scenario.get('settings_multipliers')
         gradual_transition_threshold = scenario.get('gradual_transition_threshold')
@@ -423,19 +426,23 @@ class ScenarioRunner:
         if settings_multipliers:
             self._apply_settings_mismatches(sim_config, settings_multipliers)
         
-        # Setup meal scenario
-        meal_timeline = self._create_meal_timeline(sim_config, meal_scenario)
-        
         # Parse configuration and create simulation components
         sim_parser = ScenarioParserV2()
         sim_start_time, duration_hrs, virtual_patient, controller = sim_parser.build_components_from_config(sim_config)
         
-        # Set meal timeline
-        virtual_patient.carb_event_timeline = meal_timeline
+        # Set true meal timeline
+        if true_meal_scenario:
+            true_meal_timeline = self._create_meal_timeline(sim_config, true_meal_scenario)
+            virtual_patient.carb_event_timeline = true_meal_timeline
         
+        # Set reported meal timeline
+        if reported_meal_scenario:
+            reported_meal_timeline = self._create_meal_timeline(sim_config, reported_meal_scenario)
+            controller.reported_carb_event_timeline = reported_meal_timeline
+
         # Generate simulation ID
         sim_id = self._generate_simulation_id(
-            algorithm_type, patient_config, initial_bg, meal_scenario, 
+            algorithm_type, patient_config, initial_bg, true_meal_scenario, reported_meal_scenario,
             algorithm_config, partial_application_factor, settings_multipliers, gradual_transition_threshold
         )
         

@@ -9,7 +9,7 @@ from tidepool_data_science_simulator.makedata.make_patient import DATETIME_DEFAU
 def get_canonical_controller_config(t0=DATETIME_DEFAULT):
 
     controller_settings = {
-        "model": [360.0, 65],
+        "recommended_insulin_type": 'novolog',
         "momentum_data_interval": 15,
         "suspend_threshold": 70,
         "dynamic_carb_absorption_enabled": True,
@@ -27,6 +27,7 @@ def get_canonical_controller_config(t0=DATETIME_DEFAULT):
         "max_bolus": 30,
         "retrospective_correction_enabled": True,
         "partial_application_factor": 0.0,
+        "gradual_transition_threshold": 40.0,
         "use_mid_absorption_isf": False,
         "carb_absorption_model": "piecewiseLinear"
     }

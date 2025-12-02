@@ -20,6 +20,7 @@ from tidepool_data_science_simulator.makedata.make_patient import (
 from tidepool_data_science_simulator.models.events import BolusTimeline, CarbTimeline
 from tidepool_data_science_simulator.models.measures import Bolus, Carb, TargetRange
 
+from tidepool_data_science_simulator.models.swift_controller import SwiftLoopController
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 
 
@@ -54,8 +55,7 @@ def test_basic_simulation():
 
     pump = ContinuousInsulinPump(pump_config, t0)
     sensor = IdealSensor(t0, sensor_config)
-    # controller = DoNothingController(t0, controller_config)
-    controller = LoopController(t0, controller_config)
+    controller = SwiftLoopController(t0, controller_config)
     controller.controller_config.controller_settings['partial_application_factor'] = 0.4
 
     vp = VirtualPatient(
