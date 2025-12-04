@@ -21,8 +21,8 @@ def _get_experiment_runner():
     return ExperimentRunner
 
 def _get_simulation_runner():
-    from .core.scenario_runner import ScenarioRunner
-    return ScenarioRunner
+    from .core.simulation_runner import SimulationRunner
+    return SimulationRunner
 
 def _get_scenario_generator():
     from .core.scenario_generator import ScenarioGenerator

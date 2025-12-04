@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import ExperimentConfig
-from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_runner import run_experiment
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_runner import run_experiment
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.visualization.comparison_plots import ComparisonPlotter
 
 # Setup logging

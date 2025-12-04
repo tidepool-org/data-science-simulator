@@ -112,7 +112,7 @@ class ScenarioGenerator:
         algorithm_config = self.config.get_algorithm_config(algorithm)
         
         # Generate base parameter combinations
-        for initial_bg in self._generate_initial_bg_values():
+        for true_start_bg in self._generate_initial_bg_values():
             for meal_scenario in self._generate_meal_scenarios():
                 for settings_multipliers in self._generate_settings_mismatches():
                     for gradual_threshold in algorithm_config.gradual_transition_thresholds:
@@ -122,7 +122,7 @@ class ScenarioGenerator:
                             yield {
                                 'algorithm_type': algorithm,
                                 'patient_config': patient_config,
-                                'initial_bg': initial_bg,
+                                'true_start_bg': true_start_bg,
                                 'meal_scenario': meal_scenario,
                                 'settings_multipliers': settings_multipliers,
                                 'partial_application_factor': None,
@@ -135,7 +135,7 @@ class ScenarioGenerator:
                                 yield {
                                     'algorithm_type': algorithm,
                                     'patient_config': patient_config,
-                                    'initial_bg': initial_bg,
+                                    'true_start_bg': true_start_bg,
                                     'meal_scenario': meal_scenario,
                                     'settings_multipliers': settings_multipliers,
                                     'partial_application_factor': paf,
@@ -231,7 +231,7 @@ class ScenarioGenerator:
         logger.info(f"Generating paired scenarios: {reference_algorithm} vs {comparison_algorithms}")
         
         for patient_config in patient_configs:
-            for initial_bg in self._generate_initial_bg_values():
+            for true_start_bg in self._generate_initial_bg_values():
                 for meal_scenario in self._generate_meal_scenarios():
                     for settings_multipliers in self._generate_settings_mismatches():
                         
@@ -239,7 +239,7 @@ class ScenarioGenerator:
                         reference_scenario = {
                             'algorithm_type': reference_algorithm,
                             'patient_config': patient_config,
-                            'initial_bg': initial_bg,
+                            'true_start_bg': true_start_bg,
                             'meal_scenario': meal_scenario,
                             'settings_multipliers': settings_multipliers,
                             'partial_application_factor': None
@@ -255,7 +255,7 @@ class ScenarioGenerator:
                                 comparison_scenarios.append({
                                     'algorithm_type': algorithm,
                                     'patient_config': patient_config,
-                                    'initial_bg': initial_bg,
+                                    'true_start_bg': true_start_bg,
                                     'meal_scenario': meal_scenario,
                                     'settings_multipliers': settings_multipliers,
                                     'partial_application_factor': None
@@ -266,7 +266,7 @@ class ScenarioGenerator:
                                     comparison_scenarios.append({
                                         'algorithm_type': algorithm,
                                         'patient_config': patient_config,
-                                        'initial_bg': initial_bg,
+                                        'true_start_bg': true_start_bg,
                                         'meal_scenario': meal_scenario,
                                         'settings_multipliers': settings_multipliers,
                                         'partial_application_factor': paf
@@ -298,7 +298,7 @@ class ScenarioGenerator:
             flat_scenario = {
                 'algorithm_type': scenario['algorithm_type'],
                 'patient_id': scenario['patient_config'].get('patient_id', 'unknown'),
-                'initial_bg': scenario['initial_bg'],
+                'true_start_bg': scenario['true_start_bg'],
                 'meal_size': scenario['meal_scenario']['size'],
                 'meal_timing': scenario['meal_scenario']['timing'],
                 'meal_absorption_time': scenario['meal_scenario']['absorption_time'],
@@ -427,3 +427,287 @@ class ScenarioGenerator:
                 summary[f'{algorithm}_partial_application_factors'] = algorithm_config.partial_application_factors
         
         return summary
+    
+    # ========================================================================
+    # iCGM Sensitivity Analysis Scenarios
+    # ========================================================================
+    
+    def generate_icgm_scenarios(
+        self,
+        patient_configs: List[Dict[str, Any]],
+        true_bg_range: Tuple[int, int, int] = (40, 405, 5),
+        sensor_bg_range: Optional[Tuple[int, int, int]] = None,
+        algorithm: str = 'autobolus',
+        sensor_model_type: str = 'NoisySensorInitialOffset',
+        sensor_std_dev: float = 3.0
+    ) -> Iterator[Dict[str, Any]]:
+        """
+        Generate iCGM sensitivity analysis scenarios.
+        
+        Creates a grid of (true BG, sensor BG) combinations to test how the
+        algorithm handles spurious sensor errors. Each scenario represents a
+        single point in the grid with a specific sensor error.
+        
+        Args:
+            patient_configs: List of patient configuration dictionaries
+            true_bg_range: (start, end, step) for true BG values in mg/dL
+            sensor_bg_range: (start, end, step) for sensor BG values. 
+                           If None, uses same as true_bg_range
+            algorithm: Algorithm to test (typically 'autobolus')
+            sensor_model_type: 'NoisySensorInitialOffset' or 'SensoriCGMInitialOffset'
+            sensor_std_dev: Standard deviation for sensor noise model
+            
+        Yields:
+            Dictionary containing iCGM scenario parameters
+            
+        Example:
+            >>> generator = ScenarioGenerator(config)
+            >>> scenarios = generator.generate_icgm_scenarios(
+            ...     patient_configs,
+            ...     true_bg_range=(40, 405, 5),
+            ...     sensor_bg_range=(40, 405, 5)
+            ... )
+        """
+        if sensor_bg_range is None:
+            sensor_bg_range = true_bg_range
+        
+        algorithm_config = self.config.get_algorithm_config(algorithm)
+        
+        # Generate BG grid
+        true_bg_values, sensor_bg_values = self._generate_icgm_bg_grid(
+            true_bg_range, sensor_bg_range
+        )
+        
+        total_scenarios = (
+            len(patient_configs) * 
+            len(true_bg_values) * 
+            len(sensor_bg_values) *
+            len(algorithm_config.partial_application_factors) *
+            len(algorithm_config.gradual_transition_thresholds)
+        )
+        
+        logger.info(
+            f"Generating iCGM scenarios: {total_scenarios} total "
+            f"({len(patient_configs)} patients × {len(true_bg_values)} true BG × "
+            f"{len(sensor_bg_values)} sensor BG × "
+            f"{len(algorithm_config.partial_application_factors)} PAF × "
+            f"{len(algorithm_config.gradual_transition_thresholds)} gradual thresholds)"
+        )
+        
+        scenario_count = 0
+        
+        for patient_config in patient_configs:
+            for true_bg in true_bg_values:
+                for sensor_bg in sensor_bg_values:
+                    for paf in algorithm_config.partial_application_factors:
+                        for gradual_threshold in algorithm_config.gradual_transition_thresholds:
+                            
+                            scenario = {
+                                'scenario_type': 'icgm_sensitivity',
+                                'algorithm_type': algorithm,
+                                'patient_config': patient_config,
+                                
+                                # iCGM-specific parameters
+                                'true_start_bg': true_bg,
+                                'sensor_start_bg': sensor_bg,
+                                'sensor_error': sensor_bg - true_bg,
+                                'sensor_model_type': sensor_model_type,
+                                'sensor_std_dev': sensor_std_dev,
+                                
+                                # Algorithm parameters
+                                'partial_application_factor': paf,
+                                'gradual_transition_threshold': gradual_threshold,
+                                
+                                # No meals or settings mismatches for iCGM
+                                'meal_scenario': None,
+                                'settings_multipliers': None,
+                                
+                                # Bolus acceptance only at t0
+                                'bolus_acceptance_mode': 't0_only'
+                            }
+                            
+                            scenario_count += 1
+                            if scenario_count % 10000 == 0:
+                                logger.debug(f"Generated {scenario_count} iCGM scenarios")
+                            
+                            yield scenario
+        
+        logger.info(f"Generated {scenario_count} total iCGM scenarios")
+    
+    def _generate_icgm_bg_grid(
+        self,
+        true_bg_range: Tuple[int, int, int],
+        sensor_bg_range: Tuple[int, int, int]
+    ) -> Tuple[List[int], List[int]]:
+        """
+        Generate BG grid for iCGM sensitivity analysis.
+        
+        Args:
+            true_bg_range: (start, end, step) for true BG values
+            sensor_bg_range: (start, end, step) for sensor BG values
+            
+        Returns:
+            Tuple of (true_bg_values, sensor_bg_values)
+        """
+        true_start, true_end, true_step = true_bg_range
+        sensor_start, sensor_end, sensor_step = sensor_bg_range
+        
+        true_bg_values = list(range(true_start, true_end, true_step))
+        sensor_bg_values = list(range(sensor_start, sensor_end, sensor_step))
+        
+        logger.info(
+            f"Generated iCGM BG grid: {len(true_bg_values)} true BG values "
+            f"({true_start}-{true_end-true_step} by {true_step}), "
+            f"{len(sensor_bg_values)} sensor BG values "
+            f"({sensor_start}-{sensor_end-sensor_step} by {sensor_step})"
+        )
+        
+        return true_bg_values, sensor_bg_values
+    
+    def generate_icgm_scenarios_for_mitigation_testing(
+        self,
+        patient_configs: List[Dict[str, Any]],
+        true_bg_range: Tuple[int, int, int] = (40, 405, 5),
+        sensor_bg_range: Optional[Tuple[int, int, int]] = None,
+        mitigation_thresholds: List[float] = [20.0, 30.0, 40.0],
+        include_unmitigated: bool = True,
+        paf: float = 0.4
+    ) -> Iterator[Dict[str, Any]]:
+        """
+        Generate iCGM scenarios specifically for testing mitigation strategies.
+        
+        This creates scenarios to compare different gradual transition threshold
+        values (mitigation) against unmitigated baseline.
+        
+        Args:
+            patient_configs: List of patient configuration dictionaries
+            true_bg_range: (start, end, step) for true BG values
+            sensor_bg_range: (start, end, step) for sensor BG values
+            mitigation_thresholds: List of gradual transition thresholds to test
+            include_unmitigated: If True, also generate unmitigated scenarios
+            paf: Partial application factor to use
+            
+        Yields:
+            Dictionary containing iCGM scenario parameters
+        """
+        algorithm_config = self.config.get_algorithm_config('autobolus')
+        
+        # Override thresholds with provided values
+        test_thresholds = mitigation_thresholds.copy()
+        if include_unmitigated:
+            test_thresholds.append(10000.0)  # Very high threshold = unmitigated
+        
+        true_bg_values, sensor_bg_values = self._generate_icgm_bg_grid(
+            true_bg_range, sensor_bg_range or true_bg_range
+        )
+        
+        logger.info(
+            f"Generating iCGM mitigation scenarios: "
+            f"{len(test_thresholds)} threshold values "
+            f"(mitigated: {mitigation_thresholds}, "
+            f"unmitigated: {include_unmitigated})"
+        )
+        
+        for patient_config in patient_configs:
+            for true_bg in true_bg_values:
+                for sensor_bg in sensor_bg_values:
+                    for threshold in test_thresholds:
+                        
+                        yield {
+                            'scenario_type': 'icgm_mitigation',
+                            'algorithm_type': 'autobolus',
+                            'patient_config': patient_config,
+                            'true_start_bg': true_bg,
+                            'sensor_start_bg': sensor_bg,
+                            'sensor_error': sensor_bg - true_bg,
+                            'sensor_model_type': 'NoisySensorInitialOffset',
+                            'sensor_std_dev': 3.0,
+                            'partial_application_factor': paf,
+                            'gradual_transition_threshold': threshold,
+                            'is_mitigated': threshold < 1000.0,
+                            'meal_scenario': None,
+                            'settings_multipliers': None,
+                            'bolus_acceptance_mode': 't0_only'
+                        }
+    
+    def generate_icgm_scenarios_dataframe(
+        self,
+        patient_configs: List[Dict[str, Any]],
+        **kwargs
+    ) -> pd.DataFrame:
+        """
+        Generate iCGM scenarios as a pandas DataFrame.
+        
+        Args:
+            patient_configs: List of patient configuration dictionaries
+            **kwargs: Arguments to pass to generate_icgm_scenarios()
+            
+        Returns:
+            DataFrame with iCGM scenario parameters
+        """
+        scenarios = list(self.generate_icgm_scenarios(patient_configs, **kwargs))
+        
+        flattened_scenarios = []
+        for scenario in scenarios:
+            flat_scenario = {
+                'scenario_type': scenario['scenario_type'],
+                'algorithm_type': scenario['algorithm_type'],
+                'patient_id': scenario['patient_config'].get('patient_id', 'unknown'),
+                'true_start_bg': scenario['true_start_bg'],
+                'sensor_start_bg': scenario['sensor_start_bg'],
+                'sensor_error': scenario['sensor_error'],
+                'sensor_model_type': scenario['sensor_model_type'],
+                'partial_application_factor': scenario['partial_application_factor'],
+                'gradual_transition_threshold': scenario['gradual_transition_threshold'],
+                'bolus_acceptance_mode': scenario['bolus_acceptance_mode']
+            }
+            flattened_scenarios.append(flat_scenario)
+        
+        return pd.DataFrame(flattened_scenarios)
+    
+    def get_icgm_scenario_summary(
+        self,
+        patient_configs: List[Dict[str, Any]],
+        true_bg_range: Tuple[int, int, int] = (40, 405, 5),
+        sensor_bg_range: Optional[Tuple[int, int, int]] = None
+    ) -> Dict[str, Any]:
+        """
+        Get summary statistics for iCGM scenario generation.
+        
+        Args:
+            patient_configs: List of patient configuration dictionaries
+            true_bg_range: (start, end, step) for true BG values
+            sensor_bg_range: (start, end, step) for sensor BG values
+            
+        Returns:
+            Dictionary with summary statistics
+        """
+        if sensor_bg_range is None:
+            sensor_bg_range = true_bg_range
+        
+        true_bg_values, sensor_bg_values = self._generate_icgm_bg_grid(
+            true_bg_range, sensor_bg_range
+        )
+        
+        algorithm_config = self.config.get_algorithm_config('autobolus')
+        
+        total_scenarios = (
+            len(patient_configs) * 
+            len(true_bg_values) * 
+            len(sensor_bg_values) *
+            len(algorithm_config.partial_application_factors) *
+            len(algorithm_config.gradual_transition_thresholds)
+        )
+        
+        return {
+            'scenario_type': 'icgm_sensitivity',
+            'num_patients': len(patient_configs),
+            'true_bg_range': true_bg_range,
+            'num_true_bg_values': len(true_bg_values),
+            'sensor_bg_range': sensor_bg_range,
+            'num_sensor_bg_values': len(sensor_bg_values),
+            'grid_size': len(true_bg_values) * len(sensor_bg_values),
+            'partial_application_factors': algorithm_config.partial_application_factors,
+            'gradual_transition_thresholds': algorithm_config.gradual_transition_thresholds,
+            'estimated_total_scenarios': total_scenarios
+        }

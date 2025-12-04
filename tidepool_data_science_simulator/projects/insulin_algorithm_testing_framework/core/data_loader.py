@@ -44,26 +44,39 @@ class DataLoader:
         
         logger.info(f"Initialized DataLoader with config: {config}")
     
-    def load_patient_configs(self, max_patients: Optional[int] = None) -> List[Dict[str, Any]]:
+    def load_patient_configs(
+        self, 
+        max_patients: Optional[int] = None,
+        patient_ids: Optional[List[int]] = None
+    ) -> List[Dict[str, Any]]:
         """
-        Load patient configurations with optional limit.
+        Load patient configurations with optional filtering.
         
         Args:
             max_patients: Maximum number of patients to load (optional)
+            patient_ids: Specific patient indices to load (0-based, optional)
             
         Returns:
             List of patient configuration dictionaries
         """
-        # Temporarily override the num_patients setting if max_patients is provided
-        original_num_patients = self.scenario_config.num_patients
-        if max_patients is not None:
-            self.scenario_config.num_patients = max_patients
+        # Load all patient configurations first
+        patient_configs = self.load_patient_configurations()
         
-        try:
-            patient_configs = self.load_patient_configurations()
-        finally:
-            # Restore original setting
-            self.scenario_config.num_patients = original_num_patients
+        # Filter by specific patient IDs if provided
+        if patient_ids is not None:
+            filtered_configs = []
+            for idx in patient_ids:
+                if 0 <= idx < len(patient_configs):
+                    filtered_configs.append(patient_configs[idx])
+                else:
+                    logger.warning(f"Patient index {idx} out of range (0-{len(patient_configs)-1})")
+            patient_configs = filtered_configs
+            logger.info(f"Filtered to {len(patient_configs)} specific patients by ID")
+        
+        # Apply max_patients limit if specified (after filtering by IDs)
+        elif max_patients is not None and len(patient_configs) > max_patients:
+            patient_configs = patient_configs[:max_patients]
+            logger.info(f"Limited to {max_patients} patients")
         
         return patient_configs
     

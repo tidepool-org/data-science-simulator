@@ -16,7 +16,7 @@ import numpy as np
 from ..config.experiment_config import ExperimentConfig
 from ..core.data_loader import DataLoader
 from ..core.scenario_generator import ScenarioGenerator
-from ..core.scenario_runner import ScenarioRunner
+from ..core.simulation_runner import SimulationRunner
 from ..core.metrics_calculator import (
     calculate_metrics_batch,
     create_metrics_dataframe
@@ -98,7 +98,7 @@ class ExperimentRunner:
         # Initialize framework components
         self.data_loader = DataLoader(self.config)
         self.scenario_generator = ScenarioGenerator(self.config)
-        self.simulation_runner = ScenarioRunner(self.config)
+        self.simulation_runner = SimulationRunner(self.config)
         self.metrics_calculator = MetricsCalculator(self.config)
         self.statistical_analyzer = StatisticalAnalyzer(self.config)
         

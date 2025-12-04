@@ -24,6 +24,7 @@ class AlgorithmConfig:
     gradual_transition_thresholds: List[float] = field(default_factory=lambda: [20.0, 30.0, 40.0])  # in mg/dL per min
     minimum_autobolus: float = 0.1
     maximum_autobolus: float = 100.0
+    suspend_threshold: float = 70.0  # in mg/dL
 
 
 @dataclass
@@ -47,6 +48,8 @@ class SimulationConfig:
     start_index: int = 137
     time_step_minutes: int = 5
     safety_threshold_hours: int = 3
+    bolus_acceptance_enabled: bool = True
+    bolus_acceptance_at_t0_only: bool = False
 
 
 @dataclass
@@ -56,6 +59,8 @@ class ProcessingConfig:
     batch_size: int = os.cpu_count()
     save_individual_results: bool = True
     save_summary_only: bool = False
+    archive_after_processing: bool = False
+    archive_format: str = "zip"
 
 
 @dataclass
@@ -239,7 +244,16 @@ class ExperimentConfig:
     def get_simulation_config(self) -> SimulationConfig:
         """Get simulation configuration."""
         sim_config = self.get('simulation', {})
-        return SimulationConfig(**sim_config)
+        bolus_acceptance = sim_config.get('bolus_acceptance', {})
+        
+        return SimulationConfig(
+            duration_hours=sim_config.get('duration_hours', 8),
+            start_index=sim_config.get('start_index', 137),
+            time_step_minutes=sim_config.get('time_step_minutes', 5),
+            safety_threshold_hours=sim_config.get('safety_threshold_hours', 3),
+            bolus_acceptance_enabled=bolus_acceptance.get('enabled', True),
+            bolus_acceptance_at_t0_only=bolus_acceptance.get('accept_at_t0_only', False)
+        )
     
     def get_processing_config(self) -> ProcessingConfig:
         """Get processing configuration."""

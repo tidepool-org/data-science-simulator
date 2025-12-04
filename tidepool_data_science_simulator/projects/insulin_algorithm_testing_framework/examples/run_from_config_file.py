@@ -20,7 +20,7 @@ from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framewor
     calculate_metrics_batch,
     create_metrics_dataframe
 )
-from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_runner import run_experiment
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_runner import run_experiment
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.visualization.comparison_plots import ComparisonPlotter
 
 from tidepool_data_science_simulator.utils import DATA_DIR

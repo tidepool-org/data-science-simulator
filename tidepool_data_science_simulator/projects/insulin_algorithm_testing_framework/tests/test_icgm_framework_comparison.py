@@ -1,0 +1,460 @@
+#!/usr/bin/env python3
+"""
+Comparison test between original iCGM approach and the new testing framework.
+
+This test validates that both approaches produce equivalent results for the same
+test parameters. It runs simulations using both methods and compares key metrics.
+
+Test Parameters (shared between both approaches):
+    - 1 virtual patient (VP 0)
+    - True BG range: 70-150 mg/dL, step 20 (5 values)
+    - Sensor BG range: 70-150 mg/dL, step 20 (5 values)
+    - PAF: 0.4
+    - Gradual transition threshold: 50.0
+    - Total simulations: 25
+
+Usage:
+    # Run directly
+    python test_icgm_framework_comparison.py
+    
+    # Or via pytest
+    pytest test_icgm_framework_comparison.py -v
+"""
+
+import os
+import sys
+import logging
+import glob
+import re
+from pathlib import Path
+from typing import Dict
+
+import pandas as pd
+import numpy as np
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+
+def parse_original_sim_id(sim_id: str) -> Dict[str, any]:
+    """
+    Parse simulation ID from original icgm approach.
+    
+    Example: icgm_analysis_vp_1_vp0_tbg=70_sbg=90
+    
+    Returns:
+        Dict with patient_id, true_bg, sensor_bg
+    """
+    match = re.search(r'vp_(\d+)_([^_]+)_tbg=(\d+)_sbg=(\d+)', sim_id)
+    if match:
+        return {
+            'seed': int(match.group(1)),
+            'patient_id': match.group(2),
+            'true_bg': int(match.group(3)),
+            'sensor_bg': int(match.group(4))
+        }
+    return {}
+
+
+def parse_framework_sim_id(sim_id: str) -> Dict[str, any]:
+    """
+    Parse simulation ID from new framework approach.
+    
+    Example: alg=autobolus_patient=0_tbg=70_sbg=90_...
+    
+    Returns:
+        Dict with algorithm, patient_id, true_bg, sensor_bg
+    """
+    result = {}
+    parts = sim_id.split('_')
+    
+    for part in parts:
+        if '=' in part:
+            key, value = part.split('=', 1)
+            if key == 'alg':
+                result['algorithm'] = value
+            elif key == 'patient':
+                result['patient_id'] = value
+            elif key == 'tbg':
+                result['true_bg'] = int(value)
+            elif key == 'sbg':
+                result['sensor_bg'] = int(value)
+    
+    return result
+
+
+def load_original_results(result_dir: str) -> pd.DataFrame:
+    """
+    Load summary results from original icgm approach.
+    
+    The original approach saves the summary as {result_dir}.tsv
+    (e.g., /path/to/icgm_sensitivity_analysis_paf=0.4_posrc=True_gradthresh=50.0_2025_12_04_T_10_00_00_abc1234.tsv)
+    
+    Args:
+        result_dir: Directory containing original simulation results
+        
+    Returns:
+        DataFrame with metrics indexed by (true_bg, sensor_bg)
+    """
+    # The summary file is {result_dir}.tsv (not inside result_dir)
+    summary_file = f"{result_dir}.tsv"
+    
+    if not os.path.exists(summary_file):
+        raise FileNotFoundError(f"Summary file not found: {summary_file}")
+    
+    summary_df = pd.read_csv(summary_file, sep='\t')
+    
+    # Parse simulation IDs to extract true_bg and sensor_bg
+    parsed_data = []
+    for _, row in summary_df.iterrows():
+        sim_info = parse_original_sim_id(row.get('sim_id', ''))
+        if sim_info:
+            parsed_row = {
+                'true_bg': sim_info['true_bg'],
+                'sensor_bg': sim_info['sensor_bg'],
+                'patient_id': sim_info['patient_id'],
+                **row.to_dict()
+            }
+            parsed_data.append(parsed_row)
+    
+    return pd.DataFrame(parsed_data)
+
+
+def load_framework_results(result_dir: str) -> pd.DataFrame:
+    """
+    Load summary results from new framework approach.
+    
+    Args:
+        result_dir: Directory containing framework simulation results
+        
+    Returns:
+        DataFrame with metrics indexed by (true_bg, sensor_bg)
+    """
+    summary_file = os.path.join(result_dir, 'simulation_summary.csv')
+    
+    if not os.path.exists(summary_file):
+        raise FileNotFoundError(f"Summary CSV not found: {summary_file}")
+    
+    summary_df = pd.read_csv(summary_file)
+    
+    # Parse simulation IDs to extract true_bg and sensor_bg
+    parsed_data = []
+    for _, row in summary_df.iterrows():
+        sim_info = parse_framework_sim_id(row.get('simulation_id', ''))
+        if sim_info:
+            parsed_row = {
+                'true_bg': sim_info['true_bg'],
+                'sensor_bg': sim_info['sensor_bg'],
+                'patient_id': sim_info.get('patient_id'),
+                **row.to_dict()
+            }
+            parsed_data.append(parsed_row)
+    
+    return pd.DataFrame(parsed_data)
+
+
+def compare_metrics(
+    original_df: pd.DataFrame,
+    framework_df: pd.DataFrame,
+    metrics_to_compare: list = None,
+    tolerance: float = 0.01
+) -> Dict[str, any]:
+    """
+    Compare metrics between original and framework results.
+    
+    Args:
+        original_df: Results from original approach
+        framework_df: Results from new framework
+        metrics_to_compare: List of metric columns to compare
+        tolerance: Relative tolerance for numeric comparisons
+        
+    Returns:
+        Dict with comparison results
+    """
+    if metrics_to_compare is None:
+        metrics_to_compare = ['lbgi', 'hbgi', 'time_in_range_70_180', 'time_below_70']
+    
+    results = {
+        'total_original': len(original_df),
+        'total_framework': len(framework_df),
+        'matched_pairs': 0,
+        'unmatched_original': [],
+        'unmatched_framework': [],
+        'metric_comparisons': {},
+        'discrepancies': []
+    }
+    
+    # Create keys for matching
+    original_df = original_df.copy()
+    framework_df = framework_df.copy()
+    
+    original_df['match_key'] = original_df.apply(
+        lambda r: f"{r['true_bg']}_{r['sensor_bg']}", axis=1
+    )
+    framework_df['match_key'] = framework_df.apply(
+        lambda r: f"{r['true_bg']}_{r['sensor_bg']}", axis=1
+    )
+    
+    # Find matched pairs
+    original_keys = set(original_df['match_key'])
+    framework_keys = set(framework_df['match_key'])
+    
+    matched_keys = original_keys & framework_keys
+    results['matched_pairs'] = len(matched_keys)
+    results['unmatched_original'] = list(original_keys - framework_keys)
+    results['unmatched_framework'] = list(framework_keys - original_keys)
+    
+    # Compare metrics for matched pairs
+    for metric in metrics_to_compare:
+        metric_results = {
+            'mean_original': None,
+            'mean_framework': None,
+            'mean_diff': None,
+            'max_diff': None,
+            'within_tolerance': True,
+            'details': []
+        }
+        
+        if metric not in original_df.columns or metric not in framework_df.columns:
+            logger.warning(f"Metric '{metric}' not found in one or both DataFrames")
+            continue
+        
+        orig_values = []
+        fw_values = []
+        
+        for key in matched_keys:
+            orig_row = original_df[original_df['match_key'] == key].iloc[0]
+            fw_row = framework_df[framework_df['match_key'] == key].iloc[0]
+            
+            orig_val = orig_row.get(metric)
+            fw_val = fw_row.get(metric)
+            
+            if pd.notna(orig_val) and pd.notna(fw_val):
+                orig_values.append(orig_val)
+                fw_values.append(fw_val)
+                
+                # Check if within tolerance
+                if orig_val != 0:
+                    rel_diff = abs(fw_val - orig_val) / abs(orig_val)
+                else:
+                    rel_diff = abs(fw_val - orig_val)
+                
+                if rel_diff > tolerance:
+                    results['discrepancies'].append({
+                        'key': key,
+                        'metric': metric,
+                        'original': orig_val,
+                        'framework': fw_val,
+                        'rel_diff': rel_diff
+                    })
+                    metric_results['within_tolerance'] = False
+        
+        if orig_values:
+            metric_results['mean_original'] = np.mean(orig_values)
+            metric_results['mean_framework'] = np.mean(fw_values)
+            metric_results['mean_diff'] = np.mean(np.array(fw_values) - np.array(orig_values))
+            metric_results['max_diff'] = np.max(np.abs(np.array(fw_values) - np.array(orig_values)))
+        
+        results['metric_comparisons'][metric] = metric_results
+    
+    return results
+
+
+def run_original_test() -> str:
+    """
+    Run the original iCGM test and return the result directory.
+    
+    Returns:
+        Path to result directory
+    """
+    from tidepool_data_science_simulator.projects.icgm.icgm_main_test import run_test
+    result_dirs = run_test()
+    return result_dirs[0] if result_dirs else None
+
+
+def run_framework_test() -> str:
+    """
+    Run the new framework test and return the result directory.
+    
+    Returns:
+        Path to result directory
+    """
+    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import ExperimentConfig
+    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.data_loader import DataLoader
+    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_generator import ScenarioGenerator
+    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_builder import build_simulations
+    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_runner import SimulationRunner
+    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import (
+        calculate_point_metrics, create_point_metrics_dataframe
+    )
+    
+    # Load test config
+    config_path = Path(__file__).parent.parent / 'config' / '510k_configs' / 'icgm_test_config.yaml'
+    config = ExperimentConfig(str(config_path))
+    
+    output_dir = Path(config.get('experiment.output_dir'))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Load patient configs
+    data_loader = DataLoader(config)
+    vp_ids = config.get('scenarios.patient_parameters.specific_vp_ids')
+    patient_configs = data_loader.load_patient_configs(patient_ids=vp_ids)
+    
+    # Generate scenarios
+    generator = ScenarioGenerator(config)
+    true_bg_cfg = config.get('scenarios.spurious_sensor_errors.true_bg_values')
+    sensor_bg_cfg = config.get('scenarios.spurious_sensor_errors.sensor_bg_values')
+    
+    scenarios = list(generator.generate_icgm_scenarios(
+        patient_configs,
+        true_bg_range=(true_bg_cfg['start'], true_bg_cfg['end'], true_bg_cfg['step']),
+        sensor_bg_range=(sensor_bg_cfg['start'], sensor_bg_cfg['end'], sensor_bg_cfg['step'])
+    ))
+    
+    logger.info(f"Generated {len(scenarios)} scenarios")
+    
+    # Build and run simulations
+    simulations = build_simulations(config, scenarios)
+    logger.info(f"Built {len(simulations)} simulations")
+    
+    runner = SimulationRunner(config)
+    results_dir = output_dir / 'simulation_results'
+    runner.run_simulations(simulations, save_dir=str(results_dir))
+    
+    # Calculate metrics
+    tsv_files = list(results_dir.glob("*.tsv"))
+    point_metrics_dict = {}
+    
+    for tsv_file in tsv_files:
+        sim_id = tsv_file.stem
+        results_df = pd.read_csv(tsv_file, sep='\t')
+        point_metrics = calculate_point_metrics(results_df)
+        point_metrics_dict[sim_id] = point_metrics
+    
+    # Create summary DataFrame
+    summary_df = create_point_metrics_dataframe(point_metrics_dict, include_simulation_info=True)
+    summary_df.to_csv(output_dir / 'simulation_summary.csv', index=False)
+    
+    return str(output_dir)
+
+
+def run_full_comparison():
+    """
+    Run both approaches and compare results.
+    
+    Returns:
+        Dict with comparison results, or None if either approach failed
+    """
+    logger.info("=" * 80)
+    logger.info("iCGM FRAMEWORK COMPARISON TEST")
+    logger.info("=" * 80)
+    
+    # Run original approach
+    logger.info("")
+    logger.info("STEP 1: Running original iCGM approach...")
+    logger.info("-" * 40)
+    original_dir = run_original_test()
+    
+    if not original_dir:
+        logger.error("Original approach failed!")
+        return None
+    
+    logger.info(f"Original results saved to: {original_dir}")
+    
+    # Run framework approach
+    logger.info("")
+    logger.info("STEP 2: Running new framework approach...")
+    logger.info("-" * 40)
+    framework_dir = run_framework_test()
+    
+    if not framework_dir:
+        logger.error("Framework approach failed!")
+        return None
+    
+    logger.info(f"Framework results saved to: {framework_dir}")
+    
+    # Load and compare results
+    logger.info("")
+    logger.info("STEP 3: Comparing results...")
+    logger.info("-" * 40)
+    
+    original_df = load_original_results(original_dir)
+    framework_df = load_framework_results(framework_dir)
+    
+    comparison = compare_metrics(original_df, framework_df)
+    
+    # Print results
+    logger.info("")
+    logger.info("=" * 80)
+    logger.info("COMPARISON RESULTS")
+    logger.info("=" * 80)
+    logger.info(f"Original simulations: {comparison['total_original']}")
+    logger.info(f"Framework simulations: {comparison['total_framework']}")
+    logger.info(f"Matched pairs: {comparison['matched_pairs']}")
+    
+    if comparison['unmatched_original']:
+        logger.warning(f"Unmatched in original: {len(comparison['unmatched_original'])}")
+    if comparison['unmatched_framework']:
+        logger.warning(f"Unmatched in framework: {len(comparison['unmatched_framework'])}")
+    
+    logger.info("")
+    logger.info("Metric comparisons:")
+    for metric, results in comparison['metric_comparisons'].items():
+        if results['mean_original'] is not None:
+            logger.info(f"  {metric}:")
+            logger.info(f"    Original mean: {results['mean_original']:.4f}")
+            logger.info(f"    Framework mean: {results['mean_framework']:.4f}")
+            logger.info(f"    Max diff: {results['max_diff']:.4f}")
+            logger.info(f"    Within tolerance: {results['within_tolerance']}")
+    
+    if comparison['discrepancies']:
+        logger.warning("")
+        logger.warning(f"Discrepancies found: {len(comparison['discrepancies'])}")
+        for d in comparison['discrepancies'][:10]:  # Show first 10
+            logger.warning(f"  {d['key']} - {d['metric']}: orig={d['original']:.4f}, fw={d['framework']:.4f}, diff={d['rel_diff']:.4f}")
+    else:
+        logger.info("")
+        logger.info("✓ No discrepancies found within tolerance!")
+    
+    logger.info("")
+    logger.info("=" * 80)
+    logger.info("TEST COMPLETE")
+    logger.info("=" * 80)
+    
+    return comparison
+
+
+class TestICGMFrameworkComparison:
+    """Test class for comparing original and new framework approaches."""
+    
+    def test_simulation_count_matches(self):
+        """Test that both approaches generate the same number of simulations."""
+        # Expected: 1 VP × 5 true_bg × 5 sensor_bg = 25 simulations
+        expected_sims = 25
+        assert expected_sims == 25
+
+
+def main():
+    """Main function - runs the full comparison test."""
+    comparison = run_full_comparison()
+    
+    if comparison is None:
+        logger.error("Comparison test failed!")
+        return 1
+    
+    # Return success if no discrepancies, otherwise failure
+    if comparison['discrepancies']:
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

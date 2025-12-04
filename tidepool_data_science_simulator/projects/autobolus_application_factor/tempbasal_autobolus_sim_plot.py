@@ -39,10 +39,10 @@ def run_simulation(partial_application_factor=None, gradual_transition_threshold
     # ISF (Insulin Sensitivity Factor): 150.0 mg/dL/U (default from get_canonical_risk_pump_config)
     # CIR (Carb-to-Insulin Ratio): 20.0 g/U (default from get_canonical_risk_pump_config)
     
-    starting_bg = 120
+    starting_bg = 200
     
     t0, patient_config = get_canonical_risk_patient_config(start_glucose_value=starting_bg)
-    t0, sensor_config = get_canonical_sensor_config(start_value=800)
+    t0, sensor_config = get_canonical_sensor_config(start_value=starting_bg)
     t0, controller_config = get_canonical_controller_config()
     t0, pump_config = get_canonical_risk_pump_config()
     
@@ -150,8 +150,8 @@ def test_basic_simulation():
     
     # Plot comparison with cumulative insulin
     fig, ax = plot_sim_results(all_results, plot_cumulative_insulin=True)
-    ax[0].set_ylim((0, 250))  # Adjust BG plot y-limits
-    ax[1].set_ylim((0, 4))  # Adjust insulin plot y-limits
+    ax[0].set_ylim((50, 300))  # Adjust BG plot y-limits
+    ax[1].set_ylim((0, 8))  # Adjust insulin plot y-limits
 
     plt.show()
 

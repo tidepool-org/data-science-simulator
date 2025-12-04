@@ -1,0 +1,172 @@
+# iCGM Sensitivity Analysis - TEST CONFIGURATION
+# 
+# Reduced parameters for quick validation and comparison with the original
+# icgm_main_test.py approach.
+#
+# Test Parameters:
+#   - 1 virtual patient (VP 0)
+#   - True BG range: 70-150 mg/dL, step 20 (5 values)
+#   - Sensor BG range: 70-150 mg/dL, step 20 (5 values)
+#   - Total simulations: 1 × 5 × 5 = 25 simulations
+#   - Expected runtime: ~2-5 minutes
+#
+# Usage:
+#   python run_icgm_510k_analysis.py --config config/510k_configs/icgm_test_config.yaml
+
+experiment:
+  name: "icgm_sensitivity_test"
+  description: "Test configuration for validating iCGM sensitivity analysis pipeline"
+  output_dir: "/Users/mconn/data/test_simulation_pipeline/icgm_test_framework_results"
+  random_seed: 42
+
+algorithms:
+  tempbasal:
+    enabled: false
+  
+  autobolus:
+    enabled: true
+    controller_id: "swift"
+    include_positive_velocity_and_RC: true
+    use_mid_absorption_isf: true
+    partial_application_factors: [0.4]  # Match icgm_main_test.py
+    gradual_transition_thresholds: [50.0]  # Match icgm_main_test.py
+    minimum_autobolus: 0.1
+    maximum_autobolus: 100
+    max_basal_multiplier: 3.5
+    suspend_threshold: 70
+
+scenarios:
+  scenario_type: "icgm_sensitivity"
+  
+  spurious_sensor_errors:
+    # Match icgm_main_test.py: range(70, 151, 20) = [70, 90, 110, 130, 150]
+    true_bg_values:
+      start: 70
+      end: 150
+      step: 20
+    
+    sensor_bg_values:
+      start: 70
+      end: 150
+      step: 20
+    
+    sensor_model:
+      type: "NoisySensorInitialOffset"
+      std_dev: 3.0
+      delay: 0
+      spurious_value_prob: 0.0
+      num_consecutive_spurious: 1
+  
+  meal_scenarios:
+    enabled: false
+  
+  settings_mismatches:
+    enabled: false
+  
+  patient_parameters:
+    source: "icgm_patients"
+    num_patients: null
+    specific_vp_ids: [0]  # Match icgm_main_test.py: single VP
+
+simulation:
+  duration_hours: 8
+  start_index: 137
+  time_step_minutes: 5
+  
+  bolus_acceptance:
+    enabled: true
+    accept_at_t0_only: true
+
+processing:
+  parallel_processes: 8
+  batch_size: 8
+  save_individual_results: true
+  save_summary_only: false
+  archive_after_processing: false  # Don't archive for testing
+
+metrics:
+  primary:
+    - lbgi_from_start
+    - lbgi_from_first_action
+    - time_below_70
+    - time_below_54
+    
+  icgm_specific:
+    - true_start_bg
+    - sensor_start_bg_with_offset
+    - max_bolus_delivered
+    - traditional_bolus_equivalent
+    - bolus_difference
+
+risk_scoring:
+  enabled: true
+  
+  severity_bands:
+    - name: "minimal_risk"
+      min_lbgi: 0.0
+      max_lbgi: 2.5
+      safety_threshold: 1.0
+    
+    - name: "low_risk"
+      min_lbgi: 2.5
+      max_lbgi: 5.0
+      safety_threshold: 0.1
+    
+    - name: "moderate_risk"
+      min_lbgi: 5.0
+      max_lbgi: 10.0
+      safety_threshold: 0.01
+    
+    - name: "high_risk"
+      min_lbgi: 10.0
+      max_lbgi: 20.0
+      safety_threshold: 0.0001
+    
+    - name: "critical_risk"
+      min_lbgi: 20.0
+      max_lbgi: .inf
+      safety_threshold: 0.000001
+  
+  bg_ranges:
+    - [40, 60]
+    - [61, 80]
+    - [81, 120]
+    - [121, 160]
+    - [161, 200]
+  
+  p_correction_bolus_given_error: 0.010416667
+  cgm_measurements_per_100k_person_years: 10512000
+  population_type: "adult"
+
+analysis:
+  statistical_tests:
+    - paired_t_test
+    
+  multiple_comparisons:
+    method: "bonferroni"
+    alpha: 0.05
+
+visualization:
+  risk_heatmaps:
+    enabled: true
+    shared_z_scale: true
+    show_thresholds: true
+    colormap: "viridis"
+    
+  risk_vs_mitigation:
+    enabled: false  # Only one threshold, so disable
+
+regulatory:
+  fda_510k:
+    enabled: false  # Disable for testing
+  
+  audit_trail: false
+  reproducibility_checks: false
+  validation_enabled: false
+  documentation_auto_generate: false
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "icgm_test.log"
+  console: true

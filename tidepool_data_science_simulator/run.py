@@ -61,6 +61,10 @@ def run_simulations(sims, save_dir,
     logger.debug("Results Directory: {}".format(save_dir))
     logger.debug("Current Code Commit: {}".format(current_commit))
 
+    # Create save directory if it doesn't exist
+    if save_results and save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+
     num_sims = len(sims)
     sim_ctr = 1
     running_sims = {}

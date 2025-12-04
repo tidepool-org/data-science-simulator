@@ -1,0 +1,204 @@
+# iCGM Sensitivity Analysis Configuration for FDA 510k Submission
+# 
+# This configuration defines parameters for testing how the insulin algorithm
+# handles spurious CGM sensor errors across a grid of true BG vs sensor BG values.
+
+experiment:
+  name: "icgm_sensitivity_analysis"
+  description: "FDA AI Letter iCGM sensitivity analysis for spurious sensor errors"
+  output_dir: "/Users/mconn/data/test_simulation_pipeline/icgm_sensitivity_analysis_results"
+  random_seed: 42
+
+algorithms:
+  tempbasal:
+    enabled: false  # Not typically tested in iCGM scenarios
+  
+  autobolus:
+    enabled: true
+    controller_id: "swift"
+    include_positive_velocity_and_RC: true  # Key safety feature
+    use_mid_absorption_isf: true
+    partial_application_factors: [0.4]  # Test specific PAF values
+    gradual_transition_thresholds: [20.0, 30.0, 40.0]  # Mitigation thresholds (mg/dL/min)
+    minimum_autobolus: 0.1
+    maximum_autobolus: 100
+    max_basal_multiplier: 3.5
+    suspend_threshold: 70  # mg/dL
+
+scenarios:
+  # iCGM-specific scenario type
+  scenario_type: "icgm_sensitivity"
+  
+  # Grid of true BG vs sensor BG with error
+  spurious_sensor_errors:
+    # True glucose values to test (mg/dL)
+    true_bg_values:
+      start: 40
+      end: 405
+      step: 5
+    
+    # Sensor glucose values to test (mg/dL)
+    # This creates a grid where sensor error = sensor_bg - true_bg
+    sensor_bg_values:
+      start: 40
+      end: 405
+      step: 5
+    
+    # Sensor error model configuration
+    sensor_model:
+      type: "NoisySensorInitialOffset"  # or "SensoriCGMInitialOffset"
+      std_dev: 3.0
+      delay: 0
+      spurious_value_prob: 0.0
+      num_consecutive_spurious: 1
+  
+  # No meals for iCGM scenarios (isolated sensor error testing)
+  meal_scenarios:
+    enabled: false
+  
+  # No settings mismatches for iCGM scenarios
+  settings_mismatches:
+    enabled: false
+  
+  patient_parameters:
+    source: "icgm_patients"
+    num_patients: null  # All 35 virtual patients
+    specific_vp_ids: null  # Or [34] for quick testing
+
+simulation:
+  duration_hours: 8
+  start_index: 137  # Standard warm-up period
+  time_step_minutes: 5
+  
+  # iCGM-specific: User accepts bolus recommendation only at t0
+  bolus_acceptance:
+    enabled: true
+    accept_at_t0_only: true  # Simulate single spurious CGM reading impact
+
+processing:
+  parallel_processes: 14
+  batch_size: 14
+  save_individual_results: true
+  save_summary_only: false
+  
+  # iCGM simulations generate many files - consider archiving
+  archive_after_processing: true
+  archive_format: "zip"
+
+metrics:
+  primary:
+    - lbgi_from_start  # LBGI calculated from standard start index
+    - lbgi_from_first_action  # LBGI from first Loop action
+    - time_below_70
+    - time_below_54
+    
+  # iCGM-specific metrics
+  icgm_specific:
+    - true_start_bg
+    - sensor_start_bg_with_offset
+    - max_bolus_delivered
+    - traditional_bolus_equivalent  # (sensor_bg - target) / ISF
+    - bolus_difference
+
+# Risk scoring for regulatory compliance
+risk_scoring:
+  enabled: true
+  
+  # Severity bands based on LBGI values
+  severity_bands:
+    - name: "minimal_risk"
+      min_lbgi: 0.0
+      max_lbgi: 2.5
+      safety_threshold: 1.0  # events per 100,000 person-years
+    
+    - name: "low_risk"
+      min_lbgi: 2.5
+      max_lbgi: 5.0
+      safety_threshold: 0.1
+    
+    - name: "moderate_risk"
+      min_lbgi: 5.0
+      max_lbgi: 10.0
+      safety_threshold: 0.01
+    
+    - name: "high_risk"
+      min_lbgi: 10.0
+      max_lbgi: 20.0
+      safety_threshold: 0.0001
+    
+    - name: "critical_risk"
+      min_lbgi: 20.0
+      max_lbgi: .inf
+      safety_threshold: 0.000001
+  
+  # BG range bins for concurrency table (true BG vs sensor BG grid)
+  bg_ranges:
+    - [40, 60]
+    - [61, 80]
+    - [81, 120]
+    - [121, 160]
+    - [161, 200]
+    - [201, 250]
+    - [251, 300]
+    - [301, 350]
+    - [351, 400]
+  
+  # Probability calculations
+  p_correction_bolus_given_error: 0.010416667  # 3/288 = 1/48
+  cgm_measurements_per_100k_person_years: 10512000  # 288 * 365 * 100000
+  population_type: "adult"  # or "pediatric"
+
+analysis:
+  statistical_tests:
+    - paired_t_test  # Less relevant for iCGM (no paired comparisons)
+    
+  multiple_comparisons:
+    method: "bonferroni"
+    alpha: 0.05
+
+visualization:
+  # Risk score heatmaps (true BG vs sensor BG)
+  risk_heatmaps:
+    enabled: true
+    shared_z_scale: true  # Use same color scale across severity bands
+    show_thresholds: true
+    colormap: "viridis"
+    
+  # Risk score comparison across mitigation strategies
+  risk_vs_mitigation:
+    enabled: true
+    x_axis: "gradual_transition_threshold"
+    y_axis: ["risk_score", "time_in_range_70_180"]
+
+# FDA 510k submission support
+regulatory:
+  fda_510k:
+    enabled: true
+    
+    # Auto-generate risk tables
+    risk_tables:
+      format: "latex"  # or "csv", "excel"
+      include_summary: true
+    
+    # Export probability matrices
+    export_matrices:
+      - lbgi_probability_by_bg_range
+      - joint_probability_true_sensor
+      - events_per_100k_person_years
+    
+    # Generate regulatory figures
+    figures:
+      - risk_score_heatmaps
+      - severity_event_probability_tables
+      - comparison_to_baseline
+  
+  audit_trail: true
+  reproducibility_checks: true
+  validation_enabled: true
+  documentation_auto_generate: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "icgm_sensitivity_analysis.log"
+  console: true
