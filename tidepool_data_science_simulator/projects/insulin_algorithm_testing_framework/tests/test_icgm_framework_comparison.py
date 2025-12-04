@@ -27,11 +27,13 @@ import logging
 import glob
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import pandas as pd
 import numpy as np
 
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.risk_scoring import analyze_icgm_risk
+from tidepool_data_science_simulator.projects.icgm.icgm_analysis_evaluation import compute_score_risk_table
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 from tidepool_data_science_simulator.evaluation.inspect_results import load_result
 
@@ -290,24 +292,53 @@ def compare_metrics(
     return results
 
 
-def run_original_test() -> str:
+def run_original_test() -> Tuple[str, pd.DataFrame, pd.DataFrame]:
     """
-    Run the original iCGM test and return the result directory.
+    Run the original iCGM test and return the result directory with risk analysis.
     
     Returns:
-        Path to result directory
+        Tuple of (result_dir, summary_df, severity_df)
     """
     from tidepool_data_science_simulator.projects.icgm.icgm_main_test import run_test
     result_dirs = run_test()
-    return result_dirs[0] if result_dirs else None
+    
+    if not result_dirs:
+        return None, None, None
+    
+    result_dir = result_dirs[0]
+    
+    # Load the summary data
+    summary_file = f"{result_dir}.tsv"
+    if not os.path.exists(summary_file):
+        logger.error(f"Summary file not found: {summary_file}")
+        return result_dir, None, None
+    
+    summary_df = pd.read_csv(summary_file, sep='\t')
+    
+    # Calculate risk scores using original method
+    logger.info("Calculating risk scores using original compute_score_risk_table...")
+    try:
+        severity_df, analysis_arrays = compute_score_risk_table(summary_df)
+        logger.info(f"Original risk analysis complete")
+        
+        # Save risk results
+        risk_file = f"{result_dir}_risk_analysis.csv"
+        severity_df.to_csv(risk_file, index=False)
+        logger.info(f"Saved original risk analysis to: {risk_file}")
+        
+    except Exception as e:
+        logger.error(f"Original risk analysis failed: {e}")
+        severity_df = None
+    
+    return result_dir, summary_df, severity_df
 
 
-def run_framework_test() -> str:
+def run_framework_test() -> Tuple[str, pd.DataFrame, pd.DataFrame]:
     """
-    Run the new framework test and return the result directory.
+    Run the new framework test and return the result directory with risk analysis.
     
     Returns:
-        Path to result directory
+        Tuple of (result_dir, summary_df, severity_df)
     """
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import ExperimentConfig
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.data_loader import DataLoader
@@ -364,8 +395,119 @@ def run_framework_test() -> str:
     # Create summary DataFrame
     summary_df = metrics_to_dataframe(point_metrics_dict, parse_sim_ids=True)
     summary_df.to_csv(output_dir / 'simulation_summary.csv', index=False)
+
+   
+    logger.info("")
+    logger.info("=" * 80)
+    logger.info("STEP 5: Calculating Risk Scores")
+    logger.info("=" * 80)
     
-    return str(output_dir)
+    severity_df = None
+    try:
+        # Perform risk analysis
+        severity_df, analysis_arrays, report = analyze_icgm_risk(
+            summary_df,
+            population_type=config.get('risk_scoring.population_type', 'adult')
+        )
+        
+        # Save risk analysis results
+        severity_df.to_csv(output_dir / 'risk_severity_analysis.csv', index=False)
+        logger.info(f"Saved risk severity analysis")
+        
+        # Save risk report
+        report_path = output_dir / 'risk_analysis_report.txt'
+        with open(report_path, 'w') as f:
+            f.write(report)
+        logger.info(f"Saved risk analysis report: {report_path}")
+        
+        # Print report to console
+        print("")
+        print(report)
+        
+    except Exception as e:
+        logger.error(f"Risk analysis failed: {e}")
+        raise
+    
+    return str(output_dir), summary_df, severity_df
+
+
+def compare_risk_scores(
+    original_severity_df: pd.DataFrame,
+    framework_severity_df: pd.DataFrame,
+    tolerance: float = 0.01
+) -> Dict[str, any]:
+    """
+    Compare risk scores between original and framework approaches.
+    
+    Args:
+        original_severity_df: Severity DataFrame from original compute_score_risk_table
+        framework_severity_df: Severity DataFrame from framework analyze_icgm_risk
+        tolerance: Relative tolerance for comparisons
+        
+    Returns:
+        Dict with comparison results
+    """
+    results = {
+        'original_has_risk': original_severity_df is not None,
+        'framework_has_risk': framework_severity_df is not None,
+        'severity_band_comparison': [],
+        'total_events_original': None,
+        'total_events_framework': None,
+        'total_events_diff': None,
+        'all_within_tolerance': True
+    }
+    
+    if original_severity_df is None or framework_severity_df is None:
+        results['all_within_tolerance'] = False
+        return results
+    
+    # Original returns a single-column DataFrame with event probabilities
+    # Framework returns a DataFrame with severity bands and event counts
+    
+    # Get total events from framework
+    if 'events_per_100k_years' in framework_severity_df.columns:
+        results['total_events_framework'] = framework_severity_df['events_per_100k_years'].sum()
+    
+    # Original severity_df is indexed differently - it's the probability values
+    # Let's compare the structure
+    logger.info(f"Original risk df shape: {original_severity_df.shape}")
+    logger.info(f"Original risk df columns: {original_severity_df.columns.tolist()}")
+    logger.info(f"Framework risk df shape: {framework_severity_df.shape}")
+    logger.info(f"Framework risk df columns: {framework_severity_df.columns.tolist()}")
+    
+    # The original compute_score_risk_table returns severity_event_probability_df
+    # which is a DataFrame with the probability values per severity band
+    if len(original_severity_df.columns) == 1:
+        # Original format: single column with 5 probability values (one per severity band)
+        original_probs = original_severity_df.iloc[:, 0].values
+        results['total_events_original_prob'] = original_probs.sum()
+        
+        # Compare with framework probabilities
+        if 'probability' in framework_severity_df.columns:
+            framework_probs = framework_severity_df['probability'].values
+            
+            for i in range(min(len(original_probs), len(framework_probs))):
+                orig_val = original_probs[i]
+                fw_val = framework_probs[i]
+                
+                if orig_val != 0:
+                    rel_diff = abs(fw_val - orig_val) / abs(orig_val)
+                else:
+                    rel_diff = abs(fw_val - orig_val)
+                
+                band_comparison = {
+                    'band_index': i,
+                    'original_probability': orig_val,
+                    'framework_probability': fw_val,
+                    'relative_diff': rel_diff,
+                    'within_tolerance': rel_diff <= tolerance
+                }
+                results['severity_band_comparison'].append(band_comparison)
+                
+                if not band_comparison['within_tolerance']:
+                    results['all_within_tolerance'] = False
+    
+    return results
 
 
 def find_tsv_file_by_bg(directory: str, true_bg: int, sensor_bg: int, pattern_type: str = 'original') -> str:
@@ -501,7 +643,7 @@ def run_full_comparison():
     logger.info("")
     logger.info("STEP 1: Running original iCGM approach...")
     logger.info("-" * 40)
-    original_dir = run_original_test()
+    original_dir, original_summary_df, original_severity_df = run_original_test()
     
     if not original_dir:
         logger.error("Original approach failed!")
@@ -513,7 +655,7 @@ def run_full_comparison():
     logger.info("")
     logger.info("STEP 2: Running new framework approach...")
     logger.info("-" * 40)
-    framework_dir = run_framework_test()
+    framework_dir, framework_summary_df, framework_severity_df = run_framework_test()
     
     if not framework_dir:
         logger.error("Framework approach failed!")
@@ -576,6 +718,34 @@ def run_full_comparison():
     else:
         logger.info("")
         logger.info("✓ No discrepancies found within tolerance!")
+    
+    # Compare risk scores
+    logger.info("")
+    logger.info("STEP 5: Comparing risk scores...")
+    logger.info("-" * 40)
+    
+    risk_comparison = compare_risk_scores(original_severity_df, framework_severity_df)
+    comparison['risk_comparison'] = risk_comparison
+    
+    logger.info("")
+    logger.info("Risk Score Comparison:")
+    logger.info(f"  Original has risk data: {risk_comparison['original_has_risk']}")
+    logger.info(f"  Framework has risk data: {risk_comparison['framework_has_risk']}")
+    
+    if risk_comparison['severity_band_comparison']:
+        logger.info("")
+        logger.info("  Severity Band Comparisons:")
+        for band in risk_comparison['severity_band_comparison']:
+            status = "✓" if band['within_tolerance'] else "✗"
+            logger.info(f"    Band {band['band_index']}: orig={band['original_probability']:.2e}, "
+                       f"fw={band['framework_probability']:.2e}, diff={band['relative_diff']:.2e} {status}")
+        
+        if risk_comparison['all_within_tolerance']:
+            logger.info("")
+            logger.info("  ✓ All risk scores within tolerance!")
+        else:
+            logger.warning("")
+            logger.warning("  ✗ Some risk scores differ beyond tolerance")
     
     logger.info("")
     logger.info("=" * 80)

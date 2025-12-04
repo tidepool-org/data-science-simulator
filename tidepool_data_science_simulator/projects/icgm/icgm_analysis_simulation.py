@@ -72,8 +72,6 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, p
     else:
         error_glucose_values = sensor_bg_values
 
-    random_state = RandomState(base_sim_seed)
-
     for true_start_glucose in true_glucose_start_values:
         for initial_error_value in error_glucose_values:
 
@@ -101,6 +99,9 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, p
 
             sim_parser = ScenarioParserV2()
 
+            np.random.seed(base_sim_seed)
+            random_state = RandomState(base_sim_seed)
+            
             sim_id = "icgm_analysis_vp_{}_{}_tbg={}_sbg={}".format(base_sim_seed, new_sim_base_config["patient_id"], true_start_glucose, initial_error_value)
             sensor = get_initial_offset_sensor_noisy(t0_init=t0 - datetime.timedelta(minutes=len(glucose_history_values) * 5.0),
                                                t0=t0,

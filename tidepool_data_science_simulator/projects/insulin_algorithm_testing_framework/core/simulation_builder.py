@@ -26,6 +26,7 @@ from typing import Dict, Any, Optional, Callable, Iterator, List, Iterable
 from functools import partial, reduce
 
 from numpy.random import RandomState
+import numpy as np
 
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.events import CarbTimeline
@@ -450,8 +451,14 @@ def build_simulation(
     # Determine random state: use scenario's random_seed, then provided random_state, then default
     scenario_seed = scenario.get('random_seed')
     if scenario_seed is not None:
+        # Synchronize both the global numpy RNG and the local RandomState so
+        # code paths that use either `np.random` or a passed RandomState
+        # produce the same deterministic noise as legacy code.
+        np.random.seed(scenario_seed)
         random_state = RandomState(scenario_seed)
     elif random_state is None:
+        # Default reproducible seed for both global and local RNGs
+        np.random.seed(42)
         random_state = RandomState(42)  # Default seed for reproducibility
     
     # Check for iCGM scenario (sensor_start_bg present)
@@ -574,48 +581,3 @@ def count_scenarios(scenarios: Iterable[Dict[str, Any]]) -> int:
     return sum(1 for _ in scenarios)
 
 
-# def filter_scenarios_by(
-#     scenarios: Iterable[Dict[str, Any]],
-#     predicate: Callable[[Dict[str, Any]], bool]
-# ) -> Iterator[Dict[str, Any]]:
-#     """
-#     Filters scenarios using a predicate function.
-    
-#     Args:
-#         scenarios: Iterable of scenario dictionaries
-#         predicate: Function that returns True to keep scenario
-        
-#     Yields:
-#         Filtered scenarios
-        
-#     Example:
-#         >>> high_bg_scenarios = filter_scenarios_by(
-#         ...     scenarios,
-#         ...     lambda s: s['true_start_bg'] > 180
-#         ... )
-#     """
-#     return filter(predicate, scenarios)
-
-
-# def map_scenarios(
-#     scenarios: Iterable[Dict[str, Any]],
-#     transform: Callable[[Dict[str, Any]], Dict[str, Any]]
-# ) -> Iterator[Dict[str, Any]]:
-#     """
-#     Applies a transformation to each scenario.
-    
-#     Args:
-#         scenarios: Iterable of scenario dictionaries
-#         transform: Transformation function
-        
-#     Yields:
-#         Transformed scenarios
-        
-#     Example:
-#         >>> # Add a field to all scenarios
-#         >>> enhanced = map_scenarios(
-#         ...     scenarios,
-#         ...     lambda s: {**s, 'enhanced': True}
-#         ... )
-#     """
-#     return map(transform, scenarios)

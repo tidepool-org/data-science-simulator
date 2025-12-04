@@ -37,7 +37,7 @@ class RiskConfig:
     """Immutable risk scoring configuration."""
     severity_bands: Tuple[SeverityBand, ...]
     bg_ranges: Tuple[Tuple[int, int], ...]
-    p_correction_bolus: float = 3.0 / 288.0  # 1/48
+    p_correction_bolus: float = 6.0 / 288.0  # 1/48
     cgm_per_100k_person_years: int = 288 * 365 * 100000
     population_type: str = "adult"
 
@@ -193,7 +193,7 @@ def compute_risk_table(
         
         # Initialize Dexcom concurrency model
         dexcom_model = DexcomG6ValueModel(concurrency_table=risk_config.population_type)
-        832-696-5487
+        
         # Storage for results
         num_severity_bands = len(risk_config.severity_bands)
         severity_event_counts = np.zeros(num_severity_bands)
