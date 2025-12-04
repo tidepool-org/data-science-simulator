@@ -496,7 +496,8 @@ class ScenarioGenerator:
         
         scenario_count = 0
         
-        for patient_config in patient_configs:
+        # Track VP index for random seed (1-based to match original)
+        for vp_index, patient_config in enumerate(patient_configs, start=1):
             for true_bg in true_bg_values:
                 for sensor_bg in sensor_bg_values:
                     for paf in algorithm_config.partial_application_factors:
@@ -523,7 +524,10 @@ class ScenarioGenerator:
                                 'settings_multipliers': None,
                                 
                                 # Bolus acceptance only at t0
-                                'bolus_acceptance_mode': 't0_only'
+                                'bolus_acceptance_mode': 't0_only',
+                                
+                                # Random seed for reproducibility (matches original: VP index 1-based)
+                                'random_seed': vp_index
                             }
                             
                             scenario_count += 1

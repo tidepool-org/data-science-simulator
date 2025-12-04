@@ -21,6 +21,7 @@ Example:
 import logging
 import copy
 import datetime
+import types
 from typing import Dict, Any, Optional, Callable, Iterator, List, Iterable
 from functools import partial, reduce
 
@@ -29,6 +30,8 @@ from numpy.random import RandomState
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.models.events import CarbTimeline
 from tidepool_data_science_simulator.models.measures import Carb
+from tidepool_data_science_simulator.models.sensor_icgm import NoisySensorInitialOffset
+from tidepool_data_science_simulator.makedata.scenario_parser import SensorConfig, GlucoseTrace
 from tidepool_data_science_simulator.makedata.scenario_json_parser_v2 import ScenarioParserV2
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import (
     ExperimentConfig, AlgorithmConfig, SimulationConfig
@@ -214,6 +217,110 @@ def parse_base_time(config: Dict[str, Any]) -> datetime.datetime:
     return datetime.datetime.strptime(config["time_to_calculate_at"], date_str_format)
 
 
+def parse_glucose_datetimes(config: Dict[str, Any]) -> List[datetime.datetime]:
+    """
+    Extracts glucose history datetimes from config.
+    
+    Args:
+        config: Configuration dictionary
+        
+    Returns:
+        List of datetime objects for glucose history
+    """
+    date_str_format = "%m/%d/%Y %H:%M:%S"
+    datetime_dict = config["patient"]["sensor"]["glucose_history"]["datetime"]
+    return [
+        datetime.datetime.strptime(dt_str, date_str_format)
+        for dt_str in datetime_dict.values()
+    ]
+
+
+# ========================================
+# Sensor Creation Functions (for iCGM scenarios)
+# ========================================
+
+def create_noisy_sensor_initial_offset(
+    t0_init: datetime.datetime,
+    t0: datetime.datetime,
+    random_state: RandomState,
+    initial_error_value: float,
+    std_dev: float = 3.0
+) -> NoisySensorInitialOffset:
+    """
+    Creates a NoisySensorInitialOffset sensor with specified error at t0.
+    
+    This sensor type allows specifying the exact sensor BG value at t0,
+    which is critical for iCGM sensitivity analysis scenarios.
+    
+    Args:
+        t0_init: Time to initialize sensor (typically t0 - history_length)
+        t0: Simulation start time (when sensor error is applied)
+        random_state: Random state for reproducibility
+        initial_error_value: The sensor BG value to report at t0 (mg/dL)
+        std_dev: Standard deviation for sensor noise (default: 3.0)
+        
+    Returns:
+        Configured NoisySensorInitialOffset sensor
+    """
+    sensor_config = SensorConfig(sensor_bg_history=GlucoseTrace())
+    sensor_config.std_dev = std_dev
+    
+    sensor = NoisySensorInitialOffset(
+        time=t0_init,
+        t0_error_bg=initial_error_value,
+        sensor_config=sensor_config,
+        random_state=random_state,
+        sim_start_time=t0
+    )
+    sensor.name = f"NoisySensor_{initial_error_value}"
+    
+    return sensor
+
+
+def configure_sensor_history(
+    sensor: NoisySensorInitialOffset,
+    glucose_datetimes: List[datetime.datetime],
+    glucose_history_values: Dict[int, float]
+) -> NoisySensorInitialOffset:
+    """
+    Updates sensor state through glucose history time points.
+    
+    This is required to properly initialize the sensor's internal state
+    before the simulation begins.
+    
+    Args:
+        sensor: The sensor to update
+        glucose_datetimes: List of datetime objects for history points
+        glucose_history_values: Dict mapping index -> glucose value
+        
+    Returns:
+        The updated sensor (same object, mutated)
+    """
+    for dt, true_bg in zip(glucose_datetimes, glucose_history_values.values()):
+        sensor.update(dt, patient_true_bg=true_bg, patient_true_bg_prediction=[])
+    
+    return sensor
+
+
+def create_bolus_acceptance_method(t0: datetime.datetime):
+    """
+    Creates a bolus acceptance method that only accepts at t0.
+    
+    This is used for iCGM scenarios where we want to simulate the impact
+    of a single spurious CGM reading at t0.
+    
+    Args:
+        t0: The time at which to accept bolus recommendations
+        
+    Returns:
+        Method function to be bound to virtual patient
+    """
+    def does_accept_bolus_recommendation(self, bolus):
+        return self.time == t0
+    
+    return does_accept_bolus_recommendation
+
+
 # ========================================
 # Simulation ID Generation
 # ========================================
@@ -337,18 +444,64 @@ def build_simulation(
     if settings_multipliers:
         sim_config = configure_settings_mismatches(sim_config, settings_multipliers)
     
+    # Get base time and glucose history for sensor configuration
+    base_time = parse_base_time(sim_config)
+    
+    # Determine random state: use scenario's random_seed, then provided random_state, then default
+    scenario_seed = scenario.get('random_seed')
+    if scenario_seed is not None:
+        random_state = RandomState(scenario_seed)
+    elif random_state is None:
+        random_state = RandomState(42)  # Default seed for reproducibility
+    
+    # Check for iCGM scenario (sensor_start_bg present)
+    sensor_start_bg = scenario.get('sensor_start_bg')
+    accept_bolus_at_t0_only = scenario.get('accept_bolus_at_t0_only', False)
+    sensor = None
+    
+    if sensor_start_bg is not None:
+        # Create sensor with initial offset for iCGM scenarios
+        num_history_values = len(sim_config["patient"]["sensor"]["glucose_history"]["value"])
+        t0_init = base_time - datetime.timedelta(minutes=num_history_values * 5.0)
+        
+        # Use the random_state (already set above from scenario or provided)
+        sensor_random_state = random_state
+        
+        sensor = create_noisy_sensor_initial_offset(
+            t0_init=t0_init,
+            t0=base_time,
+            random_state=sensor_random_state,
+            initial_error_value=sensor_start_bg
+        )
+        
+        # Get glucose history and update sensor through history
+        glucose_datetimes = parse_glucose_datetimes(sim_config)
+        glucose_history_values = sim_config["patient"]["sensor"]["glucose_history"]["value"]
+        configure_sensor_history(sensor, glucose_datetimes, glucose_history_values)
+    
     # Parse configuration and create simulation components
     sim_parser = ScenarioParserV2()
-    sim_start_time, duration_hrs, virtual_patient, controller = sim_parser.build_components_from_config(sim_config)
+    sim_start_time, duration_hrs, virtual_patient, controller = sim_parser.build_components_from_config(
+        sim_config, sensor=sensor
+    )
+    
+    # If sensor was created, set it on virtual patient
+    if sensor is not None:
+        virtual_patient.sensor = sensor
+    
+    # Configure bolus acceptance for iCGM scenarios
+    if accept_bolus_at_t0_only or sensor_start_bg is not None:
+        bolus_method = create_bolus_acceptance_method(base_time)
+        virtual_patient.does_accept_bolus_recommendation = types.MethodType(
+            bolus_method, virtual_patient
+        )
     
     # Set meal timelines
     if true_meal_scenario:
-        base_time = parse_base_time(sim_config)
         true_meal_timeline = create_meal_timeline(base_time, true_meal_scenario)
         virtual_patient.carb_event_timeline = true_meal_timeline
     
     if reported_meal_scenario:
-        base_time = parse_base_time(sim_config)
         reported_meal_timeline = create_meal_timeline(base_time, reported_meal_scenario)
         controller.reported_carb_event_timeline = reported_meal_timeline
     

@@ -27,10 +27,13 @@ import logging
 import glob
 import re
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import pandas as pd
 import numpy as np
+
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
+from tidepool_data_science_simulator.evaluation.inspect_results import load_result
 
 # Setup logging
 logging.basicConfig(
@@ -161,10 +164,20 @@ def load_framework_results(result_dir: str) -> pd.DataFrame:
     return pd.DataFrame(parsed_data)
 
 
+# Column name mapping between original and framework approaches
+# Format: {display_name: (original_column, framework_column)}
+DEFAULT_COLUMN_MAPPING = {
+    'lbgi': ('lbgi_icgm_start', 'lbgi'),
+    'max_bolus': ('max_bolus_delivered', 'max_bolus_delivered'),
+    'true_start_bg': ('true_start_bg', 'tbg'),
+    'sensor_start_bg': ('start_bg_with_offset', 'sbg'),
+}
+
+
 def compare_metrics(
     original_df: pd.DataFrame,
     framework_df: pd.DataFrame,
-    metrics_to_compare: list = None,
+    column_mapping: Dict[str, tuple] = None,
     tolerance: float = 0.01
 ) -> Dict[str, any]:
     """
@@ -173,14 +186,15 @@ def compare_metrics(
     Args:
         original_df: Results from original approach
         framework_df: Results from new framework
-        metrics_to_compare: List of metric columns to compare
+        column_mapping: Dict mapping display_name -> (original_col, framework_col).
+                        If None, uses DEFAULT_COLUMN_MAPPING.
         tolerance: Relative tolerance for numeric comparisons
         
     Returns:
         Dict with comparison results
     """
-    if metrics_to_compare is None:
-        metrics_to_compare = ['lbgi', 'hbgi', 'time_in_range_70_180', 'time_below_70']
+    if column_mapping is None:
+        column_mapping = DEFAULT_COLUMN_MAPPING
     
     results = {
         'total_original': len(original_df),
@@ -212,9 +226,11 @@ def compare_metrics(
     results['unmatched_original'] = list(original_keys - framework_keys)
     results['unmatched_framework'] = list(framework_keys - original_keys)
     
-    # Compare metrics for matched pairs
-    for metric in metrics_to_compare:
+    # Compare metrics for matched pairs using column mapping
+    for display_name, (orig_col, fw_col) in column_mapping.items():
         metric_results = {
+            'original_column': orig_col,
+            'framework_column': fw_col,
             'mean_original': None,
             'mean_framework': None,
             'mean_diff': None,
@@ -223,8 +239,12 @@ def compare_metrics(
             'details': []
         }
         
-        if metric not in original_df.columns or metric not in framework_df.columns:
-            logger.warning(f"Metric '{metric}' not found in one or both DataFrames")
+        # Check if columns exist
+        if orig_col not in original_df.columns:
+            logger.warning(f"Original column '{orig_col}' not found for metric '{display_name}'")
+            continue
+        if fw_col not in framework_df.columns:
+            logger.warning(f"Framework column '{fw_col}' not found for metric '{display_name}'")
             continue
         
         orig_values = []
@@ -234,8 +254,8 @@ def compare_metrics(
             orig_row = original_df[original_df['match_key'] == key].iloc[0]
             fw_row = framework_df[framework_df['match_key'] == key].iloc[0]
             
-            orig_val = orig_row.get(metric)
-            fw_val = fw_row.get(metric)
+            orig_val = orig_row.get(orig_col)
+            fw_val = fw_row.get(fw_col)
             
             if pd.notna(orig_val) and pd.notna(fw_val):
                 orig_values.append(orig_val)
@@ -250,7 +270,9 @@ def compare_metrics(
                 if rel_diff > tolerance:
                     results['discrepancies'].append({
                         'key': key,
-                        'metric': metric,
+                        'metric': display_name,
+                        'original_col': orig_col,
+                        'framework_col': fw_col,
                         'original': orig_val,
                         'framework': fw_val,
                         'rel_diff': rel_diff
@@ -263,7 +285,7 @@ def compare_metrics(
             metric_results['mean_diff'] = np.mean(np.array(fw_values) - np.array(orig_values))
             metric_results['max_diff'] = np.max(np.abs(np.array(fw_values) - np.array(orig_values)))
         
-        results['metric_comparisons'][metric] = metric_results
+        results['metric_comparisons'][display_name] = metric_results
     
     return results
 
@@ -293,7 +315,7 @@ def run_framework_test() -> str:
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_builder import build_simulations
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_runner import SimulationRunner
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import (
-        calculate_point_metrics, create_point_metrics_dataframe
+        calculate_point_metrics, metrics_to_dataframe
     )
     
     # Load test config
@@ -340,10 +362,128 @@ def run_framework_test() -> str:
         point_metrics_dict[sim_id] = point_metrics
     
     # Create summary DataFrame
-    summary_df = create_point_metrics_dataframe(point_metrics_dict, include_simulation_info=True)
+    summary_df = metrics_to_dataframe(point_metrics_dict, parse_sim_ids=True)
     summary_df.to_csv(output_dir / 'simulation_summary.csv', index=False)
     
     return str(output_dir)
+
+
+def find_tsv_file_by_bg(directory: str, true_bg: int, sensor_bg: int, pattern_type: str = 'original') -> str:
+    """
+    Find TSV file matching the (true_bg, sensor_bg) combination.
+    
+    Args:
+        directory: Directory containing TSV files
+        true_bg: True BG value
+        sensor_bg: Sensor BG value
+        pattern_type: 'original' or 'framework'
+        
+    Returns:
+        Path to matching TSV file, or None if not found
+    """
+    if pattern_type == 'original':
+        # Original format: icgm_analysis_vp_*_tbg={true_bg}_sbg={sensor_bg}.tsv
+        pattern = f"*_tbg={true_bg}_sbg={sensor_bg}.tsv"
+    else:
+        # Framework format: alg=*_tbg={true_bg}_sbg={sensor_bg}_*.tsv
+        pattern = f"*_tbg={true_bg}_sbg={sensor_bg}_*.tsv"
+    
+    matches = glob.glob(os.path.join(directory, pattern))
+    return matches[0] if matches else None
+
+
+def visualize_discrepancies(
+    discrepancies: List[Dict],
+    original_dir: str,
+    framework_dir: str,
+    output_dir: str
+) -> List[str]:
+    """
+    Create visualization figures for simulations with discrepancies.
+    
+    For each unique (true_bg, sensor_bg) combination with discrepancies,
+    loads both TSV files and creates a side-by-side comparison figure.
+    
+    Args:
+        discrepancies: List of discrepancy dicts from compare_metrics()
+        original_dir: Directory with original approach results
+        framework_dir: Directory with framework approach results
+        output_dir: Directory to save comparison figures
+        
+    Returns:
+        List of paths to saved figures
+    """
+    # Create output directory for figures
+    figures_dir = os.path.join(output_dir, 'discrepancy_figures')
+    os.makedirs(figures_dir, exist_ok=True)
+    
+    # Get unique keys (true_bg, sensor_bg combinations)
+    unique_keys = set(d['key'] for d in discrepancies)
+    
+    saved_figures = []
+    
+    for key in unique_keys:
+        # Parse key to get true_bg and sensor_bg
+        parts = key.split('_')
+        if len(parts) != 2:
+            logger.warning(f"Invalid key format: {key}")
+            continue
+        
+        true_bg = int(parts[0])
+        sensor_bg = int(parts[1])
+        
+        # Find TSV files
+        original_tsv = find_tsv_file_by_bg(original_dir, true_bg, sensor_bg, 'original')
+        
+        # For framework, look in simulation_results subdirectory
+        framework_results_dir = os.path.join(framework_dir, 'simulation_results')
+        framework_tsv = find_tsv_file_by_bg(framework_results_dir, true_bg, sensor_bg, 'framework')
+        
+        if not original_tsv:
+            logger.warning(f"Original TSV not found for tbg={true_bg}, sbg={sensor_bg}")
+            continue
+        if not framework_tsv:
+            logger.warning(f"Framework TSV not found for tbg={true_bg}, sbg={sensor_bg}")
+            continue
+        
+        # Load both result files
+        try:
+            orig_sim_id, orig_df = load_result(original_tsv, ext="tsv")
+            fw_sim_id, fw_df = load_result(framework_tsv, ext="tsv")
+        except Exception as e:
+            logger.error(f"Error loading TSV files for {key}: {e}")
+            continue
+        
+        # Create combined results dict for plotting
+        all_results = {
+            f"Original (tbg={true_bg}, sbg={sensor_bg})": orig_df,
+            f"Framework (tbg={true_bg}, sbg={sensor_bg})": fw_df
+        }
+        
+        # Create the plot
+        try:
+            fig, ax = plot_sim_results(all_results, save=False, n_sims_max_legend=2)
+            
+            # Add title with discrepancy info
+            discrepancies_for_key = [d for d in discrepancies if d['key'] == key]
+            metrics_affected = list(set(d['metric'] for d in discrepancies_for_key))
+            fig.suptitle(f"Discrepancy Comparison: tbg={true_bg}, sbg={sensor_bg}\nMetrics: {', '.join(metrics_affected)}", 
+                        fontsize=10, y=1.02)
+            
+            # Save figure
+            save_path = os.path.join(figures_dir, f"comparison_tbg={true_bg}_sbg={sensor_bg}.png")
+            fig.savefig(save_path, dpi=150, bbox_inches='tight')
+            import matplotlib.pyplot as plt
+            plt.close(fig)
+            
+            saved_figures.append(save_path)
+            logger.info(f"Saved discrepancy figure: {save_path}")
+            
+        except Exception as e:
+            logger.error(f"Error creating figure for {key}: {e}")
+            continue
+    
+    return saved_figures
 
 
 def run_full_comparison():
@@ -407,19 +547,32 @@ def run_full_comparison():
     
     logger.info("")
     logger.info("Metric comparisons:")
-    for metric, results in comparison['metric_comparisons'].items():
-        if results['mean_original'] is not None:
-            logger.info(f"  {metric}:")
-            logger.info(f"    Original mean: {results['mean_original']:.4f}")
-            logger.info(f"    Framework mean: {results['mean_framework']:.4f}")
-            logger.info(f"    Max diff: {results['max_diff']:.4f}")
-            logger.info(f"    Within tolerance: {results['within_tolerance']}")
+    for metric, metric_results in comparison['metric_comparisons'].items():
+        if metric_results['mean_original'] is not None:
+            logger.info(f"  {metric} ({metric_results['original_column']} vs {metric_results['framework_column']}):")
+            logger.info(f"    Original mean: {metric_results['mean_original']:.4f}")
+            logger.info(f"    Framework mean: {metric_results['mean_framework']:.4f}")
+            logger.info(f"    Max diff: {metric_results['max_diff']:.4f}")
+            logger.info(f"    Within tolerance: {metric_results['within_tolerance']}")
     
     if comparison['discrepancies']:
         logger.warning("")
         logger.warning(f"Discrepancies found: {len(comparison['discrepancies'])}")
         for d in comparison['discrepancies'][:10]:  # Show first 10
-            logger.warning(f"  {d['key']} - {d['metric']}: orig={d['original']:.4f}, fw={d['framework']:.4f}, diff={d['rel_diff']:.4f}")
+            logger.warning(f"  {d['key']} - {d['metric']} ({d['original_col']} vs {d['framework_col']}): orig={d['original']:.4f}, fw={d['framework']:.4f}, diff={d['rel_diff']:.4f}")
+        
+        # Create visualizations for discrepancies
+        logger.info("")
+        logger.info("STEP 4: Creating discrepancy visualizations...")
+        logger.info("-" * 40)
+        saved_figures = visualize_discrepancies(
+            comparison['discrepancies'],
+            original_dir,
+            framework_dir,
+            framework_dir  # Use framework output dir for figures
+        )
+        comparison['discrepancy_figures'] = saved_figures
+        logger.info(f"Created {len(saved_figures)} discrepancy figures")
     else:
         logger.info("")
         logger.info("✓ No discrepancies found within tolerance!")

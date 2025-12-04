@@ -42,12 +42,12 @@ scenarios:
     # Match icgm_main_test.py: range(70, 151, 20) = [70, 90, 110, 130, 150]
     true_bg_values:
       start: 70
-      end: 150
+      end: 151
       step: 20
     
     sensor_bg_values:
       start: 70
-      end: 150
+      end: 151
       step: 20
     
     sensor_model:
