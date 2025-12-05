@@ -112,13 +112,12 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, p
             for dt, true_bg in zip(glucose_datetimes, glucose_history_values.values()):
                 sensor.update(dt, patient_true_bg=true_bg, patient_true_bg_prediction=[])
 
-            sim_start_time, duration_hrs, virtual_patient, controller = sim_parser.build_components_from_config(new_sim_base_config, sensor=sensor)
+            sim_start_time, duration_hrs, virtual_patient, controller = sim_parser.build_components_from_config(new_sim_base_config, sensor=sensor, random_state=random_state)
 
             virtual_patient.sensor = sensor
 
             def does_accept_bolus_recommendation(self, bolus):
-                # return False 
-                return self.time == t0
+                return False 
             
             virtual_patient.does_accept_bolus_recommendation = types.MethodType(does_accept_bolus_recommendation, virtual_patient)
 
@@ -127,10 +126,9 @@ def generate_icgm_point_error_simulations(json_sim_base_config, base_sim_seed, p
                                 virtual_patient=virtual_patient,
                                 controller=controller,
                                 multiprocess=True,
-                                sim_id=sim_id
+                                sim_id=sim_id,
+                                random_state=random_state
                                 )
-
-            sim.random_state = random_state
 
             yield sim
         

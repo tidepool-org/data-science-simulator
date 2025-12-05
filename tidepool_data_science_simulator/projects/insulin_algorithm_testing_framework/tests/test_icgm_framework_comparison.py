@@ -21,6 +21,18 @@ Usage:
     pytest test_icgm_framework_comparison.py -v
 """
 
+# 10% relative tolerance
+TOLERANCE = 0.000000001  
+
+# Column name mapping between original and framework approaches
+# Format: {display_name: (original_column, framework_column)}
+DEFAULT_COLUMN_MAPPING = {
+    'lbgi': ('lbgi_icgm_start', 'lbgi'),
+    'max_bolus': ('max_bolus_delivered', 'max_bolus_delivered'),
+    'true_start_bg': ('true_start_bg', 'tbg'),
+    'sensor_start_bg': ('start_bg_with_offset', 'sbg'),
+}
+
 import os
 import sys
 import logging
@@ -164,16 +176,6 @@ def load_framework_results(result_dir: str) -> pd.DataFrame:
             parsed_data.append(parsed_row)
     
     return pd.DataFrame(parsed_data)
-
-
-# Column name mapping between original and framework approaches
-# Format: {display_name: (original_column, framework_column)}
-DEFAULT_COLUMN_MAPPING = {
-    'lbgi': ('lbgi_icgm_start', 'lbgi'),
-    'max_bolus': ('max_bolus_delivered', 'max_bolus_delivered'),
-    'true_start_bg': ('true_start_bg', 'tbg'),
-    'sensor_start_bg': ('start_bg_with_offset', 'sbg'),
-}
 
 
 def compare_metrics(
@@ -671,7 +673,7 @@ def run_full_comparison():
     original_df = load_original_results(original_dir)
     framework_df = load_framework_results(framework_dir)
     
-    comparison = compare_metrics(original_df, framework_df)
+    comparison = compare_metrics(original_df, framework_df, tolerance=TOLERANCE)
     
     # Print results
     logger.info("")

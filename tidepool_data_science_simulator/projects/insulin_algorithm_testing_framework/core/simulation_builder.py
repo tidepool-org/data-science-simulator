@@ -116,6 +116,12 @@ def configure_algorithm_settings(
     new_config["controller"]["settings"]["include_positive_velocity_and_RC"] = algorithm_config.include_positive_velocity_and_RC
     new_config["controller"]["settings"]["use_mid_absorption_isf"] = algorithm_config.use_mid_absorption_isf
     
+    # Add velocity cap to match original implementation
+    new_config["controller"]["settings"]["max_physiologic_slope"] = 4
+    
+    # Add suspend threshold to match original implementation
+    new_config["controller"]["settings"]["suspend_threshold"] = 70
+    
     # Algorithm-specific settings
     if algorithm_type == 'autobolus':
         new_config["controller"]["settings"]["minimum_autobolus"] = algorithm_config.minimum_autobolus
@@ -305,19 +311,19 @@ def configure_sensor_history(
 
 def create_bolus_acceptance_method(t0: datetime.datetime):
     """
-    Creates a bolus acceptance method that only accepts at t0.
+    Creates a bolus acceptance method that always returns False.
     
-    This is used for iCGM scenarios where we want to simulate the impact
-    of a single spurious CGM reading at t0.
+    This is used for iCGM scenarios where we do NOT want the patient to 
+    accept any bolus recommendations (matching the original implementation).
     
     Args:
-        t0: The time at which to accept bolus recommendations
+        t0: The time at which to accept bolus recommendations (unused, kept for API compatibility)
         
     Returns:
         Method function to be bound to virtual patient
     """
     def does_accept_bolus_recommendation(self, bolus):
-        return self.time == t0
+        return False
     
     return does_accept_bolus_recommendation
 
@@ -489,7 +495,7 @@ def build_simulation(
     # Parse configuration and create simulation components
     sim_parser = ScenarioParserV2()
     sim_start_time, duration_hrs, virtual_patient, controller = sim_parser.build_components_from_config(
-        sim_config, sensor=sensor
+        sim_config, sensor=sensor, random_state=random_state
     )
     
     # If sensor was created, set it on virtual patient
@@ -517,17 +523,16 @@ def build_simulation(
     sim_id = generate_simulation_id(algorithm_type, patient_id, scenario, algorithm_config)
     
     # Create simulation object
+    # Pass random_state directly to constructor so it's used during init()
     simulation = Simulation(
         sim_start_time,
         duration_hrs=sim_config_obj.duration_hours,
         virtual_patient=virtual_patient,
         controller=controller,
         multiprocess=True,
-        sim_id=sim_id
+        sim_id=sim_id,
+        random_state=random_state
     )
-    
-    if random_state is not None:
-        simulation.random_state = random_state
     
     return simulation
 
@@ -579,5 +584,3 @@ def count_scenarios(scenarios: Iterable[Dict[str, Any]]) -> int:
         Count of scenarios
     """
     return sum(1 for _ in scenarios)
-
-

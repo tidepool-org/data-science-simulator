@@ -499,7 +499,7 @@ class ScenarioParserV2(SimulationParser):
 
         return AutomationControlTimeline(automation_control_datetimes, automation_control_events)
 
-    def build_components_from_config(self, sim_config, sensor=None, pump=None):
+    def build_components_from_config(self, sim_config, sensor=None, pump=None, random_state=None):
 
         sim_start_time_str = self.get_required_value(sim_config, "time_to_calculate_at", str)
         sim_start_time = datetime.datetime.strptime(sim_start_time_str, DATETIME_FORMAT)
@@ -528,6 +528,7 @@ class ScenarioParserV2(SimulationParser):
             sensor=sensor,
             metabolism_model=SimpleMetabolismModel,
             patient_config=self.get_patient_config(),
+            random_state=random_state,
         )
 
         return sim_start_time, duration_hrs, virtual_patient, controller
