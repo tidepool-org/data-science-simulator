@@ -6,8 +6,6 @@ from .data_loader import DataLoader
 
 # Import functional simulation building components
 from .simulation_builder import (
-    build_simulation,
-    build_simulations,
     generate_simulations,
     count_simulations,
     configure_initial_glucose,

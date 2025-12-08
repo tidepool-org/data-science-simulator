@@ -32,8 +32,6 @@ __author__ = "Tidepool Data Science Team"
 
 # Core simulation building functions
 from .core.simulation_builder import (
-    build_simulation,
-    build_simulations,
     generate_simulations,
     count_simulations
 )
