@@ -6,49 +6,67 @@ specifically designed for temp basal vs autobolus comparisons.
 
 This framework provides:
 - Core simulation integration with Tidepool simulator
-- Scenario generation for comprehensive testing
+- Functional simulation building and scenario generation
 - Metrics calculation and statistical analysis
 - Visualization tools for results
 - Regulatory compliance support
+
+Example usage:
+    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework import (
+        build_simulation,
+        build_simulations,
+        generate_simulations,
+        calculate_point_metrics,
+        metrics_to_dataframe
+    )
+    
+    # Build simulations from scenario dictionaries
+    simulations = build_simulations(config, scenarios)
+    
+    # Or generate iCGM simulations directly
+    sim_generator, num_sims = generate_simulations(config, patient_configs, true_bg_range, sensor_bg_range)
 """
 
 __version__ = "1.0.0"
 __author__ = "Tidepool Data Science Team"
 
-# Use lazy imports to avoid dependency issues at module load time
-def _get_experiment_runner():
-    from .experiments.main_experiment import ExperimentRunner
-    return ExperimentRunner
+# Core simulation building functions
+from .core.simulation_builder import (
+    build_simulation,
+    build_simulations,
+    generate_simulations,
+    count_simulations
+)
 
-def _get_simulation_runner():
-    from .core.simulation_runner import SimulationRunner
-    return SimulationRunner
+# Metrics calculation functions
+from .core.metrics_calculator import (
+    calculate_point_metrics,
+    calculate_metrics_batch,
+    metrics_to_dataframe,
+    PointMetrics,
+    MetricsResult
+)
 
-def _get_scenario_generator():
-    from .core.scenario_generator import ScenarioGenerator
-    return ScenarioGenerator
+# Data loading
+from .core.data_loader import DataLoader
 
+# Configuration
+from .config.experiment_config import ExperimentConfig
 
-# Make classes available at module level
-import sys
-module = sys.modules[__name__]
-
-class _LazyLoader:
-    def __init__(self, loader_func):
-        self._loader_func = loader_func
-        self._loaded_class = None
-    
-    def __call__(self, *args, **kwargs):
-        if self._loaded_class is None:
-            self._loaded_class = self._loader_func()
-        return self._loaded_class(*args, **kwargs)
-
-# Set up lazy loading
-setattr(module, 'ExperimentRunner', _LazyLoader(_get_experiment_runner))
-setattr(module, 'SimulationRunner', _LazyLoader(_get_simulation_runner))
-setattr(module, 'ScenarioGenerator', _LazyLoader(_get_scenario_generator))
 __all__ = [
-    'ExperimentRunner',
-    'SimulationRunner', 
-    'ScenarioGenerator'
+    # Simulation building
+    'build_simulation',
+    'build_simulations',
+    'generate_simulations',
+    'count_simulations',
+    # Metrics
+    'calculate_point_metrics',
+    'calculate_metrics_batch',
+    'metrics_to_dataframe',
+    'PointMetrics',
+    'MetricsResult',
+    # Data loading
+    'DataLoader',
+    # Configuration
+    'ExperimentConfig',
 ]

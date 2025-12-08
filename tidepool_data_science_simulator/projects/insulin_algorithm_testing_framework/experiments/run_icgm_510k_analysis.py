@@ -137,7 +137,7 @@ from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framewor
 )
 from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import (
-    calculate_point_metrics, create_point_metrics_dataframe
+    calculate_point_metrics, metrics_to_dataframe
 )
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.risk_scoring import (
     analyze_icgm_risk, generate_risk_report
@@ -353,7 +353,7 @@ def main():
         logger.info(f"Computed metrics for {len(point_metrics_dict)} simulations")
         
         # Create summary DataFrame
-        summary_df = create_point_metrics_dataframe(point_metrics_dict, include_simulation_info=True)
+        summary_df = metrics_to_dataframe(point_metrics_dict, parse_sim_ids=True)
         
         # Save summary CSV
         summary_csv_path = output_dir / 'simulation_summary.csv'

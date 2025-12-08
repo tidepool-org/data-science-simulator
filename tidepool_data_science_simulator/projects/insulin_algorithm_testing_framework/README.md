@@ -9,16 +9,17 @@ This framework provides tools for:
 - Running batch simulations comparing different insulin delivery algorithms
 - Calculating standardized metrics for algorithm performance
 - Performing statistical analysis and visualization of results
-- Exporting results for further analysis
+- Exporting results for regulatory submissions (FDA 510k)
 
 ## Features
 
 ### Core Functionality
-- **Scenario Generation**: Systematic generation of test scenarios across multiple dimensions
-- **Simulation Runner**: Batch execution of simulations with parallel processing support
+- **Simulation Building**: Functional API for creating simulations from scenario configurations
+- **iCGM Scenario Generation**: Grid-based generation of true BG × sensor BG scenarios
 - **Metrics Calculation**: Standardized glucose control and safety metrics
+- **Risk Scoring**: LBGI-based risk analysis with severity bands
 - **Statistical Analysis**: Comprehensive statistical testing and comparison tools
-- **Visualization**: Rich plotting capabilities for results analysis
+- **Visualization**: Regulatory-compliant plotting capabilities
 
 ### Supported Algorithms
 - **Temp Basal**: Traditional temporary basal rate adjustments
@@ -55,49 +56,69 @@ conda install numpy pandas matplotlib seaborn scipy pyyaml
 
 ## Quick Start
 
-### Basic Comparison Example
+### Basic Usage Example
 ```python
-from config.experiment_config import ExperimentConfig
-from core.data_loader import DataLoader
-from core.scenario_generator import ScenarioGenerator
-from core.simulation_runner import SimulationRunner
-from core.metrics_calculator import MetricsCalculator
-from analysis.statistical_analyzer import StatisticalAnalyzer
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework import (
+    ExperimentConfig,
+    DataLoader,
+    build_simulations,
+    generate_simulations,
+    calculate_point_metrics,
+    metrics_to_dataframe
+)
+from tidepool_data_science_simulator.run import run_simulations
 
 # Load configuration
-config = ExperimentConfig()
+config = ExperimentConfig('config/default_configs.yaml')
 
 # Load patient data
 data_loader = DataLoader(config)
 patient_configs = data_loader.load_patient_configs(max_patients=5)
 
-# Generate scenarios
-scenario_generator = ScenarioGenerator(config)
-scenarios = list(scenario_generator.generate_all_scenarios(patient_configs))
+# Option 1: Build simulations from scenario dictionaries
+scenarios = [
+    {
+        'algorithm_type': 'autobolus',
+        'patient_config': patient_configs[0],
+        'true_start_bg': 120,
+        'partial_application_factor': 0.4,
+        'gradual_transition_threshold': 50.0
+    }
+]
+simulations = build_simulations(config, scenarios)
 
-# Run simulations
-simulation_runner = SimulationRunner(config)
-simulations = {}
-for scenario in scenarios:
-    simulation = simulation_runner.create_simulation_from_scenario(scenario)
-    simulations[simulation.sim_id] = simulation
-
-full_results, summary_results = simulation_runner.run_batch_simulations(simulations)
-
-# Calculate metrics
-metrics_calculator = MetricsCalculator(config)
-metrics_dict = metrics_calculator.calculate_metrics_batch(full_results)
-metrics_df = metrics_calculator.create_metrics_dataframe(metrics_dict)
-
-# Statistical analysis
-statistical_analyzer = StatisticalAnalyzer(config)
-comparison_results = statistical_analyzer.compare_algorithms(
-    metrics_df, 
-    reference_algorithm='temp_basal',
-    comparison_algorithms=['autobolus']
+# Option 2: Generate iCGM scenarios directly (more efficient for large grids)
+sim_generator, num_sims = generate_simulations(
+    config,
+    patient_configs,
+    true_bg_range=(40, 405, 5),
+    sensor_bg_range=(40, 405, 5)
 )
 
-print("Analysis completed!")
+# Run simulations
+full_results, summary_results = run_simulations(
+    sim_generator,
+    save_dir='./results/simulation_results',
+    save_results=True,
+    num_procs=8,
+    num_sims=num_sims
+)
+
+print("Simulations completed!")
+```
+
+### Running the iCGM 510k Analysis
+```bash
+# Full production run
+python experiments/run_icgm_510k_analysis.py
+
+# Quick test to validate pipeline
+python experiments/run_icgm_510k_analysis.py --quick-test
+
+# Custom config and output directory
+python experiments/run_icgm_510k_analysis.py \
+    --config config/510k_configs/icgm_sensitivity_analysis.yaml \
+    --output-dir results/my_analysis
 ```
 
 ### Running Examples
@@ -154,140 +175,194 @@ insulin_algorithm_testing_framework/
 ├── config/                 # Configuration management
 │   ├── __init__.py
 │   ├── experiment_config.py
-│   └── default_configs.yaml
+│   ├── default_configs.yaml
+│   └── 510k_configs/       # FDA 510k specific configs
 ├── core/                   # Core functionality
 │   ├── __init__.py
-│   ├── data_loader.py
-│   ├── scenario_generator.py
-│   ├── simulation_runner.py
-│   └── metrics_calculator.py
+│   ├── data_loader.py      # Patient data loading
+│   ├── simulation_builder.py  # Functional simulation building
+│   ├── metrics_calculator.py  # Metrics calculation
+│   └── risk_scoring.py     # LBGI-based risk analysis
 ├── analysis/               # Statistical analysis
 │   ├── __init__.py
-│   └── statistical_analyzer.py
+│   ├── statistical_analyzer.py
+│   └── weighted_metrics.py
 ├── visualization/          # Plotting and visualization
 │   ├── __init__.py
 │   ├── comparison_plots.py
-│   ├── glucose_plots.py
-│   └── statistical_plots.py
-├── utils/                  # Utility functions
+│   ├── regulatory_plots.py
+│   └── plot_metrics_*.py
+├── experiments/            # Experiment scripts
 │   ├── __init__.py
-│   ├── data_utils.py
-│   ├── validation_utils.py
-│   ├── export_utils.py
-│   └── logging_utils.py
+│   ├── main_experiment.py
+│   └── run_icgm_510k_analysis.py  # Turnkey 510k analysis
 ├── examples/               # Example scripts
 │   ├── __init__.py
 │   ├── basic_comparison.py
 │   └── parameter_sweep.py
 ├── tests/                  # Test suite
 │   ├── __init__.py
-│   ├── test_scenario_generator.py
-│   ├── test_metrics_calculator.py
-│   └── test_statistical_analyzer.py
+│   └── test_icgm_framework_comparison.py
+├── utils/                  # Utility functions
+│   ├── __init__.py
+│   └── data_utils.py
 └── README.md
 ```
 
-## Usage Examples
+## API Reference
 
-### 1. Custom Scenario Generation
+### Simulation Building Functions
+
 ```python
-from core.scenario_generator import ScenarioGenerator
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework import (
+    build_simulation,      # Build single simulation from scenario dict
+    build_simulations,     # Build multiple simulations from scenarios
+    generate_simulations,  # Generate iCGM grid simulations directly
+    count_simulations      # Calculate total simulation count
+)
 
-# Create custom configuration
-config = ExperimentConfig()
-config.set('scenarios.initial_bg.range', [100, 150])
-config.set('scenarios.meal_scenarios.unannounced_meals', [40])
+# Build a single simulation
+simulation = build_simulation(config, scenario_dict)
 
-generator = ScenarioGenerator(config)
+# Build multiple simulations from scenario dictionaries
+simulations = build_simulations(config, scenarios)
 
-# Generate scenarios for specific algorithm
-autobolus_scenarios = list(generator.generate_scenarios_for_algorithm(
-    patient_configs, 'autobolus'
-))
-
-# Filter scenarios
-filtered_scenarios = list(generator.filter_scenarios_by_criteria(
-    autobolus_scenarios, 
-    {'initial_bg': 120, 'partial_application_factor': 0.4}
-))
-```
-
-### 2. Metrics Analysis
-```python
-from core.metrics_calculator import MetricsCalculator
-
-calculator = MetricsCalculator(config)
-
-# Calculate metrics for single simulation
-metrics = calculator.calculate_metrics(simulation_results)
-
-# Batch calculation
-metrics_dict = calculator.calculate_metrics_batch(all_results)
-
-# Create summary DataFrame
-metrics_df = calculator.create_metrics_dataframe(metrics_dict)
-
-# Custom metric calculation
-custom_metrics = calculator.calculate_custom_metrics(
-    simulation_results, 
-    custom_functions={'custom_tir': lambda bg: np.mean((bg >= 80) & (bg <= 160))}
+# Generate iCGM simulations directly (returns generator + count)
+sim_generator, num_sims = generate_simulations(
+    config,
+    patient_configs,
+    true_bg_range=(40, 405, 5),
+    sensor_bg_range=(40, 405, 5),
+    algorithm='autobolus'
 )
 ```
 
-### 3. Statistical Analysis
+### Metrics Calculation Functions
+
 ```python
-from analysis.statistical_analyzer import StatisticalAnalyzer
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework import (
+    calculate_point_metrics,  # Calculate metrics for single simulation
+    calculate_metrics_batch,  # Calculate metrics for multiple simulations
+    metrics_to_dataframe,     # Convert metrics dict to DataFrame
+    PointMetrics             # Dataclass containing all metrics
+)
+
+# Calculate metrics for a single simulation result
+metrics = calculate_point_metrics(results_df, start_hours=0, duration_hours=8)
+
+# Batch calculation
+point_metrics, timeseries = calculate_metrics_batch(results_dict)
+
+# Convert to DataFrame for analysis
+metrics_df = metrics_to_dataframe(point_metrics, parse_sim_ids=True)
+```
+
+### Statistical Analysis
+
+```python
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.analysis.statistical_analyzer import (
+    StatisticalAnalyzer
+)
 
 analyzer = StatisticalAnalyzer(config)
 
 # Compare algorithms
 comparison = analyzer.compare_algorithms(
     metrics_df,
-    reference_algorithm='temp_basal',
+    reference_algorithm='tempbasal',
     comparison_algorithms=['autobolus']
 )
 
-# Perform paired t-tests
-paired_results = analyzer.perform_paired_tests(
-    metrics_df,
-    algorithm_pairs=[('temp_basal', 'autobolus')],
-    metrics=['time_in_range_70_180', 'time_below_70']
-)
-
-# Effect size analysis
-effect_sizes = analyzer.calculate_effect_sizes(
-    metrics_df,
-    reference_algorithm='temp_basal',
-    comparison_algorithms=['autobolus']
+# Non-inferiority analysis for safety metrics
+ni_results = analyzer.perform_non_inferiority_analysis(
+    reference_metrics,
+    comparison_metrics,
+    safety_metrics=['time_below_70', 'time_below_54', 'lbgi']
 )
 ```
 
-### 4. Visualization
+## Usage Examples
+
+### 1. iCGM Sensitivity Analysis
 ```python
-from visualization.comparison_plots import ComparisonPlotter
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework import (
+    ExperimentConfig, DataLoader, generate_simulations, 
+    calculate_point_metrics, metrics_to_dataframe
+)
+from tidepool_data_science_simulator.run import run_simulations
+import pandas as pd
 
-plotter = ComparisonPlotter(config)
+# Load configuration and patients
+config = ExperimentConfig('config/510k_configs/icgm_sensitivity_analysis.yaml')
+data_loader = DataLoader(config)
+patient_configs = data_loader.load_patient_configs()
 
-# Algorithm comparison plots
-plotter.plot_algorithm_comparison(
-    metrics_df, 
-    save_path='algorithm_comparison.png'
+# Generate iCGM grid simulations
+sim_generator, num_sims = generate_simulations(
+    config,
+    patient_configs,
+    true_bg_range=(40, 405, 5),
+    sensor_bg_range=(40, 405, 5)
 )
 
-# Glucose traces
-plotter.plot_glucose_traces_sample(
-    full_results, 
-    n_samples=6,
-    save_path='glucose_traces.png'
+# Run simulations with parallel processing
+run_simulations(
+    sim_generator,
+    save_dir='./results/simulation_results',
+    save_results=True,
+    num_procs=8,
+    num_sims=num_sims
 )
 
-# Paired comparison
-plotter.plot_paired_comparison(
-    metrics_df,
-    reference_algorithm='temp_basal',
-    comparison_algorithm='autobolus',
-    save_path='paired_comparison.png'
+# Calculate metrics from saved results
+from pathlib import Path
+results_dir = Path('./results/simulation_results')
+point_metrics_dict = {}
+
+for tsv_file in results_dir.glob("*.tsv"):
+    sim_id = tsv_file.stem
+    results_df = pd.read_csv(tsv_file, sep='\t')
+    point_metrics_dict[sim_id] = calculate_point_metrics(results_df)
+
+# Create summary DataFrame
+summary_df = metrics_to_dataframe(point_metrics_dict, parse_sim_ids=True)
+summary_df.to_csv('./results/simulation_summary.csv', index=False)
+```
+
+### 2. Risk Scoring Analysis
+```python
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.risk_scoring import (
+    analyze_icgm_risk, generate_risk_report
 )
+
+# Perform risk analysis
+severity_df, analysis_arrays, report = analyze_icgm_risk(
+    summary_df,
+    population_type='adult'
+)
+
+# Save results
+severity_df.to_csv('./results/risk_severity_analysis.csv', index=False)
+print(report)
+```
+
+### 3. Regulatory Visualization
+```python
+from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.visualization.regulatory_plots import (
+    plot_risk_heatmap_grid, save_regulatory_figure
+)
+
+# Create risk heatmap grid
+fig, axes = plot_risk_heatmap_grid(
+    analysis_arrays['true_bg'],
+    analysis_arrays['sensor_bg'],
+    risk_data_dict,
+    severity_bands,
+    shared_z_scale=True
+)
+
+# Save in regulatory formats
+save_regulatory_figure(fig, './results/risk_heatmap', dpi=300, formats=['png', 'pdf'])
 ```
 
 ## Testing
@@ -298,7 +373,7 @@ Run the test suite:
 python -m pytest tests/
 
 # Run specific test file
-python -m pytest tests/test_scenario_generator.py
+python -m pytest tests/test_icgm_framework_comparison.py
 
 # Run with coverage
 python -m pytest tests/ --cov=. --cov-report=html
@@ -309,62 +384,25 @@ python -m pytest tests/ --cov=. --cov-report=html
 The framework generates several types of output:
 
 ### Results Files
-- `metrics.csv`: Detailed metrics for all simulations
-- `summary_statistics.json`: Summary statistics by algorithm
-- `statistical_tests.json`: Statistical test results
-- `comparison_results.json`: Algorithm comparison results
+- `simulation_summary.csv`: Detailed metrics for all simulations
+- `risk_severity_analysis.csv`: Risk scores by severity band
+- `risk_analysis_report.txt`: Human-readable risk report
+- `scenario_summary.json`: Scenario generation metadata
 
 ### Visualizations
+- `risk_heatmap_grid.png/pdf`: Risk heatmaps by severity band
 - `algorithm_comparison.png`: Box plots comparing algorithms
 - `glucose_traces.png`: Sample glucose traces
-- `paired_comparison.png`: Paired scatter plots
-- `parameter_sweep.png`: Parameter sensitivity analysis
 
-### Logs
-- `experiment.log`: Detailed execution logs
-- `errors.log`: Error and warning messages
-
-## Advanced Usage
-
-### Custom Patient Configurations
-```python
-# Define custom patient parameters
-custom_patients = [
-    {
-        'patient_id': 'patient_001',
-        'weight': 70,
-        'isf': 50,
-        'cir': 15,
-        'basal_rate': 1.0,
-        'target_bg': 120
-    },
-    # ... more patients
-]
-
-# Use with framework
-scenarios = generator.generate_all_scenarios(custom_patients)
+### Submission Package
+For FDA 510k submissions, the `run_icgm_510k_analysis.py` script creates a ready-to-submit package:
 ```
-
-### Parallel Processing
-```python
-# Configure parallel processing
-config.set('processing.parallel_processes', 16)
-config.set('processing.chunk_size', 50)
-
-# Run simulations in parallel
-runner = SimulationRunner(config)
-results = runner.run_batch_simulations(simulations)
-```
-
-### Custom Metrics
-```python
-# Define custom metric functions
-def custom_time_in_tight_range(glucose_data):
-    """Calculate time in tight range (80-140 mg/dL)."""
-    return np.mean((glucose_data >= 80) & (glucose_data <= 140)) * 100
-
-# Add to metrics calculator
-calculator.add_custom_metric('time_in_tight_range', custom_time_in_tight_range)
+submission_package/
+├── risk_severity_analysis.csv
+├── risk_analysis_report.txt
+├── scenario_summary.json
+├── risk_heatmap_grid.png
+└── risk_heatmap_grid.pdf
 ```
 
 ## Troubleshooting
@@ -372,7 +410,7 @@ calculator.add_custom_metric('time_in_tight_range', custom_time_in_tight_range)
 ### Common Issues
 
 1. **Memory Issues with Large Simulations**
-   - Reduce batch size: `config.set('processing.chunk_size', 25)`
+   - Reduce batch size: `config.set('processing.batch_size', 25)`
    - Use fewer parallel processes: `config.set('processing.parallel_processes', 4)`
 
 2. **Missing Dependencies**
@@ -383,7 +421,6 @@ calculator.add_custom_metric('time_in_tight_range', custom_time_in_tight_range)
 3. **Configuration Errors**
    - Check YAML syntax in configuration files
    - Validate parameter ranges and types
-   - Use `ConfigValidator` for validation
 
 4. **Simulation Failures**
    - Check patient configuration parameters
@@ -392,10 +429,10 @@ calculator.add_custom_metric('time_in_tight_range', custom_time_in_tight_range)
 
 ### Performance Optimization
 
-- Use appropriate chunk sizes for your system memory
+- Use `generate_simulations()` for large iCGM grids (avoids creating scenario dicts)
 - Adjust parallel processing based on CPU cores
 - Filter scenarios before running large batches
-- Use sampling for initial exploration
+- Use the `--quick-test` flag for initial validation
 
 ## Contributing
 
@@ -427,8 +464,14 @@ For questions and support:
 
 ## Changelog
 
+### Version 1.1.0
+- Refactored to functional API (removed class-based ScenarioGenerator and SimulationRunner)
+- Added direct simulation generation with `generate_simulations()`
+- Added turnkey `run_icgm_510k_analysis.py` script for regulatory submissions
+- Improved metrics calculation with `PointMetrics` dataclass
+- Added risk scoring module for LBGI-based analysis
+
 ### Version 1.0.0
 - Initial release
 - Core framework functionality
 - Basic examples and tests
-- Comprehensive documentation
