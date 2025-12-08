@@ -135,9 +135,7 @@ from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framewor
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_builder import (
     generate_simulations
 )
-from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_runner import (
-    SimulationRunner
-)
+from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import (
     calculate_point_metrics, create_point_metrics_dataframe
 )
@@ -279,43 +277,46 @@ def main():
     logger.info("STEP 2: Generating and Running Simulations")
     logger.info("=" * 80)
     
-    # Get BG ranges from config
+    # Create BG range tuples from config (reusable)
     true_bg_cfg = config.get('scenarios.spurious_sensor_errors.true_bg_values')
-    true_bg_range = (true_bg_cfg['start'], true_bg_cfg['end'], true_bg_cfg['step'])
-    
     sensor_bg_cfg = config.get('scenarios.spurious_sensor_errors.sensor_bg_values')
+    true_bg_range = (true_bg_cfg['start'], true_bg_cfg['end'], true_bg_cfg['step'])
     sensor_bg_range = (sensor_bg_cfg['start'], sensor_bg_cfg['end'], sensor_bg_cfg['step'])
     
+    results_dir = output_dir / 'simulation_results'
+    
     try:
-        # Generate simulations 
-        logger.info("Generating simulations directly from config...")
-        simulations = dict(generate_simulations(
+        # Generate simulations - returns (generator, num_sims) tuple
+        simulation_generator, num_sims = generate_simulations(
             config,
             patient_configs,
             true_bg_range=true_bg_range,
             sensor_bg_range=sensor_bg_range
-        ))
-        logger.info(f"Generated {len(simulations)} simulation objects")
+        )
         
-        # Save scenario summary
+        # Save scenario summary before running
         summary = {
             'scenario_type': 'icgm_sensitivity',
             'num_patients': len(patient_configs),
             'true_bg_range': true_bg_range,
             'sensor_bg_range': sensor_bg_range,
-            'total_simulations': len(simulations)
+            'total_simulations': num_sims
         }
         
         summary_path = output_dir / 'scenario_summary.json'
         with open(summary_path, 'w') as f:
             json.dump(summary, f, indent=2)
         logger.info(f"Saved scenario summary: {summary_path}")
+        logger.info(f"Expected simulations: {num_sims}")
         
-        # Run simulations
-        runner = SimulationRunner(config)
-        runner.run_simulations(
-            simulations,
-            save_dir=str(output_dir / 'simulation_results')
+        # Run simulations directly using run.py (bypassing SimulationRunner)
+        _, _ = run_simulations(
+            simulation_generator,
+            save_dir=str(results_dir),
+            save_results=config.get_processing_config().save_individual_results,
+            compute_summary_metrics=False,
+            num_procs=config.get_processing_config().parallel_processes,
+            num_sims=num_sims
         )
         
         logger.info("Simulation batch complete")
@@ -331,8 +332,6 @@ def main():
     logger.info("=" * 80)
     logger.info("STEP 3: Computing Metrics from Simulation Results")
     logger.info("=" * 80)
-    
-    results_dir = output_dir / 'simulation_results'
     
     try:
         # Load all TSV result files and compute metrics

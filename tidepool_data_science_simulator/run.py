@@ -29,14 +29,16 @@ def run_simulations(sims, save_dir,
                     save_results=True,
                     compute_summary_metrics=True,
                     num_procs=1,
-                    return_full_results=True):
+                    return_full_results=True,
+                    num_sims=None):
     """
     Run the simulations passed as argument and optionally process, save, or plot the results.
 
     Parameters
     ----------
-    sims: dict
-        Dict of sim_id to simulation object to run
+    sims: dict or generator
+        Dict of sim_id to simulation object to run, OR a generator yielding (sim_id, sim) tuples.
+        When using a generator, provide num_sims for progress tracking.
 
     save_dir: str
         Path to save results
@@ -55,6 +57,10 @@ def run_simulations(sims, save_dir,
     
     return_full_results: bool
         If True, return full_results dictionary. Set to False to save memory when results are saved to disk.
+    
+    num_sims: int, optional
+        Total number of simulations. Required for progress tracking with generators.
+        If not provided and sims is a dict, will use len(sims).
     """
     current_commit = subprocess.check_output(["git", "describe", "--always"]).strip().decode("utf-8")
 
@@ -65,7 +71,16 @@ def run_simulations(sims, save_dir,
     if save_results and save_dir:
         os.makedirs(save_dir, exist_ok=True)
 
-    num_sims = len(sims)
+    # Handle both dict and generator inputs (backward compatible)
+    if hasattr(sims, 'items'):
+        # It's a dict - backward compatible behavior
+        sim_iterator = sims.items()
+        if num_sims is None:
+            num_sims = len(sims)
+    else:
+        # It's a generator/iterator yielding (sim_id, sim) tuples
+        sim_iterator = sims
+
     sim_ctr = 1
     running_sims = {}
     run_start_time = time.time()
@@ -74,13 +89,16 @@ def run_simulations(sims, save_dir,
     summary_results = []
 
     # Process sims in batches of num_procs
-    for sim_id, sim in sims.items():
-        logger.debug("Running: {}. {} of {}".format(sim_id, sim_ctr, num_sims))
+    for sim_id, sim in sim_iterator:
+        # logger.debug("Running: {}. {} of {}".format(sim_id, sim_ctr, num_sims))
         sim.start()
         running_sims[sim_id] = sim
 
         batch_start_time = time.time()
-        if len(running_sims) >= num_procs or sim_ctr >= num_sims:  # Batch condition
+        # Batch condition: process when batch is full, or at end if num_sims known
+        batch_full = len(running_sims) >= num_procs
+        at_end = num_sims is not None and sim_ctr >= num_sims
+        if batch_full or at_end:
 
             # Gather results from sim queues
             batch_results = {id: sim.queue.get() for id, sim in running_sims.items()}

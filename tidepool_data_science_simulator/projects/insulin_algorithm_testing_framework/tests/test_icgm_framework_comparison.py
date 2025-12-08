@@ -344,12 +344,13 @@ def run_framework_test() -> Tuple[str, pd.DataFrame, pd.DataFrame]:
     """
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import ExperimentConfig
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.data_loader import DataLoader
-    # from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_generator import ScenarioGenerator
-    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_builder import generate_simulations
-    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_runner import SimulationRunner
+    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_builder import (
+        generate_simulations
+    )
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import (
         calculate_point_metrics, metrics_to_dataframe
     )
+    from tidepool_data_science_simulator.run import run_simulations
     
     # Load test config
     config_path = Path(__file__).parent.parent / 'config' / '510k_configs' / 'icgm_test_config.yaml'
@@ -357,27 +358,36 @@ def run_framework_test() -> Tuple[str, pd.DataFrame, pd.DataFrame]:
     
     output_dir = Path(config.get('experiment.output_dir'))
     output_dir.mkdir(parents=True, exist_ok=True)
+    results_dir = output_dir / 'simulation_results'
     
     # Load patient configs
     data_loader = DataLoader(config)
     vp_ids = config.get('scenarios.patient_parameters.specific_vp_ids')
     patient_configs = data_loader.load_patient_configs(patient_ids=vp_ids)
     
+    # Create BG range tuples from config (reusable)
     true_bg_cfg = config.get('scenarios.spurious_sensor_errors.true_bg_values')
     sensor_bg_cfg = config.get('scenarios.spurious_sensor_errors.sensor_bg_values')
+    true_bg_range = (true_bg_cfg['start'], true_bg_cfg['end'], true_bg_cfg['step'])
+    sensor_bg_range = (sensor_bg_cfg['start'], sensor_bg_cfg['end'], sensor_bg_cfg['step'])
 
-    simulation_generator = generate_simulations(
+    # Generate simulations - returns (generator, num_sims) tuple
+    simulation_generator, num_sims = generate_simulations(
         config,
         patient_configs,
-        true_bg_range=(true_bg_cfg['start'], true_bg_cfg['end'], true_bg_cfg['step']),
-        sensor_bg_range=(sensor_bg_cfg['start'], sensor_bg_cfg['end'], sensor_bg_cfg['step'])
+        true_bg_range=true_bg_range,
+        sensor_bg_range=sensor_bg_range
     )
     
-    simulations = dict(simulation_generator)
-
-    runner = SimulationRunner(config)
-    results_dir = output_dir / 'simulation_results'
-    runner.run_simulations(simulations, save_dir=str(results_dir))
+    # Run simulations directly using run.py (bypassing SimulationRunner)
+    _, _ = run_simulations(
+        simulation_generator,
+        save_dir=str(results_dir),
+        save_results=config.get_processing_config().save_individual_results,
+        compute_summary_metrics=False,
+        num_procs=config.get_processing_config().parallel_processes,
+        num_sims=num_sims
+    )
     
     # Calculate metrics
     tsv_files = list(results_dir.glob("*.tsv"))
