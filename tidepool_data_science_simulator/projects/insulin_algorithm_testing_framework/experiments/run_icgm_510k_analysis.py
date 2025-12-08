@@ -132,11 +132,8 @@ from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framewor
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.data_loader import (
     DataLoader
 )
-from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_generator import (
-    ScenarioGenerator
-)
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_builder import (
-    build_simulations
+    generate_simulations
 )
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_runner import (
     SimulationRunner
@@ -275,14 +272,12 @@ def main():
         logger.info(f"Loaded {len(patient_configs)} virtual patients")
     
     # ========================================================================
-    # STEP 2: Generate iCGM Scenarios
+    # STEP 2: Generate and Run Simulations
     # ========================================================================
     logger.info("")
     logger.info("=" * 80)
-    logger.info("STEP 2: Generating iCGM Scenarios")
+    logger.info("STEP 2: Generating and Running Simulations")
     logger.info("=" * 80)
-    
-    generator = ScenarioGenerator(config)
     
     # Get BG ranges from config
     true_bg_cfg = config.get('scenarios.spurious_sensor_errors.true_bg_values')
@@ -291,45 +286,30 @@ def main():
     sensor_bg_cfg = config.get('scenarios.spurious_sensor_errors.sensor_bg_values')
     sensor_bg_range = (sensor_bg_cfg['start'], sensor_bg_cfg['end'], sensor_bg_cfg['step'])
     
-    # Generate scenarios
-    scenarios = list(generator.generate_icgm_scenarios(
-        patient_configs,
-        true_bg_range=true_bg_range,
-        sensor_bg_range=sensor_bg_range
-    ))
-    
-    logger.info(f"Generated {len(scenarios)} total scenarios")
-    
-    # Save scenario summary
-    summary = generator.get_icgm_scenario_summary(
-        patient_configs,
-        true_bg_range=true_bg_range,
-        sensor_bg_range=sensor_bg_range
-    )
-    
-    summary_path = output_dir / 'scenario_summary.json'
-    with open(summary_path, 'w') as f:
-        # Convert numpy types to native Python types for JSON serialization
-        summary_json = {
-            k: (v.tolist() if isinstance(v, np.ndarray) else v)
-            for k, v in summary.items()
-        }
-        json.dump(summary_json, f, indent=2)
-    logger.info(f"Saved scenario summary: {summary_path}")
-    
-    # ========================================================================
-    # STEP 3: Build and Run Simulations
-    # ========================================================================
-    logger.info("")
-    logger.info("=" * 80)
-    logger.info("STEP 3: Building and Running Simulations")
-    logger.info("=" * 80)
-    
     try:
-        # Build simulations from scenarios
-        logger.info(f"Building {len(scenarios)} simulations...")
-        simulations = build_simulations(config, scenarios)
-        logger.info(f"Built {len(simulations)} simulation objects")
+        # Generate simulations 
+        logger.info("Generating simulations directly from config...")
+        simulations = dict(generate_simulations(
+            config,
+            patient_configs,
+            true_bg_range=true_bg_range,
+            sensor_bg_range=sensor_bg_range
+        ))
+        logger.info(f"Generated {len(simulations)} simulation objects")
+        
+        # Save scenario summary
+        summary = {
+            'scenario_type': 'icgm_sensitivity',
+            'num_patients': len(patient_configs),
+            'true_bg_range': true_bg_range,
+            'sensor_bg_range': sensor_bg_range,
+            'total_simulations': len(simulations)
+        }
+        
+        summary_path = output_dir / 'scenario_summary.json'
+        with open(summary_path, 'w') as f:
+            json.dump(summary, f, indent=2)
+        logger.info(f"Saved scenario summary: {summary_path}")
         
         # Run simulations
         runner = SimulationRunner(config)
@@ -345,11 +325,11 @@ def main():
         raise
     
     # ========================================================================
-    # STEP 4: Compute Metrics from Saved Results
+    # STEP 3: Compute Metrics from Saved Results
     # ========================================================================
     logger.info("")
     logger.info("=" * 80)
-    logger.info("STEP 4: Computing Metrics from Simulation Results")
+    logger.info("STEP 3: Computing Metrics from Simulation Results")
     logger.info("=" * 80)
     
     results_dir = output_dir / 'simulation_results'
@@ -386,11 +366,11 @@ def main():
         raise
     
     # ========================================================================
-    # STEP 5: Calculate Risk Scores
+    # STEP 4: Calculate Risk Scores
     # ========================================================================
     logger.info("")
     logger.info("=" * 80)
-    logger.info("STEP 5: Calculating Risk Scores")
+    logger.info("STEP 4: Calculating Risk Scores")
     logger.info("=" * 80)
     
     try:
@@ -419,12 +399,12 @@ def main():
         raise
     
     # ========================================================================
-    # STEP 6: Generate Regulatory Visualizations
+    # STEP 5: Generate Regulatory Visualizations
     # ========================================================================
     if not args.no_visualizations:
         logger.info("")
         logger.info("=" * 80)
-        logger.info("STEP 6: Generating Regulatory Visualizations")
+        logger.info("STEP 5: Generating Regulatory Visualizations")
         logger.info("=" * 80)
         
         viz_dir = output_dir / 'visualizations'
@@ -465,11 +445,11 @@ def main():
             logger.warning("Continuing without visualizations...")
     
     # ========================================================================
-    # STEP 7: Export Results for Submission
+    # STEP 6: Export Results for Submission
     # ========================================================================
     logger.info("")
     logger.info("=" * 80)
-    logger.info("STEP 7: Exporting Results for Submission")
+    logger.info("STEP 6: Exporting Results for Submission")
     logger.info("=" * 80)
     
     submission_dir = output_dir / 'submission_package'

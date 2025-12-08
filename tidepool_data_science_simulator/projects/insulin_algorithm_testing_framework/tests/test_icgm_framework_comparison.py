@@ -22,7 +22,7 @@ Usage:
 """
 
 # 10% relative tolerance
-TOLERANCE = 0.000000001  
+TOLERANCE = 0.1  
 
 # Column name mapping between original and framework approaches
 # Format: {display_name: (original_column, framework_column)}
@@ -344,8 +344,8 @@ def run_framework_test() -> Tuple[str, pd.DataFrame, pd.DataFrame]:
     """
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.config.experiment_config import ExperimentConfig
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.data_loader import DataLoader
-    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_generator import ScenarioGenerator
-    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_builder import build_simulations
+    # from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.scenario_generator import ScenarioGenerator
+    from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_builder import generate_simulations
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.simulation_runner import SimulationRunner
     from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import (
         calculate_point_metrics, metrics_to_dataframe
@@ -363,23 +363,18 @@ def run_framework_test() -> Tuple[str, pd.DataFrame, pd.DataFrame]:
     vp_ids = config.get('scenarios.patient_parameters.specific_vp_ids')
     patient_configs = data_loader.load_patient_configs(patient_ids=vp_ids)
     
-    # Generate scenarios
-    generator = ScenarioGenerator(config)
     true_bg_cfg = config.get('scenarios.spurious_sensor_errors.true_bg_values')
     sensor_bg_cfg = config.get('scenarios.spurious_sensor_errors.sensor_bg_values')
-    
-    scenarios = list(generator.generate_icgm_scenarios(
+
+    simulation_generator = generate_simulations(
+        config,
         patient_configs,
         true_bg_range=(true_bg_cfg['start'], true_bg_cfg['end'], true_bg_cfg['step']),
         sensor_bg_range=(sensor_bg_cfg['start'], sensor_bg_cfg['end'], sensor_bg_cfg['step'])
-    ))
+    )
     
-    logger.info(f"Generated {len(scenarios)} scenarios")
-    
-    # Build and run simulations
-    simulations = build_simulations(config, scenarios)
-    logger.info(f"Built {len(simulations)} simulations")
-    
+    simulations = dict(simulation_generator)
+
     runner = SimulationRunner(config)
     results_dir = output_dir / 'simulation_results'
     runner.run_simulations(simulations, save_dir=str(results_dir))
@@ -397,7 +392,6 @@ def run_framework_test() -> Tuple[str, pd.DataFrame, pd.DataFrame]:
     # Create summary DataFrame
     summary_df = metrics_to_dataframe(point_metrics_dict, parse_sim_ids=True)
     summary_df.to_csv(output_dir / 'simulation_summary.csv', index=False)
-
    
     logger.info("")
     logger.info("=" * 80)

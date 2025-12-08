@@ -570,6 +570,156 @@ def build_simulations(
 
 
 # ========================================
+# Direct Simulation Generators (bypass scenario dictionaries)
+# ========================================
+
+def generate_simulations(
+    config: ExperimentConfig,
+    patient_configs: List[Dict[str, Any]],
+    true_bg_range: tuple = (40, 405, 5),
+    sensor_bg_range: Optional[tuple] = None,
+    algorithm: str = 'autobolus',
+    sensor_std_dev: float = 3.0
+) -> Iterator[Simulation]:
+    """
+    Generate iCGM simulations directly from config, bypassing scenario dictionaries.
+    
+    This is a streamlined generator that yields ready-to-run Simulation objects
+    directly, without creating intermediate scenario dictionaries.
+    
+    Args:
+        config: Experiment configuration
+        patient_configs: List of patient configuration dictionaries
+        true_bg_range: (start, end, step) for true BG values in mg/dL
+        sensor_bg_range: (start, end, step) for sensor BG values.
+                        If None, uses same as true_bg_range
+        algorithm: Algorithm to test (typically 'autobolus')
+        sensor_std_dev: Standard deviation for sensor noise model
+        
+    Yields:
+        Configured Simulation objects ready to run
+        
+    Example:
+        >>> for simulation in generate_icgm_simulations(config, patient_configs):
+        ...     simulation.run()
+    """
+    if sensor_bg_range is None:
+        sensor_bg_range = true_bg_range
+    
+    algorithm_config = config.get_algorithm_config(algorithm)
+    sim_config_obj = config.get_simulation_config()
+    
+    # Generate BG grids
+    true_start, true_end, true_step = true_bg_range
+    sensor_start, sensor_end, sensor_step = sensor_bg_range
+    
+    true_bg_values = list(range(true_start, true_end, true_step))
+    sensor_bg_values = list(range(sensor_start, sensor_end, sensor_step))
+    
+    total_scenarios = (
+        len(patient_configs) * 
+        len(true_bg_values) * 
+        len(sensor_bg_values) *
+        len(algorithm_config.partial_application_factors) *
+        len(algorithm_config.gradual_transition_thresholds)
+    )
+    
+    logger.info(
+        f"Generating {total_scenarios} iCGM simulations directly "
+        f"({len(patient_configs)} patients × {len(true_bg_values)} true BG × "
+        f"{len(sensor_bg_values)} sensor BG × "
+        f"{len(algorithm_config.partial_application_factors)} PAF × "
+        f"{len(algorithm_config.gradual_transition_thresholds)} thresholds)"
+    )
+    
+    sim_count = 0
+    
+    # Track VP index for random seed (1-based to match original)
+    for vp_index, patient_config in enumerate(patient_configs, start=1):
+        for true_bg in true_bg_values:
+            for sensor_bg in sensor_bg_values:
+                for paf in algorithm_config.partial_application_factors:
+                    for gradual_threshold in algorithm_config.gradual_transition_thresholds:
+                        
+                        # Initialize random state for this simulation
+                        np.random.seed(vp_index)
+                        random_state = RandomState(vp_index)
+                        
+                        # Configure initial glucose
+                        sim_config = configure_initial_glucose(patient_config, true_bg)
+                        
+                        # Configure algorithm settings
+                        sim_config = configure_algorithm_settings(
+                            sim_config, algorithm, algorithm_config,
+                            paf, gradual_threshold
+                        )
+                        
+                        # Get base time
+                        base_time = parse_base_time(sim_config)
+                        
+                        # Create sensor with initial offset
+                        num_history_values = len(sim_config["patient"]["sensor"]["glucose_history"]["value"])
+                        t0_init = base_time - datetime.timedelta(minutes=num_history_values * 5.0)
+                        
+                        sensor = create_noisy_sensor_initial_offset(
+                            t0_init=t0_init,
+                            t0=base_time,
+                            random_state=random_state,
+                            initial_error_value=sensor_bg,
+                            std_dev=sensor_std_dev
+                        )
+                        
+                        # Update sensor through glucose history
+                        glucose_datetimes = parse_glucose_datetimes(sim_config)
+                        glucose_history_values = sim_config["patient"]["sensor"]["glucose_history"]["value"]
+                        configure_sensor_history(sensor, glucose_datetimes, glucose_history_values)
+                        
+                        # Build simulation components
+                        sim_parser = ScenarioParserV2()
+                        sim_start_time, duration_hrs, virtual_patient, controller = sim_parser.build_components_from_config(
+                            sim_config, sensor=sensor, random_state=random_state
+                        )
+                        
+                        # Set sensor on virtual patient
+                        virtual_patient.sensor = sensor
+                        
+                        # Configure bolus acceptance (always False for iCGM)
+                        bolus_method = create_bolus_acceptance_method(base_time)
+                        virtual_patient.does_accept_bolus_recommendation = types.MethodType(
+                            bolus_method, virtual_patient
+                        )
+                        
+                        # Generate simulation ID
+                        patient_id = patient_config.get('patient_id', 'unknown')
+                        sim_id = (
+                            f"alg={algorithm}_patient={patient_id}_tbg={true_bg}_sbg={sensor_bg}_"
+                            f"true_meal_size=None_reported_meal_size=None_"
+                            f"posvel={algorithm_config.include_positive_velocity_and_RC}_"
+                            f"midisf={algorithm_config.use_mid_absorption_isf}_"
+                            f"paf={paf}_gradthresh={gradual_threshold}"
+                        )
+                        
+                        # Create simulation
+                        simulation = Simulation(
+                            sim_start_time,
+                            duration_hrs=sim_config_obj.duration_hours,
+                            virtual_patient=virtual_patient,
+                            controller=controller,
+                            multiprocess=True,
+                            sim_id=sim_id,
+                            random_state=random_state
+                        )
+                        
+                        sim_count += 1
+                        if sim_count % 1000 == 0:
+                            logger.debug(f"Generated {sim_count} simulations")
+                        
+                        yield (sim_id, simulation)
+    
+    logger.info(f"Generated {sim_count} total iCGM simulations")
+
+
+# ========================================
 # Utility Functions
 # ========================================
 
