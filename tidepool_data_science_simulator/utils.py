@@ -130,6 +130,222 @@ def save_df(df_results, analysis_name, save_dir, save_type="tsv"):
     logger.debug("Saving sim to {}...".format(path))
 
 
+class StreamingParquetWriter:
+    """
+    A streaming Parquet writer that appends DataFrames incrementally to avoid memory issues.
+    
+    Uses PyArrow's ParquetWriter to write row groups as simulations complete,
+    allowing for arbitrarily large result sets without holding all data in memory.
+    Metadata is stored in a separate parquet file that is also streamed incrementally,
+    keeping data and metadata in the same format and allowing both to be updated during runtime.
+    
+    Output Files:
+        - combined_results.parquet - Main simulation data with sim_id column
+        - combined_results_metadata.parquet - Simulation metadata (sim_id, metadata_json)
+    
+    Example
+    -------
+    >>> writer = StreamingParquetWriter(save_dir)
+    >>> for sim_id, df in simulation_results:
+    ...     writer.write_batch(df, sim_id, sim_info)
+    >>> writer.close()
+    """
+    
+    def __init__(self, save_dir, filename="combined_results.parquet"):
+        """
+        Initialize the streaming writer.
+        
+        Parameters
+        ----------
+        save_dir: str
+            Directory to save the parquet files
+        filename: str
+            Name of the main parquet file (default: combined_results.parquet)
+        """
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+        import pandas as pd
+        
+        self.save_dir = save_dir
+        self.parquet_path = os.path.join(save_dir, filename)
+        self.metadata_parquet_path = os.path.join(save_dir, filename.replace('.parquet', '_metadata.parquet'))
+        self.data_writer = None
+        self.metadata_writer = None
+        self.data_schema = None
+        self.metadata_schema = None
+        self._pa = pa
+        self._pq = pq
+        self._pd = pd
+        
+        # Pre-define metadata schema for consistency
+        self.metadata_schema = pa.schema([
+            ('sim_id', pa.string()),
+            ('metadata_json', pa.string())
+        ])
+    
+    def write_batch(self, df, sim_id, sim_info=None):
+        """
+        Write a simulation result batch to both parquet files.
+        
+        Parameters
+        ----------
+        df: pd.DataFrame
+            Simulation results DataFrame
+        sim_id: str
+            Simulation identifier (will be added as a column)
+        sim_info: dict, optional
+            Simulation metadata to store in metadata parquet file
+        """
+        import json
+        
+        # Add sim_id column to data
+        df_with_id = df.copy()
+        df_with_id['sim_id'] = sim_id
+        
+        # Convert data to PyArrow Table
+        data_table = self._pa.Table.from_pandas(df_with_id)
+        
+        # Initialize data writer on first batch
+        if self.data_writer is None:
+            self.data_schema = data_table.schema
+            self.data_writer = self._pq.ParquetWriter(
+                self.parquet_path, 
+                self.data_schema,
+                compression='zstd'
+            )
+            logger.debug(f"Initialized streaming data parquet writer: {self.parquet_path}")
+        
+        # Write data batch as a row group
+        self.data_writer.write_table(data_table)
+        
+        # Write metadata to separate parquet file
+        if sim_info:
+            metadata_df = self._pd.DataFrame([{
+                'sim_id': sim_id,
+                'metadata_json': json.dumps(sim_info)
+            }])
+            metadata_table = self._pa.Table.from_pandas(metadata_df, schema=self.metadata_schema)
+            
+            # Initialize metadata writer on first metadata write
+            if self.metadata_writer is None:
+                self.metadata_writer = self._pq.ParquetWriter(
+                    self.metadata_parquet_path,
+                    self.metadata_schema,
+                    compression='zstd'
+                )
+                logger.debug(f"Initialized streaming metadata parquet writer: {self.metadata_parquet_path}")
+            
+            self.metadata_writer.write_table(metadata_table)
+    
+    def close(self):
+        """
+        Finalize both parquet files.
+        """
+        if self.data_writer is not None:
+            self.data_writer.close()
+            logger.debug(f"Closed streaming data parquet writer: {self.parquet_path}")
+        
+        if self.metadata_writer is not None:
+            self.metadata_writer.close()
+            logger.debug(f"Closed streaming metadata parquet writer: {self.metadata_parquet_path}")
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+
+def load_streaming_parquet_with_metadata(parquet_path):
+    """
+    Load a streaming parquet file and its associated metadata parquet file.
+    
+    This is the companion function to StreamingParquetWriter for reading results.
+    Both data and metadata are stored in parquet format for consistency.
+    
+    Parameters
+    ----------
+    parquet_path: str
+        Path to the main Parquet file (combined_results.parquet)
+        
+    Returns
+    -------
+    tuple
+        (df, metadata) where:
+        - df: pd.DataFrame with all simulation results (has sim_id column)
+        - metadata: dict with simulation info keyed by sim_id (or None if not present)
+    
+    Example
+    -------
+    >>> df, info = load_streaming_parquet_with_metadata('results/combined_results.parquet')
+    >>> sim_001_info = info['sim_001']
+    >>> print(sim_001_info['patient_id'])
+    """
+    import pyarrow.parquet as pq
+    import json
+    
+    # Load main data parquet
+    table = pq.read_table(parquet_path)
+    df = table.to_pandas()
+    
+    # Load metadata parquet if it exists
+    metadata_path = parquet_path.replace('.parquet', '_metadata.parquet')
+    metadata = None
+    if os.path.exists(metadata_path):
+        metadata_table = pq.read_table(metadata_path)
+        metadata_df = metadata_table.to_pandas()
+        
+        # Convert to dict keyed by sim_id
+        metadata = {}
+        for _, row in metadata_df.iterrows():
+            sim_id = row['sim_id']
+            metadata_json = row['metadata_json']
+            metadata[sim_id] = json.loads(metadata_json)
+    
+    return df, metadata
+
+
+def load_parquet_with_metadata(path):
+    """
+    Load a Parquet file and extract embedded simulation metadata.
+    
+    This is the companion function to save_df_parquet() for reading results
+    that have embedded simulation info metadata.
+    
+    Parameters
+    ----------
+    path: str
+        Path to the Parquet file
+        
+    Returns
+    -------
+    tuple
+        (df, metadata) where:
+        - df: pd.DataFrame with the simulation results
+        - metadata: dict with simulation info (or None if not present)
+    
+    Example
+    -------
+    >>> df, info = load_parquet_with_metadata('results/sim_001.parquet')
+    >>> print(info['sim_id'])
+    'sim_001'
+    """
+    import pyarrow.parquet as pq
+    import json
+    
+    table = pq.read_table(path)
+    
+    # Extract simulation info from metadata if present
+    metadata = None
+    if table.schema.metadata:
+        sim_info_bytes = table.schema.metadata.get(b'simulation_info')
+        if sim_info_bytes:
+            metadata = json.loads(sim_info_bytes.decode('utf-8'))
+    
+    return table.to_pandas(), metadata
+
+
 def get_sim_results_save_dir(description):
     this_dir = os.path.dirname(os.path.realpath(__file__))
     utc_string = dt.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S")

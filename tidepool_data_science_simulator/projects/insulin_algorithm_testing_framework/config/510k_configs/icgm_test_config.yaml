@@ -65,8 +65,8 @@ scenarios:
   
   patient_parameters:
     source: "icgm_patients"
-    num_patients: null
-    specific_vp_ids: [0]  # Match icgm_main_test.py: single VP
+    num_patients: 3
+    specific_vp_ids: null  # Match icgm_main_test.py: single VP
 
 simulation:
   duration_hours: 8
@@ -83,6 +83,7 @@ processing:
   save_individual_results: true
   save_summary_only: false
   archive_after_processing: false  # Don't archive for testing
+  save_format: parquet  # Options: 'tsv', 'parquet', 'both'
 
 metrics:
   primary:

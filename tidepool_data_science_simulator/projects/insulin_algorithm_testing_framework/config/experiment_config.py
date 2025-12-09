@@ -61,6 +61,7 @@ class ProcessingConfig:
     save_summary_only: bool = False
     archive_after_processing: bool = False
     archive_format: str = "zip"
+    save_format: str = "tsv"  # Options: 'tsv', 'parquet', 'both'
 
 
 @dataclass

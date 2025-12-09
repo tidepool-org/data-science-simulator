@@ -163,7 +163,8 @@ def parse_args():
     parser.add_argument(
         '--config',
         type=str,
-        default='tidepool_data_science_simulator/projects/insulin_algorithm_testing_framework/config/510k_configs/icgm_sensitivity_analysis.yaml',
+        default='tidepool_data_science_simulator/projects/insulin_algorithm_testing_framework/config/510k_configs/icgm_test_config.yaml',
+        # default='tidepool_data_science_simulator/projects/insulin_algorithm_testing_framework/config/510k_configs/icgm_sensitivity_analysis.yaml',
         help='Path to configuration file'
     )
     
@@ -310,13 +311,15 @@ def main():
         logger.info(f"Expected simulations: {num_sims}")
         
         # Run simulations directly using run.py (bypassing SimulationRunner)
+        processing_config = config.get_processing_config()
         _, _ = run_simulations(
             simulation_generator,
             save_dir=str(results_dir),
-            save_results=config.get_processing_config().save_individual_results,
+            save_results=processing_config.save_individual_results,
             compute_summary_metrics=False,
-            num_procs=config.get_processing_config().parallel_processes,
-            num_sims=num_sims
+            num_procs=processing_config.parallel_processes,
+            num_sims=num_sims,
+            save_format=processing_config.save_format
         )
         
         logger.info("Simulation batch complete")
@@ -334,23 +337,44 @@ def main():
     logger.info("=" * 80)
     
     try:
-        # Load all TSV result files and compute metrics
+        # Load simulation results based on save format
         logger.info(f"Loading simulation results from: {results_dir}")
         
-        tsv_files = list(results_dir.glob("*.tsv"))
-        logger.info(f"Found {len(tsv_files)} result files")
-        
         point_metrics_dict = {}
-        for tsv_file in tsv_files:
-            sim_id = tsv_file.stem  # filename without extension
-            try:
-                results_df = pd.read_csv(tsv_file, sep='\t')
-                point_metrics = calculate_point_metrics(results_df)
-                point_metrics_dict[sim_id] = point_metrics
-            except Exception as e:
-                logger.warning(f"Failed to process {tsv_file.name}: {e}")
+        save_format = processing_config.save_format
         
-        logger.info(f"Computed metrics for {len(point_metrics_dict)} simulations")
+        # Check for parquet format first (preferred for performance)
+        parquet_file = results_dir / "combined_results.parquet"
+        if save_format in ('parquet', 'both') and parquet_file.exists():
+            logger.info("Loading results from combined parquet file...")
+            from tidepool_data_science_simulator.utils import load_streaming_parquet_with_metadata
+            results_df, metadata = load_streaming_parquet_with_metadata(str(parquet_file))
+            
+            # Process each simulation's results
+            for sim_id in results_df['sim_id'].unique():
+                try:
+                    sim_results = results_df[results_df['sim_id'] == sim_id]
+                    point_metrics = calculate_point_metrics(sim_results)
+                    point_metrics_dict[sim_id] = point_metrics
+                except Exception as e:
+                    logger.warning(f"Failed to process sim_id {sim_id}: {e}")
+            
+            logger.info(f"Computed metrics for {len(point_metrics_dict)} simulations from parquet")
+        else:
+            # Fall back to TSV files
+            tsv_files = list(results_dir.glob("*.tsv"))
+            logger.info(f"Found {len(tsv_files)} TSV result files")
+            
+            for tsv_file in tsv_files:
+                sim_id = tsv_file.stem  # filename without extension
+                try:
+                    results_df = pd.read_csv(tsv_file, sep='\t')
+                    point_metrics = calculate_point_metrics(results_df)
+                    point_metrics_dict[sim_id] = point_metrics
+                except Exception as e:
+                    logger.warning(f"Failed to process {tsv_file.name}: {e}")
+            
+            logger.info(f"Computed metrics for {len(point_metrics_dict)} simulations from TSV files")
         
         # Create summary DataFrame
         summary_df = metrics_to_dataframe(point_metrics_dict, parse_sim_ids=True)

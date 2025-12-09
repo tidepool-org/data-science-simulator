@@ -386,7 +386,8 @@ def run_framework_test() -> Tuple[str, pd.DataFrame, pd.DataFrame]:
         save_results=config.get_processing_config().save_individual_results,
         compute_summary_metrics=False,
         num_procs=config.get_processing_config().parallel_processes,
-        num_sims=num_sims
+        num_sims=num_sims,
+        save_format='both'
     )
     
     # Calculate metrics

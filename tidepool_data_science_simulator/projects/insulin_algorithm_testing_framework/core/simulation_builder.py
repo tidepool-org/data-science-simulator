@@ -54,6 +54,7 @@ def configure_initial_glucose(
     Returns new patient config with initial glucose values set.
     
     Pure function - does not mutate input.
+    Uses selective copying for performance (only deep copies paths that will be mutated).
     
     Args:
         patient_config: Patient configuration dictionary
@@ -62,8 +63,13 @@ def configure_initial_glucose(
     Returns:
         New patient config with glucose history initialized
     """
-    # Deep copy to avoid mutation
-    new_config = copy.deepcopy(patient_config)
+    # Selective copy: shallow copy top level, deep copy only mutated paths
+    new_config = patient_config.copy()
+    new_config["patient"] = patient_config["patient"].copy()
+    
+    # Deep copy only the sensor and patient_model sections (where glucose_history is mutated)
+    new_config["patient"]["sensor"] = copy.deepcopy(patient_config["patient"]["sensor"])
+    new_config["patient"]["patient_model"] = copy.deepcopy(patient_config["patient"]["patient_model"])
     
     # Set glucose history
     num_history_values = len(new_config["patient"]["sensor"]["glucose_history"]["value"])
@@ -86,6 +92,7 @@ def configure_algorithm_settings(
     Returns new config with algorithm-specific settings.
     
     Pure function - does not mutate input.
+    Uses selective copying for performance (only deep copies paths that will be mutated).
     
     Args:
         sim_config: Simulation configuration dictionary
@@ -97,8 +104,11 @@ def configure_algorithm_settings(
     Returns:
         New config with algorithm settings applied
     """
-    # Deep copy to avoid mutation
-    new_config = copy.deepcopy(sim_config)
+    # Selective copy: shallow copy top level, deep copy only mutated paths
+    new_config = sim_config.copy()
+    
+    # Deep copy only controller section (where settings are mutated)
+    new_config["controller"] = copy.deepcopy(sim_config["controller"])
     
     # Set controller ID
     new_config["controller"]["id"] = algorithm_config.controller_id
@@ -144,6 +154,7 @@ def configure_settings_mismatches(
     Returns new config with settings mismatches applied.
     
     Pure function - does not mutate input.
+    Uses selective copying for performance (only deep copies paths that will be mutated).
     
     Args:
         sim_config: Simulation configuration dictionary
@@ -152,8 +163,15 @@ def configure_settings_mismatches(
     Returns:
         New config with adjusted settings
     """
-    # Deep copy to avoid mutation
-    new_config = copy.deepcopy(sim_config)
+    # Selective copy: shallow copy top level, deep copy only mutated paths
+    new_config = sim_config.copy()
+    new_config["patient"] = sim_config["patient"].copy()
+    new_config["patient"]["patient_model"] = sim_config["patient"]["patient_model"].copy()
+    
+    # Deep copy only metabolism_settings (where values are mutated)
+    new_config["patient"]["patient_model"]["metabolism_settings"] = copy.deepcopy(
+        sim_config["patient"]["patient_model"]["metabolism_settings"]
+    )
     
     metabolism_settings = new_config['patient']['patient_model']['metabolism_settings']
     
@@ -537,7 +555,7 @@ def generate_simulations(
             )
             
             sim_count += 1
-            if sim_count % 1000 == 0:
+            if sim_count % 100 == 0:
                 logger.debug(f"Generated {sim_count} simulations")
             
             yield (sim_id, simulation)
@@ -594,4 +612,3 @@ def count_simulations(
         len(algorithm_config.partial_application_factors) *
         len(algorithm_config.gradual_transition_thresholds)
     )
-
