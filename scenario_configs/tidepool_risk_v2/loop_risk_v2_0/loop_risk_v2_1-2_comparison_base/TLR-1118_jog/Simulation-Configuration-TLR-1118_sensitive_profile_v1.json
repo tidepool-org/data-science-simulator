@@ -5,7 +5,7 @@
     "risk_description": "Activity preset too high",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.activity_presets.ap_jog_toohigh_sensitive_2_0_v1",
+  "base_config": "reusable.simulations.1xComparator.ap_jog_toohigh_sensitive_1dotx",
   "override_config": [
     {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
       "duration_hours": 8.0,

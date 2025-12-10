@@ -110,7 +110,7 @@
             "time": "8/15/2019 16:00:00"
           }
         ],
-        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_IM_swift"
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_swift"
     },
       "patient": {
         "sensor": {

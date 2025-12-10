@@ -72,7 +72,12 @@
             }
           ]
         },
-          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1",
+          "carb_entries": {
+            "time": "08/15/2019 12:00:00", "value": 62
+          }
+        }
         },
       "controller": {
         "settings": "reusable.mitigations.guardrails.controller_settings_resistant_swift"

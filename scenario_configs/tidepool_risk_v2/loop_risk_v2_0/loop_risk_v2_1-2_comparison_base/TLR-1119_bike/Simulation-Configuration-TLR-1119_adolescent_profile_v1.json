@@ -5,7 +5,7 @@
     "risk_description": "Activity preset too low",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.activity_presets.ap_bike_toolow_adolescent_2_0_v1",
+  "base_config": "reusable.simulations.1xComparator.ap_bike_toolow_adolescent_1dotx",
   "override_config": [
     {"sim_id": "pre-Loop_NoMitigations_t1_adolescent",
       "duration_hours": 23.0,

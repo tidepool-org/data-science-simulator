@@ -5,7 +5,7 @@
     "risk_description": "Unauthorized user initiates bolus",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.base_resistant_2_0_v1",
+  "base_config": "reusable.simulations.1xComparator.base_resistant_1dotx",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations_t1_resistant",

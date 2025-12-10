@@ -588,6 +588,66 @@ class ScenarioParserV2(SimulationParser):
 
         if not 0 <= insulin_production_rate <= 5:
             raise ValueError("Value {} exceeds expected range, likely an error.".format(insulin_production_rate))
+
+    def validate_sensor_std_dev(self, std_dev):
+        """
+        Validate sensor standard deviation parameter.
+        """
+        if not isinstance(std_dev, (float, int)):
+            raise ValueError("std_dev must be numeric")
+        if not 0.0 <= std_dev <= 50.0:
+            raise ValueError(f"std_dev {std_dev} outside expected range [0, 50]")
+
+    def validate_sensor_spurious_prob(self, prob):
+        """
+        Validate sensor spurious probability parameter.
+        """
+        if not isinstance(prob, (float, int)):
+            raise ValueError("spurious_prob must be numeric")
+        if not 0.0 <= prob <= 1.0:
+            raise ValueError(f"spurious_prob {prob} must be between 0 and 1")
+
+    def validate_sensor_spurious_outage_prob(self, prob):
+        """
+        Validate sensor spurious outage probability parameter.
+        """
+        if not isinstance(prob, (float, int)):
+            raise ValueError("spurious_outage_prob must be numeric")
+        if not 0.0 <= prob <= 1.0:
+            raise ValueError(f"spurious_outage_prob {prob} must be between 0 and 1")
+
+    def validate_sensor_time_delta_crunch_prob(self, prob):
+        """
+        Validate sensor time delta crunch probability parameter.
+        """
+        if not isinstance(prob, (float, int)):
+            raise ValueError("time_delta_crunch_prob must be numeric")
+        if not 0.0 <= prob <= 1.0:
+            raise ValueError(f"time_delta_crunch_prob {prob} must be between 0 and 1")
+
+    def validate_sensor_bg_error_range(self, error_range):
+        """
+        Validate sensor BG error range parameter.
+        """
+        if not isinstance(error_range, list) or len(error_range) != 2:
+            raise ValueError("bg_spurious_error_delta_mgdl_range must be a list of 2 values")
+        if not all(isinstance(x, (int, float)) for x in error_range):
+            raise ValueError("bg_spurious_error_delta_mgdl_range values must be numeric")
+        if error_range[0] >= error_range[1]:
+            raise ValueError(f"bg_spurious_error_delta_mgdl_range invalid: [{error_range[0]}, {error_range[1]}]")
+        if not 0 <= error_range[0] <= 500 or not 0 <= error_range[1] <= 500:
+            raise ValueError(f"bg_spurious_error_delta_mgdl_range values outside expected range [0, 500]")
+
+    def validate_sensor_time_range(self, time_range):
+        """
+        Validate sensor time range parameter.
+        """
+        if not isinstance(time_range, list) or len(time_range) != 2:
+            raise ValueError("time_range must be a list of 2 values")
+        if not all(isinstance(x, (int, float)) for x in time_range):
+            raise ValueError("time_range values must be numeric")
+        if time_range[0] >= time_range[1]:
+            raise ValueError(f"time_range invalid: [{time_range[0]}, {time_range[1]}]")
             
     def carb_entries_to_timeline(self, carb_entries):
 
@@ -656,9 +716,73 @@ class ScenarioParserV2(SimulationParser):
             pump = ContinuousInsulinPump(time=sim_start_time, pump_config=self.get_pump_config())
 
         if sensor is None:
-            sensor = IdealSensor(time=sim_start_time, sensor_config=self.get_sensor_config())
+            sensor_config_obj = self.get_sensor_config()
+            sensor_settings = sim_config["patient"]["sensor"]
+            sensor_type = sensor_settings.get("type", "IdealSensor")
 
-        # TODO: The JSON parser is not flexible enough to accomodate different VirtualPatient models
+            logger.info(f"Creating sensor of type: {sensor_type}")
+
+            if sensor_type == "NoisySensor":
+                # Get sensor parameters from config
+                sensor_params = sensor_settings.get("parameters", {})
+
+                # Validate and apply parameters to sensor_config
+                if "std_dev" in sensor_params:
+                    self.validate_sensor_std_dev(sensor_params["std_dev"])
+                    sensor_config_obj.std_dev = sensor_params["std_dev"]
+                    logger.info(f"  - std_dev: {sensor_params['std_dev']}")
+
+                if "spurious_prob" in sensor_params:
+                    self.validate_sensor_spurious_prob(sensor_params["spurious_prob"])
+                    sensor_config_obj.spurious_prob = sensor_params["spurious_prob"]
+                    logger.info(f"  - spurious_prob: {sensor_params['spurious_prob']}")
+
+                if "spurious_outage_prob" in sensor_params:
+                    self.validate_sensor_spurious_outage_prob(sensor_params["spurious_outage_prob"])
+                    sensor_config_obj.spurious_outage_prob = sensor_params["spurious_outage_prob"]
+                    logger.info(f"  - spurious_outage_prob: {sensor_params['spurious_outage_prob']}")
+
+                if "time_delta_crunch_prob" in sensor_params:
+                    self.validate_sensor_time_delta_crunch_prob(sensor_params["time_delta_crunch_prob"])
+                    sensor_config_obj.time_delta_crunch_prob = sensor_params["time_delta_crunch_prob"]
+                    logger.info(f"  - time_delta_crunch_prob: {sensor_params['time_delta_crunch_prob']}")
+
+                if "bg_spurious_error_delta_mgdl_range" in sensor_params:
+                    self.validate_sensor_bg_error_range(sensor_params["bg_spurious_error_delta_mgdl_range"])
+                    sensor_config_obj.bg_spurious_error_delta_mgdl_range = sensor_params[
+                        "bg_spurious_error_delta_mgdl_range"]
+                    logger.info(
+                        f"  - bg_spurious_error_delta_mgdl_range: {sensor_params['bg_spurious_error_delta_mgdl_range']}")
+
+                if "not_working_time_minutes_range" in sensor_params:
+                    self.validate_sensor_time_range(sensor_params["not_working_time_minutes_range"])
+                    sensor_config_obj.not_working_time_minutes_range = sensor_params["not_working_time_minutes_range"]
+                    logger.info(
+                        f"  - not_working_time_minutes_range: {sensor_params['not_working_time_minutes_range']}")
+
+                if "cgm_offset_minutes_range" in sensor_params:
+                    self.validate_sensor_time_range(sensor_params["cgm_offset_minutes_range"])
+                    sensor_config_obj.cgm_offset_minutes_range = sensor_params["cgm_offset_minutes_range"]
+                    logger.info(f"  - cgm_offset_minutes_range: {sensor_params['cgm_offset_minutes_range']}")
+
+                # Get random seed if specified
+                random_seed = sensor_params.get("random_seed", None)
+                if random_seed is not None:
+                    from numpy.random import RandomState
+                    random_state = RandomState(random_seed)
+                    logger.info(f"  - random_seed: {random_seed}")
+                else:
+                    random_state = None
+
+                sensor = NoisySensor(
+                    time=sim_start_time,
+                    sensor_config=sensor_config_obj,
+                    random_state=random_state
+                )
+            else:
+                sensor = IdealSensor(time=sim_start_time, sensor_config=sensor_config_obj)
+
+        # TODO: The JSON parser is not flexible enough to accommodate different VirtualPatient models
         virtual_patient = VirtualPatient(
             sim_start_time,
             pump=pump,

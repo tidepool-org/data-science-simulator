@@ -5,7 +5,7 @@
     "risk_description": "Activity preset not set 1 hr ahead of activity",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.activity_presets.ap_jog_resistant_2_0_v1",
+  "base_config": "reusable.simulations.1xComparator.ap_jog_resistant_1dotx",
   "override_config": [
     {"sim_id": "pre-Loop_NoMitigations_t1_resistant",
       "duration_hours": 8.0,

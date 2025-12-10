@@ -5,7 +5,7 @@
     "risk_description": "Insufficient override 15",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.preset_80_median_swift",
+  "base_config": "reusable.simulations.custom_presets.preset_80_median_2_0_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations_t1_median",
@@ -40,7 +40,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 2.8
+              "value": 0.42
             }
           ]
         },
@@ -48,7 +48,7 @@
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 2.8
+              "value": 0.42
             }
           ],
           "metabolism_settings": "reusable.metabolism_settings.median_preset_15_v1"

@@ -18,10 +18,10 @@
     300.0
   ],
   "retrospective_correction_enabled": true,
-  "partial_application_factor": 0.4,
-  "use_mid_absorption_isf": true,
+  "partial_application_factor": 0.0,
+  "use_mid_absorption_isf": false,
   "includePositiveVelocityAndRC": false,
-  "carb_absorption_model": "piecewiseLinear",
-  "max_active_insulin_modifier": 2.0
+  "carb_absorption_model": "linear",
+  "max_active_insulin_modifier": 30.0
 
 }
