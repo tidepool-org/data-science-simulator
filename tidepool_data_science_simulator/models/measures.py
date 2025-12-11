@@ -190,12 +190,26 @@ class HeartRate(Measure):
 class Carb(Measure):
     """
     A carb with an expected absorption duration.
+    
+    Parameters
+    ----------
+    value : float
+        Amount of carbohydrates (e.g., in grams)
+    units : str
+        Units of measurement (e.g., "g")
+    duration_minutes : int
+        Absorption time in minutes
+    date_added : datetime, optional
+        When the carb entry was logged/added to the system.
+        Defaults to None, which means it was logged at consumption time.
+        This allows modeling scenarios where users pre-log meals or log them late.
     """
 
-    def __init__(self, value, units, duration_minutes):
+    def __init__(self, value, units, duration_minutes, date_added=None):
         super().__init__(value, units)
 
         self.duration_minutes = int(duration_minutes)
+        self.date_added = date_added  # When the entry was logged (can differ from consumption time)
 
     def get_duration(self):
         return self.duration_minutes

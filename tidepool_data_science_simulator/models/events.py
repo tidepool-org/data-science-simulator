@@ -251,23 +251,36 @@ class CarbTimeline(EventTimeline):
     def get_loop_inputs(self, time, num_hours_history=6):
         """
         Convert event timeline into format for input into Pyloopkit.
+        
+        The parent class method get_recent_event_times() already handles filtering
+        based on events_input (which contains date_added), so we just need to
+        collect the carb data.
+
+        Parameters
+        ----------
+        time : datetime
+            Current simulation time
+        num_hours_history : int
+            Hours of history to include
 
         Returns
         -------
-        (list, list, list, list)
+        (list, list, list)
+            carb_values, carb_start_times (consumption times), carb_durations
         """
 
         carb_values = []
         carb_start_times = []
         carb_durations = []
 
+        # get_recent_event_times already filters by events_input (date_added)
         recent_event_times = self.get_recent_event_times(time, num_hours_history=num_hours_history)
-        sorted_recent_event_times = sorted(recent_event_times)  # TODO: too slow?
+        sorted_recent_event_times = sorted(recent_event_times)
 
-        for time in sorted_recent_event_times:
-            carb_event = self.events[time]
+        for event_time in sorted_recent_event_times:
+            carb_event = self.events[event_time]
             carb_values.append(carb_event.value)
-            carb_start_times.append(time)
+            carb_start_times.append(event_time)  # Use consumption time (for Loop's absorption math)
             carb_durations.append(carb_event.duration_minutes)
 
         return carb_values, carb_start_times, carb_durations

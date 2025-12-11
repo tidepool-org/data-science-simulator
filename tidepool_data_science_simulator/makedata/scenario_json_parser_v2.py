@@ -650,19 +650,51 @@ class ScenarioParserV2(SimulationParser):
             raise ValueError(f"time_range invalid: [{time_range[0]}, {time_range[1]}]")
             
     def carb_entries_to_timeline(self, carb_entries):
-
+        """
+        Convert carb entries from JSON to CarbTimeline.
+        
+        Supports optional 'date_added' field in pump config to model scenarios where
+        users log meals at different times than consumption (pre-logging or delayed logging).
+        
+        Parameters
+        ----------
+        carb_entries : list
+            List of carb entry dictionaries with:
+            - start_time: When carbs were consumed (required)
+            - value: Amount in grams (required)
+            - duration: Absorption time in minutes (optional, default 180)
+            - date_added: When entry was logged (optional, only used in pump config)
+        
+        Returns
+        -------
+        CarbTimeline
+        """
         carb_datetimes = []
         carb_events = []
+        
+        # Create the timeline first
+        timeline = CarbTimeline()
+        
         for carb_entry in carb_entries:
+            # Parse consumption time (when carbs hit the stomach)
             carb_datetime = datetime.datetime.strptime(carb_entry["start_time"], DATETIME_FORMAT)
             carb_value = carb_entry["value"]
             carb_duration = carb_entry.get("duration", 180)
-            carb_obj = Carb(carb_value, "g", carb_duration)
+            
+            # Parse date_added if present (when user logged the entry)
+            date_added = None
+            if "date_added" in carb_entry:
+                date_added = datetime.datetime.strptime(carb_entry["date_added"], DATETIME_FORMAT)
+                logger.debug(f"Carb entry at {carb_datetime} has date_added={date_added}")
+            
+            # Create Carb object with date_added
+            carb_obj = Carb(carb_value, "g", carb_duration, date_added=date_added)
+            
+            # Add event with input_time parameter to properly populate events_input dict
+            input_time = date_added if date_added is not None else carb_datetime
+            timeline.add_event(carb_datetime, carb_obj, input_time=input_time)
 
-            carb_datetimes.append(carb_datetime)
-            carb_events.append(carb_obj)
-
-        return CarbTimeline(carb_datetimes, carb_events)
+        return timeline
 
     def bolus_entries_to_timeline(self, bolus_entries):
 
