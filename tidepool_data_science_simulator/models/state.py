@@ -42,6 +42,20 @@ class VirtualPatientState(object):
             value = self.carb.get_duration()
         return value
 
+    def get_carb_entry_time(self):
+        """
+        Get the entry time of the carb (when user entered it in Loop).
+        
+        Returns
+        -------
+        datetime or None
+            The entry time, or None if no carb or entry_time not set
+        """
+        value = None
+        if self.carb is not None:
+            value = self.carb.get_entry_time()
+        return value
+
     def get_sbr_value(self):
         value = None
         if self.sbr is not None:
@@ -111,6 +125,20 @@ class PumpState(object):
         value = None
         if self.carb is not None:
             value = self.carb.get_duration()
+        return value
+
+    def get_carb_entry_time(self):
+        """
+        Get the entry time of the carb (when user entered it in Loop).
+        
+        Returns
+        -------
+        datetime or None
+            The entry time, or None if no carb or entry_time not set
+        """
+        value = None
+        if self.carb is not None:
+            value = self.carb.get_entry_time()
         return value
 
     def get_temp_basal_rate_value(self, default=None):

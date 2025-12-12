@@ -375,5 +375,65 @@ class TestCarbEntryTimeIntegration:
         assert carb_durations[0] == 180
 
 
+class TestStateEntryTimeMethods:
+    """Tests for entry_time methods in VirtualPatientState and PumpState."""
+    
+    def test_virtual_patient_state_get_carb_entry_time_with_entry_time(self):
+        """Test VirtualPatientState.get_carb_entry_time() when entry_time is set."""
+        from tidepool_data_science_simulator.models.state import VirtualPatientState
+        
+        entry_time = datetime.datetime(2019, 8, 15, 12, 30, 0)
+        carb = Carb(50.0, "g", 180, entry_time=entry_time)
+        
+        state = VirtualPatientState(carb=carb)
+        
+        assert state.get_carb_entry_time() == entry_time
+    
+    def test_virtual_patient_state_get_carb_entry_time_without_entry_time(self):
+        """Test VirtualPatientState.get_carb_entry_time() when entry_time is not set."""
+        from tidepool_data_science_simulator.models.state import VirtualPatientState
+        
+        carb = Carb(50.0, "g", 180)  # No entry_time
+        state = VirtualPatientState(carb=carb)
+        
+        assert state.get_carb_entry_time() is None
+    
+    def test_virtual_patient_state_get_carb_entry_time_no_carb(self):
+        """Test VirtualPatientState.get_carb_entry_time() when no carb is set."""
+        from tidepool_data_science_simulator.models.state import VirtualPatientState
+        
+        state = VirtualPatientState()  # No carb
+        
+        assert state.get_carb_entry_time() is None
+    
+    def test_pump_state_get_carb_entry_time_with_entry_time(self):
+        """Test PumpState.get_carb_entry_time() when entry_time is set."""
+        from tidepool_data_science_simulator.models.state import PumpState
+        
+        entry_time = datetime.datetime(2019, 8, 15, 12, 30, 0)
+        carb = Carb(50.0, "g", 180, entry_time=entry_time)
+        
+        state = PumpState(carb=carb)
+        
+        assert state.get_carb_entry_time() == entry_time
+    
+    def test_pump_state_get_carb_entry_time_without_entry_time(self):
+        """Test PumpState.get_carb_entry_time() when entry_time is not set."""
+        from tidepool_data_science_simulator.models.state import PumpState
+        
+        carb = Carb(50.0, "g", 180)  # No entry_time
+        state = PumpState(carb=carb)
+        
+        assert state.get_carb_entry_time() is None
+    
+    def test_pump_state_get_carb_entry_time_no_carb(self):
+        """Test PumpState.get_carb_entry_time() when no carb is set."""
+        from tidepool_data_science_simulator.models.state import PumpState
+        
+        state = PumpState()  # No carb
+        
+        assert state.get_carb_entry_time() is None
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

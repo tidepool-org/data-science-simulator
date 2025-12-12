@@ -7,20 +7,24 @@
   },
   "base_config": "reusable.simulations.base_sensitive_2_0_v1",
   "override_config": [
-    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive_edit",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
-              "value": 1.695
+              "value": "accept_recommendation"
             }
           ]
         },
           "pump": {
-            "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
-            "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
+            "carb_entries": [
+              {
+                "start_time": "08/15/2019 12:00:00", "value": 25,"type": "carb",
+                "entry_time": "08/15/2019 12:15:00"
+              }
+            ]
           }
         },
       "controller": null
