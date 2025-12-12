@@ -189,16 +189,94 @@ class HeartRate(Measure):
 
 class Carb(Measure):
     """
-    A carb with an expected absorption duration.
+    A carb with an expected absorption duration and optional entry time tracking.
+    
+    This class models carbohydrate intake for diabetes simulation, supporting the
+    separation between when a carb entry is made in Loop (entry_time) and when
+    the carbs are actually consumed (start_time, tracked via the event timeline).
+    
+    Attributes
+    ----------
+    value : float
+        Amount of carbohydrates in grams
+    units : str
+        Unit of measurement (typically "g")
+    duration_minutes : int
+        Expected absorption duration in minutes
+    entry_time : datetime, optional
+        When the user entered this carb in Loop. If None, assumes entry was made
+        at the same time as consumption. This mirrors Loop's userCreatedDate/date field.
+    
+    Notes
+    -----
+    Loop maintains two distinct timestamps for carb entries:
+    - startDate: When carbs are/were consumed (physiological time)
+    - date/userCreatedDate: When the entry was created in the app
+    
+    This separation allows modeling scenarios like:
+    - Late entry: User eats at 12:00, enters carbs at 12:30
+    - Pre-bolus: User enters carbs at 12:00 for meal planned at 12:30
     """
 
-    def __init__(self, value, units, duration_minutes):
+    def __init__(self, value, units, duration_minutes, entry_time=None):
+        """
+        Initialize a Carb object.
+        
+        Parameters
+        ----------
+        value : float
+            Amount of carbohydrates
+        units : str
+            Unit of measurement (e.g., "g" for grams)
+        duration_minutes : int or float
+            Expected absorption duration in minutes
+        entry_time : datetime, optional
+            When the carb entry was made in Loop. If None, entry time is assumed
+            to be the same as consumption time (tracked in the event timeline).
+        """
         super().__init__(value, units)
-
         self.duration_minutes = int(duration_minutes)
+        self.entry_time = entry_time
+
+    def __repr__(self):
+        entry_str = ""
+        if self.entry_time is not None:
+            entry_str = f", entry_time={self.entry_time}"
+        return f"Carb({self.value} {self.units}, duration={self.duration_minutes}min{entry_str})"
 
     def get_duration(self):
+        """
+        Get the expected absorption duration.
+        
+        Returns
+        -------
+        int
+            Absorption duration in minutes
+        """
         return self.duration_minutes
+    
+    def get_entry_time(self):
+        """
+        Get the time when this carb entry was made in Loop.
+        
+        Returns
+        -------
+        datetime or None
+            The entry time, or None if not specified (meaning entry time
+            equals consumption time)
+        """
+        return self.entry_time
+    
+    def has_separate_entry_time(self):
+        """
+        Check if this carb has a separate entry time from consumption time.
+        
+        Returns
+        -------
+        bool
+            True if entry_time is explicitly set, False otherwise
+        """
+        return self.entry_time is not None
 
 
 class CarbInsulinRatio(Measure):

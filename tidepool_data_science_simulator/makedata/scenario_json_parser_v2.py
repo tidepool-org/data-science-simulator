@@ -649,20 +649,127 @@ class ScenarioParserV2(SimulationParser):
         if time_range[0] >= time_range[1]:
             raise ValueError(f"time_range invalid: [{time_range[0]}, {time_range[1]}]")
             
-    def carb_entries_to_timeline(self, carb_entries):
+    def validate_carb_entry_times(self, start_time, entry_time):
+        """
+        Validate carb entry time relative to start time.
+        
+        This checks that the entry_time is within a realistic range of the start_time.
+        Loop allows users to backdate or forward-date carb entries, but extreme differences
+        may indicate configuration errors.
+        
+        Parameters
+        ----------
+        start_time : datetime
+            When the carb is consumed (physiological time)
+        entry_time : datetime
+            When the entry is made in Loop
+            
+        Raises
+        ------
+        ValueError
+            If entry_time format is invalid
+            
+        Logs warning if entry_time is unrealistically far from start_time (>6 hours)
+        """
+        time_delta_hours = abs((entry_time - start_time).total_seconds() / 3600)
+        
+        # Warn if entry time is more than 6 hours before or after consumption
+        if time_delta_hours > 6:
+            logger.warning(
+                f"Carb entry_time is {time_delta_hours:.1f} hours from start_time. "
+                f"start_time={start_time}, entry_time={entry_time}. "
+                f"This may not reflect realistic user behavior."
+            )
 
-        carb_datetimes = []
-        carb_events = []
+    def carb_entries_to_timeline(self, carb_entries):
+        """
+        Convert carb entries from JSON configuration to a CarbTimeline.
+        
+        This method supports the separation of carb consumption time (start_time) from
+        carb entry time (entry_time), mirroring how Loop handles these distinct timestamps.
+        
+        Parameters
+        ----------
+        carb_entries : list
+            List of carb entry dictionaries with the following fields:
+            - start_time (required): When carbs are consumed, format "M/D/YYYY HH:MM:SS"
+            - value (required): Carb amount in grams
+            - duration (optional): Absorption duration in minutes, defaults to 180
+            - entry_time (optional): When user enters carb in Loop, format "M/D/YYYY HH:MM:SS"
+              If omitted, defaults to start_time (entry at time of consumption)
+        
+        Returns
+        -------
+        CarbTimeline
+            Timeline of carb events with proper entry time tracking
+            
+        Notes
+        -----
+        The entry_time parameter enables modeling of realistic user behaviors:
+        - Late entry: User eats at 12:00, enters carbs at 12:30 (entry_time > start_time)
+        - Pre-bolus: User enters carbs at 12:00 for meal at 12:30 (entry_time < start_time)
+        
+        Loop will only "see" the carb entry after entry_time has passed, even if the
+        start_time is earlier. This affects COB calculations and dosing recommendations.
+        
+        Examples
+        --------
+        Standard entry (entry at consumption time)::
+        
+            {"start_time": "8/15/2019 12:00:00", "value": 50.0}
+        
+        Late entry (30 min delay)::
+        
+            {
+                "start_time": "8/15/2019 12:00:00",
+                "entry_time": "8/15/2019 12:30:00",
+                "value": 50.0
+            }
+        
+        Pre-bolus (entry 15 min before eating)::
+        
+            {
+                "start_time": "8/15/2019 12:15:00",
+                "entry_time": "8/15/2019 12:00:00",
+                "value": 50.0
+            }
+        """
+        carb_timeline = CarbTimeline()
+        
         for carb_entry in carb_entries:
-            carb_datetime = datetime.datetime.strptime(carb_entry["start_time"], DATETIME_FORMAT)
+            # Parse consumption time (when carbs are eaten - physiological time)
+            carb_start_time = datetime.datetime.strptime(carb_entry["start_time"], DATETIME_FORMAT)
+            
+            # Parse entry time (when user enters in Loop) - defaults to start_time
+            entry_time_str = carb_entry.get("entry_time", None)
+            if entry_time_str is not None:
+                carb_entry_time = datetime.datetime.strptime(entry_time_str, DATETIME_FORMAT)
+                # Validate the entry time relationship
+                self.validate_carb_entry_times(carb_start_time, carb_entry_time)
+                logger.debug(
+                    f"Carb entry with separate entry_time: "
+                    f"consumption={carb_start_time}, entry={carb_entry_time}, "
+                    f"value={carb_entry['value']}g"
+                )
+            else:
+                carb_entry_time = carb_start_time  # Default: entry at consumption time
+            
             carb_value = carb_entry["value"]
             carb_duration = carb_entry.get("duration", 180)
-            carb_obj = Carb(carb_value, "g", carb_duration)
+            
+            # Create Carb object with entry_time for logging/auditing
+            carb_obj = Carb(carb_value, "g", carb_duration, entry_time=carb_entry_time)
+            
+            # Add event with separate entry time (input_time parameter)
+            # - time: when carb is consumed (used for absorption calculations)
+            # - input_time: when entry was made (used for filtering what Loop sees)
+            carb_timeline.add_event(
+                time=carb_start_time,
+                event=carb_obj,
+                input_time=carb_entry_time
+            )
 
-            carb_datetimes.append(carb_datetime)
-            carb_events.append(carb_obj)
-
-        return CarbTimeline(carb_datetimes, carb_events)
+        return carb_timeline
 
     def bolus_entries_to_timeline(self, bolus_entries):
 
