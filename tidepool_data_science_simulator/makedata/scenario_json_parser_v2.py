@@ -20,6 +20,7 @@ from tidepool_data_science_simulator.models.simulation import (
 from tidepool_data_science_simulator.models.events import CarbTimeline, BolusTimeline, TempBasalTimeline, ActionTimeline, PhysicalActivityTimeline, VirtualPatientDeleteLoopData
 from tidepool_data_science_simulator.models.measures import (
     Carb,
+    CarbOperation,
     Bolus,
     BasalRate,
     CarbInsulinRatio,
@@ -31,6 +32,7 @@ from tidepool_data_science_simulator.models.measures import (
     GlucoseTrace,
     PhysicalActivity,
 )
+import uuid
 
 from tidepool_data_science_simulator.makedata.scenario_parser import (
     SimulationParser, SensorConfig, PatientConfig, ControllerConfig, PumpConfig
@@ -685,8 +687,9 @@ class ScenarioParserV2(SimulationParser):
         """
         Convert carb entries from JSON configuration to a CarbTimeline.
         
-        This method supports the separation of carb consumption time (start_time) from
-        carb entry time (entry_time), mirroring how Loop handles these distinct timestamps.
+        This method supports:
+        1. Separation of carb consumption time (start_time) from entry time (entry_time)
+        2. Version-based carb editing with the 'edits' array
         
         Parameters
         ----------
@@ -697,11 +700,18 @@ class ScenarioParserV2(SimulationParser):
             - duration (optional): Absorption duration in minutes, defaults to 180
             - entry_time (optional): When user enters carb in Loop, format "M/D/YYYY HH:MM:SS"
               If omitted, defaults to start_time (entry at time of consumption)
+            - id (optional): Unique identifier for this carb entry. Auto-generated if omitted.
+            - edits (optional): List of edit objects, each containing:
+                - edit_time (required): When the edit was made, format "M/D/YYYY HH:MM:SS"
+                - value (optional): New carb value
+                - start_time (optional): New consumption time
+                - duration (optional): New absorption duration
+                - operation (optional): "update" (default) or "delete"
         
         Returns
         -------
         CarbTimeline
-            Timeline of carb events with proper entry time tracking
+            Timeline of carb events with proper entry time and version tracking
             
         Notes
         -----
@@ -709,8 +719,11 @@ class ScenarioParserV2(SimulationParser):
         - Late entry: User eats at 12:00, enters carbs at 12:30 (entry_time > start_time)
         - Pre-bolus: User enters carbs at 12:00 for meal at 12:30 (entry_time < start_time)
         
-        Loop will only "see" the carb entry after entry_time has passed, even if the
-        start_time is earlier. This affects COB calculations and dosing recommendations.
+        The edits array enables modeling carb corrections:
+        - User enters 50g, later edits to 75g
+        - User deletes a carb entry
+        
+        Loop will only "see" the current active version after its entry/edit time.
         
         Examples
         --------
@@ -718,20 +731,27 @@ class ScenarioParserV2(SimulationParser):
         
             {"start_time": "8/15/2019 12:00:00", "value": 50.0}
         
-        Late entry (30 min delay)::
+        Late entry with subsequent edit::
         
             {
+                "id": "carb_1",
                 "start_time": "8/15/2019 12:00:00",
-                "entry_time": "8/15/2019 12:30:00",
-                "value": 50.0
+                "entry_time": "8/15/2019 12:00:00",
+                "value": 50.0,
+                "edits": [
+                    {"edit_time": "8/15/2019 12:30:00", "value": 75.0}
+                ]
             }
         
-        Pre-bolus (entry 15 min before eating)::
+        Entry with deletion::
         
             {
-                "start_time": "8/15/2019 12:15:00",
-                "entry_time": "8/15/2019 12:00:00",
-                "value": 50.0
+                "id": "carb_2",
+                "start_time": "8/15/2019 18:00:00",
+                "value": 30.0,
+                "edits": [
+                    {"edit_time": "8/15/2019 18:30:00", "operation": "delete"}
+                ]
             }
         """
         carb_timeline = CarbTimeline()
@@ -757,17 +777,102 @@ class ScenarioParserV2(SimulationParser):
             carb_value = carb_entry["value"]
             carb_duration = carb_entry.get("duration", 180)
             
-            # Create Carb object with entry_time for logging/auditing
-            carb_obj = Carb(carb_value, "g", carb_duration, entry_time=carb_entry_time)
+            # Get or generate sync_identifier for version tracking
+            sync_identifier = carb_entry.get("id", str(uuid.uuid4()))
             
-            # Add event with separate entry time (input_time parameter)
-            # - time: when carb is consumed (used for absorption calculations)
-            # - input_time: when entry was made (used for filtering what Loop sees)
-            carb_timeline.add_event(
-                time=carb_start_time,
-                event=carb_obj,
-                input_time=carb_entry_time
+            # Create initial Carb object (version 0)
+            carb_obj = Carb(
+                value=carb_value,
+                units="g",
+                duration_minutes=carb_duration,
+                entry_time=carb_entry_time,
+                sync_identifier=sync_identifier,
+                sync_version=0,
+                user_created_date=carb_entry_time,
+                user_updated_date=None,
+                superceded_date=None,
+                operation=CarbOperation.CREATE
             )
+            
+            # Process edits if present
+            edits = carb_entry.get("edits", [])
+            
+            if edits:
+                # Track current values that may be inherited by subsequent edits
+                current_start_time = carb_start_time
+                current_value = carb_value
+                current_duration = carb_duration
+                current_carb = carb_obj
+                
+                for edit_idx, edit in enumerate(edits):
+                    # Parse edit time
+                    edit_time = datetime.datetime.strptime(edit["edit_time"], DATETIME_FORMAT)
+                    
+                    # Get operation type (default: update)
+                    operation = edit.get("operation", "update")
+                    if operation == "delete":
+                        op_type = CarbOperation.DELETE
+                    else:
+                        op_type = CarbOperation.UPDATE
+                    
+                    # Get new values (inherit from previous version if not specified)
+                    new_value = edit.get("value", current_value)
+                    new_start_time_str = edit.get("start_time", None)
+                    if new_start_time_str:
+                        new_start_time = datetime.datetime.strptime(new_start_time_str, DATETIME_FORMAT)
+                    else:
+                        new_start_time = current_start_time
+                    new_duration = edit.get("duration", current_duration)
+                    
+                    # Mark previous version as superceded
+                    current_carb.superceded_date = edit_time
+                    
+                    # Create new version
+                    new_carb = Carb(
+                        value=new_value,
+                        units="g",
+                        duration_minutes=new_duration,
+                        entry_time=edit_time,
+                        sync_identifier=sync_identifier,
+                        sync_version=edit_idx + 1,
+                        user_created_date=carb_entry_time,  # Preserve original creation date
+                        user_updated_date=edit_time,
+                        superceded_date=None,
+                        operation=op_type
+                    )
+                    
+                    # Add the edited version using add_carb_edit method
+                    carb_timeline.add_carb_edit(
+                        original_start_time=current_start_time,
+                        edited_carb=new_carb,
+                        new_start_time=new_start_time
+                    )
+                    
+                    logger.debug(
+                        f"Carb edit v{edit_idx + 1}: id={sync_identifier[:8]}..., "
+                        f"op={operation}, value={new_value}g, time={edit_time}"
+                    )
+                    
+                    # Update current values for next edit
+                    current_start_time = new_start_time
+                    current_value = new_value
+                    current_duration = new_duration
+                    current_carb = new_carb
+                
+                # Add initial version (v0) to timeline
+                # This is done after processing edits so the timeline has version history
+                carb_timeline.add_event(
+                    time=carb_start_time,
+                    event=carb_obj,
+                    input_time=carb_entry_time
+                )
+            else:
+                # No edits - add single version to timeline
+                carb_timeline.add_event(
+                    time=carb_start_time,
+                    event=carb_obj,
+                    input_time=carb_entry_time
+                )
 
         return carb_timeline
 

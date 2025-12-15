@@ -56,6 +56,86 @@ class VirtualPatientState(object):
             value = self.carb.get_entry_time()
         return value
 
+    # Carb version control getters
+    
+    def get_carb_sync_identifier(self):
+        """
+        Get the unique identifier linking all versions of this carb entry.
+        
+        Returns
+        -------
+        str or None
+            The sync_identifier, or None if no carb
+        """
+        if self.carb is not None:
+            return self.carb.get_sync_identifier()
+        return None
+    
+    def get_carb_sync_version(self):
+        """
+        Get the version number of this carb entry (0 = original).
+        
+        Returns
+        -------
+        int or None
+            The sync_version, or None if no carb
+        """
+        if self.carb is not None:
+            return self.carb.get_sync_version()
+        return None
+    
+    def get_carb_user_created_date(self):
+        """
+        Get when this carb entry was originally created.
+        
+        Returns
+        -------
+        datetime or None
+            The user_created_date, or None if no carb
+        """
+        if self.carb is not None:
+            return self.carb.get_user_created_date()
+        return None
+    
+    def get_carb_user_updated_date(self):
+        """
+        Get when this carb entry was last edited.
+        
+        Returns
+        -------
+        datetime or None
+            The user_updated_date, or None if no carb or never edited
+        """
+        if self.carb is not None:
+            return self.carb.get_user_updated_date()
+        return None
+    
+    def get_carb_superceded_date(self):
+        """
+        Get when this carb version was replaced by an edit.
+        
+        Returns
+        -------
+        datetime or None
+            The superceded_date, or None if no carb or still active
+        """
+        if self.carb is not None:
+            return self.carb.get_superceded_date()
+        return None
+    
+    def get_carb_operation(self):
+        """
+        Get the operation type for this carb entry.
+        
+        Returns
+        -------
+        str or None
+            'create', 'update', or 'delete', or None if no carb
+        """
+        if self.carb is not None:
+            return self.carb.get_operation()
+        return None
+
     def get_sbr_value(self):
         value = None
         if self.sbr is not None:
@@ -140,6 +220,86 @@ class PumpState(object):
         if self.carb is not None:
             value = self.carb.get_entry_time()
         return value
+
+    # Carb version control getters
+    
+    def get_carb_sync_identifier(self):
+        """
+        Get the unique identifier linking all versions of this carb entry.
+        
+        Returns
+        -------
+        str or None
+            The sync_identifier, or None if no carb
+        """
+        if self.carb is not None:
+            return self.carb.get_sync_identifier()
+        return None
+    
+    def get_carb_sync_version(self):
+        """
+        Get the version number of this carb entry (0 = original).
+        
+        Returns
+        -------
+        int or None
+            The sync_version, or None if no carb
+        """
+        if self.carb is not None:
+            return self.carb.get_sync_version()
+        return None
+    
+    def get_carb_user_created_date(self):
+        """
+        Get when this carb entry was originally created.
+        
+        Returns
+        -------
+        datetime or None
+            The user_created_date, or None if no carb
+        """
+        if self.carb is not None:
+            return self.carb.get_user_created_date()
+        return None
+    
+    def get_carb_user_updated_date(self):
+        """
+        Get when this carb entry was last edited.
+        
+        Returns
+        -------
+        datetime or None
+            The user_updated_date, or None if no carb or never edited
+        """
+        if self.carb is not None:
+            return self.carb.get_user_updated_date()
+        return None
+    
+    def get_carb_superceded_date(self):
+        """
+        Get when this carb version was replaced by an edit.
+        
+        Returns
+        -------
+        datetime or None
+            The superceded_date, or None if no carb or still active
+        """
+        if self.carb is not None:
+            return self.carb.get_superceded_date()
+        return None
+    
+    def get_carb_operation(self):
+        """
+        Get the operation type for this carb entry.
+        
+        Returns
+        -------
+        str or None
+            'create', 'update', or 'delete', or None if no carb
+        """
+        if self.carb is not None:
+            return self.carb.get_operation()
+        return None
 
     def get_temp_basal_rate_value(self, default=None):
         """

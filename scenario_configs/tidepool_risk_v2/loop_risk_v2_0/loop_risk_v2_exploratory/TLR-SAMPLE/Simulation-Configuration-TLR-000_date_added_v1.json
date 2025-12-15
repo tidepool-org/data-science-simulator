@@ -10,7 +10,11 @@
     {"sim_id": "pre-Loop_NoMitigations_t1_sensitive_edit",
       "patient": {
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 12:15:00", "value": 25,"type": "carb"
+            }
+          ],
           "bolus_entries": [
             {
               "time": "8/15/2019 12:00:00",
@@ -21,13 +25,76 @@
           "pump": {
             "carb_entries": [
               {
-                "start_time": "08/15/2019 12:00:00", "value": 25,"type": "carb",
-                "entry_time": "08/15/2019 12:15:00"
+                "start_time": "08/15/2019 12:15:00", "value": 25,"type": "carb",
+                "entry_time": "08/15/2019 12:00:00"
               }
             ]
           }
+        }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive_edit",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 12:15:00",
+              "value": 25,
+              "type": "carb"
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.65
+            }
+          ]
         },
-      "controller": null
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 12:15:00",
+              "value": 25,
+              "type": "carb",
+              "entry_time": "08/15/2019 12:00:00"
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 12:15:00",
+              "value": 1.65
+            }
+          ]
+        }
+      }
+    },
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive_edit",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 12:15:00", "value": 25,"type": "carb"
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+          "pump": {
+            "carb_entries": [
+              {
+                "start_time": "08/15/2019 12:15:00", "value": 25,"type": "carb",
+                "entry_time": "08/15/2019 12:00:00"
+              }
+            ],
+            "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+          }
+        },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_swift"
+      }
     }
 ]
 }
