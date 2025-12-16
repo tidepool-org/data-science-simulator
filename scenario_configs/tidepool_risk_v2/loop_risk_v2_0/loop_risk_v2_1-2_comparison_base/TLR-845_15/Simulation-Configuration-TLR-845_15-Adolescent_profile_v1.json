@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "risk-id": "TLR-845_10",
+    "simulation_id": "TLR-845_10-adolescent",
+    "risk_description": "Insufficient override 10",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.1xComparator.preset_80_adolescent_1dotx",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+              "insulin_sensitivity_factor": {
+                "start_times": [
+                  "00:00:00", "12:00:00"],
+                "values": [
+                  12, 180
+                ]
+              },
+            "carb_insulin_ratio": {
+              "start_times": [
+                "00:00:00", "12:00:00"],
+              "values": [4, 60]
+            },
+            "basal_rate": {
+              "start_times": [
+                "00:00:00", "12:00:00"],
+              "values": [1.9, 0.285]
+            }
+          }
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+              "insulin_sensitivity_factor": {
+                "start_times": [
+                  "00:00:00", "12:00:00"
+                ],
+                "values": [
+                  12, 180
+                ]
+              },
+            "carb_insulin_ratio": {
+              "start_times": [
+                "00:00:00", "12:00:00"],
+              "values": [4, 60]
+            },
+            "basal_rate": {
+              "start_times": [
+                "00:00:00", "12:00:00"],
+              "values": [1.9, 0.285]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_adolescent",
+      "duration_hours": 23.0,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+              "insulin_sensitivity_factor": {
+                "start_times": [
+                  "00:00:00", "12:00:00"
+                ],
+                "values": [
+                  12, 180
+                ]
+              },
+            "carb_insulin_ratio": {
+              "start_times": [
+                "00:00:00", "12:00:00"],
+              "values": [4, 60]
+            },
+            "basal_rate": {
+              "start_times": [
+                "00:00:00", "12:00:00"],
+              "values": [1.9, 0.285]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_swift"
+      }
+    }
+  ]
+}

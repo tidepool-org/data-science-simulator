@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "risk-id": "TLR-652",
+    "simulation_id": "TLR-652-resistant",
+    "risk_description": "Accidental toggle closed loop off",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_resistant_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_resistant",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 16:05:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:00:00"
+          }
+        ]
+    },
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t2_resistant",
+      "controller": null,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_resistant",
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 16:05:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:00:00"
+          }
+        ],
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_resistant_swift"
+    },
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_resistant_profile_v1"
+        }
+      }
+    }
+]
+}

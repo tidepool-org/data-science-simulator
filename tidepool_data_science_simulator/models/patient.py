@@ -67,6 +67,7 @@ class VirtualPatient(SimulationComponent):
 
         self.carb_event_timeline = patient_config.carb_event_timeline
         self.bolus_event_timeline = patient_config.bolus_event_timeline
+        self.hr_trace = patient_config.hr_trace
 
         # TODO: prediction horizon should probably come from simple metabolism model
         prediction_horizon_hrs = 8
@@ -100,8 +101,12 @@ class VirtualPatient(SimulationComponent):
         assert bg_time == self.time
 
         # Scenario doesn't give iob info so derive from steady state pump basal rate
+        # mehak change: Set steady state iob from patient basal rate
+        # iob_steady_state = self.get_steady_state_basal_iob(
+        #     self.pump.get_state().scheduled_basal_rate
+        # )
         iob_steady_state = self.get_steady_state_basal_iob(
-            self.pump.get_state().scheduled_basal_rate
+            self.patient_config.basal_schedule.get_state()
         )
 
         # Only use iob up to t=time-1 since we account for basal insulin at t=0
@@ -194,15 +199,20 @@ class VirtualPatient(SimulationComponent):
 
         Returns
         _______
-        (Insulin Event, Carb Event)
+        (Insulin Event, Carb Event, Heart Rate)
         """
         # Get boluses at time
         bolus = self.bolus_event_timeline.get_event(self.time)
 
         # Get carbs at time
         carb = self.carb_event_timeline.get_event(self.time)
+        
+        # Get heart rate at current time (default to None if not available)
+        heart_rate_val = None
+        if hasattr(self, 'hr_trace') and self.hr_trace is not None:
+            heart_rate_val = self.hr_trace.get_heart_rate(self.time)
 
-        return bolus, carb
+        return bolus, carb, heart_rate_val
 
     def update(self, time, **kwargs):
         """
@@ -298,7 +308,8 @@ class VirtualPatient(SimulationComponent):
         """
         abs_insulin_amount, rel_insulin_amount = self.get_basal_insulin_amount_since_update()
 
-        bolus, carb = self.get_user_inputs()
+        # bolus, carb = self.get_user_inputs()
+        bolus, carb, heart_rate = self.get_user_inputs()
 
         # accept_recommendation boluses will be handled after forecast generation
         if bolus is not None and bolus.value != 'accept_recommendation':
@@ -313,7 +324,7 @@ class VirtualPatient(SimulationComponent):
             carb_amount = carb.value
             carb_absorb_minutes = carb.duration_minutes
 
-        return abs_insulin_amount, rel_insulin_amount, carb_amount, carb_absorb_minutes
+        return abs_insulin_amount, rel_insulin_amount, carb_amount, carb_absorb_minutes, heart_rate
 
     def deliver_bolus(self, bolus):
         """
@@ -379,9 +390,12 @@ class VirtualPatient(SimulationComponent):
         if isinstance(event, Bolus):
             self.bolus_event_timeline.add_event(time_of_event, event)
             self.pump.bolus_event_timeline.add_event(time_of_event, event)
-        elif isinstance(event, Carb):
-            self.bolus_event_timeline.add_event(time_of_event, event)
-            self.pump.bolus_event_timeline.add_event(time_of_event, event)
+        # elif isinstance(event, Carb):
+        #     self.bolus_event_timeline.add_event(time_of_event, event)
+        #     self.pump.bolus_event_timeline.add_event(time_of_event, event)
+        elif isinstance(event, Carb): # note --> should this be in the carb_timeline?
+            self.carb_event_timeline.add_event(time_of_event, event)
+            self.pump.carb_event_timeline.add_event(time_of_event, event)
         else:
             raise Exception("Unsupported event to add.")
 
@@ -394,7 +408,7 @@ class VirtualPatient(SimulationComponent):
 
          predict the horizon for bg and insulin on board
         """
-        abs_insulin_amount, rel_insulin_amount, carb_amount, carb_absorb_minutes = self.get_total_insulin_and_carb_amounts()
+        abs_insulin_amount, rel_insulin_amount, carb_amount, carb_absorb_minutes, heart_rate = self.get_total_insulin_and_carb_amounts()
 
         # Initialize zero change
         combined_delta_bg_pred = np.zeros(self.num_prediction_steps)
@@ -404,7 +418,7 @@ class VirtualPatient(SimulationComponent):
         # if rel_insulin_amount != 0 or carb_amount > 0:  # NOTE: Insulin can be negative
             # This gives results for t=time -> t=time+prediction_horizon_hrs
         combined_delta_bg_pred, _, ei_pred = self.run_metabolism_model(
-            rel_insulin_amount, carb_amount, carb_absorb_minutes
+            rel_insulin_amount, carb_amount, carb_absorb_minutes, heart_rate
         )
 
         # Apply the absolute amount of insulin to get the insulin on board
@@ -412,7 +426,7 @@ class VirtualPatient(SimulationComponent):
             # TODO: Is it possible to avoid running this twice with a change in the
             #       metabolism model?
             _, iob_pred, _ = self.run_metabolism_model(
-                abs_insulin_amount, carb_amount=0, carb_absorb_minutes=180
+                abs_insulin_amount, carb_amount=0, carb_absorb_minutes=180, heart_rate=heart_rate
             )
 
         # Update bg prediction with delta bgs
@@ -439,7 +453,7 @@ class VirtualPatient(SimulationComponent):
 
         pass
 
-    def run_metabolism_model(self, insulin_amount, carb_amount, carb_absorb_minutes):
+    def run_metabolism_model(self, insulin_amount, carb_amount, carb_absorb_minutes, heart_rate):
         """
         Get the predicted effects of insulin and carbs
 
@@ -461,7 +475,7 @@ class VirtualPatient(SimulationComponent):
         bg_current = self.bg_current
 
         combined_delta_bg, t_min, insulin_amount, iob, ei = metabolism_model_instance.run(
-            insulin_amount=insulin_amount, carb_amount=carb_amount, carb_absorb_minutes=carb_absorb_minutes, blood_glucose=bg_current, five_min=True,
+            insulin_amount=insulin_amount, carb_amount=carb_amount, carb_absorb_minutes=carb_absorb_minutes, blood_glucose=bg_current, five_min=True, heart_rate=heart_rate
         )
 
         return combined_delta_bg, iob, ei
@@ -481,12 +495,61 @@ class VirtualPatient(SimulationComponent):
         bbg = self.patient_config.basal_blood_glucose_schedule.get_state()
         ipr = self.patient_config.insulin_production_rate_schedule.get_state()
 
+        def instantiate_metabolism_model(self):
+            """
+            Get instance of metabolism model from the current state of settings.
+            Uses patient's actual insulin type, not controller's assumptions.
+            """
+            isf = self.patient_config.insulin_sensitivity_schedule.get_state()
+            cir = self.patient_config.carb_ratio_schedule.get_state()
+            gsf = self.patient_config.glucose_sensitivity_factor_schedule.get_state()
+            bbg = self.patient_config.basal_blood_glucose_schedule.get_state()
+            ipr = self.patient_config.insulin_production_rate_schedule.get_state()
+
+            print(
+                f"DEBUG: Creating metabolism model with patient_insulin_type={self.patient_config.patient_insulin_type}")
+
+            metabolism_model_instance = self.metabolism_model(
+                insulin_sensitivity_factor=isf.value,
+                carb_insulin_ratio=cir.value,
+                glucose_sensitivity_factor=gsf.value,
+                basal_blood_glucose=bbg.value,
+                insulin_production_rate=ipr.value,
+                patient_insulin_type=self.patient_config.patient_insulin_type  # NEW
+            )
+
+            print(
+                f"DEBUG: Created model with tau1={metabolism_model_instance.insulin_model._tau1}, tau2={metabolism_model_instance.insulin_model._tau2}")
+
+            return metabolism_model_instance
+
+        # Get patient's actual insulin type (add this to PatientConfig)
+        patient_insulin_type = getattr(self.patient_config, 'actual_insulin_type', 'rapid_acting_adult')
+
+        # Physical activity parameters
+        w_hr = self.patient_config.w_hr
+        # w_egp = self.patient_config.w_egp
+
+        # metabolism model parameters
+        a = self.patient_config.a
+        tau = self.patient_config.tau
+        n = self.patient_config.n
+
+        # pa_egp = self.patient_config.pa_egp
+
         metabolism_model_instance = self.metabolism_model(
             insulin_sensitivity_factor=isf.value, 
             carb_insulin_ratio=cir.value, 
             glucose_sensitivity_factor=gsf.value, 
             basal_blood_glucose=bbg.value,
-            insulin_production_rate=ipr.value
+            insulin_production_rate=ipr.value,
+            w_hr = w_hr,
+            # w_egp = w_egp,
+            a = a,
+            tau = tau,
+            n = n,
+            # pa_egp = pa_egp
+            patient_insulin_type=self.patient_config.patient_insulin_type
         )
 
         return metabolism_model_instance
@@ -522,7 +585,6 @@ class VirtualPatient(SimulationComponent):
                 recommended_bolus.value >= self.patient_config.min_bolus_rec_threshold and \
                 self.has_eaten_recently(within_time_minutes=self.patient_config.recommendation_meal_attention_time_minutes):
             does_accept = True
-
         return does_accept
 
     def does_accept_autobolus_recommendation(self, recommended_autobolus):
@@ -622,13 +684,15 @@ class VirtualPatientModel(VirtualPatient):
         #     MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98),
         # ]
 
-        self.meal_model = [
-            MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98),
-            MealModel("Snack", datetime.time(hour=10), datetime.time(hour=11), 0.05),
-            MealModel("Lunch", datetime.time(hour=11), datetime.time(hour=13), 0.98),
-            MealModel("Snack", datetime.time(hour=14), datetime.time(hour=15), 0.05),
-            MealModel("Dinner", datetime.time(hour=17), datetime.time(hour=21), 0.999),
-        ]
+        self.meal_model = []
+
+        # self.meal_model = [
+        #     MealModel("Breakfast", datetime.time(hour=7), datetime.time(hour=10), 0.98),
+        #     MealModel("Snack", datetime.time(hour=10), datetime.time(hour=11), 0.05),
+        #     MealModel("Lunch", datetime.time(hour=11), datetime.time(hour=13), 0.98),
+        #     MealModel("Snack", datetime.time(hour=14), datetime.time(hour=15), 0.05),
+        #     MealModel("Dinner", datetime.time(hour=17), datetime.time(hour=21), 0.999),
+        # ]
 
         num_trials = int(self.patient_config.correct_bolus_delay_minutes / 5.0)
         self.correct_bolus_step_prob = get_bernoulli_trial_uniform_step_prob(
@@ -687,29 +751,35 @@ class VirtualPatientModel(VirtualPatient):
         """
         Get carb and insulin inputs.
         """
-        meal = self.get_meal()
+        # meal = self.get_meal()
 
-        meal_carb = None
-        meal_carb_estimate = None
-        if meal is not None:
-            if meal.name == "Snack":
-                random_key = "snack"
-            else:
-                random_key = "meal"
-            meal_carb = Carb(value=self.random_values["{}_carbs".format(random_key)][0],
-                             units="g",
-                             duration_minutes=self.random_values["{}_carb_durations".format(random_key)][0])
-            meal_carb_estimate = Carb(value=self.random_values["{}_carb_estimates".format(random_key)][0],
-                             units="g",
-                             duration_minutes=self.random_values["{}_carb_duration_estimates".format(random_key)][0])
+        # meal_carb = None
+        # meal_carb_estimate = None
+        # if meal is not None:
+        #     if meal.name == "Snack":
+        #         random_key = "snack"
+        #     else:
+        #         random_key = "meal"
+        #     meal_carb = Carb(value=self.random_values["{}_carbs".format(random_key)][0],
+        #                      units="g",
+        #                      duration_minutes=self.random_values["{}_carb_durations".format(random_key)][0])
+        #     meal_carb_estimate = Carb(value=self.random_values["{}_carb_estimates".format(random_key)][0],
+        #                      units="g",
+        #                      duration_minutes=self.random_values["{}_carb_duration_estimates".format(random_key)][0])
 
-        correction_carb, correction_carb_estimate = self.get_correction_carb()
+        # correction_carb, correction_carb_estimate = self.get_correction_carb()
 
-        total_carb = self.combine_carbs(meal_carb, correction_carb)
-        total_carb_estimate = self.combine_carbs(meal_carb_estimate, correction_carb_estimate)
+        # total_carb = self.combine_carbs(meal_carb, correction_carb)
+        # total_carb_estimate = self.combine_carbs(meal_carb_estimate, correction_carb_estimate)
+
+        # added by mehak
+        total_carb = self.carb_event_timeline.get_event(self.time)
+        total_carb_estimate = self.carb_event_timeline.get_event(self.time)
 
         # This is set from Loop controller
         total_bolus = self.bolus_event_timeline.get_event(self.time)
+
+        heart_rate_val = self.hr_trace.get_heart_rate(self.time)
 
         if total_carb is not None:
             carb_time = self.time + datetime.timedelta(minutes=self.random_values["prebolus_offset_minutes"])
@@ -717,7 +787,7 @@ class VirtualPatientModel(VirtualPatient):
             self.carb_event_timeline.add_event(carb_time, total_carb)  # Actual carbs go to patient predict
             self.report_carb(total_carb_estimate, carb_time_reported)  # Reported carbs go to Loop
 
-        return total_bolus, total_carb
+        return total_bolus, total_carb, heart_rate_val
 
     def report_carb(self, estimated_carb, carb_time_estimated):
         """

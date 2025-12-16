@@ -1,0 +1,66 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1117",
+    "simulation_id": "TLR-1117-ap_sensitive",
+    "risk_description": "Activity preset not set 1 hr ahead of activity",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.1xComparator.ap_jog_sensitive_1dotx",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "duration_hours": 8.0,
+      "patient": {
+        "patient_model": {
+            "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_21_30m_v1",
+          "target_range": {
+            "start_times": ["0:00:00", "13:00:00", "13:30:00"],
+            "upper_values": [90, 170, 90],
+            "lower_values": [70, 150, 70]
+          }
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "duration_hours": 8.0,
+      "patient": {
+        "patient_model": {
+            "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_21_30m_v1",
+          "target_range": {
+            "start_times": ["0:00:00", "13:00:00", "13:30:00"],
+            "upper_values": [90, 170, 90],
+            "lower_values": [70, 150, 70]
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "duration_hours": 8.0,
+      "patient": {
+        "patient_model": {
+            "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_21_30m_v1",
+          "target_range": {
+            "start_times": ["0:00:00", "13:00:00", "13:30:00"],
+            "upper_values": [115, 170, 115],
+            "lower_values": [100, 150, 100]
+          }
+        }
+      },
+      "controller": {
+        "settings": {
+          "suspend_threshold": 80,
+          "max_basal_rate": 0.9
+        }
+      }
+    }
+]
+}

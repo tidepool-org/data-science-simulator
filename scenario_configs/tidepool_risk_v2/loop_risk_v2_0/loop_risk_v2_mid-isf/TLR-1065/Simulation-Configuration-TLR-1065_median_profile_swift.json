@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1065",
+    "simulation_id": "TLR-1065-base_median",
+    "risk_description": "Correction upper and lower moved in concert",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median",
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00"],
+            "lower_values": [80],
+            "upper_values": [100]
+          }
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_median",
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00"],
+            "lower_values": [80],
+            "upper_values": [100]
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_median",
+      "patient": {
+        "pump": {
+          "target_range": {
+            "start_times": ["00:00:00"],
+            "lower_values": [110],
+            "upper_values": [115]
+          }
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+    }
+]
+}

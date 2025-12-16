@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "risk-id": "TLR-000-isf",
+    "simulation_id": "TLR-000-isf-base_median",
+    "risk_description": "Change isf instead of carb ratio",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_autobolus",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median",
+    "patient":{
+        "pump": {
+            "metabolism_settings": {
+                "insulin_sensitivity_factor": {
+                    "start_times": ["00:00:00"],
+                    "values": [12.0]
+                }
+        }
+        }
+    }
+    },
+    {"sim_id": "pre-noLoop_t1_median",
+    "patient":{
+        "pump": {
+            "metabolism_settings": {
+                "insulin_sensitivity_factor": {
+                    "start_times": ["00:00:00"],
+                    "values": [12.0]
+                }
+        }
+        }
+    },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_median",
+    "patient":{
+        "pump": {
+            "metabolism_settings": {
+                "insulin_sensitivity_factor": {
+                    "start_times": ["00:00:00"],
+                    "values": [12.0]
+                }
+        },
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+    },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+    }
+]
+}

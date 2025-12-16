@@ -1,0 +1,145 @@
+{
+  "metadata": {
+    "risk-id": "TLR-QAE-482",
+    "simulation_id": "TLR-QAE-482-base_sensitive",
+    "risk_description": "Exploration: double low",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "duration_hours": 10.0,
+      "patient": {
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 48,
+              "type": "carb"
+            }
+          ]
+        },
+        "patient_model": {
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
+          "carb_entries": [
+            {"start_time": "8/15/2019 12:00:00",
+            "value": 24,
+            "type": "carb"},
+            {
+            "start_time": "8/15/2019 14:15:00",
+            "value": 15.0,
+            "type": "carb",
+            "duration": 30
+          }],
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00", "14:15:00","14:30:00", "15:15:00"],
+              "values": [120, 216, 456, 180]
+            },
+            "basal_rate": {
+              "start_times": ["0:00:00", "14:30:00", "15:00:00"],
+              "values":  [0.3, 0.15, 0.3]
+            }
+          }
+        }
+      },
+      "controller": {
+        "settings": {
+          "carb_delay": 0
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "duration_hours": 10.0,
+      "patient": {
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 48,
+              "type": "carb"
+            }
+          ],
+          "bolus_entries":  [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 6.6
+            }
+          ]},
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 6.6
+            }
+          ],
+          "carb_entries": [
+            {"start_time": "8/15/2019 12:00:00",
+            "value": 24,
+            "type": "carb"},
+            {
+            "start_time": "8/15/2019 14:15:00",
+            "value": 15.0,
+            "type": "carb",
+            "duration": 30
+          }],
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00", "14:15:00","14:30:00", "15:15:00"],
+              "values": [120, 216, 456, 180]
+            },
+            "basal_rate": {
+              "start_times": ["0:00:00", "14:30:00", "15:00:00"],
+              "values":  [0.3, 0.15, 0.3]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "duration_hours": 10.0,
+      "patient": {
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 12:00:00",
+              "value": 48,
+              "type": "carb"
+            }
+          ]
+        },
+        "patient_model": {
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1",
+          "carb_entries": [
+            {"start_time": "8/15/2019 12:00:00",
+            "value": 24,
+            "type": "carb"},
+            {
+            "start_time": "8/15/2019 14:15:00",
+            "value": 15.0,
+            "type": "carb",
+            "duration": 30
+          }],
+          "metabolism_settings": {
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00", "14:15:00","14:30:00", "15:15:00"],
+              "values": [120, 216, 456, 180]
+            },
+            "basal_rate": {
+              "start_times": ["0:00:00", "14:30:00", "15:00:00"],
+              "values":  [0.3, 0.15, 0.3]
+            }
+          }
+        }
+      },
+      "controller": {
+        "settings": {
+          "carb_delay": 0,
+          "suspend_threshold": 80,
+          "max_basal_rate": 0.9
+        }
+      }
+    }
+]
+}

@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "risk-id": "TLR-000",
+    "simulation_id": "TLR-000-base_sensitive",
+    "risk_description": "Exploration: dosing decision variance",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.695
+            }
+          ]
+        },
+          "pump": {
+            "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+            "bolus_entries": "reusable.insulin_doses.sensitive_profile_v1"
+          }
+        },
+      "controller": null
+    }
+]
+}

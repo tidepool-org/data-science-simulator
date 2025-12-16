@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "risk-id": "TLR-684",
+    "simulation_id": "TLR-684-median",
+    "risk_description": "Fake carbs",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_median_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 15
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t2_median",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 15
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop-WithMitigations_t2_median",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 15
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_median_swift"
+      }
+    }
+  ]
+}

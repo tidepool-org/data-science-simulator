@@ -1,0 +1,27 @@
+{
+  "insulin_sensitivity_factor": {
+    "start_times": [
+      "00:00:00", "13:00:00", "13:30:00"
+    ],
+    "values": [
+      49, 120, 49
+    ]
+  },
+  "carb_insulin_ratio": {
+    "start_times": [
+      "00:00:00", "13:00:00", "13:30:00"
+    ],
+    "values": [
+      10, 24, 10
+    ]
+  },
+  "basal_rate": {
+    "start_times": [
+      "00:00:00", "13:00:00", "13:30:00"
+    ],
+    "values": [
+      0.8, 0.33, 0.8
+    ]
+  },
+"patient_insulin_type": "rapid_acting_adult"
+}

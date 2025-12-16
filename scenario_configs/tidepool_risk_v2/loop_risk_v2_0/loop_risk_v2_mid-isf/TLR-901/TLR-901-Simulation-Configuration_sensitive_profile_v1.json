@@ -1,0 +1,91 @@
+{
+  "metadata": {
+    "risk-id": "TLR-901",
+    "simulation_id": "TLR-901-base_sensitive",
+    "risk_description": "Outdated settings",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_swift",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [0.39]
+            },
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00"],
+              "values": [84.0]
+            },
+            "carb_insulin_ratio": {
+              "start_times": ["00:00:00"],
+              "values": [10.5]
+            }
+          }
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [0.39]
+            },
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00"],
+              "values": [84.0]
+            },
+            "carb_insulin_ratio": {
+              "start_times": ["00:00:00"],
+              "values": [10.5]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": ["0:00:00"],
+              "values": [0.39]
+            },
+            "insulin_sensitivity_factor": {
+              "start_times": ["00:00:00"],
+              "values": [84.0]
+            },
+            "carb_insulin_ratio": {
+              "start_times": ["00:00:00"],
+              "values": [10.5]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_IM_swift"
+      }
+    }
+]
+}

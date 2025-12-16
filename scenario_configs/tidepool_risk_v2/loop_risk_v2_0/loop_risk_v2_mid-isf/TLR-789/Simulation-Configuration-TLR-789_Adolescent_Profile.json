@@ -1,0 +1,127 @@
+{
+    "metadata": {
+        "risk_id": "TLR-789",
+        "simulation_id": "TLR-789-adolescent",
+        "risk_description": "Metabolic settings are too aggressive",
+        "config_format_version": "v1.0"
+    },
+    "base_config": "reusable.simulations.base_adolescent_swift",
+    "override_config": [
+        {
+            "sim_id": "pre-Loop-noMitigations_t1_adolescent",
+            "patient": {
+              "patient_model": {
+                "bolus_entries": [
+                  {
+                    "time": "8/15/2019 12:00:00",
+                    "value": "accept_recommendation"
+                  }
+                ],
+                "carb_entries": [
+                  {
+                    "type": "carb",
+                    "start_time": "8/15/2019 12:00:00",
+                    "value": 60
+                  }
+                ]
+              },
+              "pump": {
+                  "metabolism_settings": {
+                    "carb_insulin_ratio": {
+                         "start_times": ["0:00:00"],
+                         "values":  [3.25]
+                    }
+                  },
+                  "carb_entries": [
+                    {
+                      "type": "carb",
+                      "start_time": "8/15/2019 12:00:00",
+                      "value": 60
+                    }
+                  ]
+                }
+            }
+        },
+        {
+            "sim_id": "pre-noLoop_t1_adolescent",
+            "patient": {
+              "patient_model": {
+                "bolus_entries": [
+                  {
+                    "time": "8/15/2019 12:00:00",
+                    "value": 18.4
+                  }
+                ],
+                "carb_entries": [
+                  {
+                    "type": "carb",
+                    "start_time": "8/15/2019 12:00:00",
+                    "value": 60
+                  }
+                ]
+              },
+              "pump": {
+                  "metabolism_settings": {
+                    "carb_insulin_ratio": {
+                         "start_times": ["0:00:00"],
+                         "values":  [3.25]
+                    }
+                  },
+                "bolus_entries": [
+                    {
+                      "time": "8/15/2019 12:00:00",
+                      "value": 18.4
+                    }
+                  ],
+                  "carb_entries": [
+                    {
+                      "type": "carb",
+                      "start_time": "8/15/2019 12:00:00",
+                      "value": 60
+                    }
+                  ]
+              }
+            },
+            "controller": null
+        },
+        {
+            "sim_id": "post-Loop-WithMitigations_t1_adolescent",
+            "patient": {
+              "patient_model": {
+                "bolus_entries": [
+                  {
+                    "time": "8/15/2019 12:00:00",
+                    "value": "accept_recommendation"
+                  }
+                ],
+                "carb_entries": [
+                  {
+                    "type": "carb",
+                    "start_time": "8/15/2019 12:00:00",
+                    "value": 60
+                  }
+                ]
+              },
+              "pump": {
+                "metabolism_settings": {
+                 "carb_insulin_ratio": {
+                         "start_times": ["0:00:00"],
+                         "values":  [3.25]
+                    }
+                  },
+                  "carb_entries": [
+                    {
+                      "type": "carb",
+                      "start_time": "8/15/2019 12:00:00",
+                      "value": 60
+                    }
+                  ],
+                  "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+                }
+            },
+            "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+      }
+        }
+    ]
+}

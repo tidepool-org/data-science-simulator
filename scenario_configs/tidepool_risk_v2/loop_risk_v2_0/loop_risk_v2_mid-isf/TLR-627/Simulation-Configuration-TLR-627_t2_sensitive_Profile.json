@@ -1,0 +1,91 @@
+{
+  "metadata": {
+    "risk-id": "TLR-627",
+    "simulation_id": "TLR-627-sensitive",
+    "risk_description": "Mistakes low glucose for high, boluses",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_70_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.05
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.05
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_70_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.05
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.05
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t2_resistant",
+      "patient": {
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_70_12hr",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.05
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.05
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_sensitive_swift"
+      }
+    }
+  ]
+}

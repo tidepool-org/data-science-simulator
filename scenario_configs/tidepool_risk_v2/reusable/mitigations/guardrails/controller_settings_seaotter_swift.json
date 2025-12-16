@@ -1,0 +1,5 @@
+{
+    "suspend_threshold": 80,
+    "max_basal_rate": 6.0,
+    "max_bolus": 8.0
+  }

@@ -28,7 +28,7 @@ from tidepool_data_science_metrics.insulin.insulin import (
 def run_simulations(sims, save_dir,
                     save_results=True,
                     compute_summary_metrics=True,
-                    num_procs=1):
+                    num_procs=1, name=''):
     """
     Run the simulations passed as argument and optionally process, save, or plot the results.
 
@@ -76,7 +76,11 @@ def run_simulations(sims, save_dir,
 
             # Gather results from sim queues
             batch_results = {id: sim.queue.get() for id, sim in running_sims.items()}
-            [sim.join() for id, sim in running_sims.items()]
+            # [sim.join() for id, sim in running_sims.items()]
+            for sim_id, sim in running_sims.items():
+                sim.join()
+                sim.close()
+
 
             # Save stateless info
             if save_results:
@@ -149,6 +153,7 @@ def run_simulations(sims, save_dir,
     summary_results_df.set_index("sim_id", inplace=True)
 
     if save_results:
-        summary_results_df.to_csv(os.path.join(save_dir, "summary_results_{}.csv".format(time.time())))
+        # summary_results_df.to_csv(os.path.join(save_dir, "summary_results_{}.csv".format(time.time())))
+        summary_results_df.to_csv(os.path.join(save_dir, f"summary_results_{name}.csv"))
 
     return full_results, summary_results_df

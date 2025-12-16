@@ -1,0 +1,199 @@
+{
+    "metadata": {
+        "risk-id": "TLR-AB_icgm_user_272",
+        "simulation_id": "test_simulation_icgm_user_272",
+        "risk_description": "Autobolus/TBR comparison with incorrect settings",
+        "config_format_version": "v1.0"
+    },
+    "base_config": "reusable.simulations.base_median_swift",
+    "override_config": [
+        {
+            "sim_id": "scenario_icgm_user_272",
+            "duration_hours": 24.0,
+            "patient": {
+                "sensor": {
+                    "glucose_history": "reusable.glucose.icgm_user_272"
+                },
+                "pump": {
+                    "target_range": {
+                        "start_times": [
+                            "00:00:00"
+                        ],
+                        "lower_values": [
+                            80.0
+                        ],
+                        "upper_values": [
+                            180.0
+                        ]
+                    },
+                    "metabolism_settings": {
+                        "carb_insulin_ratio": {
+                            "start_times": [
+                                "00:00:00"
+                            ],
+                            "values": [
+                                24.0
+                            ]
+                        },
+                        "basal_rate": {
+                            "start_times": [
+                                "0:00:00"
+                            ],
+                            "values": [
+                                0.15
+                            ]
+                        },
+                        "insulin_sensitivity_factor": {
+                            "start_times": [
+                                "0:00:00"
+                            ],
+                            "values": [
+                                283.0
+                            ]
+                        }
+                    },
+                    "carb_entries": [
+                        {
+                            "start_time": "08/15/2019 17:04:00",
+                            "value": 64.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/15/2019 16:36:00",
+                            "value": 35.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/15/2019 19:40:00",
+                            "value": 49.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/16/2019 09:00:00",
+                            "value": 58.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/16/2019 08:49:00",
+                            "value": 39.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/16/2019 09:29:00",
+                            "value": 59.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/16/2019 06:19:00",
+                            "value": 55.0,
+                            "type": "carb"
+                        }
+                    ]
+                },
+                "patient_model": {
+                    "glucose_history": "reusable.glucose.icgm_user_272",
+                    "metabolism_settings": {
+                        "carb_insulin_ratio": {
+                            "start_times": [
+                                "00:00:00"
+                            ],
+                            "values": [
+                                24.0
+                            ]
+                        },
+                        "basal_rate": {
+                            "start_times": [
+                                "0:00:00"
+                            ],
+                            "values": [
+                                0.15
+                            ]
+                        },
+                        "insulin_sensitivity_factor": {
+                            "start_times": [
+                                "0:00:00"
+                            ],
+                            "values": [
+                                283.0
+                            ]
+                        }
+                    },
+                    "carb_entries": [
+                        {
+                            "start_time": "08/15/2019 17:04:00",
+                            "value": 64.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/15/2019 16:36:00",
+                            "value": 35.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/15/2019 19:40:00",
+                            "value": 49.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/16/2019 09:00:00",
+                            "value": 58.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/16/2019 08:49:00",
+                            "value": 39.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/16/2019 09:29:00",
+                            "value": 59.0,
+                            "type": "carb"
+                        },
+                        {
+                            "start_time": "08/16/2019 06:19:00",
+                            "value": 55.0,
+                            "type": "carb"
+                        }
+                    ],
+                    "bolus_entries": [
+                        {
+                            "time": "08/15/2019 17:04:00",
+                            "value": "accept_recommendation"
+                        },
+                        {
+                            "time": "08/15/2019 16:36:00",
+                            "value": "accept_recommendation"
+                        },
+                        {
+                            "time": "08/15/2019 19:40:00",
+                            "value": "accept_recommendation"
+                        },
+                        {
+                            "time": "08/16/2019 09:00:00",
+                            "value": "accept_recommendation"
+                        },
+                        {
+                            "time": "08/16/2019 08:49:00",
+                            "value": "accept_recommendation"
+                        },
+                        {
+                            "time": "08/16/2019 09:29:00",
+                            "value": "accept_recommendation"
+                        },
+                        {
+                            "time": "08/16/2019 06:19:00",
+                            "value": "accept_recommendation"
+                        }
+                    ]
+                }
+            },
+            "controller": {
+                "settings": {
+                    "suspend_threshold": 70,
+                    "partial_application_factor": 0.4,
+                    "max_bolus": 20
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,63 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1120",
+    "simulation_id": "TLR-1120-base_sensitive",
+    "risk_description": "Activity preset with high starting glucose",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.activity_presets.ap_str_training_sensitive_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_37_90m_v1",
+          "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1",
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_37_90m_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_37_90m_v1",
+          "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1",
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_37_90m_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_37_90m_v1",
+          "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1",
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_37_90m_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_swift"
+      }
+    }
+]
+}
