@@ -227,6 +227,10 @@ class ScenarioParserV2(SimulationParser):
         """
         Recursively diagnose which override paths succeed or fail.
         Returns sets of applied and failed paths.
+        
+        Note: When base_dict is an empty dict, new keys from override_dict are allowed
+        to be added. This enables patterns like having an empty 'parameters: {}' in
+        base configs that can be populated via overrides.
         """
         if applied_paths is None:
             applied_paths = set()
@@ -250,8 +254,14 @@ class ScenarioParserV2(SimulationParser):
             current_path = f"{path}.{key}" if path else key
 
             if key not in base_dict:
-                failed_paths.add(f"{current_path} (KEY_NOT_FOUND)")
-                print(f"❌ Override FAILED: '{current_path}' - key doesn't exist in base config")
+                # Allow adding new keys if base_dict is an empty dict (extensible container pattern)
+                # This enables scenarios like: base has 'parameters: {}', override adds 'parameters.std_dev'
+                if isinstance(base_dict, dict) and len(base_dict) == 0:
+                    applied_paths.add(f"{current_path} (new key added to empty dict)")
+                    print(f"✓ Override will apply: '{current_path}' = {value} (new key)")
+                else:
+                    failed_paths.add(f"{current_path} (KEY_NOT_FOUND)")
+                    print(f"❌ Override FAILED: '{current_path}' - key doesn't exist in base config")
                 continue
 
             base_value = base_dict[key]
@@ -356,6 +366,10 @@ class ScenarioParserV2(SimulationParser):
     def resolve_override(self, obj, override_obj, key_prefix=""):
         """
         Recursively traverse the simulation config obj and apply specified leaf overrides.
+        
+        Note: When obj is an empty dict, new keys from override_obj are added directly.
+        This enables the extensible container pattern where base configs have empty
+        placeholder dicts (like 'parameters: {}') that can be populated via overrides.
         """
         # Handle the case where obj is a list (shouldn't happen in normal override flow,
         # but adding for robustness)
@@ -368,7 +382,12 @@ class ScenarioParserV2(SimulationParser):
             return 0
 
         num_overides_applied = 0
+        
+        # Track if obj was originally empty (before any modifications)
+        # This determines if we can add new keys from override_obj
+        obj_was_originally_empty = len(obj) == 0
 
+        # First, handle keys that exist in base obj
         for k, v in obj.items():
             current_key = f"{key_prefix}.{k}" if key_prefix else k
 
@@ -399,6 +418,26 @@ class ScenarioParserV2(SimulationParser):
                         # Base value is not a dict but override is, replace entirely
                         obj[k] = override_value
                         num_overides_applied += 1
+
+        # Second, handle keys in override_obj that don't exist in base obj
+        # This is only allowed when obj was originally an empty dict (extensible container pattern)
+        if obj_was_originally_empty:
+            for k, override_value in override_obj.items():
+                if k not in obj:
+                    current_key = f"{key_prefix}.{k}" if key_prefix else k
+                    
+                    obj[k] = override_value
+                    
+                    # Record the override details
+                    self.override_details.append({
+                        "key": current_key,
+                        "old_value": None,
+                        "new_value": override_value,
+                        "value_type": type(override_value).__name__,
+                        "action": "added_new_key"
+                    })
+                    
+                    num_overides_applied += 1
 
         return num_overides_applied
 

@@ -5,7 +5,9 @@
   "offset_applied_to_dates": 0,
   "patient": {
     "sensor": {
-      "glucose_history": "reusable.glucose.flat_110_12hr"
+      "glucose_history": "reusable.glucose.flat_110_12hr",
+      "type": "IdealSensor",
+      "parameters": {}
     },
     "pump": {
       "metabolism_settings": "reusable.metabolism_settings.sensitive500_v1",

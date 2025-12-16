@@ -74,9 +74,9 @@
         },
         "pump": {
           "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1",
-          "carb_entries": {
+          "carb_entries": [{
             "time": "08/15/2019 12:00:00", "value": 62
-          }
+          }]
         }
         },
       "controller": {

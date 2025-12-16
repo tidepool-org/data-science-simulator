@@ -5,16 +5,24 @@
   "offset_applied_to_dates": 0,
   "patient": {
     "sensor": {
-      "glucose_history": "reusable.glucose.flat_110_12hr"
+      "glucose_history": "reusable.glucose.flat_110_12hr",
+      "type": "IdealSensor",
+      "parameters": {}
     },
     "pump": {
       "metabolism_settings": "reusable.metabolism_settings.resistant_preset_180_v1",
       "bolus_entries": [],
       "carb_entries": [],
       "target_range": {
-        "start_times": ["0:00:00"],
-        "lower_values": [70],
-        "upper_values": [90]
+        "start_times": [
+          "0:00:00"
+        ],
+        "lower_values": [
+          70
+        ],
+        "upper_values": [
+          90
+        ]
       }
     },
     "patient_model": {
