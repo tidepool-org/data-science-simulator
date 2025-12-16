@@ -92,7 +92,7 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_2_0_v1"
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_swift"
       }
     }
   ]
