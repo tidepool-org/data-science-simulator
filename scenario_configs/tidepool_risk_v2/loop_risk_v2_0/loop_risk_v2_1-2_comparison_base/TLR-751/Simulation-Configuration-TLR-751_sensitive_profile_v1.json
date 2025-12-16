@@ -1,14 +1,14 @@
 {
   "metadata": {
     "risk-id": "TLR-751",
-    "simulation_id": "TLR-751-base_median",
+    "simulation_id": "TLR-751-base_sensitive",
     "risk_description": "Noisy sensor: automation only",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.1xComparator.base_median_1dotx",
+  "base_config": "reusable.simulations.1xComparator.base_sensitive_1dotx",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "sim_id": "pre-Loop_NoMitigations_t1_sensitive",
       "patient": {
         "sensor": {
           "type": "NoisySensor",
@@ -19,7 +19,7 @@
       }
     },
     {
-      "sim_id": "pre-noLoop_t1_median",
+      "sim_id": "pre-noLoop_t1_sensitive",
       "patient": {
         "sensor": {
           "type": "NoisySensor",
@@ -31,7 +31,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t1_median",
+      "sim_id": "post-Loop-WithMitigations_t1_sensitive",
       "patient": {
         "sensor": {
           "type": "NoisySensor",
@@ -40,11 +40,11 @@
           }
         },
         "pump": {
-          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_swift"
       }
     }
 ]

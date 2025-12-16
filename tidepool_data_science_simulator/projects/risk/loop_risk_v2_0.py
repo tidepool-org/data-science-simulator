@@ -73,8 +73,8 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
 
     for risk_dir_name in risk_dirs:
         print(f"Processing risk directory: {risk_dir_name}")
-        #  for use in filtering to just one risk. If wanting to run all of them, comment out lines 35-37
-        if ("TLR-751") not in risk_dir_name:
+        #  for use in filtering to just one risk. If wanting to run all of them, comment out lines 77-79
+        if ("TLR-752") not in risk_dir_name:
             print(f"Skipping {risk_dir_name} as it doesn't contain selected subdirectory")
             continue
         print(f"Processing: {risk_dir_name}")

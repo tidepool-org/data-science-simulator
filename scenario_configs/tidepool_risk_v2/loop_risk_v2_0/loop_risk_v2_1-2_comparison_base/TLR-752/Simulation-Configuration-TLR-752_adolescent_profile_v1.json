@@ -1,14 +1,14 @@
 {
   "metadata": {
     "risk-id": "TLR-752",
-    "simulation_id": "TLR-752-base_median",
+    "simulation_id": "TLR-752-base_adolescent",
     "risk_description": "Noisy sensor: automation and bolus",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.1xComparator.base_median_1dotx",
+  "base_config": "reusable.simulations.1xComparator.base_adolescent_1dotx",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "sim_id": "pre-Loop_NoMitigations_t1_adolescent",
       "patient": {
         "sensor": {
           "type": "NoisySensor",
@@ -17,16 +17,16 @@
           }
         },
         "pump": {
-          "carb_entries": "reusable.carb_doses.median_profile_v1"
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
         },
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
           "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
         }
       }
     },
     {
-      "sim_id": "pre-noLoop_t1_median",
+      "sim_id": "pre-noLoop_t1_adolescent",
       "patient": {
         "sensor": {
           "type": "NoisySensor",
@@ -35,18 +35,18 @@
           }
         },
         "pump": {
-          "carb_entries": "reusable.carb_doses.median_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
         },
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.median_profile_v1",
-          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.adolescent_profile_v1"
         }
       },
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t1_median",
+      "sim_id": "post-Loop-WithMitigations_t1_adolescent",
       "patient": {
         "sensor": {
           "type": "NoisySensor",
@@ -55,16 +55,16 @@
           }
         },
         "pump": {
-          "target_range": "reusable.mitigations.guardrails.target_range_median_v1",
-          "carb_entries": "reusable.carb_doses.median_profile_v1"
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1",
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
         },
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
           "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_swift"
       }
     }
 ]
