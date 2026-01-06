@@ -110,11 +110,11 @@ def identify_severity_4_hypoglycemia(tlr_dir):
                     sim_id = row['sim_id']
                     
                     # Determine stage
-                    if sim_id.startswith('pre-Loop_NoMitigations_') or sim_id.startswith('pre-Loop-NoMitigations_'):
+                    if sim_id.startswith('pre-Loop_NoMitigations_') or sim_id.startswith('pre-Loop-NoMitigations_') or sim_id.startswith('pre-Loop-noMitigations_') or sim_id.startswith('pre-LoopNoMitigations_') or sim_id.startswith('pre-LoopNoMitigationss_'):
                         stage = 'pre'
                     elif sim_id.startswith('pre-noLoop_') or sim_id.startswith('pre-NoLoop_'):
                         stage = 'no_loop'
-                    elif sim_id.startswith('post-Loop-WithMitigations_') or sim_id.startswith('post-LoopWithMitigations_'):
+                    elif sim_id.startswith('post-Loop-WithMitigations_') or sim_id.startswith('post-LoopWithMitigations_') or sim_id.startswith('post-Loop_WithMitigations_'):
                         stage = 'post'
                     else:
                         continue  # Skip if doesn't match expected patterns
@@ -246,7 +246,7 @@ def extract_metric_data(tlr_dir, column_name, severity_updates=None):
                     metric_value = severity_updates[sim_id]['updated_severity']
                 
                 # Pre-mitigation
-                if sim_id.startswith('pre-Loop_NoMitigations_') or sim_id.startswith('pre-Loop-NoMitigations_'):
+                if sim_id.startswith('pre-Loop_NoMitigations_') or sim_id.startswith('pre-Loop-NoMitigations_') or sim_id.startswith('pre-Loop-noMitigations_') or sim_id.startswith('pre-LoopNoMitigations_') or sim_id.startswith('pre-LoopNoMitigationss_'):
                     metric_data['pre'].append(metric_value)
                 
                 # No Loop
@@ -254,7 +254,7 @@ def extract_metric_data(tlr_dir, column_name, severity_updates=None):
                     metric_data['no_loop'].append(metric_value)
                 
                 # Post-mitigation
-                elif sim_id.startswith('post-Loop-WithMitigations_') or sim_id.startswith('post-LoopWithMitigations_'):
+                elif sim_id.startswith('post-Loop-WithMitigations_') or sim_id.startswith('post-LoopWithMitigations_') or sim_id.startswith('post-Loop_WithMitigations_'):
                     metric_data['post'].append(metric_value)
         
         except Exception as e:
@@ -467,7 +467,7 @@ def get_profile_metrics(tlr_dir, severity_updates=None):
                     continue
                 
                 # Pre-mitigation
-                if sim_id.startswith('pre-Loop_NoMitigations_') or sim_id.startswith('pre-Loop-NoMitigations_'):
+                if sim_id.startswith('pre-Loop_NoMitigations_') or sim_id.startswith('pre-Loop-NoMitigations_') or sim_id.startswith('pre-Loop-noMitigations_') or sim_id.startswith('pre-LoopNoMitigations_') or sim_id.startswith('pre-LoopNoMitigationss_'):
                     profile_data[profile_name]['pre'] = {
                         'lbgi': int(lbgi_score),
                         'dka': int(dka_score),
@@ -483,7 +483,7 @@ def get_profile_metrics(tlr_dir, severity_updates=None):
                     }
                 
                 # Post-mitigation
-                elif sim_id.startswith('post-Loop-WithMitigations_') or sim_id.startswith('post-LoopWithMitigations_'):
+                elif sim_id.startswith('post-Loop-WithMitigations_') or sim_id.startswith('post-LoopWithMitigations_') or sim_id.startswith('post-Loop_WithMitigations_'):
                     profile_data[profile_name]['post'] = {
                         'lbgi': int(lbgi_score),
                         'dka': int(dka_score),

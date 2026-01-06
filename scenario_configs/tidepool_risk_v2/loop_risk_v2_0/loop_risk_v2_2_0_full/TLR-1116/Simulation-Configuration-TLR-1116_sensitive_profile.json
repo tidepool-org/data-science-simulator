@@ -1,28 +1,21 @@
 {
   "metadata": {
-    "risk-id": "TLR-1116_wmeal",
-    "simulation_id": "TLR-1116_wmeal-sensitive",
+    "risk-id": "TLR-1116",
+    "simulation_id": "TLR-1116-sensitive",
     "risk_description": "Override too long",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.custom_presets.preset_22_2h_sensitive_2_0_v1",
+  "base_config": "reusable.simulations.activity_presets.ap_walk_sensitive_2_0_v1",
   "override_config": [
     {
       "sim_id": "pre-Loop_NoMitigations_t1_sensitive",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": "accept_recommendation"
-            }
-          ]
+          "physical_activity_entries": "reusable.physical_activities.profiles.walking_v1"
         },
         "pump": {
-          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
-          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_22_3h_v1"
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_23_150m_v1"
         }
       }
     },
@@ -31,22 +24,10 @@
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 0.42
-            }
-          ]
+          "physical_activity_entries": "reusable.physical_activities.profiles.walking_v1"
         },
         "pump": {
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": 0.42
-            }
-          ],
-          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_22_3h_v1"
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_23_150m_v1"
         }
       },
       "controller": null
@@ -56,22 +37,14 @@
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {
-          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
-          "bolus_entries": [
-            {
-              "time": "8/15/2019 12:00:00",
-              "value": "accept_recommendation"
-            }
-          ]
+          "physical_activity_entries": "reusable.physical_activities.profiles.walking_v1"
         },
         "pump": {
-          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
-          "metabolism_settings": "reusable.metabolism_settings.sensitive_preset_22_3h_v1",
-          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.sensitive_preset_23_150m_v1"
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_swift"
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_wmax"
       }
     }
   ]

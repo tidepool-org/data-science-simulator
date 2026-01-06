@@ -73,7 +73,7 @@
             "time": "8/15/2019 12:00:00"
           }
         ],
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_wmax"
     },
       "patient": {
         "patient_model": {

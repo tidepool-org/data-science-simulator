@@ -41,7 +41,7 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_Swift"
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_wmax"
       }
     }
 ]

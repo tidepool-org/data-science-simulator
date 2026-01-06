@@ -40,7 +40,7 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_median_swift"
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_wmax"
       }
     }
   ]

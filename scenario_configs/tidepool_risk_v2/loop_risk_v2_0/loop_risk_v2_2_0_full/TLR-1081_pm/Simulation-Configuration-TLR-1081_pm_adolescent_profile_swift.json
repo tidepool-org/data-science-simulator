@@ -41,7 +41,7 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_Swift"
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_wmax"
       }
     }
 ]
