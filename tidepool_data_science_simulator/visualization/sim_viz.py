@@ -9,11 +9,72 @@ import itertools
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.dates as mdates
 
 # style.use("seaborn-poster")  # sets the size of the charts
 # style.use("ggplot")
 
 # sns.set_style("darkgrid")
+
+# ============ Centralized Legend Configuration ============
+# Standardized legend settings for consistent, readable charts
+LEGEND_CONFIG = {
+    'fontsize': 8,           # Balanced size: readable but compact
+    'framealpha': 0.9,       # Slight transparency to see data underneath
+    'loc': 'upper right',    # Default position
+    'borderaxespad': 0.5,    # Padding from axes
+}
+
+# For charts with many entries (e.g., Insulin chart with 6 entries per sim)
+LEGEND_CONFIG_DENSE = {
+    **LEGEND_CONFIG,
+    'fontsize': 7,           # Slightly smaller for dense legends
+    'ncol': 2,               # Multiple columns to reduce vertical footprint
+    'loc': 'upper right',
+}
+
+
+# ============ X-Axis Datetime Formatting ============
+class MidnightDateFormatter(mdates.DateFormatter):
+    """
+    Custom formatter that shows time (HH:MM) for all ticks,
+    but adds the date below only at midnight crossings.
+    """
+    def __init__(self, time_fmt='%H:%M', date_fmt='%-m/%d'):
+        super().__init__(time_fmt)
+        self.time_fmt = time_fmt
+        self.date_fmt = date_fmt
+
+    def __call__(self, x, pos=None):
+        dt = mdates.num2date(x)
+        time_str = dt.strftime(self.time_fmt)
+        # Show date only at midnight (00:00)
+        if dt.hour == 0 and dt.minute == 0:
+            date_str = dt.strftime(self.date_fmt)
+            return f"{time_str}\n{date_str}"
+        return time_str
+
+
+def configure_datetime_axis(ax, interval_hours=2):
+    """
+    Configure x-axis to display timestamps at specified intervals
+    with date shown only at midnight crossings.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axes to configure
+    interval_hours : int
+        Hour interval for major ticks (default: 2)
+    """
+    # Set major ticks at specified hour intervals
+    ax.xaxis.set_major_locator(mdates.HourLocator(interval=interval_hours))
+
+    # Use custom formatter: time always, date only at midnight
+    ax.xaxis.set_major_formatter(MidnightDateFormatter())
+
+    # Rotate labels slightly for readability
+    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right', fontsize=8)
 
 
 def plot_sim_icgm_paired(all_results):
@@ -26,7 +87,7 @@ def plot_sim_icgm_paired(all_results):
             plt.plot(ctrl_result_df["bg"].to_numpy(), label="True Glucose - iCGM", color="purple")
             plt.plot(ctrl_result_df["bg_sensor"].to_numpy(), label="iCGM", color="green", marker="^", markersize=6, alpha=0.7)
 
-    plt.legend()
+    plt.legend(**LEGEND_CONFIG)
     plt.title("Example: Positive Bias iCGM Paired Simulation")
     plt.xlabel("Time (5 min)")
     plt.ylabel("BG (mg/dL)")
@@ -59,18 +120,18 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
                    linestyle="none")
 
         ax[0].set_title("BG Over Time")
-        ax[0].set_xlabel("Time (5min)")
+        ax[0].set_xlabel("Time")
         ax[0].set_ylabel("BG (mg/dL)")
         ax[0].set_ylim((0, 400))
 
         if len(all_results) <= n_sims_max_legend:
-            ax[0].legend(prop={'size': 6})
+            ax[0].legend(**LEGEND_CONFIG)
 
         # ====== Insulin ============
 
         ax[1].set_title("Insulin")
         ax[1].set_ylabel("Insulin (U or U/hr)")
-        ax[1].set_xlabel("Time (5 mins)")
+        ax[1].set_xlabel("Time")
         ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["sbr"],
                    label="{} {}".format("sbr", sim_id),
                    linestyle="dotted",
@@ -100,7 +161,7 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
         ax[1].set_ylim((0, 8))
 
         if len(all_results) <= n_sims_max_legend:
-            ax[1].legend(prop={'size': 12})
+            ax[1].legend(**LEGEND_CONFIG_DENSE)
 
         # ======== Carbs ============
         ax[2].stem(ctrl_result_df.index.to_pydatetime(),
@@ -115,12 +176,17 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
                    label="{} {}".format("reported carb", sim_id))
         ax[2].set_title("Carb Events")
         ax[2].set_ylabel("Carbs (g)")
-        ax[2].set_xlabel("Time (5 mins)")
+        ax[2].set_xlabel("Time")
         ax[2].set_ylim((0, 100))
         ax[2].set_xlim((datetime.datetime(2019,8,15,11,30), datetime.datetime(2019,8,16,12)))
                        
         if len(all_results) <= n_sims_max_legend:
-            ax[2].legend(prop={'size': 6})
+            ax[2].legend(**LEGEND_CONFIG)
+
+    # Configure x-axis datetime formatting (applies to all axes via sharex)
+    configure_datetime_axis(ax[2], interval_hours=2)
+    ax[2].set_xlabel("Time")  # Update label since format now shows HH:MM
+    fig.tight_layout()
 
     if save:
         if save_path is None:
@@ -151,7 +217,7 @@ def plot_sim_results_missing_insulin(all_results):
         # ax[0].axhline(median, label="BG Median {}".format(median), color="green")
         # ax[0].axhline(median + std, label="BG Std {}".format(std), color="green")
         # ax[0].axhline(median - std, label="BG Std {}".format(std), color="green")
-        ax[0].legend()
+        ax[0].legend(**LEGEND_CONFIG)
 
         ax[1].plot(ctrl_result_df["sbr"], label="{} {}".format("sbr", sim_id), color="gray")
         ax[1].set_ylabel("Insulin (U or U/hr)")
@@ -160,7 +226,7 @@ def plot_sim_results_missing_insulin(all_results):
         ax[1].plot(ctrl_result_df["temp_basal"], label="{} {}".format("tmp_br", sim_id), color="green")
         ax[1].plot(ctrl_result_df["bolus"], label="{} {}".format("bolus", sim_id), color="brown")
         ax[1].set_ylim((0, 3))
-        ax[1].legend()
+        ax[1].legend(**LEGEND_CONFIG)
 
         ax[2].stem(ctrl_result_df["delivered_basal_insulin"],
                    label="{} {}".format("delivered_basal", sim_id), linefmt="C1-")
