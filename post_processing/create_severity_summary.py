@@ -7,12 +7,30 @@ This script generates placeholder RTF documents for each TLR-* subdirectory
 in a simulation results directory, ready to be populated with actual analysis results.
 """
 
+import math
 import os
 import json
 import glob
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
+
+
+def round_half_up(value):
+    """
+    Round a value to the nearest integer using round-half-up logic.
+
+    Unlike Python's built-in round(), which uses banker's rounding (round half to even),
+    this function always rounds 0.5 up to the next integer. This ensures conservative
+    (higher) risk estimates when averaging severity scores.
+
+    Args:
+        value: Numeric value to round
+
+    Returns:
+        Integer result of rounding
+    """
+    return math.floor(value + 0.5)
 
 
 def check_consecutive_low_values(bg_series, threshold=40, min_consecutive=48):
@@ -304,7 +322,7 @@ def calculate_integer_averages(metric_data):
         values = metric_data[stage]
         if values:
             avg = sum(values) / len(values)
-            averages[stage] = round(avg)
+            averages[stage] = round_half_up(avg)
         else:
             averages[stage] = 0
     
