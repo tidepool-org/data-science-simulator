@@ -1,0 +1,17 @@
+{
+    "metabolism_parameters": {
+        "w_hr": 1.0,
+       "a": -0.002462,
+       "tau": 0.9989,
+       "n": 28
+    },
+    "physical_activity_entries": [
+        {
+            "start_time": "8/15/2019 13:00:00",
+            "activity": "running",
+            "duration": 60,
+            "intensity": "moderate",
+            "expected_hr": 152
+        }
+    ]
+}

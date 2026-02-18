@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "risk-id": "TLR-REG-PD19",
+    "simulation_id": "TLR-REG-PD19-base_sensitive",
+    "risk_description": "Carb entry delay",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_2_0_v1",
+  "override_config": [
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 12:15:00", "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 12:15:00", "value": 25,"type": "carb"
+            }
+          ],
+          "target_range": {
+            "start_times": ["00:00:00", "12:00:00", "12:15:00"],
+            "lower_values": [100, 70, 100],
+            "upper_values": [105, 80, 105]
+          }
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_swift"
+      }
+    }
+]
+}

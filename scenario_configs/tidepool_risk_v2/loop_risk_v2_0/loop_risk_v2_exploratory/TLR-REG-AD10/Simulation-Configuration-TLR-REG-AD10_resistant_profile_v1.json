@@ -1,0 +1,34 @@
+{
+  "metadata": {
+    "risk-id": "TLR-REG-AD10",
+    "simulation_id": "TLR-REG-AD10-base_resistant",
+    "risk_description": "No carb entry, manual bolus",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_2_0_v1",
+  "override_config": [
+    {"sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": [
+            {
+              "start_time": "08/15/2019 12:00:00", "value": 80,"type": "carb"
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 12:00:00", "value": 7.0
+            }
+          ]
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 12:00:00", "value": 7.0
+            }
+          ]
+        }
+      }
+    }
+]
+}
