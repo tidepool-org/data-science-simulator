@@ -21,6 +21,7 @@ dependencies:
   - scipy
   - seaborn
   - pip:
+    - pydantic>=2.0
     - pip-chill==1.0.0
     - python-dotenv==0.13.0
     - -e file:/Users/shawnfoster/PycharmProjects/data-science-models

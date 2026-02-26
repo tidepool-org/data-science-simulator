@@ -23,6 +23,7 @@ dependencies:
   - seaborn=0.13.2
   
   - pip:
+    - pydantic>=2.0
     - backports-datetime-fromisoformat==2.0.2
     - pip-chill==1.0.3
     - python-dotenv==1.0.1
