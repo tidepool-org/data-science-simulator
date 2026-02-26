@@ -38,7 +38,7 @@
             ]
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.activity presets.adolescent_preset_23_90m_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.adolescent_preset_23_90m_v1",
           "target_range": {
             "start_times": ["00:00:00", "12:00:00", "20:00:00"],
             "lower_values": [70, 150, 70],
