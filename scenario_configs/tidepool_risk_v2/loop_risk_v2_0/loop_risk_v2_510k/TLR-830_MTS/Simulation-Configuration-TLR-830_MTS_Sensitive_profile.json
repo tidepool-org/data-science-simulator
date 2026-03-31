@@ -122,7 +122,7 @@
       "controller": null
     },
     {
-      "sim_id": "pre-Loop-WithMitigations_t1_sensitive",
+      "sim_id": "post-Loop-WithMitigations_t1_sensitive",
       "patient": {
         "pump": {
           "metabolism_settings": {

@@ -5,7 +5,7 @@
     "risk_description": "Duration cap for 10%",
     "config_format_version": "v1.0"
   },
-  "base_config": "reusable.simulations.base_adolescent_2_0_v1",
+  "base_config": "reusable.simulations.custom_presets.preset_80_10h_adolescent_2_0_v1",
   "override_config": [
     {"sim_id": "pre-Loop_NoMitigations_t1_adolescent",
       "duration_hours": 23.0,
@@ -33,7 +33,7 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_swift"
+        "settings": "reusable.mitigations.guardrails.controller_settings_adolescent_wmax"
       }
     }
 ]

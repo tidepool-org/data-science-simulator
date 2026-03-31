@@ -74,7 +74,7 @@
         }
       },
       "controller": {
-        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_wmax"
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_high_preset"
       }
     }
   ]

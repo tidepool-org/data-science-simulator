@@ -67,7 +67,7 @@
       }
     },
     {
-      "sim_id": "pre-NoLoop_t1_resistant",
+      "sim_id": "post-Loop-WithMitigations_t1_resistant",
       "patient": {
         "pump": {
           "metabolism_settings": {

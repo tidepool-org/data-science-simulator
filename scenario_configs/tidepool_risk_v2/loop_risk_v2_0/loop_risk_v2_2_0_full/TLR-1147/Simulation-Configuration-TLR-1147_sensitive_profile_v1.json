@@ -1,0 +1,60 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1147",
+    "simulation_id": "TLR-1147-base_sensitive",
+    "risk_description": "Preset with CL Off",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base.base_sensitive_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 12:00:00", "value": 3.23
+            }
+          ]
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.presets.sensitive_preset_170_v1",
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 12:00:00", "value": 3.23
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 12:00:00", "value": 3.23
+            }
+          ]
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.presets.sensitive_preset_170_v1",
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 12:00:00", "value": 3.23
+            }
+          ]
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {"dosing_enabled": false, "time": "8/15/2019 12:00:00"}
+        ],
+        "settings": "reusable.mitigations.guardrails.controller_settings_sensitive_wmax"
+      }
+    }
+]
+}

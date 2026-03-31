@@ -122,7 +122,7 @@
       "controller": null
     },
     {
-      "sim_id": "pre-Loop-WithMitigations_t2_median",
+      "sim_id": "post-Loop-WithMitigations_t2_median",
       "patient": {
         "pump": {
           "metabolism_settings": {

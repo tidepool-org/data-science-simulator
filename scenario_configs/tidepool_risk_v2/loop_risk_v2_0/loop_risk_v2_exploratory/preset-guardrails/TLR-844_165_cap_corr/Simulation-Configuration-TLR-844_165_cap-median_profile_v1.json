@@ -1,0 +1,37 @@
+{
+  "metadata": {
+    "risk-id": "TLR-844_170",
+    "simulation_id": "TLR-844_165-median",
+    "risk_description": "Too-aggressive override 165 cap",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.custom_presets.preset_200_median_2_0_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-noLoop_t1_median",
+      "duration_hours": 23.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr",
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 12:00:00", "value": 4.9
+            }
+          ]
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.presets.median_preset_165_v1",
+          "bolus_entries": [
+            {
+              "time": "08/15/2019 12:00:00", "value": 4.9
+            }
+          ]
+          }
+        },
+      "controller": null
+    }
+  ]
+}

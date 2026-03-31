@@ -49,7 +49,7 @@
       }
     },
     {
-      "sim_id": "post-Loop-WithMitigations",
+      "sim_id": "post-Loop-WithMitigations_t1_resistant",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.resistant_profile_v1",

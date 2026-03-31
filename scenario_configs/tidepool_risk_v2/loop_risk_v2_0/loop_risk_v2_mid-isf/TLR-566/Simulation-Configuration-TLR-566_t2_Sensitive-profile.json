@@ -31,7 +31,7 @@
       }
     },
     {
-      "sim_id": "pre-NoLoop",
+      "sim_id": "pre-noLoop_t2_sensitive",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",

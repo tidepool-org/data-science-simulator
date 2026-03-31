@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.preset_70_adolescent_swift",
   "override_config": [
     {
-      "sim_id": "pre-Loop_NoMitigations",
+      "sim_id": "pre-Loop_NoMitigations_t1_adolescent",
       "controller": {
         "automation_control_timeline": [
           {
