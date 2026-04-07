@@ -80,7 +80,9 @@ class SwiftLoopController(LoopController):
         settings_dictionary = self.controller_config.controller_settings
 
         data['predictionStart'] = t_now.strftime(format=format_string)
-        data['recommendationInsulinType'] = 'novolog'
+        # Read the controller insulin model from config; fall back to 'novolog' for
+        # backward compatibility with configs that pre-date the 'model' setting.
+        data['recommendationInsulinType'] = settings_dictionary.get('model', 'novolog')
         data['maxBasalRate'] = settings_dictionary['max_basal_rate']
         data['maxBolus'] = settings_dictionary['max_bolus']
         data['suspendThreshold'] = settings_dictionary['suspend_threshold']

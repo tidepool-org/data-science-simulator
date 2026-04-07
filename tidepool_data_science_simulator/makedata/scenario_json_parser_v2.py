@@ -48,20 +48,11 @@ POINTER_OBJ_DIR = os.path.dirname(__file__) + "/../../scenario_configs/tidepool_
 DATETIME_FORMAT = "%m/%d/%Y %H:%M:%S"
 
 SWIFT_CONTROLLER_MODEL_NAME_MAP = {
+    # Maps simulator insulin model names to the string values accepted by the
+    # Swift LoopAlgorithm API (recommendationInsulinType field).  Values that
+    # are already valid Swift API strings map to themselves.
     "rapid_acting_adult": "novolog",
-    # "rapid_acting_child": [360, 65],
-    # "walsh": [120, 15],
-    # "fiasp": [360, 55],
-    # "theoretical_fast_5": [20, 120],
-    # "theoretical_fast_3":[20, 240],
-    # "theoretical_fast_1": [29, 300],
-    # "theoretical_fast_4": [20, 240],
-    # "theoretical_fast_2": [29, 300],
-    # "u500": [360, 1110],
-    # "regular": [360, 420],
-    # "nph": [480, 1320],
-    # "degludec": [540, 1440],
-    # "glargine": [540, 1440]
+    "fiasp": "fiasp",
 }
 
 PYLOOPKIT_CONTROLLER_MODEL_NAME_MAP = {
