@@ -44,7 +44,7 @@ from tidepool_data_science_simulator.run import run_simulations
 
 
 THIS_DIR = os.path.abspath(__file__)
-TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2_0")
+TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_2_0_full")
 
 RESULTS_SAVE_DIR = os.path.join(DATA_DIR, "results/tidepool_loop_risk_v2_0")
 
@@ -57,29 +57,20 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
     print(f"build_risk_sim_generator called with scenario_json_filepath: {scenario_json_filepath}")
     print(f"TIDEPOOL_RISK_SCENARIOS_DIR: {TIDEPOOL_RISK_SCENARIOS_DIR}")
 
-    # Define the base directory and selected subdirectory
-    BASE_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/")
-    SELECTED_SUBDIR = "loop_risk_v2_2_0_full"  # Change this to select different subdirectories
-
-    # Construct the full path to the selected subdirectory
-    SELECTED_DIR_PATH = os.path.join(BASE_DIR, SELECTED_SUBDIR)
-    print(f"Selected directory path: {SELECTED_DIR_PATH}")
-    print(f"Selected directory exists: {os.path.exists(SELECTED_DIR_PATH)}")
-
-    # Get all TLR- directories within the selected directory
-    risk_dirs = [risk_dir for risk_dir in os.listdir(SELECTED_DIR_PATH)
-                 if os.path.isdir(os.path.join(SELECTED_DIR_PATH, risk_dir)) and risk_dir.startswith("TLR-")]
+    # List TLR-* directories directly in scenario_json_filepath (one flat level)
+    risk_dirs = [risk_dir for risk_dir in os.listdir(scenario_json_filepath)
+                 if os.path.isdir(os.path.join(scenario_json_filepath, risk_dir)) and "TLR-" in risk_dir]
     print(f"Found risk directories: {risk_dirs}")
 
     for risk_dir_name in risk_dirs:
         print(f"Processing risk directory: {risk_dir_name}")
-        #  for use in filtering to just one risk. If wanting to run all of them, comment out lines 77-79
-        if ("TLR-620") not in risk_dir_name:
-            print(f"Skipping {risk_dir_name} as it doesn't contain selected subdirectory")
+        # Filter to a single TLR for testing. Comment out lines below to run all.
+        if "TLR-1122" not in risk_dir_name:
+            print(f"Skipping {risk_dir_name}")
             continue
         print(f"Processing: {risk_dir_name}")
 
-        risk_dir_path = os.path.join(SELECTED_DIR_PATH, risk_dir_name)
+        risk_dir_path = os.path.join(scenario_json_filepath, risk_dir_name)
         scenario_json_filenames = [filename for filename in os.listdir(risk_dir_path) if ".json" in filename]
         print(f"JSON files found in {risk_dir_name}: {scenario_json_filenames}")
 

@@ -14,7 +14,7 @@
             "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1"
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.adolescent_preset_23_30m_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.adolescent_preset_39_30m_v1",
           "target_range": {
             "start_times": ["0:00:00", "13:00:00", "13:30:00"],
             "upper_values": [90, 170, 90],
@@ -30,7 +30,7 @@
             "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1"
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.adolescent_preset_23_30m_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.adolescent_preset_39_30m_v1",
           "target_range": {
             "start_times": ["0:00:00", "13:00:00", "13:30:00"],
             "upper_values": [90, 170, 90],
@@ -47,7 +47,7 @@
             "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1"
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.adolescent_preset_23_30m_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.adolescent_preset_39_30m_v1",
           "target_range": {
             "start_times": ["0:00:00", "13:00:00", "13:30:00"],
             "upper_values": [110, 170, 110],

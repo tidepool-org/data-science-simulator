@@ -10,7 +10,7 @@
       "parameters": {}
     },
     "pump": {
-      "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_13_90m_v1",
+      "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_12_90m_v1",
       "bolus_entries": [],
       "carb_entries": [],
       "target_range": {
@@ -32,7 +32,7 @@
       }
     },
     "patient_model": {
-      "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_13_30m_v1",
+      "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_12_30m_v1",
       "glucose_history": "reusable.glucose.flat_120_12hr",
       "bolus_entries": [],
       "carb_entries": [],
