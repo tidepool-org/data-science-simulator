@@ -107,3 +107,7 @@ venv.bak/
 scenario_configs/tidepool_risk_v2/reusable/metabolism_settings/update.py
 *.swp
 *.swo
+
+# Population validation private inputs
+tidepool_data_science_simulator/projects/population_validation/scenario_tir.csv
+tidepool_data_science_simulator/projects/population_validation/scenarios/

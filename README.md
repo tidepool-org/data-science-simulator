@@ -58,14 +58,37 @@ that was created from the environmental.yml file (hint: environment name is at t
 1. Current FDA scenarios are being kept `scenario_configs/tidepool_risk_v2/loop_risk_v2_0` within this repo.
 2. Exploratory iCGM sensitivity analyses are located in `tidepool_data_science_simulator/projects/icgm` within this repo.
 3. Analysess of proposed Tidepool Loop therapy settings guardrails are located in `tidepool_data_science_simulator/projects/loop_guardrails` within this repo.
+4. Public-safe population-validation workflow code is located in `tidepool_data_science_simulator/projects/population_validation`.
+
+### Population validation note
+This repository is public. Real-user-derived population-validation inputs are
+not committed here. The public repo contains reusable experiment code and
+documentation only; any real cohort files must remain in a private working
+environment.
 
 ## Using Swift Loop
 In order to use the Swift implementation of the Loop Algorithm, you need:
 
 * A machine running MacOS with XCode installed.
 * To clone the [LoopAlgorithmToPython](https://github.com/tidepool-org/LoopAlgorithmToPython) respository with the built dylib (see Build Dynamic Library in the associated README).
-* The `tidepool-data-science-swift.yml` conda environment installed and activated (see Getting Started with the Conda Virtual Environment).
+* The `conda-environment-swift.yml` conda environment installed and activated (see Getting Started with the Conda Virtual Environment).
   * Note - the conda environment assumes both the data-science-simulator and LoopAlgorithmToPython repositories are in the same directory.
+
+### Swift dev setup
+From the parent directory that will contain both repositories:
+
+```bash
+git clone https://github.com/tidepool-org/data-science-simulator.git
+git clone https://github.com/tidepool-org/LoopAlgorithmToPython.git
+cd LoopAlgorithmToPython
+./build.sh
+cd ../data-science-simulator
+conda env create -f conda-environment-swift.yml
+conda activate tidepool-data-science-simulator-swift
+python tidepool_data_science_simulator/projects/swift_api/swift_loop_example.py
+```
+
+If the Swift bridge build fails on `HKQuantity.swift` with an `unknown attribute 'retroactive'` error, remove the `@retroactive` attribute from the `Comparable` extension in the checked out `LoopAlgorithm` dependency and rerun `./build.sh`.
 
 
 ### Using the SwiftLoopController class

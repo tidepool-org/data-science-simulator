@@ -45,18 +45,39 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
     for sim_id, ctrl_result_df in all_results.items():
 
         sim_color = next(color_cycle)
+        time_values = ctrl_result_df.index.to_pydatetime()
 
-        ax[0].plot(ctrl_result_df["bg"],
+        ax[0].plot(time_values, ctrl_result_df["bg"],
                    label="{} {}".format("bg", sim_id),
                    color=sim_color,
                    linestyle="dashed",
                    alpha=0.5)
-        ax[0].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["bg_sensor"],
+        ax[0].plot(time_values, ctrl_result_df["bg_sensor"],
                    label="{} {}".format("bg_sensor", sim_id),
                    color=sim_color,
                    markersize=4,
                    marker=".",
                    linestyle="none")
+        if "observed_cgm" in ctrl_result_df.columns:
+            ax[0].plot(
+                time_values,
+                ctrl_result_df["observed_cgm"],
+                label="{} {}".format("observed_cgm", sim_id),
+                color="black",
+                linestyle="none",
+                marker="x",
+                markersize=3,
+                alpha=0.7,
+            )
+        if "observed_cgm_aligned" in ctrl_result_df.columns:
+            ax[0].plot(
+                time_values,
+                ctrl_result_df["observed_cgm_aligned"],
+                label="{} {}".format("observed_cgm_aligned", sim_id),
+                color="black",
+                linewidth=1.2,
+                alpha=0.6,
+            )
 
         ax[0].set_title("BG Over Time")
         ax[0].set_xlabel("Time (5min)")
@@ -71,28 +92,28 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
         ax[1].set_title("Insulin")
         ax[1].set_ylabel("Insulin (U or U/hr)")
         ax[1].set_xlabel("Time (5 mins)")
-        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["sbr"],
+        ax[1].plot(time_values, ctrl_result_df["sbr"],
                    label="{} {}".format("sbr", sim_id),
                    linestyle="dotted",
                    color=sim_color,
                    alpha=0.5)
-        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["temp_basal"],
+        ax[1].plot(time_values, ctrl_result_df["temp_basal"],
                    label="{} {}".format("tmp_br", sim_id),
                    linestyle="-.",
                    color=sim_color)
-        ax[1].stem(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["true_bolus"],
+        ax[1].stem(time_values, ctrl_result_df["true_bolus"],
                    linefmt='{}-'.format(sim_color),
                    label="{} {}".format("true bolus", sim_id),
                    markerfmt='{}P'.format(sim_color))
-        ax[1].stem(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["reported_bolus"],
+        ax[1].stem(time_values, ctrl_result_df["reported_bolus"],
                    linefmt='{}--'.format(sim_color),
                    markerfmt='{}X'.format(sim_color),
                    label="{} {}".format("reported bolus", sim_id))
-        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["iob"],
+        ax[1].plot(time_values, ctrl_result_df["iob"],
                    label="{} {}".format("iob", sim_id),
                    color=sim_color,
                    alpha=0.5)
-        ax[1].plot(ctrl_result_df.index.to_pydatetime(), ctrl_result_df["ei"] * 12,
+        ax[1].plot(time_values, ctrl_result_df["ei"] * 12,
                    label="{} {}".format("ei", sim_id),
                    linestyle="dashed",
                    color=sim_color,
@@ -103,12 +124,12 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
             ax[1].legend(prop={'size': 12})
 
         # ======== Carbs ============
-        ax[2].stem(ctrl_result_df.index.to_pydatetime(),
+        ax[2].stem(time_values,
                    ctrl_result_df["true_carb_value"],
                    linefmt='{}-'.format(sim_color),
                    label="{} {}".format("true carb", sim_id),
                    markerfmt='{}P'.format(sim_color))
-        ax[2].stem(ctrl_result_df.index.to_pydatetime(),
+        ax[2].stem(time_values,
                    ctrl_result_df["reported_carb_value"],
                    linefmt='{}--'.format(sim_color),
                    markerfmt='{}X'.format(sim_color),
@@ -117,7 +138,7 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
         ax[2].set_ylabel("Carbs (g)")
         ax[2].set_xlabel("Time (5 mins)")
         ax[2].set_ylim((0, 100))
-        ax[2].set_xlim((datetime.datetime(2019,8,15,11,30), datetime.datetime(2019,8,16,12)))
+        ax[2].set_xlim((time_values[0], time_values[-1]))
                        
         if len(all_results) <= n_sims_max_legend:
             ax[2].legend(prop={'size': 6})
