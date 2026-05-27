@@ -1,0 +1,19 @@
+# This is a Databricks asset bundle definition for data-science-simulator.
+# The Databricks extension requires databricks.yml configuration file.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+
+bundle:
+  name: data-science-simulator
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://tidepool-dev.cloud.databricks.com
+
+  ## Optionally, there could be 'staging' or 'prod' targets here.
+  #
+  # prod:
+  #   workspace:
+  #     host: https://tidepool-dev.cloud.databricks.com

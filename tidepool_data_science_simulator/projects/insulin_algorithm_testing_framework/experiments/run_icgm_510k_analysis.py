@@ -137,7 +137,7 @@ from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framewor
 )
 from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.metrics_calculator import (
-    calculate_point_metrics, metrics_to_dataframe
+    calculate_point_metrics, metrics_to_dataframe, calculate_metrics_from_parquet
 )
 from tidepool_data_science_simulator.projects.insulin_algorithm_testing_framework.core.risk_scoring import (
     analyze_icgm_risk, generate_risk_report
@@ -340,28 +340,20 @@ def main():
         # Load simulation results based on save format
         logger.info(f"Loading simulation results from: {results_dir}")
         
-        point_metrics_dict = {}
         save_format = processing_config.save_format
         
-        # Check for parquet format first (preferred for performance)
+        # Check for parquet format first (preferred for performance with parallel processing)
         parquet_file = results_dir / "combined_results.parquet"
         if save_format in ('parquet', 'both') and parquet_file.exists():
-            logger.info("Loading results from combined parquet file...")
-            from tidepool_data_science_simulator.utils import load_streaming_parquet_with_metadata
-            results_df, metadata = load_streaming_parquet_with_metadata(str(parquet_file))
-            
-            # Process each simulation's results
-            for sim_id in results_df['sim_id'].unique():
-                try:
-                    sim_results = results_df[results_df['sim_id'] == sim_id]
-                    point_metrics = calculate_point_metrics(sim_results)
-                    point_metrics_dict[sim_id] = point_metrics
-                except Exception as e:
-                    logger.warning(f"Failed to process sim_id {sim_id}: {e}")
-            
-            logger.info(f"Computed metrics for {len(point_metrics_dict)} simulations from parquet")
+            # Use parallel metrics calculation from parquet
+            point_metrics_dict, metadata = calculate_metrics_from_parquet(
+                str(parquet_file),
+                n_processes=processing_config.parallel_processes,
+                show_progress=True
+            )
         else:
-            # Fall back to TSV files
+            # Fall back to TSV files (sequential processing)
+            point_metrics_dict = {}
             tsv_files = list(results_dir.glob("*.tsv"))
             logger.info(f"Found {len(tsv_files)} TSV result files")
             
