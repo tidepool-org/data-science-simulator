@@ -21,8 +21,10 @@ dependencies:
   - requests=2.32.3
   - scipy=1.13.1
   - seaborn=0.13.2
-
+  - gcc=14.2.0 # Needed for installing the LoopAlgorithmToPython package
+  
   - pip:
+    - pydantic>=2.0
     - backports-datetime-fromisoformat==2.0.2
     - pip-chill==1.0.3
     - python-dotenv==1.0.1

@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "risk-id": "TLR-822",
+    "simulation_id": "TLR-822-sensitive",
+    "risk_description": "Doubled meal bolus",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-LoopNoMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 25
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:05:00",
+              "value": 25
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.65
+            },
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": 1.65
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 25
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:05:00",
+              "value": 25
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 1.65
+            },
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": 1.65
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-LoopWithMitigations_t1_sensitive",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.sensitive_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:05:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:00:00",
+              "value": 25
+            },
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 12:05:00",
+              "value": 25
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
+    }
+  ]
+}

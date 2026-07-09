@@ -113,6 +113,11 @@ class NoisySensor(SensorBase):
             self.sensor_config.cgm_offset_minutes_range = [2, 4.99]
 
         self.not_working_timer_minutes_remaining = 0.0
+        
+        # Track first true BG and first sensor reading for iCGM evaluation
+        self.true_start_bg = None
+        self.start_bg_with_offset = None
+        self._first_update = True
 
     def is_sensor_working(self):
 
@@ -135,8 +140,8 @@ class NoisySensor(SensorBase):
             bg_spurious_error_delta = self.random_values["bg_spurious_error_delta"]  # always positive
             bg = int(true_bg + bg_spurious_error_delta)
             u2 = self.random_values["uniform"][1]
-            if u2 < self.spurious_outage_prob:
-                self.not_working_timer_minutes_remaining = self.random_values["not_working_time_min"]
+            if u2 < self.sensor_config.spurious_outage_prob:
+                self.not_working_timer_minutes_remaining = self.random_values["not_working_time_minutes"]
         else:
             bg_normal_error_delta = self.random_values["bg_normal_error_delta"]  # pos or neg
             bg = int(true_bg + bg_normal_error_delta)
@@ -199,6 +204,12 @@ class NoisySensor(SensorBase):
         true_bg_prediction = kwargs["patient_true_bg_prediction"]
         self.current_sensor_bg = self.get_bg(true_bg)
         self.current_sensor_bg_prediction = self.get_bg_trace(true_bg_prediction)
+        
+        # Capture first true BG and sensor reading for iCGM evaluation
+        if self._first_update:
+            self.true_start_bg = true_bg
+            self.start_bg_with_offset = self.current_sensor_bg
+            self._first_update = False
 
         # Store the value
         bg_time = copy.deepcopy(time)

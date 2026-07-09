@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "risk-id": "TLR-566",
+    "simulation_id": "TLR-566-resistant",
+    "risk_description": "Carb entry at significantly different time from consumption",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_resistant_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 13:00:00",
+              "value": 31
+            }
+          ]
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 3.1
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 13:00:00",
+              "value": 31
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 3.1
+            }
+          ]
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "type": "carb",
+              "start_time": "8/15/2019 13:00:00",
+              "value": 31
+            }
+          ],
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_v1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "risk-id": "TLR-739",
+    "simulation_id": "TLR-739-median",
+    "risk_description": "Low glucose meal entry, closed loop off",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_median_autobolus",
+  "override_config": [
+    { "sim_id": "pre-noLoop_t1_median",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.median_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 3.3
+            }
+          ],
+            "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 13:00:00",
+              "type": "carb",
+              "value": 43
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 13:00:00",
+              "value": 3.3
+            }
+          ]
+        },
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        }
+    },
+      "controller": null
+    }
+  ]
+}

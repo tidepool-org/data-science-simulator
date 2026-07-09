@@ -22,6 +22,7 @@ class VirtualPatientState(object):
         self.bolus = kwargs.get("bolus")
         self.carb = kwargs.get("carb")
         self.actions = kwargs.get("actions")
+        self.heart_rate = kwargs.get("heart_rate")
 
     def get_carb_value(self):
         value = None

@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1119",
+    "simulation_id": "TLR-1119-ap_median",
+    "risk_description": "Activity preset too high",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.1xComparator.ap_str_training_toohigh_median_1dotx",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_median",
+      "duration_hours": 8.0,
+      "patient": {
+        "patient_model": {
+            "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.median_preset_23_90m_v1"
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_median",
+      "duration_hours": 8.0,
+      "patient": {
+        "patient_model": {
+            "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.median_preset_23_90m_v1"
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_median",
+      "duration_hours": 8.0,
+      "patient": {
+        "patient_model": {
+            "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.median_preset_23_90m_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "suspend_threshold": 75,
+          "max_basal_rate": 1.75
+        }
+      }
+    }
+]
+}

@@ -5,6 +5,7 @@ import subprocess
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
@@ -225,6 +226,7 @@ def build_all_test_sims():
     return all_sims
 
 
+@pytest.mark.skip(reason="LoopController/pyloopkit path is no longer maintained for parity with SwiftLoopController")
 def test_regression():
     """
     Test the output of the canonical simulation to saved values from a standard commit.

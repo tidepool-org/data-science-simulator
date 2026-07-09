@@ -1,0 +1,17 @@
+{
+    "metabolism_parameters": {
+        "w_hr": 1.0,
+        "a": -0.0007,
+        "tau": 0.992,
+        "n": 24
+    },
+    "physical_activity_entries": [
+        {
+            "start_time": "8/15/2019 13:00:00",
+            "activity": "strength training",
+            "duration": 30,
+            "intensity": "high",
+            "expected_hr": 105
+        }
+    ]
+}

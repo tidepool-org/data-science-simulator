@@ -1,0 +1,63 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1121",
+    "simulation_id": "TLR-1121-base_resistant",
+    "risk_description": "Activity preset with high starting glucose",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.activity_presets.ap_jog_resistant_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "patient_model": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1",
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "patient_model": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1",
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "patient_model": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1",
+          "glucose_history": "reusable.glucose.flat_70_12hr"
+        },
+        "pump": {
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_wmax"
+      }
+    }
+]
+}

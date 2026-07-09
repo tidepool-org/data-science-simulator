@@ -1,0 +1,89 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1146_lo_ON",
+    "simulation_id": "TLR-1146_lo_ON-base_adolescent",
+    "risk_description": "comm loss preset closed loop on",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.custom_presets.preset_30_adolescent_2_0_v1",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_adolescent",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "00:00:00",
+                "13:30:00",
+                "15:00:00"
+              ],
+              "values": [
+                0.38,
+                1.9,
+                0.38
+              ]
+            }
+          }
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {"dosing_enabled": false, "time":  "08/15/2019 13:00:00"},
+          {"dosing_enabled": true, "time": "08/15/2019 15:00:00"}
+        ]
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_adolescent",
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "00:00:00",
+                "13:30:00",
+                "15:00:00"
+              ],
+              "values": [
+                0.38,
+                1.9,
+                0.38
+              ]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {"sim_id": "post-Loop-WithMitigations_t1_adolescent",
+      "patient": {
+        "pump": {
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1",
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "00:00:00",
+                "13:30:00",
+                "15:00:00"
+              ],
+              "values": [
+                0.38,
+                1.9,
+                0.38
+              ]
+            }
+          }
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {"dosing_enabled": false, "time": "08/15/2019 13:00:00"},
+          {"dosing_enabled": true, "time": "08/15/2019 15:00:00"}
+        ],
+        "settings": {
+          "max_bolus": 18.75,
+          "suspend_threshold": 75
+        }
+      }
+    }
+]
+}

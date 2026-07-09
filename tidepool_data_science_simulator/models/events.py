@@ -3,7 +3,7 @@ __author__ = "Cameron Summers"
 import datetime
 import numpy as np
 
-from tidepool_data_science_simulator.models.measures import Carb, Bolus, TempBasal
+from tidepool_data_science_simulator.models.measures import Carb, Bolus, TempBasal, PhysicalActivity
 from tidepool_data_science_simulator.utils import get_bernoulli_trial_uniform_step_prob
 from pyloopkit.dose import DoseType
 
@@ -272,6 +272,33 @@ class CarbTimeline(EventTimeline):
 
         return carb_values, carb_start_times, carb_durations
 
+class PhysicalActivityTimeline(EventTimeline):
+    def __init__(self, datetimes=None, events=None):
+        super().__init__(datetimes, events)
+        self.event_type = PhysicalActivity
+
+    def get_only_event(self):
+        """
+        Get the single physical activity event on this timeline.
+
+        Raises
+        ------
+        ValueError
+            If the timeline does not contain exactly one event.
+
+        Returns
+        -------
+        PhysicalActivity
+        """
+        if len(self.events) != 1:
+            raise ValueError(
+                "Expected exactly 1 physical activity event, got {}. "
+                "Multiple/zero physical activity events are not yet supported here.".format(
+                    len(self.events)
+                )
+            )
+
+        return next(iter(self.events.values()))
 
 class ActionTimeline(EventTimeline):
     def __init__(self, datetimes=None, events=None):

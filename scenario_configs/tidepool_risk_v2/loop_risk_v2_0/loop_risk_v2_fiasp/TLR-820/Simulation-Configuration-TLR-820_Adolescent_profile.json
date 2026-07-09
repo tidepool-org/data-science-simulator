@@ -1,0 +1,101 @@
+{
+  "metadata": {
+    "risk-id": "TLR-820",
+    "simulation_id": "TLR-820-adolescent",
+    "risk_description": "Insulin delivery without user command",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_adolescent_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-LoopNoMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:10:00",
+              "value": 17.5
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:10:00",
+              "value": 17.5
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 12.5
+            },
+            {
+              "time": "8/15/2019 12:10:00",
+              "value": 12.5
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 12.5
+            },
+            {
+              "time": "8/15/2019 12:10:00",
+              "value": 12.5
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-LoopWithMitigations_t1_adolescent",
+      "patient": {
+        "patient_model": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 12:10:00",
+              "value": 13.95
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1"
+        },
+        "pump": {
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:10:00",
+              "value": 13.95
+            }
+          ],
+          "carb_entries": "reusable.carb_doses.adolescent_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_adolescent_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_median_v1"
+      }
+    }
+  ]
+}

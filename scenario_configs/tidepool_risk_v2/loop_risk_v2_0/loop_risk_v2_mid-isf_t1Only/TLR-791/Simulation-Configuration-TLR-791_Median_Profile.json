@@ -1,0 +1,60 @@
+{
+    "metadata": {
+        "risk_id": "TLR-791",
+        "simulation_id": "TLR-791-Median",
+        "risk_description": "Metabolic settings are too aggressive",
+        "config_format_version": "v1.0"
+    },
+    "base_config": "reusable.simulations.base_median_swift",
+    "override_config": [
+        {
+          "sim_id": "pre-Loop-noMitigations_t1_median",
+          "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1"
+            }
+          },
+           "controller": {
+              "settings": {
+                "model": "rapid_acting_child"
+              }
+            }
+        },
+      {
+            "sim_id": "pre-NoLoop_t1_median",
+        "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.median_profile_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1"
+            }
+          },
+            "controller": null
+        },
+        {
+            "sim_id": "post-Loop-WithMitigations_t1_median",
+          "patient": {
+            "patient_model": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1",
+              "bolus_entries": "reusable.insulin_doses.accept_rec_v1"
+            },
+            "pump": {
+              "carb_entries": "reusable.carb_doses.median_profile_v1"
+            }
+          },
+            "controller": {
+                "settings": {
+                  "suspend_threshold": 75,
+                  "max_basal_rate": 1.75,
+                  "model": "rapid_acting_child"
+                }
+            }
+        }
+    ]
+}

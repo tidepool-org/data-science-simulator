@@ -1,0 +1,51 @@
+{
+    "insulin_sensitivity_factor": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            56.67
+        ]
+    },
+    "carb_insulin_ratio": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            20.67
+        ]
+    },
+    "basal_rate": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            0.45
+        ]
+    },
+    "glucose_sensitivity_factor": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            0.002122
+        ]
+    },
+    "basal_blood_glucose": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            130.0
+        ]
+    },
+    "insulin_production_rate": {
+        "start_times": [
+            "00:00:00"
+        ],
+        "values": [
+            0.0
+        ]
+    },
+"patient_insulin_type": "rapid_acting_adult"
+}

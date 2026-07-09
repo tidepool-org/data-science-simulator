@@ -9,14 +9,14 @@ from tidepool_data_science_simulator.makedata.make_patient import DATETIME_DEFAU
 def get_canonical_controller_config(t0=DATETIME_DEFAULT):
 
     controller_settings = {
-        "model": [360.0, 65],
+        "model": "novolog",
         "momentum_data_interval": 15,
         "suspend_threshold": 70,
         "dynamic_carb_absorption_enabled": True,
         "retrospective_correction_integration_interval": True,
         "minimum_autobolus": 0.0,
-        "maximum_autobolus": 0.0,
-        "partial_application_factor": None,
+        "maximum_autobolus": None,
+        "partial_application_factor": 0.4,
         "recency_interval": 15,
         "retrospective_correction_grouping_interval": 30,
         "rate_rounder": 0.05,
@@ -27,7 +27,8 @@ def get_canonical_controller_config(t0=DATETIME_DEFAULT):
         "max_bolus": 30,
         "retrospective_correction_enabled": True,
         "partial_application_factor": 0.0,
-        "use_mid_absorption_isf": False
+        "use_mid_absorption_isf": False,
+        "carb_absorption_model": "piecewiseLinear"
     }
     controller_config = ControllerConfig(
         bolus_event_timeline=BolusTimeline(),

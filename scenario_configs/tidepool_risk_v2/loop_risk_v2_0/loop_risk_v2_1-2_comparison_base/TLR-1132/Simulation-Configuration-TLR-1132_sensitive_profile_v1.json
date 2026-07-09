@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "risk-id": "TLR-1132",
+    "simulation_id": "TLR-1132-base_sensitive",
+    "risk_description": "Max active insulin too low",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.1xComparator.base_sensitive_1dotx",
+  "override_config": [
+    {"sim_id": "pre-Loop_NoMitigations_t1_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        }
+      },
+      "controller": {
+        "settings": {
+          "max_active_insulin_modifier": 1.0
+        }
+      }
+    },
+    {"sim_id": "pre-noLoop_t1_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        }
+      },
+      "controller": null
+        },
+    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "duration_hours": 23.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_250_12hr"
+        }
+      },
+      "controller": {
+        "settings": {
+          "max_active_insulin_modifier": 1.0,
+          "max_basal_rate": 0.9,
+          "suspend_threshold": 80,
+          "max_bolus": 2.47
+        }
+      }
+    }
+]
+}

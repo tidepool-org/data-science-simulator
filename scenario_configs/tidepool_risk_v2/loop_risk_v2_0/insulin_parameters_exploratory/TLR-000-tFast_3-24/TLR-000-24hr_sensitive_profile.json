@@ -1,0 +1,150 @@
+{
+  "metadata": {
+    "risk-id": "TLR-000",
+    "simulation_id": "TLR-000-base_sensitive",
+    "risk_description": "Base for HF—24 hours happy",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.base_sensitive_2_0_v1",
+  "override_config": [
+    {
+      "sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "duration_hours": 24.0,
+      "patient": {
+        "sensor": {
+          "glucose_history": "reusable.glucose.flat_100_12hr"
+        },
+        "patient_model": {
+          "glucose_history": "reusable.glucose.flat_100_12hr",
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 15:25:00",
+              "type": "carb",
+              "value": 66
+            },
+            {
+              "start_time": "8/15/2019 19:05:00",
+              "type": "carb",
+              "value": 66
+            },
+            {
+              "start_time": "8/15/2019 19:50:00",
+              "type": "carb",
+              "value": 28
+            },
+            {
+              "start_time": "8/15/2019 20:15:00",
+              "type": "carb",
+              "value": 52
+            },
+            {
+              "start_time": "8/16/2019 5:30:00",
+              "type": "carb",
+              "value": 60
+            },
+            {
+              "start_time": "8/16/2019 8:15:00",
+              "type": "carb",
+              "value": 41
+            },
+            {
+              "start_time": "8/16/2019 9:35:00",
+              "type": "carb",
+              "value": 74
+            },
+            {
+              "start_time": "8/16/2019 11:30:00",
+              "type": "carb",
+              "value": 61
+            }
+          ],
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 15:25:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 19:05:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 19:50:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/15/2019 20:15:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 5:30:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 8:15:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 9:35:00",
+              "value": "accept_recommendation"
+            },
+            {
+              "time": "8/16/2019 11:30:00",
+              "value": "accept_recommendation"
+            }
+          ]
+        },
+        "pump": {
+          "carb_entries": [
+            {
+              "start_time": "8/15/2019 15:25:00",
+              "type": "carb",
+              "value": 66
+            },
+            {
+              "start_time": "8/15/2019 19:05:00",
+              "type": "carb",
+              "value": 66
+            },
+            {
+              "start_time": "8/15/2019 19:50:00",
+              "type": "carb",
+              "value": 28
+            },
+            {
+              "start_time": "8/15/2019 20:15:00",
+              "type": "carb",
+              "value": 52
+            },
+            {
+              "start_time": "8/16/2019 5:30:00",
+              "type": "carb",
+              "value": 60
+            },
+            {
+              "start_time": "8/16/2019 8:15:00",
+              "type": "carb",
+              "value": 41
+            },
+            {
+              "start_time": "8/16/2019 9:35:00",
+              "type": "carb",
+              "value": 74
+            },
+            {
+              "start_time": "8/16/2019 11:30:00",
+              "type": "carb",
+              "value": 61
+            }
+          ]
+        }
+      },
+      "controller": {
+        "id": "pyloopkit_v1",
+        "settings": {
+          "model": "theoretical_fast_3",
+          "insulin_delay": 5
+        }
+      }
+    }
+  ]
+}

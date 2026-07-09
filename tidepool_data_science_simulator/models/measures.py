@@ -179,6 +179,13 @@ class ManualBolus(Bolus):
     def __init__(self, value, units):
         super().__init__(value, units)
 
+class HeartRate(Measure):
+    """
+    Heart Rate
+    """
+    def __init__(self, value, units):
+        super().__init__(value, units)
+
 
 class Carb(Measure):
     """
@@ -342,3 +349,78 @@ class GlucoseTrace(object):
             loop_bg_datetimes = self.datetimes
 
         return loop_bg_datetimes, loop_bg_values
+    
+class PhysicalActivity(object):
+    """
+    Physical activity with an activity name, duration, and optional expected heart rate
+    """
+    def __init__(self, activity='', duration=0, expected_hr=None):
+        """
+        Parameters
+        ----------
+        activity : str
+            Type of activity (e.g., "walking", "running", "cycling")
+        duration : int
+            Duration in minutes
+        expected_hr : float, optional
+            Expected heart rate during this activity in bpm
+            If None, will use a default based on activity type
+        """
+        self.activity = activity
+        self.duration = duration
+        self.expected_hr = expected_hr
+        # Maintain backward compatibility - 'value' property for activity name
+        self.value = activity
+        
+    def __repr__(self):
+        return f"PhysicalActivity({self.activity}, duration={self.duration}min, hr={self.expected_hr}bpm)"
+        
+class HeartRateTrace(object):
+    def __init__(self, datetimes=None, values=None):
+        self.datetimes = []
+        if datetimes is not None:
+            self.datetimes = datetimes
+        self.hr_values = []
+        if values is not None:
+            self.hr_values = values
+    def __iter__(self):
+        for dt, hr_val in zip(self.datetimes, self.hr_values):
+            yield dt, hr_val
+    def get_last(self):
+        """
+        Get most recent value
+        Returns
+        -------
+        (datetime, int)
+        """
+        return self.datetimes[-1], self.hr_values[-1]
+    
+    def get_heart_rate(self, dt):
+        """
+        get heart rate at the given time
+        """
+        # Defensive check for empty trace
+        if len(self.datetimes) == 0 or len(self.hr_values) == 0:
+            return 0
+        
+        idx = np.searchsorted(self.datetimes, dt, side='right')
+        
+        # Bound check to prevent negative indexing issues
+        if idx == 0:
+            result_hr = self.hr_values[0]
+        else:
+            result_hr = self.hr_values[idx - 1]
+        
+        return result_hr
+    def append(self, date, hr):
+        """
+        Add a new value
+        Parameters
+        ----------
+        date: datetime
+        hr: int
+        Returns
+        -------
+        """
+        self.datetimes.append(date)
+        self.hr_values.append(hr)

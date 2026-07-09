@@ -19,6 +19,7 @@ class ContinuousInsulinPump(SimulationComponent):
 
         self.name = "ContinuousInsulinPump"
         self.time = time
+        self.simulation_start_time = time  # Preserve original start time for historical backfill
         self.pump_config = copy.deepcopy(pump_config)
 
         self.bolus_event_timeline = self.pump_config.bolus_event_timeline
@@ -38,6 +39,10 @@ class ContinuousInsulinPump(SimulationComponent):
         Initialize the pump for t0
         """
         self.basal_insulin_delivered_last_update = self.get_delivered_basal_insulin_since_update()
+        
+        # Record this initial basal delivery in the timeline
+        # This represents the first 5-minute interval at t=0
+        self._record_scheduled_basal_delivery(self.time)
 
     def get_info_stateless(self):
 
@@ -79,6 +84,142 @@ class ContinuousInsulinPump(SimulationComponent):
 
         insulin_in_hour = self.get_basal_rate().value
         return update_interval_minutes / 60 * insulin_in_hour
+
+    def _record_scheduled_basal_delivery(self, time):
+        """
+        Record scheduled basal delivery as a basal event in the timeline.
+        
+        This creates a "virtual" basal event representing the 5-minute interval
+        of scheduled basal delivery that just occurred. These events allow Loop
+        to see the complete pump history when it queries for doses.
+        
+        Parameters
+        ----------
+        time : datetime
+            Current simulation time (end of the delivery interval)
+        """
+        import datetime
+        
+        # Calculate the time window for this basal delivery
+        # Basal was delivered over the past 5 minutes (update interval)
+        update_interval_minutes = 5
+        start_time = time - datetime.timedelta(minutes=update_interval_minutes)
+        
+        # Get the scheduled basal rate that was active during this interval
+        basal_rate = self.pump_config.basal_schedule.get_state()
+        
+        # Create a TempBasal object to represent this scheduled basal delivery
+        # We use TempBasal for consistency with the existing dose timeline structure
+        scheduled_basal_event = TempBasal(
+            time=start_time,
+            value=basal_rate.value,
+            duration_minutes=update_interval_minutes,
+            units="U/hr"
+        )
+        
+        # Mark it as inactive since it's already been delivered (historical)
+        scheduled_basal_event.active = False
+        scheduled_basal_event.actual_end_time = time
+        scheduled_basal_event.actual_duration_minutes = update_interval_minutes
+        scheduled_basal_event.delivered_units = self.basal_insulin_delivered_last_update
+        
+        # Add to timeline with input_time set to current time
+        # The input_time parameter ensures this event passes the filter in
+        # get_recent_event_times() when Loop queries for doses
+        self.temp_basal_event_timeline.add_event(
+            start_time, 
+            scheduled_basal_event, 
+            input_time=time
+        )
+
+    def populate_historical_basal_doses(self, current_time, num_hours_history=8):
+        """
+        Populate the pump's dose timeline with historical scheduled basal deliveries.
+        
+        This method backfills the pump's timeline with basal doses that were delivered
+        during the simulation but before Loop was activated. In real life, Loop reads
+        this historical data from the pump's internal storage. This ensures Loop has
+        the complete dose history it needs for accurate IOB calculations.
+        
+        Parameters
+        ----------
+        current_time : datetime
+            The current simulation time (typically when Loop is being activated)
+        num_hours_history : float
+            Number of hours of historical basal to populate (default: 8, matching
+            Loop's typical lookback window)
+        """
+        import datetime
+        
+        # Calculate how far back to go
+        # We backfill the full num_hours_history regardless of when the pump object
+        # was created, because we're reconstructing the basal history that the patient
+        # experienced (the patient has IOB from basal delivered before pump/Loop activation)
+        history_start = current_time - datetime.timedelta(hours=num_hours_history)
+        
+        # Generate basal events for each 5-minute interval
+        update_interval_minutes = 5
+        current_interval_start = history_start
+        
+        while current_interval_start < current_time:
+            interval_end = current_interval_start + datetime.timedelta(minutes=update_interval_minutes)
+            
+            # Don't go past current time
+            if interval_end > current_time:
+                interval_end = current_time
+            
+            # Check if this interval already has a basal event (scheduled or temp)
+            # This prevents duplicating events that were already recorded during simulation
+            if not self._has_basal_event_at_time(current_interval_start):
+                # Get the scheduled basal rate for this time
+                # Note: Using current schedule is a simplification. For full accuracy,
+                # we could save historical basal rates if they change during simulation
+                basal_rate = self.pump_config.basal_schedule.get_state()
+                
+                # Calculate insulin delivered in this interval
+                actual_minutes = (interval_end - current_interval_start).total_seconds() / 60
+                insulin_delivered = basal_rate.value * (actual_minutes / 60.0)
+                
+                # Create historical basal event
+                historical_basal_event = TempBasal(
+                    time=current_interval_start,
+                    value=basal_rate.value,
+                    duration_minutes=int(actual_minutes),
+                    units="U/hr"
+                )
+                
+                # Mark as already delivered (historical)
+                historical_basal_event.active = False
+                historical_basal_event.actual_end_time = interval_end
+                historical_basal_event.actual_duration_minutes = actual_minutes
+                historical_basal_event.delivered_units = insulin_delivered
+                
+                # Add to timeline with interval_end as input_time
+                # This ensures the event is "visible" when Loop queries at current_time
+                self.temp_basal_event_timeline.add_event(
+                    current_interval_start, 
+                    historical_basal_event,
+                    input_time=interval_end
+                )
+            
+            # Move to next interval
+            current_interval_start = interval_end
+
+    def _has_basal_event_at_time(self, time):
+        """
+        Check if a basal event (temp or scheduled) already exists at the given time.
+        
+        Parameters
+        ----------
+        time : datetime
+            The time to check
+        
+        Returns
+        -------
+        bool
+            True if an event exists at this time, False otherwise
+        """
+        return time in self.temp_basal_event_timeline.events
 
     def is_valid_temp_basal(self, temp_basal):
         request_valid = True
@@ -215,6 +356,11 @@ class ContinuousInsulinPump(SimulationComponent):
 
             if not self.active_temp_basal.is_active(self.time):  # Remove if inactive
                 self.deactivate_temp_basal()
+        
+        else:  # No temp basal active - record scheduled basal delivery
+            # This ensures scheduled basal deliveries are recorded in the pump's
+            # dose timeline, making them visible to Loop when it queries for doses
+            self._record_scheduled_basal_delivery(time)
 
         self.pump_config.basal_schedule.update(time)
         self.pump_config.carb_ratio_schedule.update(time)

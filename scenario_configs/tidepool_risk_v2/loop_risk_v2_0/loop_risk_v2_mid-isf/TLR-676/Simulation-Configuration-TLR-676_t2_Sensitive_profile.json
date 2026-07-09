@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "risk-id": "TLR-676",
+    "simulation_id": "TLR-676-sensitive",
+    "risk_description": "Carb entry without bolus",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.t2_sensitive_swift",
+  "override_config": [
+    {
+      "sim_id": "pre-LoopNoMitigations_t2_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t2_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-LoopWithMitigations_t2_resistant",
+      "duration_hours": 23.0,
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1"
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_sensitive_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_t2_sensitive_swift"
+      }
+    }
+  ]
+}
