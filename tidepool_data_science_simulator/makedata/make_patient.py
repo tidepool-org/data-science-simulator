@@ -203,9 +203,7 @@ def get_canonical_risk_pump_config(
 
     activity_duration = 0
     if pa_timeline:
-        for dt in pa_timeline.events:  # hack --> will work because there's only 1 pa
-            pa = pa_timeline.events[dt]
-        activity_duration = pa.duration
+        activity_duration = pa_timeline.get_only_event().duration
 
     preset_starttime = t0  # start preset at start of simulation
     preset_endtime = (
@@ -409,9 +407,7 @@ def get_canonical_risk_patient_config(
 
     activity_duration = 0
     if pa_timeline:
-        for dt in pa_timeline.events:  # hack --> will work because there's only 1 pa
-            pa = pa_timeline.events[dt]
-        activity_duration = pa.duration
+        activity_duration = pa_timeline.get_only_event().duration
 
     if carb_timeline is None:
         patient_carb_timeline = CarbTimeline()

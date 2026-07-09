@@ -65,7 +65,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
     for risk_dir_name in risk_dirs:
         print(f"Processing risk directory: {risk_dir_name}")
         # Filter to a single TLR for testing. Comment out lines below to run all.
-        if "TLR-HF" not in risk_dir_name:
+        if "TLR-HF not in risk_dir_name:
             print(f"Skipping {risk_dir_name}")
             continue
         print(f"Processing: {risk_dir_name}")

@@ -177,9 +177,7 @@ def build_metabolic_sensitivity_sims(
     pump_config.carb_ratio_schedule.set_override(cir_p_factor)
 
     # activity duration
-    for dt in pa_timeline.events:  # hack --> will work because there's only 1 pa
-        pa = pa_timeline.events[dt]
-    activity_duration = pa.duration
+    activity_duration = pa_timeline.get_only_event().duration
 
     # set the target
     target_end_time = time_plus(
