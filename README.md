@@ -66,6 +66,7 @@ In order to use the Swift implementation of the Loop Algorithm, you need:
 * To clone the [LoopAlgorithmToPython](https://github.com/tidepool-org/LoopAlgorithmToPython) respository with the built dylib (see Build Dynamic Library in the associated README).
 * The `tidepool-data-science-swift.yml` conda environment installed and activated (see Getting Started with the Conda Virtual Environment).
   * Note - the conda environment assumes both the data-science-simulator and LoopAlgorithmToPython repositories are in the same directory.
+* After installing/updating the swift environment, run `./scripts/build_swift_lib.sh` to rebuild `libLoopAlgorithmToPython.dylib` from source against whatever `loop_to_python_api` is currently installed. The dylib checked into the LoopAlgorithmToPython repo can go stale relative to its own Swift source (a new exported function added without the binary being rebuilt), which shows up as a confusing `AttributeError: dlsym(...): symbol not found` at runtime. Re-run this script any time you hit that error.
 
 
 ### Using the SwiftLoopController class
