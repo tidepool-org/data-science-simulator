@@ -48,9 +48,10 @@ from tidepool_data_science_simulator.validation.value_validators import Validati
 def print_summary(results):
     """Print summary of validation results"""
     total_files = len(results)
-    valid_files = sum(1 for is_valid, _ in results.values() if is_valid)
+    valid_files = sum(1 for entry in results.values() if entry[0])
     invalid_files = total_files - valid_files
-    total_errors = sum(len(errors) for _, errors in results.values())
+    total_errors = sum(len(entry[1]) for entry in results.values())
+    total_warnings = sum(len(entry[2]) for entry in results.values())
     
     print("\n" + "=" * 80)
     print("VALIDATION SUMMARY")
@@ -59,6 +60,8 @@ def print_summary(results):
     print(f"✅ Valid files: {valid_files}")
     print(f"❌ Invalid files: {invalid_files}")
     print(f"🔍 Total errors found: {total_errors}")
+    if total_warnings:
+        print(f"⚠️  Total warnings: {total_warnings}")
     print("=" * 80 + "\n")
 
 
@@ -68,7 +71,7 @@ def print_error_statistics(results):
     error_type_counts = defaultdict(int)
     field_error_counts = defaultdict(int)
     
-    for _, (is_valid, errors) in results.items():
+    for _, (is_valid, errors, warnings) in results.items():
         if not is_valid:
             for error in errors:
                 # Count by field path root
@@ -110,12 +113,15 @@ def print_detailed_results(results, show_valid=False):
     # Group by status
     valid_files = []
     invalid_files = []
+    files_with_warnings = []
     
-    for file_path, (is_valid, errors) in results.items():
+    for file_path, (is_valid, errors, warnings) in results.items():
         if is_valid:
-            valid_files.append(file_path)
+            valid_files.append((file_path, warnings))
         else:
-            invalid_files.append((file_path, errors))
+            invalid_files.append((file_path, errors, warnings))
+        if warnings:
+            files_with_warnings.append((file_path, warnings))
     
     # Print invalid files first
     if invalid_files:
@@ -123,7 +129,7 @@ def print_detailed_results(results, show_valid=False):
         print("INVALID CONFIGURATIONS")
         print("=" * 80 + "\n")
         
-        for file_path, errors in invalid_files:
+        for file_path, errors, warnings in invalid_files:
             print(f"\n📄 {file_path}")
             print("-" * 80)
             
@@ -137,17 +143,39 @@ def print_detailed_results(results, show_valid=False):
                 print(f"\n  [{error_type}] - {len(error_list)} error(s):")
                 for error in error_list:
                     print(f"    {error}")
+
+            if warnings:
+                print(f"\n  [⚠️  warnings] - {len(warnings)} warning(s):")
+                for warning in warnings:
+                    print(f"    {warning}")
             
             print()
     
+    # Print warnings for valid files
+    if show_valid and files_with_warnings:
+        # Only show valid files here; invalid files already show their warnings above
+        valid_with_warnings = [
+            (fp, w) for fp, w in files_with_warnings if results[fp][0]
+        ]
+        if valid_with_warnings:
+            print("\n" + "🟡 " + "=" * 78)
+            print("VALID CONFIGURATIONS WITH WARNINGS")
+            print("=" * 80 + "\n")
+            for file_path, warnings in valid_with_warnings:
+                print(f"\n📄 {file_path}")
+                for warning in warnings:
+                    print(f"  {warning}")
+            print()
+
     # Print valid files if requested
     if show_valid and valid_files:
         print("\n" + "🟢 " + "=" * 78)
         print("VALID CONFIGURATIONS")
         print("=" * 80 + "\n")
         
-        for file_path in valid_files:
-            print(f"  ✓ {file_path}")
+        for file_path, warnings in valid_files:
+            warn_str = f"  (⚠️  {len(warnings)} warning(s))" if warnings else ""
+            print(f"  ✓ {file_path}{warn_str}")
         print()
 
 
@@ -199,7 +227,6 @@ def main():
     parser.add_argument(
         '--recursive', '-r',
         action='store_true',
-        default=True,
         help='Recursively validate subdirectories (default: True)'
     )
     parser.add_argument(
@@ -208,6 +235,7 @@ def main():
         dest='recursive',
         help='Do not recursively validate subdirectories'
     )
+    parser.set_defaults(recursive=True)
     
     # Output options
     parser.add_argument(
@@ -269,13 +297,25 @@ def main():
     
     # Validate
     if args.file:
-        print(f"\n🔍 Validating single file: {args.file}\n")
-        is_valid, errors = validator.validate_config_file(args.file)
-        results = {args.file: (is_valid, errors)}
+        file_path = Path(args.file).resolve()
+        if not file_path.is_file():
+            print(f"\n❌ File not found: {file_path}\n")
+            sys.exit(1)
+        print(f"\n🔍 Validating single file: {file_path}\n")
+        is_valid, errors, warnings = validator.validate_config_file(str(file_path))
+        results = {str(file_path): (is_valid, errors, warnings)}
     else:
-        print(f"\n🔍 Validating directory: {args.directory}")
+        dir_path = Path(args.directory).resolve()
+        if not dir_path.is_dir():
+            print(
+                f"\n❌ Directory not found: {dir_path}"
+                f"\n   Original argument: {args.directory}"
+                f"\n   Working directory:  {Path.cwd()}\n"
+            )
+            sys.exit(1)
+        print(f"\n🔍 Validating directory: {dir_path}")
         print(f"   Recursive: {args.recursive}\n")
-        results = validator.validate_directory(args.directory, recursive=args.recursive)
+        results = validator.validate_directory(str(dir_path), recursive=args.recursive)
     
     # Generate report
     if not args.quiet:
@@ -290,10 +330,19 @@ def main():
     # Write to file if requested
     if args.output:
         write_to_file(results, args.output, show_valid=True)
-    
-    # Exit with appropriate code
-    all_valid = all(is_valid for is_valid, _ in results.values())
-    
+
+    # Guard: no files were discovered
+    if not results:
+        print(
+            "\n⚠️  No configuration files were found to validate."
+            "\n   Verify the path is correct and contains .json config files."
+            "\n   Use --no-recursive if files live at the top level only.\n"
+        )
+        sys.exit(1)
+
+    # Exit with appropriate code (warnings do not affect validity)
+    all_valid = all(entry[0] for entry in results.values())
+
     if all_valid:
         print("\n✅ All configurations are valid!\n")
         sys.exit(0)

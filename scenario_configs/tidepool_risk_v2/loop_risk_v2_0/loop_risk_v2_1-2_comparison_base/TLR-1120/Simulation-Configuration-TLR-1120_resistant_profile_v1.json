@@ -13,12 +13,12 @@
           "glucose_history": "reusable.glucose.flat_250_12hr"
         },
         "patient_model": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_37_90m_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
           "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1",
           "glucose_history": "reusable.glucose.flat_250_12hr"
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_37_90m_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
           "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
         }
       }
@@ -29,12 +29,12 @@
           "glucose_history": "reusable.glucose.flat_250_12hr"
         },
         "patient_model": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_37_90m_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
           "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1",
           "glucose_history": "reusable.glucose.flat_250_12hr"
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_37_90m_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
           "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
         }
       },
@@ -46,12 +46,12 @@
           "glucose_history": "reusable.glucose.flat_250_12hr"
         },
         "patient_model": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_37_90m_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
           "physical_activity_entries": "reusable.physical_activities.profiles.strength_training_v1",
           "glucose_history": "reusable.glucose.flat_250_12hr"
         },
         "pump": {
-          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_37_90m_v1",
+          "metabolism_settings": "reusable.metabolism_settings.activity_presets.resistant_preset_39_90m_v1",
           "target_range": "reusable.mitigations.guardrails.target_range_activity_presets_v1"
         }
       },

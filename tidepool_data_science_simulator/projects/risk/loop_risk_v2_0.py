@@ -44,7 +44,7 @@ from tidepool_data_science_simulator.run import run_simulations
 
 
 THIS_DIR = os.path.abspath(__file__)
-TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_2_0_full")
+TIDEPOOL_RISK_SCENARIOS_DIR = os.path.join(PROJECT_ROOT_DIR, "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_exploratory")
 
 RESULTS_SAVE_DIR = os.path.join(DATA_DIR, "results/tidepool_loop_risk_v2_0")
 
@@ -65,7 +65,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
     for risk_dir_name in risk_dirs:
         print(f"Processing risk directory: {risk_dir_name}")
         # Filter to a single TLR for testing. Comment out lines below to run all.
-        if "TLR-1122" not in risk_dir_name:
+        if "TLR-HF" not in risk_dir_name:
             print(f"Skipping {risk_dir_name}")
             continue
         print(f"Processing: {risk_dir_name}")

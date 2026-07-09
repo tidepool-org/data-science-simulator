@@ -2,6 +2,8 @@ __author__ = "Eden Grown-Haeberli"
 
 from datetime import timedelta
 
+import pytest
+
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.makedata.make_patient import get_canonical_risk_patient
 from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
@@ -16,6 +18,7 @@ from tidepool_data_science_simulator.models.sensor import IdealSensor
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 
+@pytest.mark.skip(reason="LoopController/pyloopkit path is no longer maintained for parity with SwiftLoopController")
 def test_virtual_patient_delete():
 
     t0, vp = get_canonical_risk_patient(pump_class=ContinuousInsulinPump)
@@ -43,6 +46,7 @@ def test_virtual_patient_delete():
     assert vp.pump.bolus_event_timeline.is_empty_timeline()
 
 
+@pytest.mark.skip(reason="LoopController/pyloopkit path is no longer maintained for parity with SwiftLoopController")
 def test_virtual_patient_delete_with_scenario_file():
 
     scenario_csv_filepath = "tests/test_data/Scenario-0-simulation-template - inputs.tsv"

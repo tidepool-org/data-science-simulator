@@ -12,7 +12,7 @@ setup(
         'tidepool_data_science_simulator.legacy',
         'tidepool_data_science_simulator.makedata',
         'tidepool_data_science_simulator.models',
-        'tidepool_data_science_simulator.vizualization',
+        'tidepool_data_science_simulator.visualization',
     ],
     long_description=open('README.md').read(),
     python_requires='>=3.6',

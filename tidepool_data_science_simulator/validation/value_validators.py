@@ -6,7 +6,44 @@ newer features like physical activity and max active insulin.
 """
 
 import datetime
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Union
+
+
+class ValidationWarning:
+    """Container for a non-fatal validation warning.
+
+    A warning indicates a value that is technically within the accepted
+    range but deviates from a known-good standard (e.g. a non-standard
+    ``max_active_insulin_multiplier``).  Warnings do not affect the
+    ``is_valid`` result returned by :class:`ConfigValidator`.
+    """
+
+    def __init__(self, field_path: str, warning_message: str, value: Any = None):
+        """
+        Parameters
+        ----------
+        field_path : str
+            Dot-notation path to the field (e.g.
+            ``"base_config.controller.settings.max_active_insulin_multiplier"``)
+        warning_message : str
+            Human-readable description of the warning
+        value : Any, optional
+            The value that triggered the warning
+        """
+        self.field_path = field_path
+        self.warning_message = warning_message
+        self.value = value
+
+    def __str__(self):
+        if self.value is not None:
+            return f"⚠️  {self.field_path}: {self.warning_message} (value: {self.value})"
+        return f"⚠️  {self.field_path}: {self.warning_message}"
+
+    def __repr__(self):
+        return (
+            f"ValidationWarning(field_path={self.field_path!r}, "
+            f"warning_message={self.warning_message!r}, value={self.value!r})"
+        )
 
 
 class ValidationError:
@@ -291,41 +328,51 @@ class ValueValidators:
         return errors
     
     @staticmethod
-    def validate_max_active_insulin_multiplier(value: float, field_path: str = "") -> List[ValidationError]:
+    def validate_max_active_insulin_multiplier(
+        value: float, field_path: str = ""
+    ) -> List[Union["ValidationError", ValidationWarning]]:
         """
         Validate max active insulin multiplier (Loop algorithm parameter).
-        
+
+        Returns a :class:`ValidationError` when the value is outside the
+        accepted range ``(0, 10]``.  Returns a :class:`ValidationWarning`
+        when the value is within range but differs from the standard of
+        ``2.0``.  Returns an empty list when the value is exactly ``2.0``.
+
         Parameters
         ----------
         value : float
             Multiplier value (typically 2.0)
         field_path : str
             Path to this field in the configuration
-            
+
         Returns
         -------
-        List[ValidationError]
-            List of validation errors (empty if valid)
+        List[Union[ValidationError, ValidationWarning]]
+            List of validation issues (errors or warnings; empty if fully valid)
         """
-        errors = []
+        results: List[Union[ValidationError, ValidationWarning]] = []
         try:
             value = float(value)
             if not 0.0 < value <= 10.0:
-                errors.append(ValidationError(
+                results.append(ValidationError(
                     field_path,
-                    f"max_active_insulin_multiplier outside valid range (0, 10]",
-                    value
+                    "max_active_insulin_multiplier outside valid range (0, 10]",
+                    value,
                 ))
-            if value != 2.0:
-                # This is a warning, not an error - print but don't add to errors list
-                print(f"⚠️  {field_path}: Using non-standard max_active_insulin_multiplier: {value} (standard is 2.0)")
+            elif value != 2.0:
+                results.append(ValidationWarning(
+                    field_path,
+                    f"Using non-standard max_active_insulin_multiplier: {value} (standard is 2.0)",
+                    value,
+                ))
         except (ValueError, TypeError):
-            errors.append(ValidationError(
+            results.append(ValidationError(
                 field_path,
                 "max_active_insulin_multiplier must be numeric",
-                value
+                value,
             ))
-        return errors
+        return results
     
     @staticmethod
     def validate_metabolism_parameters(params: dict, field_path: str = "") -> List[ValidationError]:

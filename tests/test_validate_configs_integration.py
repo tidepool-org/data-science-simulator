@@ -61,7 +61,7 @@ class TestSingleFileValidation:
 
     def test_known_valid_config_passes_without_pointer_dir(self):
         """A structurally sound config should produce no errors (structure + values only)."""
-        is_valid, errors = self.validator.validate_config_file(str(_KNOWN_VALID_FILE))
+        is_valid, errors, warnings = self.validator.validate_config_file(str(_KNOWN_VALID_FILE))
         assert is_valid, (
             f"Expected valid, got {len(errors)} error(s):\n"
             + "\n".join(str(e) for e in errors)
@@ -72,7 +72,7 @@ class TestSingleFileValidation:
         """The same file should still pass when reference resolution is enabled."""
         _require_dir(RISK_TEST_DIR)
         validator = ConfigValidator(pointer_object_dir=str(RISK_TEST_DIR))
-        is_valid, errors = validator.validate_config_file(str(_KNOWN_VALID_FILE))
+        is_valid, errors, warnings = validator.validate_config_file(str(_KNOWN_VALID_FILE))
         assert is_valid, (
             f"Expected valid with reference resolution, got {len(errors)} error(s):\n"
             + "\n".join(str(e) for e in errors)
@@ -80,19 +80,20 @@ class TestSingleFileValidation:
 
     def test_missing_file_returns_error(self):
         """Passing a non-existent path should produce a 'not found' error."""
-        is_valid, errors = self.validator.validate_config_file("/no/such/file.json")
+        is_valid, errors, warnings = self.validator.validate_config_file("/no/such/file.json")
         assert not is_valid
         assert len(errors) >= 1
         assert any("not found" in e.error_message.lower() for e in errors)
 
     def test_result_is_tuple_of_bool_and_list(self):
-        """validate_config_file must return (bool, list)."""
+        """validate_config_file must return (bool, list, list)."""
         result = self.validator.validate_config_file(str(_KNOWN_VALID_FILE))
         assert isinstance(result, tuple)
-        assert len(result) == 2
-        is_valid, errors = result
+        assert len(result) == 3
+        is_valid, errors, warnings = result
         assert isinstance(is_valid, bool)
         assert isinstance(errors, list)
+        assert isinstance(warnings, list)
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +121,7 @@ class TestDirectoryValidation:
 
         failures = {
             path: errors
-            for path, (is_valid, errors) in results.items()
+            for path, (is_valid, errors, warnings) in results.items()
             if not is_valid
         }
         assert failures == {}, (
@@ -146,7 +147,7 @@ class TestDirectoryValidation:
 
         failures = {
             path: errors
-            for path, (is_valid, errors) in results.items()
+            for path, (is_valid, errors, warnings) in results.items()
             if not is_valid
         }
         assert failures == {}, (
@@ -207,7 +208,7 @@ class TestReferenceValidation:
     def test_valid_references_produce_no_errors(self):
         """Real references in a known-valid config should resolve without errors."""
         _require_file(_KNOWN_VALID_FILE)
-        is_valid, errors = self.validator.validate_config_file(str(_KNOWN_VALID_FILE))
+        is_valid, errors, warnings = self.validator.validate_config_file(str(_KNOWN_VALID_FILE))
         reference_errors = [
             e for e in errors
             if "not found" in e.error_message.lower()
@@ -237,7 +238,7 @@ class TestReferenceValidation:
             json.dump(config, tmp)
             tmp_path = tmp.name
         try:
-            is_valid, errors = self.validator.validate_config_file(tmp_path)
+            is_valid, errors, warnings = self.validator.validate_config_file(tmp_path)
         finally:
             os.unlink(tmp_path)
 
@@ -252,7 +253,7 @@ class TestReferenceValidation:
         should have no Pydantic structure errors.
         """
         _require_file(_KNOWN_VALID_FILE)
-        is_valid, errors = self.validator.validate_config_file(str(_KNOWN_VALID_FILE))
+        is_valid, errors, warnings = self.validator.validate_config_file(str(_KNOWN_VALID_FILE))
         structure_errors_in_refs = [
             e for e in errors
             if "structure error in referenced file" in e.error_message.lower()

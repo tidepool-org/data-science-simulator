@@ -2,6 +2,8 @@ __author__ = "Mark Jude Connolly"
 
 import datetime
 
+import pytest
+
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 from tidepool_data_science_simulator.models.simulation import Simulation, TargetRangeSchedule24hr
@@ -23,6 +25,7 @@ from tidepool_data_science_simulator.models.measures import Bolus, Carb, TargetR
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 
 
+@pytest.mark.skip(reason="LoopController/pyloopkit path is no longer maintained for parity with SwiftLoopController")
 def test_autobolus():
     """
     Make sure Loop can bring a person close to their target range over 24 hours.

@@ -7,10 +7,13 @@ including structure, values, and references.
 
 import json
 import os
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Tuple, Any, Optional, Union
 from pathlib import Path
 
-from .value_validators import ValueValidators, ValidationError
+from .value_validators import ValueValidators, ValidationError, ValidationWarning
+
+# Type alias for anything a validator method may return
+_ValidationResult = Union[ValidationError, ValidationWarning]
 
 try:
     from pydantic import ValidationError as PydanticValidationError
@@ -46,7 +49,9 @@ class ConfigValidator:
         # Cache of already-loaded reusable reference files: path -> parsed JSON
         self._ref_file_cache: Dict[str, Any] = {}
         
-    def validate_config_file(self, config_path: str) -> Tuple[bool, List[ValidationError]]:
+    def validate_config_file(
+        self, config_path: str
+    ) -> Tuple[bool, List[ValidationError], List[ValidationWarning]]:
         """
         Validate a single configuration file.
         
@@ -57,49 +62,53 @@ class ConfigValidator:
             
         Returns
         -------
-        Tuple[bool, List[ValidationError]]
-            (is_valid, list of errors)
+        Tuple[bool, List[ValidationError], List[ValidationWarning]]
+            ``(is_valid, errors, warnings)`` where *is_valid* is ``True``
+            only when *errors* is empty.  *warnings* are non-fatal and do
+            not influence *is_valid*.
         """
-        errors = []
+        all_results: List[_ValidationResult] = []
         
         # Check file exists
         if not os.path.isfile(config_path):
-            errors.append(ValidationError(
+            all_results.append(ValidationError(
                 config_path,
                 "Configuration file not found"
             ))
-            return False, errors
+            return False, [e for e in all_results if isinstance(e, ValidationError)], []
         
         # Load JSON
         try:
             with open(config_path, 'r') as f:
                 config = json.load(f)
         except json.JSONDecodeError as e:
-            errors.append(ValidationError(
+            all_results.append(ValidationError(
                 config_path,
                 f"Invalid JSON: {str(e)}"
             ))
-            return False, errors
+            return False, [e for e in all_results if isinstance(e, ValidationError)], []
         except Exception as e:
-            errors.append(ValidationError(
+            all_results.append(ValidationError(
                 config_path,
                 f"Failed to load config: {str(e)}"
             ))
-            return False, errors
+            return False, [e for e in all_results if isinstance(e, ValidationError)], []
         
         # Validate structure (quick required-field check)
-        errors.extend(self._validate_structure(config, config_path))
+        all_results.extend(self._validate_structure(config, config_path))
 
         # Validate structure with Pydantic (deeper structural check + suggestions)
-        errors.extend(self._validate_pydantic_structure(config, os.path.basename(config_path)))
+        all_results.extend(self._validate_pydantic_structure(config, os.path.basename(config_path)))
 
-        # Validate values (range / format checks)
-        errors.extend(self._validate_values(config, os.path.basename(config_path)))
+        # Validate values (range / format checks) — may return warnings
+        all_results.extend(self._validate_values(config, os.path.basename(config_path)))
 
         # Validate reusable references (existence + structure)
-        errors.extend(self._validate_references(config, os.path.basename(config_path)))
-        
-        return len(errors) == 0, errors
+        all_results.extend(self._validate_references(config, os.path.basename(config_path)))
+
+        errors = [r for r in all_results if isinstance(r, ValidationError)]
+        warnings = [r for r in all_results if isinstance(r, ValidationWarning)]
+        return len(errors) == 0, errors, warnings
     
     def _validate_structure(self, config: dict, config_path: str) -> List[ValidationError]:
         """
@@ -186,7 +195,7 @@ class ConfigValidator:
 
         return []
 
-    def _validate_values(self, config: dict, path_prefix: str) -> List[ValidationError]:
+    def _validate_values(self, config: dict, path_prefix: str) -> List[_ValidationResult]:
         """
         Validate all field values recursively.
         
@@ -199,14 +208,14 @@ class ConfigValidator:
             
         Returns
         -------
-        List[ValidationError]
-            List of value validation errors
+        List[_ValidationResult]
+            List of validation errors and/or warnings
         """
-        errors = []
+        results: List[_ValidationResult] = []
         
         # Validate base_config
         if 'base_config' in config and isinstance(config['base_config'], dict):
-            errors.extend(self._validate_config_section(
+            results.extend(self._validate_config_section(
                 config['base_config'], 
                 f"{path_prefix}.base_config"
             ))
@@ -215,14 +224,14 @@ class ConfigValidator:
         if 'override_config' in config and isinstance(config['override_config'], list):
             for i, override in enumerate(config['override_config']):
                 if isinstance(override, dict):
-                    errors.extend(self._validate_config_section(
+                    results.extend(self._validate_config_section(
                         override, 
                         f"{path_prefix}.override_config[{i}]"
                     ))
         
-        return errors
+        return results
     
-    def _validate_config_section(self, section: Any, path: str) -> List[ValidationError]:
+    def _validate_config_section(self, section: Any, path: str) -> List[_ValidationResult]:
         """
         Recursively validate configuration sections.
         
@@ -235,17 +244,26 @@ class ConfigValidator:
             
         Returns
         -------
-        List[ValidationError]
-            List of validation errors
+        List[_ValidationResult]
+            List of validation errors and/or warnings
         """
-        errors = []
+        results: List[_ValidationResult] = []
         
         if not isinstance(section, dict):
-            return errors
+            return results
         
         for key, value in section.items():
             current_path = f"{path}.{key}"
-            
+
+            # The "accept_recommendation" sentinel is a patient-side construct,
+            # resolved by the patient's acceptance logic against
+            # patient.bolus_event_timeline. Placing it on patient.pump.bolus_entries
+            # routes it through the pump timeline, which the SwiftController dumps
+            # verbatim into the Loop input JSON — crashing the Swift bridge on
+            # the Double decode of `doses[*].volume`.
+            if key == "bolus_entries" and current_path.endswith(".pump.bolus_entries"):
+                results.extend(self._check_pump_bolus_sentinel(value, current_path))
+
             # Skip reusable references (would need pointer_object_dir to validate)
             if isinstance(value, str) and value.startswith('reusable.'):
                 continue
@@ -254,63 +272,63 @@ class ConfigValidator:
             if key == "basal_rate" and isinstance(value, dict):
                 if 'values' in value and isinstance(value['values'], list):
                     for i, v in enumerate(value['values']):
-                        errors.extend(self.value_validators.validate_basal_rate(
+                        results.extend(self.value_validators.validate_basal_rate(
                             v, f"{current_path}.values[{i}]"
                         ))
                     
                     # Validate start_times if present
                     if 'start_times' in value and isinstance(value['start_times'], list):
                         for i, time_str in enumerate(value['start_times']):
-                            errors.extend(self.value_validators.validate_time_format(
+                            results.extend(self.value_validators.validate_time_format(
                                 time_str, f"{current_path}.start_times[{i}]"
                             ))
             
             elif key == "carb_insulin_ratio" and isinstance(value, dict):
                 if 'values' in value and isinstance(value['values'], list):
                     for i, v in enumerate(value['values']):
-                        errors.extend(self.value_validators.validate_carb_ratio(
+                        results.extend(self.value_validators.validate_carb_ratio(
                             v, f"{current_path}.values[{i}]"
                         ))
                     
                     # Validate start_times
                     if 'start_times' in value and isinstance(value['start_times'], list):
                         for i, time_str in enumerate(value['start_times']):
-                            errors.extend(self.value_validators.validate_time_format(
+                            results.extend(self.value_validators.validate_time_format(
                                 time_str, f"{current_path}.start_times[{i}]"
                             ))
             
             elif key == "insulin_sensitivity_factor" and isinstance(value, dict):
                 if 'values' in value and isinstance(value['values'], list):
                     for i, v in enumerate(value['values']):
-                        errors.extend(self.value_validators.validate_insulin_sensitivity(
+                        results.extend(self.value_validators.validate_insulin_sensitivity(
                             v, f"{current_path}.values[{i}]"
                         ))
                     
                     # Validate start_times
                     if 'start_times' in value and isinstance(value['start_times'], list):
                         for i, time_str in enumerate(value['start_times']):
-                            errors.extend(self.value_validators.validate_time_format(
+                            results.extend(self.value_validators.validate_time_format(
                                 time_str, f"{current_path}.start_times[{i}]"
                             ))
             
             elif key == "glucose_sensitivity_factor" and isinstance(value, dict):
                 if 'values' in value and isinstance(value['values'], list):
                     for i, v in enumerate(value['values']):
-                        errors.extend(self.value_validators.validate_glucose_sensitivity_factor(
+                        results.extend(self.value_validators.validate_glucose_sensitivity_factor(
                             v, f"{current_path}.values[{i}]"
                         ))
             
             elif key == "basal_blood_glucose" and isinstance(value, dict):
                 if 'values' in value and isinstance(value['values'], list):
                     for i, v in enumerate(value['values']):
-                        errors.extend(self.value_validators.validate_basal_blood_glucose(
+                        results.extend(self.value_validators.validate_basal_blood_glucose(
                             v, f"{current_path}.values[{i}]"
                         ))
             
             elif key == "insulin_production_rate" and isinstance(value, dict):
                 if 'values' in value and isinstance(value['values'], list):
                     for i, v in enumerate(value['values']):
-                        errors.extend(self.value_validators.validate_insulin_production_rate(
+                        results.extend(self.value_validators.validate_insulin_production_rate(
                             v, f"{current_path}.values[{i}]"
                         ))
             
@@ -322,26 +340,27 @@ class ConfigValidator:
                     if isinstance(lower_values, list) and isinstance(upper_values, list):
                         min_len = min(len(lower_values), len(upper_values))
                         for i in range(min_len):
-                            errors.extend(self.value_validators.validate_target_range(
+                            results.extend(self.value_validators.validate_target_range(
                                 lower_values[i], upper_values[i], f"{current_path}[{i}]"
                             ))
                         
                         # Check for mismatched lengths
                         if len(lower_values) != len(upper_values):
-                            errors.append(ValidationError(
+                            results.append(ValidationError(
                                 current_path,
                                 f"Mismatched target_range array lengths: lower={len(lower_values)}, upper={len(upper_values)}"
                             ))
             
             elif key == "max_active_insulin_multiplier":
-                errors.extend(self.value_validators.validate_max_active_insulin_multiplier(
+                # May return ValidationError or ValidationWarning
+                results.extend(self.value_validators.validate_max_active_insulin_multiplier(
                     value, current_path
                 ))
             
             elif key == "physical_activity_entries" and isinstance(value, list):
                 for i, entry in enumerate(value):
                     if isinstance(entry, dict):
-                        errors.extend(self.value_validators.validate_physical_activity_entry(
+                        results.extend(self.value_validators.validate_physical_activity_entry(
                             entry, f"{current_path}[{i}]"
                         ))
                     elif isinstance(entry, str) and entry.startswith('reusable.'):
@@ -351,19 +370,19 @@ class ConfigValidator:
             elif key == "carb_entries" and isinstance(value, list):
                 for i, entry in enumerate(value):
                     if isinstance(entry, dict):
-                        errors.extend(self.value_validators.validate_carb_entry(
+                        results.extend(self.value_validators.validate_carb_entry(
                             entry, f"{current_path}[{i}]"
                         ))
             
             elif key == "bolus_entries" and isinstance(value, list):
                 for i, entry in enumerate(value):
                     if isinstance(entry, dict):
-                        errors.extend(self.value_validators.validate_bolus_entry(
+                        results.extend(self.value_validators.validate_bolus_entry(
                             entry, f"{current_path}[{i}]"
                         ))
             
             elif key == "time_to_calculate_at":
-                errors.extend(self.value_validators.validate_datetime_format(
+                results.extend(self.value_validators.validate_datetime_format(
                     value, current_path
                 ))
             
@@ -371,13 +390,13 @@ class ConfigValidator:
                 try:
                     duration = float(value)
                     if not 0 < duration <= 168:  # Max 1 week
-                        errors.append(ValidationError(
+                        results.append(ValidationError(
                             current_path,
                             "Simulation duration must be between 0 and 168 hours",
                             value
                         ))
                 except (ValueError, TypeError):
-                    errors.append(ValidationError(
+                    results.append(ValidationError(
                         current_path,
                         "duration_hours must be numeric",
                         value
@@ -386,21 +405,21 @@ class ConfigValidator:
             # Validate metabolism parameters
             elif key in ["w_hr", "a", "tau", "n"]:
                 param_dict = {key: value}
-                errors.extend(self.value_validators.validate_metabolism_parameters(
+                results.extend(self.value_validators.validate_metabolism_parameters(
                     param_dict, path
                 ))
             
             # Recurse into nested dictionaries
             elif isinstance(value, dict):
-                errors.extend(self._validate_config_section(value, current_path))
+                results.extend(self._validate_config_section(value, current_path))
             
             # Recurse into lists of dictionaries
             elif isinstance(value, list):
                 for i, item in enumerate(value):
                     if isinstance(item, dict):
-                        errors.extend(self._validate_config_section(item, f"{current_path}[{i}]"))
+                        results.extend(self._validate_config_section(item, f"{current_path}[{i}]"))
         
-        return errors
+        return results
     
     def _validate_references(self, config: dict, path_prefix: str) -> List[ValidationError]:
         """
@@ -568,6 +587,58 @@ class ConfigValidator:
             return ["profiles", "activities", "templates"]
         return []
 
+    def _check_pump_bolus_sentinel(
+        self, value: Any, field_path: str
+    ) -> List[ValidationError]:
+        """
+        Reject the ``accept_recommendation`` sentinel under
+        ``patient.pump.bolus_entries``.
+
+        The sentinel must live under ``patient.patient_model.bolus_entries`` so
+        that the patient's acceptance logic resolves it before the dose
+        timeline is forwarded to the Swift Loop bridge. On the pump timeline
+        it leaks into the input JSON and crashes Swift's ``Double`` decode.
+
+        Handles both inline list form and reusable-reference string form.
+        """
+        results: List[ValidationError] = []
+        entries = self._resolve_bolus_entries_value(value)
+        if entries is None:
+            return results
+        for i, entry in enumerate(entries):
+            if isinstance(entry, dict) and entry.get("value") == "accept_recommendation":
+                results.append(ValidationError(
+                    f"{field_path}[{i}].value",
+                    "'accept_recommendation' sentinel is only valid under "
+                    "patient.patient_model.bolus_entries; on patient.pump.bolus_entries "
+                    "it leaks into the Loop input JSON and crashes the Swift bridge.",
+                    "accept_recommendation",
+                ))
+        return results
+
+    def _resolve_bolus_entries_value(self, value: Any) -> Optional[List[Any]]:
+        """
+        Return the bolus-entries list for a ``bolus_entries`` field, whether the
+        field is inline or a reusable reference. Returns ``None`` when the
+        reference cannot be resolved or loaded (no diagnostics produced here —
+        those are handled by reference validation).
+        """
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str) and value.startswith("reusable."):
+            file_path = self._resolve_reference_to_path(value)
+            if not file_path or not file_path.endswith(".json"):
+                return None
+            if file_path not in self._ref_file_cache:
+                try:
+                    with open(file_path, "r") as fh:
+                        self._ref_file_cache[file_path] = json.load(fh)
+                except (json.JSONDecodeError, OSError):
+                    return None
+            data = self._ref_file_cache[file_path]
+            return data if isinstance(data, list) else None
+        return None
+
     def _validate_reference_structure(
         self,
         ref_string: str,
@@ -694,7 +765,9 @@ class ConfigValidator:
         searched = self._describe_search_paths(ref_string)
         return False, f"Reference file not found. Searched: {searched}"
     
-    def validate_directory(self, directory: str, recursive: bool = True) -> Dict[str, Tuple[bool, List[ValidationError]]]:
+    def validate_directory(
+        self, directory: str, recursive: bool = True
+    ) -> Dict[str, Tuple[bool, List[ValidationError], List[ValidationWarning]]]:
         """
         Validate all configuration files in a directory.
         
@@ -707,11 +780,20 @@ class ConfigValidator:
             
         Returns
         -------
-        Dict[str, Tuple[bool, List[ValidationError]]]
-            Dictionary mapping file paths to (is_valid, errors) tuples
+        Dict[str, Tuple[bool, List[ValidationError], List[ValidationWarning]]]
+            Dictionary mapping file paths to ``(is_valid, errors, warnings)``
+            tuples.  ``is_valid`` is ``True`` only when ``errors`` is empty;
+            ``warnings`` are non-fatal and do not influence ``is_valid``.
         """
         results = {}
         
+        directory_path = Path(directory)
+        if not directory_path.is_dir():
+            raise ValueError(
+                f"validate_directory: '{directory}' is not an existing directory. "
+                f"Pass an absolute path or ensure the working directory is correct."
+            )
+
         if recursive:
             config_files = list(Path(directory).rglob("*.json"))
         else:
@@ -722,7 +804,7 @@ class ConfigValidator:
             if "reusable" in str(config_file):
                 continue
             
-            is_valid, errors = self.validate_config_file(str(config_file))
-            results[str(config_file)] = (is_valid, errors)
+            is_valid, errors, warnings = self.validate_config_file(str(config_file))
+            results[str(config_file)] = (is_valid, errors, warnings)
         
         return results

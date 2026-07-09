@@ -177,13 +177,13 @@ class SwiftLoopController(LoopController):
         history = []
         for value, dose_start_time, dose_end_time, dose_type in zip(dose_values, dose_start_times, dose_end_times, dose_types):
             dose_type = dose_type.name.replace('tempbasal', 'basal')
-            
+
             if dose_type == 'bolus':
-                dose_start_time = dose_start_time + datetime.timedelta(seconds=1)  
-                dose_end_time = dose_end_time + datetime.timedelta(seconds=2)  
+                dose_start_time = dose_start_time + datetime.timedelta(seconds=1)
+                dose_end_time = dose_end_time + datetime.timedelta(seconds=2)
             elif dose_type == 'basal':
                 value = value / 12
-                dose_start_time = dose_start_time + datetime.timedelta(seconds=3)  
+                dose_start_time = dose_start_time + datetime.timedelta(seconds=3)
 
             entry = {
                 'startDate' : dose_start_time.strftime(format=format_string),  
