@@ -54,6 +54,8 @@ that was created from the environmental.yml file (hint: environment name is at t
 1. Run `deactivate` to stop the environment.
 
 
+**[bugfix] `setup.py`'s `packages=[...]` omitted `projects` and `validation`** (2026-07-21). This repo's local dev environment uses an editable (PEP 660) install, whose finder maps the whole top-level package to the source directory and lets Python's namespace-package resolution fill in every subpackage regardless of this list — so the gap was invisible in day-to-day development. It only bites a genuine non-editable install (a real `pip install .` producing a wheel/sdist, as needed for a distributed `.app` bundle): confirmed via an actual `bdist_wheel` build that, before this fix, `loop_risk_v2_0.py` and the whole `validation/` package were silently excluded from the built wheel. Added `tidepool_data_science_simulator.projects`, `tidepool_data_science_simulator.projects.risk`, and `tidepool_data_science_simulator.validation` to the list; re-verified the same way that all four `validation/` modules and `projects/risk/*.py` are now included. **Limitation:** other `projects.*` subpackages (`icgm`, `loop_guardrails`, `swift_api`, etc.) remain undeclared — out of scope here since nothing in this project's plan needs them distributed; revisit if a future packaging effort does.
+
 ## Getting Started with this project
 1. Current FDA scenarios are being kept `scenario_configs/tidepool_risk_v2/loop_risk_v2_0` within this repo.
 2. Exploratory iCGM sensitivity analyses are located in `tidepool_data_science_simulator/projects/icgm` within this repo.
