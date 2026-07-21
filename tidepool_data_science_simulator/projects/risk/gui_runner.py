@@ -17,6 +17,15 @@ import threading
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
+# Must happen before anything below (transitively) imports matplotlib.pyplot.
+# run_risk_assessment executes in a background thread when called from
+# Streamlit; macOS's default "macosx" backend uses AppKit, which is not
+# thread-safe and aborts the whole process (SIGABRT) if driven off the main
+# thread. This module only ever saves PNGs, never needs an interactive
+# backend, so Agg (headless, thread-safe) is forced unconditionally.
+import matplotlib
+matplotlib.use("Agg", force=True)
+
 from tidepool_data_science_simulator.utils import PROJECT_ROOT_DIR
 from tidepool_data_science_simulator.projects.risk.loop_risk_v2_0 import (
     build_risk_sim_generator,
