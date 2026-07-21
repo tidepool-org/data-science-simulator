@@ -141,7 +141,8 @@ def run_env(monkeypatch):
                          lambda config_dir, target_risk_dir=None: gui_runner.ConfigValidationResult(True, {}, {}))
     monkeypatch.setattr(gui_runner, "create_save_dir", lambda: save_dir)
     monkeypatch.setattr(gui_runner, "get_timestamp", lambda: "2026-07-21T00:00:00")
-    monkeypatch.setattr(gui_runner, "run_simulations", lambda *a, **kw: None)
+    monkeypatch.setattr(gui_runner, "run_simulations", lambda *a, **kw: ({}, None))
+    monkeypatch.setattr(gui_runner, "plot_sim_results", lambda *a, **kw: None)
 
     yield save_dir, monkeypatch
     shutil.rmtree(save_dir, ignore_errors=True)
@@ -176,6 +177,9 @@ def test_happy_path_finalizes_once_per_risk_dir(run_env, monkeypatch):
     assert [r.risk_dir_name for r in result.risk_dir_results] == ["TLR-1", "TLR-2"]
     assert progress_calls == [(1, 2, "TLR-1"), (2, 2, "TLR-2")]
     assert result.cancelled is False
+    # TLR-1 ran 2 scenario files -> 2 pngs; TLR-2 ran 1 -> 1 png
+    assert len(result.risk_dir_results[0].png_paths) == 2
+    assert len(result.risk_dir_results[1].png_paths) == 1
 
 
 def test_cancel_mid_run_stops_before_finalizing_in_progress_dir(run_env, monkeypatch):

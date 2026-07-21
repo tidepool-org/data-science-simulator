@@ -25,6 +25,7 @@ from tidepool_data_science_simulator.projects.risk.loop_risk_v2_0 import (
 )
 from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.validation.config_validator import ConfigValidator
+from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
 
 _POST_PROCESSING_DIR = os.path.join(PROJECT_ROOT_DIR, "post_processing")
 if _POST_PROCESSING_DIR not in sys.path:
@@ -44,9 +45,11 @@ class ConfigValidationResult:
 @dataclass
 class RiskDirRunResult:
     """Outcome for one TLR-* directory. assessment is None when build_assessment
-    found no usable data for it -- surfaced explicitly, never silently dropped."""
+    found no usable data for it -- surfaced explicitly, never silently dropped.
+    png_paths has one entry per scenario config file run in this directory."""
     risk_dir_name: str
     assessment: Optional[SeverityAssessment]
+    png_paths: list = field(default_factory=list)
 
 
 @dataclass
@@ -132,12 +135,13 @@ def run_risk_assessment(
     risk_dir_results = []
     completed_count = 0
     previous_risk_dir_name = None
+    current_png_paths = []
 
-    def _finalize(risk_dir_name):
+    def _finalize(risk_dir_name, png_paths):
         nonlocal completed_count
         risk_result_dirpath = os.path.join(save_dir, risk_dir_name)
         assessment = build_assessment(risk_result_dirpath, timestamp)
-        risk_dir_results.append(RiskDirRunResult(risk_dir_name, assessment))
+        risk_dir_results.append(RiskDirRunResult(risk_dir_name, assessment, png_paths))
         completed_count += 1
         if progress_callback is not None:
             progress_callback(completed_count, total, risk_dir_name)
@@ -151,7 +155,8 @@ def run_risk_assessment(
             # Finalize the just-completed dir BEFORE checking cancellation --
             # otherwise a cancel landing exactly on this transition would
             # silently drop a risk dir that had already fully finished.
-            _finalize(previous_risk_dir_name)
+            _finalize(previous_risk_dir_name, current_png_paths)
+            current_png_paths = []
 
         if cancel_event is not None and cancel_event.is_set():
             return RunResult(save_dir=save_dir, risk_dir_results=risk_dir_results, cancelled=True)
@@ -165,7 +170,7 @@ def run_risk_assessment(
             if hasattr(sim.controller, "loop_algo_io_dir"):
                 sim.controller.loop_algo_io_dir = loop_algo_io_dir
 
-        run_simulations(
+        full_results_dict, _ = run_simulations(
             sim_suite,
             save_dir=risk_result_dirpath,
             save_results=True,
@@ -173,9 +178,15 @@ def run_risk_assessment(
             name=scenario_json_name,
         )
 
+        figure_filepath = os.path.join(
+            risk_result_dirpath, f"{risk_dir_name}_{scenario_json_name}_{get_timestamp()}.png"
+        )
+        plot_sim_results(full_results_dict, save=True, save_path=figure_filepath)
+        current_png_paths.append(figure_filepath)
+
         previous_risk_dir_name = risk_dir_name
 
     if previous_risk_dir_name is not None:
-        _finalize(previous_risk_dir_name)
+        _finalize(previous_risk_dir_name, current_png_paths)
 
     return RunResult(save_dir=save_dir, risk_dir_results=risk_dir_results, cancelled=False)
