@@ -26,8 +26,14 @@ from severity_model import (
     STAGE_ORDER,
     STAGE_DISPLAY,
     # re-exported for backwards-compat with existing tests:
-    round_half_up,                 # noqa: F401  (re-export)
-    calculate_integer_averages,    # noqa: F401  (re-export)
+    round_half_up,                     # noqa: F401  (re-export)
+    calculate_integer_averages,        # noqa: F401  (re-export)
+    calculate_stage_averages,          # noqa: F401  (re-export)
+    calculate_hyperglycemia_score,     # noqa: F401  (re-export)
+    determine_harm_and_severity,       # noqa: F401  (re-export)
+    identify_severity_4_hypoglycemia,  # noqa: F401  (re-export)
+    extract_metric_data,               # noqa: F401  (re-export)
+    get_profile_metrics,               # noqa: F401  (re-export)
 )
 
 
