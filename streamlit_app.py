@@ -14,6 +14,7 @@ import threading
 
 import pandas as pd
 import streamlit as st
+from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 from tidepool_data_science_simulator.utils import PROJECT_ROOT_DIR
 from tidepool_data_science_simulator.projects.risk.gui_runner import (
@@ -76,6 +77,10 @@ def _start_run(config_dir, target_risk_dir):
             st.session_state.run_error = str(exc)
 
     thread = threading.Thread(target=_target, daemon=True)
+    # A bare background thread has no ScriptRunContext, so writes to
+    # st.session_state from inside it silently no-op -- this must be attached
+    # before start() for _target's session_state writes to actually persist.
+    add_script_run_ctx(thread)
     st.session_state.run_thread = thread
     thread.start()
 
