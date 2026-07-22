@@ -12,7 +12,6 @@ freshly-written temp directory with no changes required here.
 """
 
 import os
-import sys
 import threading
 from dataclasses import dataclass, field
 from typing import Callable, Optional
@@ -26,7 +25,6 @@ from typing import Callable, Optional
 import matplotlib
 matplotlib.use("Agg", force=True)
 
-from tidepool_data_science_simulator.utils import PROJECT_ROOT_DIR
 from tidepool_data_science_simulator.projects.risk.loop_risk_v2_0 import (
     build_risk_sim_generator,
     create_save_dir,
@@ -35,12 +33,10 @@ from tidepool_data_science_simulator.projects.risk.loop_risk_v2_0 import (
 from tidepool_data_science_simulator.run import run_simulations
 from tidepool_data_science_simulator.validation.config_validator import ConfigValidator
 from tidepool_data_science_simulator.visualization.sim_viz import plot_sim_results
-
-_POST_PROCESSING_DIR = os.path.join(PROJECT_ROOT_DIR, "post_processing")
-if _POST_PROCESSING_DIR not in sys.path:
-    sys.path.insert(0, _POST_PROCESSING_DIR)
-
-from severity_model import build_assessment, SeverityAssessment  # noqa: E402
+from tidepool_data_science_simulator.post_processing.severity_model import (
+    build_assessment,
+    SeverityAssessment,
+)
 
 
 @dataclass

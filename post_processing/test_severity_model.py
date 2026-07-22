@@ -16,7 +16,7 @@ duplicated here.
 import json
 import pytest
 
-from severity_model import (
+from tidepool_data_science_simulator.post_processing.severity_model import (
     determine_harm_and_severity,
     calculate_hyperglycemia_score,
     check_consecutive_low_values,

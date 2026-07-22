@@ -12,6 +12,7 @@ setup(
         'tidepool_data_science_simulator.legacy',
         'tidepool_data_science_simulator.makedata',
         'tidepool_data_science_simulator.models',
+        'tidepool_data_science_simulator.post_processing',
         'tidepool_data_science_simulator.visualization',
         'tidepool_data_science_simulator.projects',
         'tidepool_data_science_simulator.projects.risk',

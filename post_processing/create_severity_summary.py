@@ -21,7 +21,7 @@ import os
 import json
 import glob
 
-from severity_model import (
+from tidepool_data_science_simulator.post_processing.severity_model import (
     build_assessment,
     STAGE_ORDER,
     STAGE_DISPLAY,
