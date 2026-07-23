@@ -44,7 +44,37 @@ from tidepool_data_science_simulator.models.controller import AutomationControlT
 
 from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
-POINTER_OBJ_DIR = os.path.dirname(__file__) + "/../../scenario_configs/tidepool_risk_v2/"
+# Env override for the scenario-configs root, mirroring the seam the GUI's
+# LIBRARY_ROOT already uses (loop-risk-simulator-gui/streamlit_app.py). The
+# value is a root that CONTAINS tidepool_risk_v2/ -- same contract as
+# LOOP_RISK_GUI_SCENARIO_CONFIGS_ROOT there. This is a plain optional
+# os.environ read, NOT a GUI import: the simulator takes no dependency on the
+# GUI repo.
+_SCENARIO_CONFIGS_ROOT_ENV = "LOOP_RISK_GUI_SCENARIO_CONFIGS_ROOT"
+
+
+def resolve_pointer_object_dir():
+    """Directory holding the reusable/ pointer-object tree
+    (``<root>/scenario_configs/tidepool_risk_v2``).
+
+    ``scenario_configs/`` is a top-level repo directory that is NOT shipped with
+    the installed package, so the in-tree default (relative to this module) only
+    resolves under an editable/dev checkout. Under a non-editable install (e.g.
+    the packaged bundle) set ``LOOP_RISK_GUI_SCENARIO_CONFIGS_ROOT`` to a
+    vendored config tree and this resolves to ``<that root>/tidepool_risk_v2``.
+    Unset -> the in-tree default, unchanged for editable/dev checkouts.
+    """
+    root = os.environ.get(_SCENARIO_CONFIGS_ROOT_ENV)
+    if root:
+        return os.path.join(root, "tidepool_risk_v2")
+    return os.path.join(os.path.dirname(__file__), "..", "..", "scenario_configs", "tidepool_risk_v2")
+
+
+# Module-level default preserved for backwards-compat (imported elsewhere);
+# captures the env at import time. Callers that need the value resolved at
+# instantiation time (e.g. an env set after import) get it via ScenarioParserV2,
+# which re-resolves when pointer_object_dir is not supplied.
+POINTER_OBJ_DIR = resolve_pointer_object_dir()
 DATETIME_FORMAT = "%m/%d/%Y %H:%M:%S"
 
 SWIFT_CONTROLLER_MODEL_NAME_MAP = {
@@ -78,10 +108,15 @@ class ScenarioParserV2(SimulationParser):
     Redesigned scenario parser for Tidepool Risk automated pipeline, Feb 2021.
     """
 
-    def __init__(self, path_to_json_config=None, pointer_object_dir=POINTER_OBJ_DIR):
+    def __init__(self, path_to_json_config=None, pointer_object_dir=None):
 
         self.pointer_keyword = "reusable"
-        self.pointer_object_dir = pointer_object_dir
+        # None -> resolve now (honors LOOP_RISK_GUI_SCENARIO_CONFIGS_ROOT even if
+        # set after this module was imported); an explicit value always wins.
+        self.pointer_object_dir = (
+            pointer_object_dir if pointer_object_dir is not None
+            else resolve_pointer_object_dir()
+        )
         self.override_details = []
 
         if path_to_json_config:
