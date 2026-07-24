@@ -29,6 +29,8 @@ from tidepool_data_science_simulator.post_processing.severity_model import (
     round_half_up,                     # noqa: F401  (re-export)
     calculate_integer_averages,        # noqa: F401  (re-export)
     calculate_stage_averages,          # noqa: F401  (re-export)
+    calculate_truncated_averages,      # noqa: F401  (re-export)
+    truncate_2dp,                      # noqa: F401  (re-export)
     calculate_hyperglycemia_score,     # noqa: F401  (re-export)
     determine_harm_and_severity,       # noqa: F401  (re-export)
     identify_severity_4_hypoglycemia,  # noqa: F401  (re-export)
@@ -114,6 +116,8 @@ def render_rtf(assessment):
     tir = {stage: stages[stage].tir for stage in STAGE_ORDER}
     tbr = {stage: stages[stage].tbr for stage in STAGE_ORDER}
     tar = {stage: stages[stage].tar for stage in STAGE_ORDER}
+    lbgi_val = {stage: stages[stage].lbgi_value_avg for stage in STAGE_ORDER}
+    dkai_val = {stage: stages[stage].dka_index_value_avg for stage in STAGE_ORDER}
 
     catastrophic_content = render_catastrophic_identifier(assessment.catastrophic_findings)
     outlier_content = render_outlier_results(assessment.outlier_findings, assessment.outlier_status)
@@ -135,42 +139,50 @@ Auto-generated output from Tidepool Risk Severity Evaluation Simulator Tool
 \par\par
 
 \trowd
-\cellx1700\cellx3400\cellx5100\cellx6800\cellx8500\cellx10200
+\cellx1275\cellx2550\cellx3825\cellx5100\cellx6375\cellx7650\cellx8925\cellx10200
 \pard\intbl {\b Evaluation stage}\cell
 \pard\intbl {\b Harm}\cell
 \pard\intbl {\b Severity}\cell
 \pard\intbl {\b TIR % (70 - 180 mg/dL)}\cell
 \pard\intbl {\b TBR % (<54 mg/dL)}\cell
+\pard\intbl {\b LBGI}\cell
+\pard\intbl {\b DKAI}\cell
 \pard\intbl {\b TAR % (>180 mg/dL)}\cell
 \row
 
 \trowd
-\cellx1700\cellx3400\cellx5100\cellx6800\cellx8500\cellx10200
+\cellx1275\cellx2550\cellx3825\cellx5100\cellx6375\cellx7650\cellx8925\cellx10200
 \pard\intbl Pre-mitigation\cell
 \pard\intbl """ + hs['pre'][0] + r"""\cell
 \pard\intbl """ + hs['pre'][1] + r"""\cell
 \pard\intbl """ + tir['pre'] + r"""\cell
 \pard\intbl """ + tbr['pre'] + r"""\cell
+\pard\intbl """ + lbgi_val['pre'] + r"""\cell
+\pard\intbl """ + dkai_val['pre'] + r"""\cell
 \pard\intbl """ + tar['pre'] + r"""\cell
 \row
 
 \trowd
-\cellx1700\cellx3400\cellx5100\cellx6800\cellx8500\cellx10200
+\cellx1275\cellx2550\cellx3825\cellx5100\cellx6375\cellx7650\cellx8925\cellx10200
 \pard\intbl No Loop\cell
 \pard\intbl """ + hs['no_loop'][0] + r"""\cell
 \pard\intbl """ + hs['no_loop'][1] + r"""\cell
 \pard\intbl """ + tir['no_loop'] + r"""\cell
 \pard\intbl """ + tbr['no_loop'] + r"""\cell
+\pard\intbl """ + lbgi_val['no_loop'] + r"""\cell
+\pard\intbl """ + dkai_val['no_loop'] + r"""\cell
 \pard\intbl """ + tar['no_loop'] + r"""\cell
 \row
 
 \trowd
-\cellx1700\cellx3400\cellx5100\cellx6800\cellx8500\cellx10200
+\cellx1275\cellx2550\cellx3825\cellx5100\cellx6375\cellx7650\cellx8925\cellx10200
 \pard\intbl Post-mitigation\cell
 \pard\intbl """ + hs['post'][0] + r"""\cell
 \pard\intbl """ + hs['post'][1] + r"""\cell
 \pard\intbl """ + tir['post'] + r"""\cell
 \pard\intbl """ + tbr['post'] + r"""\cell
+\pard\intbl """ + lbgi_val['post'] + r"""\cell
+\pard\intbl """ + dkai_val['post'] + r"""\cell
 \pard\intbl """ + tar['post'] + r"""\cell
 \row
 
