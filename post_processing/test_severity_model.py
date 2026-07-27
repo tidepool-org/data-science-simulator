@@ -21,6 +21,8 @@ from tidepool_data_science_simulator.post_processing.severity_model import (
     calculate_hyperglycemia_score,
     check_consecutive_low_values,
     classify_sim_id,
+    truncate_2dp,
+    calculate_truncated_averages,
     StageResult,
     CatastrophicFinding,
     OutlierFinding,
@@ -112,12 +114,71 @@ class TestClassifySimId:
         assert classify_sim_id("something_else") is None
 
 
+class TestTruncate2dp:
+    def test_truncates_toward_zero_not_rounds(self):
+        # 21.917 must truncate to 21.91, NOT round to 21.92.
+        assert truncate_2dp(21.917) == 21.91
+
+    def test_third_decimal_dropped_even_when_large(self):
+        assert truncate_2dp(3.149) == 3.14
+        assert truncate_2dp(2.999) == 2.99
+
+    def test_whole_number_unchanged(self):
+        assert truncate_2dp(3.0) == 3.0
+        assert truncate_2dp(0.0) == 0.0
+
+    def test_already_two_decimals_unchanged(self):
+        assert truncate_2dp(2.5) == 2.5
+        assert truncate_2dp(3.14) == 3.14
+
+    def test_distinct_from_round_half_up_behavior(self):
+        # A value that would round UP but must truncate DOWN.
+        assert truncate_2dp(1.999) == 1.99
+
+
+class TestCalculateTruncatedAverages:
+    def test_whole_number_result_has_no_decimal(self):
+        # mean 3.0 -> "3", mean 0.0 -> "0"
+        data = {'pre': [3.0, 3.0], 'no_loop': [0.0], 'post': [2.0, 4.0]}
+        out = calculate_truncated_averages(data)
+        assert out['pre'] == "3"
+        assert out['no_loop'] == "0"
+        assert out['post'] == "3"
+
+    def test_trailing_zero_dropped(self):
+        # mean 2.5 -> "2.5" (not "2.50", not "2.5" via str(float))
+        data = {'pre': [2.0, 3.0], 'no_loop': [], 'post': []}
+        assert calculate_truncated_averages(data)['pre'] == "2.5"
+
+    def test_multi_decimal_truncation(self):
+        # three identical 21.917 -> mean 21.917 -> truncate -> "21.91"
+        data = {'pre': [21.917, 21.917, 21.917], 'no_loop': [], 'post': []}
+        assert calculate_truncated_averages(data)['pre'] == "21.91"
+
+    def test_fractional_mean_truncated_then_stripped(self):
+        # mean of 3.14 and 3.16 = 3.15 -> "3.15"; mean 3.1/3.3 = 3.2 -> "3.2"
+        data = {'pre': [3.14, 3.16], 'no_loop': [3.1, 3.3], 'post': []}
+        out = calculate_truncated_averages(data)
+        assert out['pre'] == "3.15"
+        assert out['no_loop'] == "3.2"
+
+    def test_empty_stage_is_na(self):
+        data = {'pre': [], 'no_loop': [], 'post': []}
+        out = calculate_truncated_averages(data)
+        assert out == {'pre': "NA", 'no_loop': "NA", 'post': "NA"}
+
+    def test_str_float_pitfall_avoided(self):
+        # Guard the exact bug the spec warns about: str(3.0) == "3.0".
+        data = {'pre': [3.0], 'no_loop': [], 'post': []}
+        assert calculate_truncated_averages(data)['pre'] == "3"
+
+
 class TestToDictRoundTrip:
     def _make_assessment(self):
         stages = {
-            'pre': StageResult('pre', 'Hypoglycemia', '4', '78.0', '4.5', '17.5', 4, 1, 2, 2),
-            'no_loop': StageResult('no_loop', 'Hypoglycemia', '3', '69.0', '3.5', '27.5', 3, 2, 2, 2),
-            'post': StageResult('post', 'Hyperglycemia', '1', '94.5', '0.0', '5.5', 1, 0, 1, 2),
+            'pre': StageResult('pre', 'Hypoglycemia', '4', '78.0', '4.5', '17.5', 4, 1, 2, 2, '2.5', '0'),
+            'no_loop': StageResult('no_loop', 'Hypoglycemia', '3', '69.0', '3.5', '27.5', 3, 2, 2, 2, '1.75', '3.14'),
+            'post': StageResult('post', 'Hyperglycemia', '1', '94.5', '0.0', '5.5', 1, 0, 1, 2, '0', 'NA'),
         }
         return SeverityAssessment(
             simulation_id='TLR-TEST',

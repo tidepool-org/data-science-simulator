@@ -103,6 +103,8 @@ class StageResult:
     dka_score_avg: int              # round-half-up averaged DKA risk score
     hyperglycemia_score: int        # derived from averaged TAR (main-path mapping)
     n_sims: int                     # number of sims aggregated into this stage (drop-detection)
+    lbgi_value_avg: str             # truncated (2dp, no escalation) averaged raw lbgi index, or 'NA'
+    dka_index_value_avg: str        # truncated (2dp) averaged raw dka_index, or 'NA'
 
     def to_dict(self):
         return asdict(self)
@@ -315,6 +317,43 @@ def calculate_integer_averages(metric_data):
     for stage in STAGE_ORDER:
         values = metric_data[stage]
         averages[stage] = round_half_up(sum(values) / len(values)) if values else 0
+    return averages
+
+
+def truncate_2dp(value):
+    """Truncate toward zero at hundredths.
+
+    Distinct from round_half_up: this drops the third decimal without rounding
+    (21.917 -> 21.91, not 21.92). Used for the raw lbgi/dka_index averages, which
+    are reported verbatim-ish (no conservative escalation, no rounding).
+    """
+    return math.trunc(value * 100) / 100
+
+
+def calculate_truncated_averages(metric_data):
+    """Average each stage's raw index values, truncate to 2dp, return as a string.
+
+    Mirrors calculate_stage_averages (plain arithmetic mean per stage) but applies
+    truncate_2dp and a distinct formatting contract instead of fixed 1-dp:
+      - empty stage            -> "NA"
+      - whole-number result    -> no decimal ("3.0" -> "3", "0.0" -> "0")
+      - fractional result      -> trailing zeros dropped ("2.50" -> "2.5", "3.14" -> "3.14")
+
+    These strings are the agreed representation consumed by the RTF renderer and
+    the forthcoming GUI wrapper; no RTF-specific formatting is baked in here.
+    """
+    averages = {}
+    for stage in STAGE_ORDER:
+        values = metric_data[stage]
+        if not values:
+            averages[stage] = "NA"
+            continue
+        value = truncate_2dp(sum(values) / len(values))
+        if value == int(value):
+            averages[stage] = str(int(value))
+        else:
+            # str(float) would render 3.0 as "3.0"; format explicitly instead.
+            averages[stage] = f"{value:.2f}".rstrip("0")
     return averages
 
 
@@ -576,6 +615,10 @@ def build_assessment(tlr_dir, timestamp):
     lbgi_averages = calculate_integer_averages(lbgi_data)
     dka_averages = calculate_integer_averages(extract_metric_data(tlr_dir, 'dka_risk_score'))
 
+    # Raw index averages (separate metric): truncated, no escalation, no rounding.
+    lbgi_value_averages = calculate_truncated_averages(extract_metric_data(tlr_dir, 'lbgi'))
+    dka_index_value_averages = calculate_truncated_averages(extract_metric_data(tlr_dir, 'dka_index'))
+
     # Per-stage n for silent-drop detection.
     n_by_stage = {stage: len(lbgi_data[stage]) for stage in STAGE_ORDER}
 
@@ -595,6 +638,8 @@ def build_assessment(tlr_dir, timestamp):
             dka_score_avg=dka_averages[stage],
             hyperglycemia_score=hyper,
             n_sims=n_by_stage[stage],
+            lbgi_value_avg=lbgi_value_averages[stage],
+            dka_index_value_avg=dka_index_value_averages[stage],
         )
 
     # Catastrophic findings as structured objects.
