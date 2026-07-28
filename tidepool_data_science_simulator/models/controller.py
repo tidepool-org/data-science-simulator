@@ -112,6 +112,9 @@ class LoopController(BaseControllerClass):
         self.time = time
         self.controller_config = copy.deepcopy(controller_config)
         self.recommendations = None
+        # Swift-only prediction/effect/COB payload for the current step; populated by
+        # SwiftLoopController, left None by controllers that don't compute predictions.
+        self.prediction_output = None
         self.open_loop = False
 
         self.bolus_event_timeline = controller_config.bolus_event_timeline
@@ -129,7 +132,10 @@ class LoopController(BaseControllerClass):
 
     def get_state(self):
 
-        return ControllerState(pyloopkit_recommendations=self.recommendations)
+        return ControllerState(
+            pyloopkit_recommendations=self.recommendations,
+            prediction_output=self.prediction_output,
+        )
 
     def get_dose_event_timelines(self, virtual_patient):
         """
@@ -504,8 +510,12 @@ class LoopControllerDisconnector(LoopController):
 
 class ControllerState(object):
 
-    def __init__(self, pyloopkit_recommendations):
+    def __init__(self, pyloopkit_recommendations, prediction_output=None):
         self.pyloopkit_recommendations = pyloopkit_recommendations
+        # dict | None: Swift Loop prediction/effect/COB payload for this step
+        # (predicted_glucose_values, glucose_effect_velocity_values, active_carbs,
+        # active_insulin). None for controllers that don't compute predictions.
+        self.prediction_output = prediction_output
 
 
 
