@@ -295,88 +295,41 @@ class Simulation(multiprocessing.Process):
 
             if simulation_state.controller_state is not None:
                 try:
+                    # Recommendation object (Swift format): source the three columns it
+                    # legitimately carries -- automatic bolus, temp basal rate, duration.
                     loop_out = simulation_state.controller_state.pyloopkit_recommendations
-                    
                     if loop_out is not None:
-                        # Check if this is Swift Loop API format (has 'automatic' and 'manual' keys)
                         if 'automatic' in loop_out and isinstance(loop_out['automatic'], dict):
                             automatic = loop_out['automatic']
-                            
-                            # Extract automatic bolus recommendation
                             loop_automatic_bolus_rec = automatic.get('bolusUnits')
-                            
-                            # Extract temp basal recommendation
                             if 'basalAdjustment' in automatic and isinstance(automatic['basalAdjustment'], dict):
                                 basal_adj = automatic['basalAdjustment']
                                 loop_temp_basal_rec = basal_adj.get('unitsPerHour')
                                 loop_temp_basal_duration_sec = basal_adj.get('duration')
-                        
-                        # Extract manual bolus recommendation
+
                         if 'manual' in loop_out and isinstance(loop_out['manual'], dict):
                             loop_manual_bolus_rec = loop_out['manual'].get('amount')
-                        
-                        # Legacy pyloopkit format support (if data exists in that format)
-                        # Try different possible key names for COB
-                        loop_cob = loop_out.get("carbs_on_board") or loop_out.get("carbsOnBoard") or loop_out.get("cob")
-                        
-                        # Extract glucose predictions (if available)
-                        pred_values = loop_out.get("predicted_glucose_values") or loop_out.get("predictedGlucoseValues")
-                        if pred_values and len(pred_values) > 0:
-                            pred_horizon_minutes = len(pred_values) * 5
+
+                    # Prediction/effect/COB come from the Swift prediction API payload
+                    # (TRSET-24), NOT the recommendation object -- the recommendation
+                    # never carried these. Populated only on Swift-controlled steps.
+                    pred_out = getattr(simulation_state.controller_state, "prediction_output", None)
+                    if pred_out is not None:
+                        pred_values = pred_out.get("predicted_glucose_values")
+                        if pred_values:
                             final_predicted_glucose = pred_values[-1]
-                        
-                        # Extract insulin effect (if available)
-                        insulin_values = loop_out.get("insulin_effect_values") or loop_out.get("insulinEffectValues")
-                        if insulin_values and len(insulin_values) > 0:
-                            insulin_effect_horizon_minutes = len(insulin_values) * 5
-                            final_insulin_effect = insulin_values[-1]
-                        
-                        # Extract carb effect (if available)
-                        carb_values = loop_out.get("carb_effect_values") or loop_out.get("carbEffectValues")
-                        if carb_values and len(carb_values) > 0:
-                            carb_effect_horizon_minutes = len(carb_values) * 5
-                            final_carb_effect = carb_values[-1]
-                        
-                        # Extract counteraction effect (if available)
-                        counter_values = loop_out.get("counteraction_effect_values") or loop_out.get("counteractionEffectValues")
-                        if counter_values and len(counter_values) > 0:
-                            counteraction_effect_horizon_minutes = len(counter_values) * 5
-                            final_counteraction_effect = counter_values[-1]
-                        
-                        # Extract momentum effect (if available)
-                        momentum_values = loop_out.get("momentum_effect_values") or loop_out.get("momentumEffectValues")
-                        if momentum_values and len(momentum_values) > 0:
-                            momentum_effect_horizon_minutes = len(momentum_values) * 5
-                            final_momentum_effect = momentum_values[-1]
-                        
-                        # Extract retrospective correction effect (if available)
-                        rc_values = loop_out.get("retrospective_effect_values") or loop_out.get("retrospectiveEffectValues")
-                        if rc_values and len(rc_values) > 0:
-                            rc_effect_horizon_minutes = len(rc_values) * 5
-                            final_rc_effect = rc_values[-1]
-                        
-                        # Extract legacy format recommendations (if available)
-                        temp_basal = loop_out.get("recommended_temp_basal") or loop_out.get("recommendedTempBasal")
-                        if temp_basal and len(temp_basal) > 0:
-                            if loop_temp_basal_rec is None:  # Only use if Swift format didn't provide it
-                                loop_temp_basal_rec = temp_basal[0]
-                        
-                        bolus = loop_out.get("recommended_bolus") or loop_out.get("recommendedBolus")
-                        if bolus and len(bolus) > 0:
-                            if loop_bolus_rec is None:  # Only use if Swift format didn't provide it
-                                loop_bolus_rec = bolus[0]
-                    
-                    elif simulation_state.active == 1:
-                        # Only log if this should have data (active=1) - minimal logging
-                        pass
-                
-                except (AttributeError, TypeError, KeyError, IndexError) as e:
-                    # Silently handle expected extraction errors
-                    pass
+
+                        ice_values = pred_out.get("glucose_effect_velocity_values")
+                        if ice_values:
+                            final_counteraction_effect = ice_values[-1]
+
+                        # COB is a scalar; 0.0 is a legitimate value (no active carbs).
+                        loop_cob = pred_out.get("active_carbs")
+
                 except Exception as e:
-                    # Log unexpected errors only
-                    if simulation_state.active == 1:
-                        logger.warning(f"Unexpected error extracting loop outputs at {time}: {e}")
+                    # No silent failures (workflow section 4 / AC #4): log and continue
+                    # with empty loop columns for this step rather than swallowing.
+                    logger.warning("Error extracting loop outputs at %s: %s", time, e)
             # No logging needed when controller_state is None - that's expected during init
 
             row = {
