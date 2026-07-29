@@ -50,9 +50,12 @@ RESULTS_SAVE_DIR = os.path.join(DATA_DIR, "results/tidepool_loop_risk_v2_0")
 
 
 @timing
-def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=None):
+def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=None, target_risk_dir=None):
     """
     Build a generator of suites of related simulations for processing.
+
+    :param target_risk_dir: substring to filter to a single TLR-* directory (e.g. "TLR-HF").
+        If None, all TLR-* directories under scenario_json_filepath are processed.
     """
     print(f"build_risk_sim_generator called with scenario_json_filepath: {scenario_json_filepath}")
     print(f"TIDEPOOL_RISK_SCENARIOS_DIR: {TIDEPOOL_RISK_SCENARIOS_DIR}")
@@ -64,8 +67,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
 
     for risk_dir_name in risk_dirs:
         print(f"Processing risk directory: {risk_dir_name}")
-        # Filter to a single TLR for testing. Comment out lines below to run all.
-        if "TLR-HF not in risk_dir_name:
+        if target_risk_dir is not None and target_risk_dir not in risk_dir_name:
             print(f"Skipping {risk_dir_name}")
             continue
         print(f"Processing: {risk_dir_name}")

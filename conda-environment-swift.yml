@@ -25,10 +25,14 @@ dependencies:
   
   - pip:
     - pydantic>=2.0
+    - openpyxl==3.1.5
     - backports-datetime-fromisoformat==2.0.2
     - pip-chill==1.0.3
     - python-dotenv==1.0.1
-    - git+https://github.com/tidepool-org/data-science-models
+    # Pinned to sf/incorporate_pa (not yet merged to main) -- patient.py's
+    # VirtualPatient.instantiate_metabolism_model() requires the w_hr/a/tau/n
+    # physical-activity params this branch adds to SimpleMetabolismModel.
+    - git+https://github.com/tidepool-org/data-science-models@sf/incorporate_pa
     - git+https://github.com/tidepool-org/Pyloopkit
     - git+https://github.com/tidepool-org/data-science-metrics
     - -e ../LoopAlgorithmToPython

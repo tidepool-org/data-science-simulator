@@ -191,7 +191,14 @@ def plot_sim_results(all_results, save=False, n_sims_max_legend=5, save_path=Non
     if save:
         if save_path is None:
             save_path = "./data-science-simulator-image_{}.png".format(datetime.datetime.now().isoformat())
-        plt.savefig(save_path)
+        # fig.savefig (not the global plt.savefig) so this always saves the figure
+        # built above, never whatever pyplot currently considers "current" -- and
+        # close it afterward so repeated calls in the same process (e.g. once per
+        # scenario file in a GUI run) can't leak figure state into the next call.
+        # Only done in the save path -- callers using save=False (e.g. existing
+        # tests) inspect the current figure via plt.gcf() right after this returns.
+        fig.savefig(save_path)
+        plt.close(fig)
     else:
         plt.show()
 

@@ -52,7 +52,15 @@ def run_simulations(sims, save_dir,
     num_procs: int
         Number of processes for multiprocessing
     """
-    current_commit = subprocess.check_output(["git", "describe", "--always"]).strip().decode("utf-8")
+    # Provenance logging must not crash a run: git describe fails (exit 128) when
+    # the cwd is not a git repo -- e.g. a packaged/non-editable install run from a
+    # bundle dir. Degrade to "unknown" instead of raising.
+    try:
+        current_commit = subprocess.check_output(
+            ["git", "describe", "--always"], stderr=subprocess.DEVNULL
+        ).strip().decode("utf-8")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        current_commit = "unknown"
 
     logger.debug("Results Directory: {}".format(save_dir))
     logger.debug("Current Code Commit: {}".format(current_commit))
