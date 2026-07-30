@@ -14,13 +14,18 @@ duplicated here.
 """
 
 import json
+import os
+
 import pytest
 
 from severity_model import (
+    build_assessment,
+    calculate_truncated_averages,
     determine_harm_and_severity,
     calculate_hyperglycemia_score,
     check_consecutive_low_values,
     classify_sim_id,
+    truncate_2dp,
     StageResult,
     CatastrophicFinding,
     OutlierFinding,
@@ -147,3 +152,154 @@ class TestToDictRoundTrip:
     def test_stage_keys_present(self):
         d = self._make_assessment().to_dict()
         assert set(d['stages'].keys()) == {'pre', 'no_loop', 'post'}
+
+
+# Columns build_assessment reads; kept together so the fixtures stay valid if the
+# extraction set changes. 'lbgi'/'dka_index' are the raw values the new
+# *_value_avg fields average; the *_risk_score columns feed the 0-4 scores.
+_SUMMARY_COLUMNS = [
+    "sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54",
+    "percent_cgm_gt_180", "lbgi_risk_score", "dka_risk_score", "lbgi", "dka_index",
+]
+# One row per stage; two profiles (below) so the averages exercise real division.
+# lbgi_risk_score kept < 4 so the catastrophic (4->5) path (which reads per-sim
+# time-series files this fixture doesn't create) is never entered.
+#
+# The raw lbgi/dka_index values are chosen so each stage lands on a different
+# formatting branch of calculate_truncated_averages:
+#   pre     lbgi (2.0+3.339)/2 = 2.6695 -> '2.66'  (truncated, NOT rounded to 2.67)
+#   no_loop lbgi (4.0+5.0)/2   = 4.5    -> '4.5'   (trailing zero dropped)
+#   post    lbgi (1.0+1.0)/2   = 1.0    -> '1'     (whole number, no decimal)
+#   post    dka  (10.0+12.5)/2 = 11.25  -> '11.25' (both decimals kept)
+_PROFILE_A_ROWS = [
+    # sim_id,                              tir,  tbr, tar, lbgi_s, dka_s, lbgi, dka_index
+    ("pre-Loop_NoMitigations_t1_median",  78.0, 4.5, 17.5, 3, 1, 2.0, 20.0),
+    ("pre-noLoop_t1_median",              69.0, 3.5, 27.5, 3, 2, 4.0, 30.0),
+    ("post-Loop_WithMitigations_t1_median", 94.5, 0.0, 5.5, 1, 0, 1.0, 10.0),
+]
+_PROFILE_B_ROWS = [
+    ("pre-Loop_NoMitigations_t1_median",  80.0, 4.0, 16.0, 3, 1, 3.339, 22.0),
+    ("pre-noLoop_t1_median",              70.0, 3.0, 26.0, 3, 2, 5.0, 28.0),
+    ("post-Loop_WithMitigations_t1_median", 95.0, 0.0, 5.0, 1, 0, 1.0, 12.5),
+]
+
+
+def _write_summary_csv(directory, profile, rows, columns=_SUMMARY_COLUMNS):
+    path = os.path.join(
+        directory,
+        f"summary_results_Simulation-Configuration-TLR-999-test_{profile}_profile.csv",
+    )
+    with open(path, "w") as fh:
+        fh.write(",".join(columns) + "\n")
+        for row in rows:
+            # Drop trailing columns if a variant fixture omits them (e.g. no lbgi).
+            fh.write(",".join(str(v) for v in row[: len(columns)]) + "\n")
+    return path
+
+
+class TestTruncate2dp:
+    """Truncation toward zero at hundredths -- never rounding."""
+
+    def test_truncates_it_does_not_round(self):
+        # 2.6695 would ROUND to 2.67; truncation must yield 2.66.
+        assert truncate_2dp(2.6695) == 2.66
+        assert truncate_2dp(2.999) == 2.99
+
+    def test_exact_values_unchanged(self):
+        assert truncate_2dp(3.0) == 3.0
+        assert truncate_2dp(2.5) == 2.5
+        assert truncate_2dp(0.0) == 0.0
+
+    def test_third_decimal_dropped(self):
+        assert truncate_2dp(1.333) == 1.33
+        assert truncate_2dp(21.918) == 21.91
+
+
+class TestCalculateTruncatedAverages:
+    """String formatting rules for the raw-value averages."""
+
+    def _avg(self, pre=None, no_loop=None, post=None):
+        return calculate_truncated_averages({
+            'pre': pre or [], 'no_loop': no_loop or [], 'post': post or [],
+        })
+
+    def test_empty_stage_is_na(self):
+        assert self._avg()['pre'] == "NA"
+
+    def test_whole_number_has_no_decimal(self):
+        assert self._avg(pre=[3.0, 3.0])['pre'] == "3"
+        assert self._avg(pre=[0.0, 0.0])['pre'] == "0"
+        assert self._avg(pre=[20.0, 22.0])['pre'] == "21"
+
+    def test_trailing_zeros_dropped(self):
+        assert self._avg(pre=[2.5, 2.5])['pre'] == "2.5"
+        assert self._avg(pre=[3.1, 3.1])['pre'] == "3.1"
+
+    def test_two_decimals_preserved(self):
+        assert self._avg(pre=[3.14, 3.14])['pre'] == "3.14"
+        assert self._avg(pre=[10.0, 12.5])['pre'] == "11.25"
+
+    def test_multi_decimal_average_is_truncated_not_rounded(self):
+        # (2.0 + 3.339)/2 = 2.6695 -> '2.66', never '2.67'.
+        assert self._avg(pre=[2.0, 3.339])['pre'] == "2.66"
+
+    def test_stages_are_independent(self):
+        result = self._avg(pre=[2.0, 3.339], no_loop=[4.0, 5.0], post=[1.0, 1.0])
+        assert result == {'pre': "2.66", 'no_loop': "4.5", 'post': "1"}
+
+
+class TestBuildAssessmentValueFields:
+    """The raw-value fields (lbgi_value_avg / dka_index_value_avg) are averaged
+    from the summary 'lbgi'/'dka_index' columns and truncated to 2dp -- and
+    degrade to 'NA' when the column is absent."""
+
+    def test_value_fields_are_averaged_from_raw_columns(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+
+        assessment = build_assessment(tlr, "2026-07-29T00:00:00")
+        assert assessment is not None
+
+        pre = assessment.stages["pre"]
+        # (2.0+3.339)/2 = 2.6695 -> truncated '2.66' (rounding would give 2.67).
+        # Distinct from the risk SCORE (still the integer 3) -- separate fields.
+        assert pre.lbgi_value_avg == "2.66"
+        # (20.0+22.0)/2 = 21.0 -> whole number renders without a decimal.
+        assert pre.dka_index_value_avg == "21"
+        assert pre.lbgi_score_avg == 3
+
+        # Trailing zero dropped, and both decimals kept.
+        assert assessment.stages["no_loop"].lbgi_value_avg == "4.5"
+        assert assessment.stages["post"].dka_index_value_avg == "11.25"
+        assert assessment.stages["post"].lbgi_value_avg == "1"
+
+    def test_raw_values_carry_no_escalation(self, tmp_path):
+        """The 4->5 catastrophic escalation applies to the SCORE, never the raw
+        value -- so the value fields are extracted without severity_updates."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+
+        assessment = build_assessment(tlr, "2026-07-29T00:00:00")
+        # Raw averages reflect the CSV columns verbatim, independent of scores.
+        assert assessment.stages["no_loop"].lbgi_value_avg == "4.5"
+        assert assessment.stages["no_loop"].dka_index_value_avg == "29"
+
+    def test_value_fields_are_na_when_columns_absent(self, tmp_path):
+        tlr = str(tmp_path)
+        # Same fixtures but without the trailing lbgi/dka_index columns.
+        cols = _SUMMARY_COLUMNS[:-2]
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS, columns=cols)
+
+        assessment = build_assessment(tlr, "2026-07-29T00:00:00")
+        assert assessment is not None
+        for stage in ("pre", "no_loop", "post"):
+            assert assessment.stages[stage].lbgi_value_avg == "NA"
+            assert assessment.stages[stage].dka_index_value_avg == "NA"
+
+    def test_stageresult_value_fields_default_to_na(self):
+        """Positional constructors that predate these fields still work."""
+        sr = StageResult("pre", "Hypoglycemia", "3", "78.0", "4.5", "17.5", 3, 1, 2, 2)
+        assert sr.lbgi_value_avg == "NA"
+        assert sr.dka_index_value_avg == "NA"
