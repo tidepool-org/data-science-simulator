@@ -103,6 +103,14 @@ class StageResult:
     dka_score_avg: int              # round-half-up averaged DKA risk score
     hyperglycemia_score: int        # derived from averaged TAR (main-path mapping)
     n_sims: int                     # number of sims aggregated into this stage (drop-detection)
+    # Raw averaged metric VALUES (not the 0-4 risk scores above): the mean raw
+    # LBGI and DKA-index across the stage's sims, 1 dp as a string, or 'NA' when
+    # there is no data -- same convention as tir/tbr/tar. Surfaced alongside the
+    # scores so a consumer (e.g. the GUI stage table) can show the underlying
+    # value, not only the escalated score. Defaulted so existing positional
+    # constructors keep working; build_severity_assessment always populates them.
+    lbgi_value_avg: str = "NA"      # averaged raw LBGI value (summary column 'lbgi')
+    dka_index_value_avg: str = "NA"  # averaged raw DKA index (summary column 'dka_index')
 
     def to_dict(self):
         return asdict(self)
@@ -575,6 +583,12 @@ def build_assessment(tlr_dir, timestamp):
     lbgi_data = extract_metric_data(tlr_dir, 'lbgi_risk_score', assessment_results)
     lbgi_averages = calculate_integer_averages(lbgi_data)
     dka_averages = calculate_integer_averages(extract_metric_data(tlr_dir, 'dka_risk_score'))
+    # Raw averaged metric values (underlying LBGI / DKA-index, not the risk
+    # scores) for consumers that surface the value itself. 1-dp strings / 'NA',
+    # via the same averaging as tir/tbr/tar. Degrades to 'NA' if the summary
+    # CSVs lack the column (extract_metric_data warns and returns empty).
+    lbgi_value_averages = calculate_stage_averages(extract_metric_data(tlr_dir, 'lbgi'))
+    dka_index_value_averages = calculate_stage_averages(extract_metric_data(tlr_dir, 'dka_index'))
 
     # Per-stage n for silent-drop detection.
     n_by_stage = {stage: len(lbgi_data[stage]) for stage in STAGE_ORDER}
@@ -595,6 +609,8 @@ def build_assessment(tlr_dir, timestamp):
             dka_score_avg=dka_averages[stage],
             hyperglycemia_score=hyper,
             n_sims=n_by_stage[stage],
+            lbgi_value_avg=lbgi_value_averages[stage],
+            dka_index_value_avg=dka_index_value_averages[stage],
         )
 
     # Catastrophic findings as structured objects.

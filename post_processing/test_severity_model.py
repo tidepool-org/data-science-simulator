@@ -14,9 +14,12 @@ duplicated here.
 """
 
 import json
+import os
+
 import pytest
 
 from severity_model import (
+    build_assessment,
     determine_harm_and_severity,
     calculate_hyperglycemia_score,
     check_consecutive_low_values,
@@ -147,3 +150,81 @@ class TestToDictRoundTrip:
     def test_stage_keys_present(self):
         d = self._make_assessment().to_dict()
         assert set(d['stages'].keys()) == {'pre', 'no_loop', 'post'}
+
+
+# Columns build_assessment reads; kept together so the fixtures stay valid if the
+# extraction set changes. 'lbgi'/'dka_index' are the raw values the new
+# *_value_avg fields average; the *_risk_score columns feed the 0-4 scores.
+_SUMMARY_COLUMNS = [
+    "sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54",
+    "percent_cgm_gt_180", "lbgi_risk_score", "dka_risk_score", "lbgi", "dka_index",
+]
+# One row per stage; two profiles (below) so the averages exercise real division.
+# lbgi_risk_score kept < 4 so the catastrophic (4->5) path (which reads per-sim
+# time-series files this fixture doesn't create) is never entered.
+_PROFILE_A_ROWS = [
+    # sim_id,                              tir,  tbr, tar, lbgi_s, dka_s, lbgi, dka_index
+    ("pre-Loop_NoMitigations_t1_median",  78.0, 4.5, 17.5, 3, 1, 2.0, 20.0),
+    ("pre-noLoop_t1_median",              69.0, 3.5, 27.5, 3, 2, 4.0, 30.0),
+    ("post-Loop_WithMitigations_t1_median", 94.5, 0.0, 5.5, 1, 0, 1.0, 10.0),
+]
+_PROFILE_B_ROWS = [
+    ("pre-Loop_NoMitigations_t1_median",  80.0, 4.0, 16.0, 3, 1, 3.0, 22.0),
+    ("pre-noLoop_t1_median",              70.0, 3.0, 26.0, 3, 2, 5.0, 28.0),
+    ("post-Loop_WithMitigations_t1_median", 95.0, 0.0, 5.0, 1, 0, 1.0, 12.0),
+]
+
+
+def _write_summary_csv(directory, profile, rows, columns=_SUMMARY_COLUMNS):
+    path = os.path.join(
+        directory,
+        f"summary_results_Simulation-Configuration-TLR-999-test_{profile}_profile.csv",
+    )
+    with open(path, "w") as fh:
+        fh.write(",".join(columns) + "\n")
+        for row in rows:
+            # Drop trailing columns if a variant fixture omits them (e.g. no lbgi).
+            fh.write(",".join(str(v) for v in row[: len(columns)]) + "\n")
+    return path
+
+
+class TestBuildAssessmentValueFields:
+    """The new raw-value fields (lbgi_value_avg / dka_index_value_avg) are
+    averaged from the summary 'lbgi'/'dka_index' columns, 1 dp as a string,
+    mirroring tir/tbr/tar -- and degrade to 'NA' when the column is absent."""
+
+    def test_value_fields_are_averaged_from_raw_columns(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+
+        assessment = build_assessment(tlr, "2026-07-29T00:00:00")
+        assert assessment is not None
+
+        pre = assessment.stages["pre"]
+        # Raw VALUES: (2.0+3.0)/2 = 2.5 ; (20.0+22.0)/2 = 21.0  -- distinct from
+        # the risk SCORE (still the integer 3), proving they are separate fields.
+        assert pre.lbgi_value_avg == "2.5"
+        assert pre.dka_index_value_avg == "21.0"
+        assert pre.lbgi_score_avg == 3
+
+        assert assessment.stages["no_loop"].lbgi_value_avg == "4.5"
+        assert assessment.stages["post"].dka_index_value_avg == "11.0"
+
+    def test_value_fields_are_na_when_columns_absent(self, tmp_path):
+        tlr = str(tmp_path)
+        # Same fixtures but without the trailing lbgi/dka_index columns.
+        cols = _SUMMARY_COLUMNS[:-2]
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS, columns=cols)
+
+        assessment = build_assessment(tlr, "2026-07-29T00:00:00")
+        assert assessment is not None
+        for stage in ("pre", "no_loop", "post"):
+            assert assessment.stages[stage].lbgi_value_avg == "NA"
+            assert assessment.stages[stage].dka_index_value_avg == "NA"
+
+    def test_stageresult_value_fields_default_to_na(self):
+        """Positional constructors that predate these fields still work."""
+        sr = StageResult("pre", "Hypoglycemia", "3", "78.0", "4.5", "17.5", 3, 1, 2, 2)
+        assert sr.lbgi_value_avg == "NA"
+        assert sr.dka_index_value_avg == "NA"
