@@ -104,11 +104,13 @@ class StageResult:
     hyperglycemia_score: int        # derived from averaged TAR (main-path mapping)
     n_sims: int                     # number of sims aggregated into this stage (drop-detection)
     # Raw averaged metric VALUES (not the 0-4 risk scores above): the mean raw
-    # LBGI and DKA-index across the stage's sims, 1 dp as a string, or 'NA' when
-    # there is no data -- same convention as tir/tbr/tar. Surfaced alongside the
-    # scores so a consumer (e.g. the GUI stage table) can show the underlying
-    # value, not only the escalated score. Defaulted so existing positional
-    # constructors keep working; build_severity_assessment always populates them.
+    # LBGI and DKA-index across the stage's sims, truncated to 2dp (never
+    # rounded, no 4->5 escalation), or 'NA' when there is no data. Whole numbers
+    # carry no decimal ('3'); fractional values drop trailing zeros ('2.5',
+    # '3.14'). Surfaced alongside the scores so a consumer (the GUI stage table,
+    # the RTF) can show the underlying value, not only the escalated score.
+    # Defaulted so existing positional constructors keep working;
+    # build_assessment always populates them.
     lbgi_value_avg: str = "NA"      # averaged raw LBGI value (summary column 'lbgi')
     dka_index_value_avg: str = "NA"  # averaged raw DKA index (summary column 'dka_index')
 
@@ -314,6 +316,39 @@ def calculate_stage_averages(metric_data):
     for stage in STAGE_ORDER:
         values = metric_data[stage]
         averages[stage] = f"{sum(values) / len(values):.1f}" if values else "NA"
+    return averages
+
+
+def truncate_2dp(value):
+    """Truncate toward zero at hundredths (NOT rounding).
+
+    Deliberately not round_half_up / not f-string rounding: the raw LBGI and
+    DKA-index averages are reported as truncated values, so a stage never shows a
+    value higher than the data supports.
+    """
+    return math.trunc(value * 100) / 100
+
+
+def calculate_truncated_averages(metric_data):
+    """Average each stage, truncate to 2dp, format as a string; 'NA' if no data.
+
+    Mirrors calculate_stage_averages but for raw metric VALUES rather than the
+    1-dp percentages. Formatting: whole numbers carry no decimal (3.0 -> '3'),
+    fractional values drop trailing zeros (2.50 -> '2.5', 3.14 -> '3.14'). Bare
+    str(float) is unusable here -- str(3.0) == '3.0' violates the whole-number
+    rule.
+    """
+    averages = {}
+    for stage in STAGE_ORDER:
+        values = metric_data[stage]
+        if not values:
+            averages[stage] = "NA"
+            continue
+        truncated = truncate_2dp(sum(values) / len(values))
+        if truncated == int(truncated):
+            averages[stage] = str(int(truncated))
+        else:
+            averages[stage] = "{:.2f}".format(truncated).rstrip("0")
     return averages
 
 
@@ -584,11 +619,12 @@ def build_assessment(tlr_dir, timestamp):
     lbgi_averages = calculate_integer_averages(lbgi_data)
     dka_averages = calculate_integer_averages(extract_metric_data(tlr_dir, 'dka_risk_score'))
     # Raw averaged metric values (underlying LBGI / DKA-index, not the risk
-    # scores) for consumers that surface the value itself. 1-dp strings / 'NA',
-    # via the same averaging as tir/tbr/tar. Degrades to 'NA' if the summary
-    # CSVs lack the column (extract_metric_data warns and returns empty).
-    lbgi_value_averages = calculate_stage_averages(extract_metric_data(tlr_dir, 'lbgi'))
-    dka_index_value_averages = calculate_stage_averages(extract_metric_data(tlr_dir, 'dka_index'))
+    # scores) for consumers that surface the value itself. Truncated to 2dp, NOT
+    # rounded, and deliberately extracted WITHOUT severity_updates -- no 4->5
+    # escalation applies to a raw value. Degrades to 'NA' if the summary CSVs lack
+    # the column (extract_metric_data warns and returns empty).
+    lbgi_value_averages = calculate_truncated_averages(extract_metric_data(tlr_dir, 'lbgi'))
+    dka_index_value_averages = calculate_truncated_averages(extract_metric_data(tlr_dir, 'dka_index'))
 
     # Per-stage n for silent-drop detection.
     n_by_stage = {stage: len(lbgi_data[stage]) for stage in STAGE_ORDER}
