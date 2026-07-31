@@ -41,6 +41,17 @@ if _POST_PROCESSING_DIR not in sys.path:
     sys.path.insert(0, _POST_PROCESSING_DIR)
 
 from severity_model import build_assessment, SeverityAssessment  # noqa: E402
+# Re-exported for GUI consumers (TRSET-23). severity_model remains the single
+# source of truth for stage identity; it lives in the simulator's top-level
+# post_processing/ dir, which is NOT part of the installed package and is only
+# importable after the sys.path insert above. Re-exporting here keeps consumers
+# on this module -- the single validated entry point per this file's docstring --
+# instead of each of them replicating that path setup.
+from severity_model import (  # noqa: E402,F401
+    classify_sim_id,
+    STAGE_DISPLAY,
+    STAGE_ORDER,
+)
 
 
 @dataclass
@@ -55,10 +66,20 @@ class ConfigValidationResult:
 class RiskDirRunResult:
     """Outcome for one TLR-* directory. assessment is None when build_assessment
     found no usable data for it -- surfaced explicitly, never silently dropped.
-    png_paths has one entry per scenario config file run in this directory."""
+    png_paths has one entry per scenario config file run in this directory.
+
+    trace_paths (TRSET-23) exposes each completed sim's per-run ``<sim_id>.tsv``
+    so consumers can read it with ``trace.read_trace``. It is keyed
+    scenario_config_filename -> {sim_id: tsv_path}: one scenario config file is
+    one VP profile, and its sim_ids are that profile's stages, so the nesting is
+    the (profile, stage) grouping consumers need. Paths are the ones
+    run_simulations(save_results=True) writes via utils.save_df; existence is not
+    re-probed here, so a consumer that cannot read one should surface that
+    explicitly rather than treat it as absent."""
     risk_dir_name: str
     assessment: Optional[SeverityAssessment]
     png_paths: list = field(default_factory=list)
+    trace_paths: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -145,12 +166,15 @@ def run_risk_assessment(
     completed_count = 0
     previous_risk_dir_name = None
     current_png_paths = []
+    current_trace_paths = {}
 
-    def _finalize(risk_dir_name, png_paths):
+    def _finalize(risk_dir_name, png_paths, trace_paths):
         nonlocal completed_count
         risk_result_dirpath = os.path.join(save_dir, risk_dir_name)
         assessment = build_assessment(risk_result_dirpath, timestamp)
-        risk_dir_results.append(RiskDirRunResult(risk_dir_name, assessment, png_paths))
+        risk_dir_results.append(
+            RiskDirRunResult(risk_dir_name, assessment, png_paths, trace_paths)
+        )
         completed_count += 1
         if progress_callback is not None:
             progress_callback(completed_count, total, risk_dir_name)
@@ -164,8 +188,9 @@ def run_risk_assessment(
             # Finalize the just-completed dir BEFORE checking cancellation --
             # otherwise a cancel landing exactly on this transition would
             # silently drop a risk dir that had already fully finished.
-            _finalize(previous_risk_dir_name, current_png_paths)
+            _finalize(previous_risk_dir_name, current_png_paths, current_trace_paths)
             current_png_paths = []
+            current_trace_paths = {}
 
         if cancel_event is not None and cancel_event.is_set():
             return RunResult(save_dir=save_dir, risk_dir_results=risk_dir_results, cancelled=True)
@@ -193,9 +218,17 @@ def run_risk_assessment(
         plot_sim_results(full_results_dict, save=True, save_path=figure_filepath)
         current_png_paths.append(figure_filepath)
 
+        # Per-sim trace paths (TRSET-23). save_df names each file "<sim_id>.tsv"
+        # under save_dir, and full_results_dict is keyed by the same sim_ids, so
+        # the mapping is derived from what actually ran -- no directory globbing.
+        current_trace_paths[scenario_json_name] = {
+            sim_id: os.path.join(risk_result_dirpath, f"{sim_id}.tsv")
+            for sim_id in full_results_dict
+        }
+
         previous_risk_dir_name = risk_dir_name
 
     if previous_risk_dir_name is not None:
-        _finalize(previous_risk_dir_name, current_png_paths)
+        _finalize(previous_risk_dir_name, current_png_paths, current_trace_paths)
 
     return RunResult(save_dir=save_dir, risk_dir_results=risk_dir_results, cancelled=False)
