@@ -259,3 +259,88 @@ def test_target_risk_dir_passed_through_to_generator(run_env, monkeypatch):
     gui_runner.run_risk_assessment("unused_config_dir", target_risk_dir="TLR-HF")
 
     assert captured_kwargs["target_risk_dir"] == "TLR-HF"
+
+
+# ---------------------------------------------------------------------------
+# trace_paths (TRSET-23)
+# ---------------------------------------------------------------------------
+
+def test_trace_paths_grouped_by_scenario_file_and_keyed_by_sim_id(run_env, monkeypatch):
+    """Each scenario config file maps to {sim_id: <save_dir>/<risk_dir>/<sim_id>.tsv}.
+
+    The mapping is derived from run_simulations' own full_results dict, so the
+    sim_ids are exactly the ones that ran (and that save_df wrote a .tsv for).
+    """
+    save_dir, monkeypatch = run_env
+
+    sims_by_scenario = {
+        "Simulation-Configuration-TLR-1_Adolescent_profile.json": {
+            "pre-Loop_NoMitigations_t1_adolescent": None,
+            "pre-noLoop_t1_adolescent": None,
+        },
+        "Simulation-Configuration-TLR-1_Median_profile.json": {
+            "pre-Loop_NoMitigations_t1_median": None,
+        },
+    }
+    generator_items = [("TLR-1", name, _fake_sim_suite()) for name in sims_by_scenario]
+    monkeypatch.setattr(gui_runner, "build_risk_sim_generator", lambda *a, **kw: iter(generator_items))
+    monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1"])
+    monkeypatch.setattr(gui_runner, "build_assessment", lambda tlr_dir, timestamp: SimpleNamespace())
+    monkeypatch.setattr(
+        gui_runner, "run_simulations",
+        lambda sims, **kw: (sims_by_scenario[kw["name"]], None),
+    )
+
+    result = gui_runner.run_risk_assessment("unused_config_dir")
+
+    trace_paths = result.risk_dir_results[0].trace_paths
+    assert set(trace_paths) == set(sims_by_scenario)
+    risk_dir_path = os.path.join(save_dir, "TLR-1")
+    for scenario_name, sim_ids in sims_by_scenario.items():
+        assert trace_paths[scenario_name] == {
+            sim_id: os.path.join(risk_dir_path, f"{sim_id}.tsv") for sim_id in sim_ids
+        }
+
+
+def test_trace_paths_are_reset_between_risk_dirs(run_env, monkeypatch):
+    """A second TLR dir must not inherit the first one's trace paths -- the same
+    per-dir reset png_paths gets."""
+    save_dir, monkeypatch = run_env
+
+    per_scenario_sims = {
+        "scenario_a.json": {"pre-Loop_NoMitigations_t1_median": None},
+        "scenario_b.json": {"pre-noLoop_t1_median": None},
+    }
+    generator_items = [
+        ("TLR-1", "scenario_a.json", _fake_sim_suite()),
+        ("TLR-2", "scenario_b.json", _fake_sim_suite()),
+    ]
+    monkeypatch.setattr(gui_runner, "build_risk_sim_generator", lambda *a, **kw: iter(generator_items))
+    monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1", "TLR-2"])
+    monkeypatch.setattr(gui_runner, "build_assessment", lambda tlr_dir, timestamp: SimpleNamespace())
+    monkeypatch.setattr(
+        gui_runner, "run_simulations",
+        lambda sims, **kw: (per_scenario_sims[kw["name"]], None),
+    )
+
+    result = gui_runner.run_risk_assessment("unused_config_dir")
+
+    first, second = result.risk_dir_results
+    assert list(first.trace_paths) == ["scenario_a.json"]
+    assert list(second.trace_paths) == ["scenario_b.json"]
+    # Each dir's paths point into its own results dir.
+    assert os.path.dirname(first.trace_paths["scenario_a.json"]["pre-Loop_NoMitigations_t1_median"]) == \
+        os.path.join(save_dir, "TLR-1")
+    assert os.path.dirname(second.trace_paths["scenario_b.json"]["pre-noLoop_t1_median"]) == \
+        os.path.join(save_dir, "TLR-2")
+
+
+def test_stage_identity_helpers_are_reexported_for_gui_consumers():
+    """TRSET-23: the GUI reads stage identity through this entry point rather
+    than replicating the post_processing/ sys.path setup. severity_model stays
+    the single source of truth -- these are re-exports, not redefinitions."""
+    import severity_model
+
+    assert gui_runner.classify_sim_id is severity_model.classify_sim_id
+    assert gui_runner.STAGE_ORDER is severity_model.STAGE_ORDER
+    assert gui_runner.STAGE_DISPLAY is severity_model.STAGE_DISPLAY
