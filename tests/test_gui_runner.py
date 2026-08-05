@@ -9,6 +9,7 @@ gui_runner's own orchestration logic (finalize-once-per-TLR-dir, progress
 reporting, cancellation, validation gating) in isolation.
 """
 
+import json
 import os
 import shutil
 import tempfile
@@ -344,3 +345,66 @@ def test_stage_identity_helpers_are_reexported_for_gui_consumers():
     assert gui_runner.classify_sim_id is severity_model.classify_sim_id
     assert gui_runner.STAGE_ORDER is severity_model.STAGE_ORDER
     assert gui_runner.STAGE_DISPLAY is severity_model.STAGE_DISPLAY
+
+
+# ---------------------------------------------------------------------------
+# metadata.json (TRSET-7)
+# ---------------------------------------------------------------------------
+
+def test_run_writes_metadata_json_with_the_assessment_timestamp(run_env, monkeypatch):
+    """The run's save_dir carries metadata.json in the shape (and with the
+    timestamp) create_severity_summary reads, so the directory is a valid input
+    to it -- here and via the existing CLI."""
+    save_dir, monkeypatch = run_env
+
+    assessment_timestamps = []
+    monkeypatch.setattr(gui_runner, "build_risk_sim_generator",
+                        lambda *a, **kw: iter([("TLR-1", "scenario_a.json", _fake_sim_suite())]))
+    monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1"])
+    monkeypatch.setattr(
+        gui_runner, "build_assessment",
+        lambda tlr_dir, timestamp: assessment_timestamps.append(timestamp) or SimpleNamespace(),
+    )
+
+    gui_runner.run_risk_assessment("unused_config_dir")
+
+    metadata_path = os.path.join(save_dir, gui_runner.METADATA_FILENAME)
+    assert os.path.isfile(metadata_path), "run did not write metadata.json"
+    with open(metadata_path) as metadata_file:
+        metadata = json.load(metadata_file)
+    # Same key create_severity_summary reads, same value the assessments are
+    # dated with -- an exported summary matches what the GUI displayed.
+    assert metadata == {"timestamp": "2026-07-21T00:00:00"}
+    assert assessment_timestamps == ["2026-07-21T00:00:00"]
+
+
+def test_metadata_json_is_written_before_any_simulation_runs(run_env, monkeypatch):
+    """Written up front, off the run's own save_dir/timestamp -- not appended at
+    the end, so a cancelled run still exports."""
+    save_dir, monkeypatch = run_env
+    metadata_path = os.path.join(save_dir, gui_runner.METADATA_FILENAME)
+
+    seen_during_run = []
+
+    def _observing_run_simulations(sims, **kwargs):
+        seen_during_run.append(os.path.isfile(metadata_path))
+        return {}, None
+
+    monkeypatch.setattr(gui_runner, "build_risk_sim_generator",
+                        lambda *a, **kw: iter([("TLR-1", "scenario_a.json", _fake_sim_suite())]))
+    monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1"])
+    monkeypatch.setattr(gui_runner, "build_assessment", lambda tlr_dir, timestamp: SimpleNamespace())
+    monkeypatch.setattr(gui_runner, "run_simulations", _observing_run_simulations)
+
+    gui_runner.run_risk_assessment("unused_config_dir")
+
+    assert seen_during_run == [True]
+
+
+def test_severity_summary_renderer_is_reexported_for_gui_consumers():
+    """TRSET-7: the GUI writes the RTF summaries through this entry point, same
+    seam as the stage-identity re-exports. A re-export, not a wrapper -- the RTF
+    output stays byte-identical to the CLI's."""
+    import create_severity_summary
+
+    assert gui_runner.process_results_directory is create_severity_summary.process_results_directory

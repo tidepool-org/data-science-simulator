@@ -11,6 +11,7 @@ future "configure parameters directly" mode can hand this module a
 freshly-written temp directory with no changes required here.
 """
 
+import json
 import os
 import sys
 import threading
@@ -52,6 +53,19 @@ from severity_model import (  # noqa: E402,F401
     STAGE_DISPLAY,
     STAGE_ORDER,
 )
+# Also re-exported for GUI consumers (TRSET-7): the RTF renderer's directory
+# entry point. Same reasoning as the stage-identity re-exports above -- it lives
+# in that same non-packaged post_processing/ dir, so consumers reach it here
+# rather than replicating the sys.path insert. Used as-is; its RTF output is
+# untouched, so an exported summary is byte-identical to the CLI's.
+from create_severity_summary import process_results_directory  # noqa: E402,F401
+
+
+# Written into save_dir at run time so a GUI run directory is a valid input to
+# create_severity_summary (which reads its run timestamp from this file, and
+# otherwise refuses the directory). Same filename and same {"timestamp": ...}
+# shape loop_risk_v2_0's __main__ writes, so the CLI path is unchanged.
+METADATA_FILENAME = "metadata.json"
 
 
 @dataclass
@@ -137,6 +151,18 @@ def validate_config_dir(config_dir: str, target_risk_dir: Optional[str] = None) 
     return ConfigValidationResult(is_valid, errors_by_file, warnings_by_file)
 
 
+def _write_run_metadata(save_dir: str, timestamp: str) -> str:
+    """Write ``{"timestamp": ...}`` to save_dir/metadata.json; return its path.
+
+    Carries the same timestamp the run hands to ``build_assessment``, so an
+    exported summary is dated identically to the assessment the GUI displays.
+    """
+    metadata_path = os.path.join(save_dir, METADATA_FILENAME)
+    with open(metadata_path, "w") as metadata_file:
+        json.dump({"timestamp": timestamp}, metadata_file, indent=4)
+    return metadata_path
+
+
 def run_risk_assessment(
     config_dir: str,
     target_risk_dir: Optional[str] = None,
@@ -146,6 +172,9 @@ def run_risk_assessment(
     """
     Run a risk assessment over every TLR-* directory in config_dir (or just
     target_risk_dir, if given), returning one RiskDirRunResult per directory.
+
+    Writes ``metadata.json`` into the run's save_dir (TRSET-7) so the directory
+    is a valid input to create_severity_summary, on this path and via the CLI.
 
     Raises ValueError if any in-scope config file has validation errors --
     callers should still call validate_config_dir directly to surface errors
@@ -160,6 +189,7 @@ def run_risk_assessment(
 
     save_dir = create_save_dir()
     timestamp = get_timestamp()
+    _write_run_metadata(save_dir, timestamp)
     total = len(_list_target_risk_dirs(config_dir, target_risk_dir))
 
     risk_dir_results = []
