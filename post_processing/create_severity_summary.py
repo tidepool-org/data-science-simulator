@@ -41,6 +41,18 @@ from severity_model import (
 # RTF rendering (consumes the structured findings; formatting only)
 # =============================================================================
 
+# Results-table column layout. Eight columns of even 1275-twip width, summing to
+# the same 10200-twip total the six-column table used, so page fit is unchanged.
+# Defined ONCE and emitted on every row (header + the three stage rows): the RTF
+# spec requires the stops to be repeated per row, and keeping the literal in one
+# place is what stops the four copies drifting apart when a column is added.
+# Column order (must match the cells emitted in render_rtf):
+#   Evaluation stage | Harm | Severity | TIR % | TBR % | LBGI | DKAI | TAR %
+TABLE_CELL_STOPS = "".join(
+    r"\cellx{}".format(1275 * column) for column in range(1, 9)
+)
+
+
 def render_catastrophic_identifier(catastrophic_findings):
     """RTF for the Critical/Catastrophic Identifier section.
 
@@ -114,6 +126,10 @@ def render_rtf(assessment):
     tir = {stage: stages[stage].tir for stage in STAGE_ORDER}
     tbr = {stage: stages[stage].tbr for stage in STAGE_ORDER}
     tar = {stage: stages[stage].tar for stage in STAGE_ORDER}
+    # Raw averaged LBGI / DKA-index values. Already display-ready strings from
+    # severity_model (truncated to 2dp, or 'NA') -- no formatting applied here.
+    lbgi = {stage: stages[stage].lbgi_value_avg for stage in STAGE_ORDER}
+    dkai = {stage: stages[stage].dka_index_value_avg for stage in STAGE_ORDER}
 
     catastrophic_content = render_catastrophic_identifier(assessment.catastrophic_findings)
     outlier_content = render_outlier_results(assessment.outlier_findings, assessment.outlier_status)
@@ -135,42 +151,50 @@ Auto-generated output from Tidepool Risk Severity Evaluation Simulator Tool
 \par\par
 
 \trowd
-\cellx1700\cellx3400\cellx5100\cellx6800\cellx8500\cellx10200
+""" + TABLE_CELL_STOPS + r"""
 \pard\intbl {\b Evaluation stage}\cell
 \pard\intbl {\b Harm}\cell
 \pard\intbl {\b Severity}\cell
 \pard\intbl {\b TIR % (70 - 180 mg/dL)}\cell
 \pard\intbl {\b TBR % (<54 mg/dL)}\cell
+\pard\intbl {\b LBGI}\cell
+\pard\intbl {\b DKAI}\cell
 \pard\intbl {\b TAR % (>180 mg/dL)}\cell
 \row
 
 \trowd
-\cellx1700\cellx3400\cellx5100\cellx6800\cellx8500\cellx10200
+""" + TABLE_CELL_STOPS + r"""
 \pard\intbl Pre-mitigation\cell
 \pard\intbl """ + hs['pre'][0] + r"""\cell
 \pard\intbl """ + hs['pre'][1] + r"""\cell
 \pard\intbl """ + tir['pre'] + r"""\cell
 \pard\intbl """ + tbr['pre'] + r"""\cell
+\pard\intbl """ + lbgi['pre'] + r"""\cell
+\pard\intbl """ + dkai['pre'] + r"""\cell
 \pard\intbl """ + tar['pre'] + r"""\cell
 \row
 
 \trowd
-\cellx1700\cellx3400\cellx5100\cellx6800\cellx8500\cellx10200
+""" + TABLE_CELL_STOPS + r"""
 \pard\intbl No Loop\cell
 \pard\intbl """ + hs['no_loop'][0] + r"""\cell
 \pard\intbl """ + hs['no_loop'][1] + r"""\cell
 \pard\intbl """ + tir['no_loop'] + r"""\cell
 \pard\intbl """ + tbr['no_loop'] + r"""\cell
+\pard\intbl """ + lbgi['no_loop'] + r"""\cell
+\pard\intbl """ + dkai['no_loop'] + r"""\cell
 \pard\intbl """ + tar['no_loop'] + r"""\cell
 \row
 
 \trowd
-\cellx1700\cellx3400\cellx5100\cellx6800\cellx8500\cellx10200
+""" + TABLE_CELL_STOPS + r"""
 \pard\intbl Post-mitigation\cell
 \pard\intbl """ + hs['post'][0] + r"""\cell
 \pard\intbl """ + hs['post'][1] + r"""\cell
 \pard\intbl """ + tir['post'] + r"""\cell
 \pard\intbl """ + tbr['post'] + r"""\cell
+\pard\intbl """ + lbgi['post'] + r"""\cell
+\pard\intbl """ + dkai['post'] + r"""\cell
 \pard\intbl """ + tar['post'] + r"""\cell
 \row
 
