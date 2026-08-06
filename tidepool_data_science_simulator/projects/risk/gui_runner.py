@@ -58,14 +58,20 @@ from severity_model import (  # noqa: E402,F401
 # in that same non-packaged post_processing/ dir, so consumers reach it here
 # rather than replicating the sys.path insert. Used as-is; its RTF output is
 # untouched, so an exported summary is byte-identical to the CLI's.
-from create_severity_summary import process_results_directory  # noqa: E402,F401
+from create_severity_summary import (  # noqa: E402,F401
+    process_results_directory,
+    # The filename is defined by the module that READS it -- imported rather than
+    # re-declared here so the writer and reader cannot drift apart. Bound at
+    # module level so consumers keep importing it from this entry point.
+    METADATA_FILENAME,
+)
 
 
-# Written into save_dir at run time so a GUI run directory is a valid input to
-# create_severity_summary (which reads its run timestamp from this file, and
-# otherwise refuses the directory). Same filename and same {"timestamp": ...}
-# shape loop_risk_v2_0's __main__ writes, so the CLI path is unchanged.
-METADATA_FILENAME = "metadata.json"
+# metadata.json is written into save_dir at run time so a GUI run directory is a
+# valid input to create_severity_summary (which reads its run timestamp from that
+# file, and otherwise refuses the directory). Same filename and same
+# {"timestamp": ...} shape loop_risk_v2_0's __main__ writes, so the CLI path is
+# unchanged.
 
 
 @dataclass

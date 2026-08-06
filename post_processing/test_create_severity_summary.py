@@ -6,6 +6,8 @@ Covers:
     (round-half-up) rounding behavior for risk severity scores.
   - render_rtf()'s results table -- column order/count and the LBGI/DKAI
     columns, driven by a real build_assessment() over temp summary CSVs.
+  - process_results_directory()'s failure contract -- what raises, what is
+    reported as a skipped directory, and what it returns.
 """
 
 import pytest
@@ -16,8 +18,12 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 from create_severity_summary import (
+    METADATA_FILENAME,
+    SeveritySummaryError,
+    SummaryResult,
     TABLE_CELL_STOPS,
     calculate_integer_averages,
+    process_results_directory,
     render_rtf,
     round_half_up,
 )
@@ -276,3 +282,191 @@ class TestRenderRtfTableValues:
         for row in rows[1:]:
             assert row[lbgi_index] == "NA"
             assert row[dkai_index] == "NA"
+
+
+# =============================================================================
+# process_results_directory() failure contract
+# =============================================================================
+
+# Every path through this function used to print a diagnostic and return None,
+# so a caller could not distinguish "wrote three summaries" from "wrote nothing".
+# These tests pin the replacement: raise when the directory is unusable, report
+# a per-directory skip, and return what was actually done.
+
+import json  # noqa: E402
+
+from create_severity_summary import main  # noqa: E402
+
+_RUN_TIMESTAMP = "2026-08-06T09:15:00.123456"
+
+
+def _write_metadata(run_dir, payload={"timestamp": _RUN_TIMESTAMP}):
+    path = os.path.join(run_dir, METADATA_FILENAME)
+    with open(path, "w") as fh:
+        json.dump(payload, fh)
+    return path
+
+
+def _usable_tlr_dir(run_dir, name="TLR-999-test"):
+    """A TLR directory with the real summary CSVs build_assessment needs."""
+    tlr_dir = os.path.join(run_dir, name)
+    os.makedirs(tlr_dir)
+    _write_summary_csv(tlr_dir, "median", _PROFILE_A_ROWS)
+    _write_summary_csv(tlr_dir, "adolescent", _PROFILE_B_ROWS)
+    return tlr_dir
+
+
+class TestProcessResultsDirectoryRaises:
+    """A results directory that cannot be summarized at all is an error."""
+
+    def test_missing_metadata_raises(self, tmp_path):
+        _usable_tlr_dir(str(tmp_path))
+
+        with pytest.raises(SeveritySummaryError, match=METADATA_FILENAME):
+            process_results_directory(str(tmp_path))
+
+    def test_unparseable_metadata_raises_rather_than_leaking_a_json_error(self, tmp_path):
+        with open(os.path.join(str(tmp_path), METADATA_FILENAME), "w") as fh:
+            fh.write("{not json")
+        _usable_tlr_dir(str(tmp_path))
+
+        with pytest.raises(SeveritySummaryError):
+            process_results_directory(str(tmp_path))
+
+    @pytest.mark.parametrize("payload", [{}, {"other_key": "x"}, {"timestamp": ""}])
+    def test_metadata_without_a_usable_timestamp_raises(self, tmp_path, payload):
+        """The old code fell back to the literal 'Unknown', which then rendered
+        into the summary's 'Date and time of simulation run' field."""
+        _write_metadata(str(tmp_path), payload)
+        _usable_tlr_dir(str(tmp_path))
+
+        with pytest.raises(SeveritySummaryError, match="cannot be dated"):
+            process_results_directory(str(tmp_path))
+
+    def test_run_timestamp_key_is_still_accepted(self, tmp_path):
+        """The alternate key the original code read is still honored."""
+        _write_metadata(str(tmp_path), {"run_timestamp": _RUN_TIMESTAMP})
+        _usable_tlr_dir(str(tmp_path))
+
+        result = process_results_directory(str(tmp_path))
+
+        assert len(result.written) == 1
+
+    def test_no_tlr_directories_raises(self, tmp_path):
+        _write_metadata(str(tmp_path))
+
+        with pytest.raises(SeveritySummaryError, match="TLR-"):
+            process_results_directory(str(tmp_path))
+
+    def test_a_file_named_like_a_tlr_dir_is_not_a_run_directory(self, tmp_path):
+        """glob matched files too, so a stray TLR-*.txt was handed to
+        build_assessment as though it were a run directory."""
+        _write_metadata(str(tmp_path))
+        with open(os.path.join(str(tmp_path), "TLR-notes.txt"), "w") as fh:
+            fh.write("scratch notes\n")
+
+        with pytest.raises(SeveritySummaryError, match="TLR-"):
+            process_results_directory(str(tmp_path))
+
+
+class TestProcessResultsDirectoryResult:
+    """What it returns, and what it reports rather than swallowing."""
+
+    def test_writes_one_rtf_per_usable_directory_and_returns_their_paths(self, tmp_path):
+        _write_metadata(str(tmp_path))
+        tlr_dir = _usable_tlr_dir(str(tmp_path))
+
+        result = process_results_directory(str(tmp_path))
+
+        assert isinstance(result, SummaryResult)
+        assert result.skipped == []
+        assert len(result.written) == 1
+        written = result.written[0]
+        assert os.path.dirname(written) == tlr_dir
+        assert os.path.basename(written).startswith("risk_summary_")
+        assert os.path.isfile(written), "returned a path it did not write"
+
+    def test_a_directory_with_no_usable_data_is_reported_not_swallowed(self, tmp_path):
+        """This is a legitimate partial outcome -- a real run can contain one --
+        so it is reported in `skipped`, not raised."""
+        _write_metadata(str(tmp_path))
+        empty_dir = os.path.join(str(tmp_path), "TLR-000-empty")
+        os.makedirs(empty_dir)
+
+        result = process_results_directory(str(tmp_path))
+
+        assert result.written == []
+        assert len(result.skipped) == 1
+        skipped_dir, reason = result.skipped[0]
+        assert skipped_dir == empty_dir
+        assert reason
+
+    def test_a_mixed_run_reports_both_halves(self, tmp_path):
+        _write_metadata(str(tmp_path))
+        usable = _usable_tlr_dir(str(tmp_path))
+        empty = os.path.join(str(tmp_path), "TLR-000-empty")
+        os.makedirs(empty)
+
+        result = process_results_directory(str(tmp_path))
+
+        assert [os.path.dirname(p) for p in result.written] == [usable]
+        assert [d for d, _ in result.skipped] == [empty]
+
+    def test_directories_are_processed_in_sorted_order(self, tmp_path):
+        """Order came from glob (arbitrary), so the same run reported differently
+        on different machines."""
+        _write_metadata(str(tmp_path))
+        for name in ("TLR-300-test", "TLR-100-test", "TLR-200-test"):
+            _usable_tlr_dir(str(tmp_path), name)
+
+        result = process_results_directory(str(tmp_path))
+
+        assert [os.path.basename(os.path.dirname(p)) for p in result.written] == [
+            "TLR-100-test", "TLR-200-test", "TLR-300-test",
+        ]
+
+
+class TestCliExitCodes:
+    """The CLI printed 'Done!' and exited 0 no matter what happened."""
+
+    def test_success_exits_zero(self, tmp_path, monkeypatch):
+        _write_metadata(str(tmp_path))
+        _usable_tlr_dir(str(tmp_path))
+        monkeypatch.setattr(sys, "argv", ["create_severity_summary.py", str(tmp_path)])
+
+        assert main() == 0
+
+    def test_unusable_directory_exits_nonzero(self, tmp_path, monkeypatch):
+        _usable_tlr_dir(str(tmp_path))  # no metadata.json
+        monkeypatch.setattr(sys, "argv", ["create_severity_summary.py", str(tmp_path)])
+
+        assert main() == 1
+
+    def test_writing_nothing_exits_nonzero_even_without_an_error(self, tmp_path, monkeypatch):
+        """Every directory skipped is not a successful run, whatever the reasons."""
+        _write_metadata(str(tmp_path))
+        os.makedirs(os.path.join(str(tmp_path), "TLR-000-empty"))
+        monkeypatch.setattr(sys, "argv", ["create_severity_summary.py", str(tmp_path)])
+
+        assert main() == 1
+
+    def test_missing_directory_still_exits_nonzero(self, monkeypatch):
+        monkeypatch.setattr(
+            sys, "argv", ["create_severity_summary.py", "/does/not/exist/at/all"]
+        )
+
+        assert main() == 1
+
+
+class TestRtfOutputUnchanged:
+    """The whole point of the ticket's 'no output change' constraint."""
+
+    def test_written_rtf_is_byte_identical_to_the_renderer_output(self, tmp_path):
+        _write_metadata(str(tmp_path))
+        tlr_dir = _usable_tlr_dir(str(tmp_path))
+
+        result = process_results_directory(str(tmp_path))
+
+        assessment = build_assessment(tlr_dir, _RUN_TIMESTAMP)
+        with open(result.written[0]) as fh:
+            assert fh.read() == render_rtf(assessment)
