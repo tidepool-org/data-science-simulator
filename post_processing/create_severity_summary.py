@@ -28,9 +28,11 @@ import json
 from dataclasses import dataclass, field
 
 from severity_model import (
-    build_assessment,
+    build_assessment_result,
     STAGE_ORDER,
     STAGE_DISPLAY,
+    # re-exported for backwards-compat with existing tests:
+    build_assessment,                  # noqa: F401  (re-export)
     # re-exported for backwards-compat with existing tests:
     round_half_up,                     # noqa: F401  (re-export)
     calculate_integer_averages,        # noqa: F401  (re-export)
@@ -89,6 +91,12 @@ def render_outlier_results(outlier_findings, status):
     Reproduces the original generate_outlier_results_section() output exactly,
     driven by structured OutlierFinding objects + a status string.
     """
+    if status == 'malformed_data':
+        # NOT "Data not available": the data was there and could not be read.
+        # Deliberately does not name the file -- the path stays in the console
+        # diagnostic; a regulatory document should not carry local filesystem paths.
+        return ("Outlier analysis not performed: profile data is present but could "
+                "not be read. Check data configuration.")
     if status == 'no_data':
         return "Data not available for outlier analysis."
     if status == 'single_profile':
@@ -118,6 +126,29 @@ def render_outlier_results(outlier_findings, status):
     return " ".join(messages)
 
 
+def render_profile_count(profile_count, usable_profile_count=None):
+    """The 'N virtual patient profiles aggregated for this summary.' line.
+
+    profile_count is N (files present); usable_profile_count is M (files that could
+    contribute a value). M == N -- the normal clean-data case -- renders the
+    original sentence byte-for-byte. M < N surfaces the discrepancy, because
+    extract_metric_data drops a malformed file and averages the remainder, so the
+    unqualified count could name more profiles than contributed a single value.
+
+    usable_profile_count None means "not measured" and renders as M == N, so an
+    assessment built by an older positional constructor is unaffected.
+    """
+    if usable_profile_count is None or usable_profile_count >= profile_count:
+        return f"{profile_count} virtual patient profiles aggregated for this summary."
+    dropped = profile_count - usable_profile_count
+    noun = "file" if dropped == 1 else "files"
+    return (
+        f"{usable_profile_count} of {profile_count} virtual patient profiles "
+        f"aggregated for this summary. "
+        f"{dropped} summary results {noun} could not be read."
+    )
+
+
 def render_rtf(assessment):
     """Render a full RTF document string from a SeverityAssessment.
 
@@ -139,6 +170,9 @@ def render_rtf(assessment):
 
     catastrophic_content = render_catastrophic_identifier(assessment.catastrophic_findings)
     outlier_content = render_outlier_results(assessment.outlier_findings, assessment.outlier_status)
+    profile_count_content = render_profile_count(
+        assessment.profile_count, assessment.usable_profile_count
+    )
 
     rtf_content = r"""{\rtf1\ansi\deff0
 {\fonttbl{\f0 Arial;}}
@@ -207,7 +241,7 @@ Auto-generated output from Tidepool Risk Severity Evaluation Simulator Tool
 \pard
 \par\par
 
-""" + str(assessment.profile_count) + r""" virtual patient profiles aggregated for this summary.
+""" + profile_count_content + r"""
 \par\par
 
 {\b Critical/Catastrophic Identifier}
@@ -256,6 +290,12 @@ class SummaryResult:
     assessment. skipped: ``(tlr_dir, reason)`` for each directory that did not,
     so a caller can report them rather than silently shipping fewer summaries
     than there were directories.
+
+    The reason distinguishes an empty directory from malformed data (it used to be
+    one shared string for both). A caller that needs to BRANCH on which, rather
+    than report it, should call ``severity_model.build_assessment_result`` and read
+    its typed ``status``; the tuple shape is left alone so existing consumers of
+    ``skipped`` keep working.
     """
     written: list = field(default_factory=list)
     skipped: list = field(default_factory=list)
@@ -309,7 +349,8 @@ def process_results_directory(results_dir):
     Raises SeveritySummaryError if the directory cannot be summarized at all --
     unreadable/undated metadata.json, or no TLR-* subdirectory. A single TLR
     directory that yields no assessment is recorded in the result's ``skipped``
-    list instead, since a run legitimately can contain one.
+    list instead, since a run legitimately can contain one -- with a reason naming
+    whether it was empty or malformed.
     """
     timestamp = _read_run_timestamp(results_dir)
 
@@ -325,15 +366,19 @@ def process_results_directory(results_dir):
     for tlr_dir in tlr_dirs:
         print(f"\nProcessing: {tlr_dir}")
 
-        assessment = build_assessment(tlr_dir, timestamp)
+        outcome = build_assessment_result(tlr_dir, timestamp)
+        assessment = outcome.assessment
         if assessment is None:
-            reason = "no usable summary results data"
+            # 'empty' (nothing ran here) and 'malformed' (the data is broken) both
+            # used to report the same "no usable summary results data".
+            reason = f"{outcome.status}: {outcome.detail}"
             print(f"  Skipped: {reason}")
             result.skipped.append((tlr_dir, reason))
             continue
 
         print(f"  Simulation ID: {assessment.simulation_id}")
-        print(f"  Profile count: {assessment.profile_count}")
+        print(f"  Profile count: {assessment.usable_profile_count} usable of "
+              f"{assessment.profile_count} present")
 
         for stage, label in [('pre', 'Pre'), ('no_loop', 'No Loop'), ('post', 'Post')]:
             sr = assessment.stages[stage]

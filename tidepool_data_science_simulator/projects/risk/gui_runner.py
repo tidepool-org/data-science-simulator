@@ -86,6 +86,8 @@ class ConfigValidationResult:
 class RiskDirRunResult:
     """Outcome for one TLR-* directory. assessment is None when build_assessment
     found no usable data for it -- surfaced explicitly, never silently dropped.
+    (severity_model.build_assessment_result additionally distinguishes an empty
+    directory from malformed data; adopting it here is a follow-up to TRSET-28.)
     png_paths has one entry per scenario config file run in this directory.
 
     trace_paths (TRSET-23) exposes each completed sim's per-run ``<sim_id>.tsv``
