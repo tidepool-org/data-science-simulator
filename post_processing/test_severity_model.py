@@ -740,3 +740,159 @@ class TestOptionalColumnIsNotCalledMalformed:
         extract_metric_data(tlr, "lbgi_risk_score")
 
         assert "malformed" in capsys.readouterr().out
+
+
+# =============================================================================
+# Hyperglycemia zero case in the outlier path (was: KNOWN INCONSISTENCY)
+# =============================================================================
+
+# detect_outliers computed its own TAR->score mapping without a zero case, so a
+# profile with TAR == 0.0 scored 1 where calculate_hyperglycemia_score gives 0.
+# Correcting it moves such a profile from the 'Hyperglycemia' harm group to
+# baseline -- and the zero-TAR outlier check keyed on that group, so the naive fix
+# would have stopped flagging the cleanest profiles. These tests pin BOTH halves:
+# the score is now the module's single mapping, AND the check still fires.
+
+_OUTLIER_COLUMNS = [
+    "sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54",
+    "percent_cgm_gt_180", "lbgi_risk_score", "dka_risk_score",
+]
+_OUTLIER_STAGE_STEMS = (
+    "pre-Loop_NoMitigations_t1", "pre-noLoop_t1", "post-Loop_WithMitigations_t1",
+)
+
+
+def _write_outlier_profile(directory, profile, tar, lbgi, dka):
+    """A profile complete across all three stages, every stage carrying the same
+    (tar, lbgi, dka) -- so a finding appears once per stage and the assertions do
+    not depend on which stage is which."""
+    rows = [
+        (f"{stem}_{profile}", 80.0, 1.0, tar, lbgi, dka)
+        for stem in _OUTLIER_STAGE_STEMS
+    ]
+    return _write_summary_csv(directory, profile, rows, columns=_OUTLIER_COLUMNS)
+
+
+def _hyper_outliers(tlr_dir):
+    findings, status = detect_outliers(tlr_dir)
+    assert status == "ok", f"expected usable data, got {status!r}"
+    return [f for f in findings if f.harm_type == "Hyperglycemia"]
+
+
+class TestHyperglycemiaScoreHasOneMapping:
+    """The outlier path no longer carries its own TAR->score mapping."""
+
+    def test_the_outlier_path_calls_the_shared_mapping(self):
+        """Asserted over the parsed AST, not the source text: the docstring quotes
+        the old inline expression verbatim, so a substring check would pass or fail
+        on prose rather than on code."""
+        import ast
+        import inspect
+
+        tree = ast.parse(inspect.getsource(detect_outliers))
+        called = {
+            node.func.id for node in ast.walk(tree)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+
+        assert "calculate_hyperglycemia_score" in called
+
+    def test_baseline_label_is_named_once(self):
+        """detect_outliers has to reason about the baseline GROUP, so the label and
+        the string determine_harm_and_severity returns must not drift apart."""
+        assert determine_harm_and_severity(0, 0, 0) == (severity_model.BASELINE_HARM, "0")
+
+    def test_true_zero_tar_scores_zero_on_the_outlier_path_too(self):
+        """The mapping the outlier path now shares: 0 only if TAR is truly 0."""
+        assert calculate_hyperglycemia_score(0.0) == 0
+        assert calculate_hyperglycemia_score(5.0) == 1
+        assert calculate_hyperglycemia_score(20.0) == 2
+
+
+class TestZeroTarOutlierStillFlagged:
+    """The regression the naive score fix would have introduced."""
+
+    def test_flagged_when_the_zero_profile_has_no_hypo_or_dka_risk(self, tmp_path):
+        """lbgi=0/dka=0/TAR=0 is now baseline, not Hyperglycemia. Keying the check
+        on the Hyperglycemia group alone would silently drop this finding -- the
+        cleanest profile among high-TAR peers is exactly the one worth flagging."""
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "zero", tar=0.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "highA", tar=20.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "highB", tar=25.0, lbgi=0, dka=0)
+
+        found = _hyper_outliers(tlr)
+
+        assert {f.profile for f in found} == {"zero"}
+        assert sorted(f.stage for f in found) == ["no_loop", "post", "pre"]
+        assert all(f.value == 0.0 for f in found)
+
+    def test_flagged_when_the_zero_profile_stays_in_the_hyperglycemia_group(self, tmp_path):
+        """lbgi=1 keeps it out of baseline, so this half worked before and after."""
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "zero", tar=0.0, lbgi=1, dka=0)
+        _write_outlier_profile(tlr, "highA", tar=20.0, lbgi=1, dka=0)
+        _write_outlier_profile(tlr, "highB", tar=25.0, lbgi=1, dka=0)
+
+        assert {f.profile for f in _hyper_outliers(tlr)} == {"zero"}
+
+    def test_the_reported_median_is_of_the_non_zero_profiles(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "zero", tar=0.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "highA", tar=20.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "highB", tar=30.0, lbgi=0, dka=0)
+
+        assert {f.comparison_median for f in _hyper_outliers(tlr)} == {30.0}
+
+    def test_several_zero_profiles_are_each_flagged(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "zeroA", tar=0.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "zeroB", tar=0.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "high", tar=20.0, lbgi=0, dka=0)
+
+        assert {f.profile for f in _hyper_outliers(tlr)} == {"zeroA", "zeroB"}
+
+    def test_not_flagged_when_a_peer_is_not_high(self, tmp_path):
+        """Unchanged gate: every non-zero profile must be >= 12.0 TAR."""
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "zero", tar=0.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "mid", tar=5.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "high", tar=20.0, lbgi=0, dka=0)
+
+        assert _hyper_outliers(tlr) == []
+
+    def test_not_flagged_when_no_profile_is_at_zero(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "a", tar=15.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "b", tar=20.0, lbgi=0, dka=0)
+
+        assert _hyper_outliers(tlr) == []
+
+    def test_a_zero_tar_profile_with_hypo_risk_is_not_swept_in(self, tmp_path):
+        """The check spans Hyperglycemia + baseline only. A TAR == 0 profile whose
+        LBGI puts it in the Hypoglycemia group was never compared on the
+        hyperglycemia axis, and still is not."""
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "hypoZero", tar=0.0, lbgi=4, dka=0)
+        _write_outlier_profile(tlr, "highA", tar=20.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "highB", tar=25.0, lbgi=0, dka=0)
+
+        assert _hyper_outliers(tlr) == []
+
+    def test_hypoglycemia_outliers_are_unaffected(self, tmp_path):
+        """The score fix touches only the hyperglycemia axis.
+
+        lbgi=2, not 1, for the peers: determine_harm_and_severity sends lbgi<=1 with
+        dka==0 to Hyperglycemia, so lbgi=1 peers would never form a Hypoglycemia
+        group to be an outlier within.
+        """
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "severe", tar=20.0, lbgi=4, dka=0)
+        _write_outlier_profile(tlr, "mildA", tar=20.0, lbgi=2, dka=0)
+        _write_outlier_profile(tlr, "mildB", tar=20.0, lbgi=2, dka=0)
+
+        findings, status = detect_outliers(tlr)
+
+        assert status == "ok"
+        hypo = [f for f in findings if f.harm_type == "Hypoglycemia"]
+        assert {f.profile for f in hypo} == {"severe"}

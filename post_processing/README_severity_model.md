@@ -133,10 +133,39 @@ GUI) and rendered output — contained by clean-path byte-identity and by
 `create_severity_summary_ORIGINAL.py` retains the old behavior and is deliberately
 untouched (legacy reference copy).
 
+## Hyperglycemia zero case (separate commit)
+
+`detect_outliers` computed its own TAR→score mapping, `hyper_score = 1 if tar < 12.0
+else 2`, with no zero case — contradicting SOP intent (a score of 0 should mean the
+index is truly 0) and disagreeing with `calculate_hyperglycemia_score`. It now calls
+that function, so the module has one such mapping.
+
+**The naive fix would have silently removed a detection.** With the corrected score,
+`determine_harm_and_severity(0, 0, 0)` is baseline, so a profile with TAR == 0 and no
+hypo/DKA risk leaves the `Hyperglycemia` harm group — and the zero-TAR outlier check
+keyed on that group. A profile with 0% time-above-range among all-high-TAR peers, the
+case most worth flagging, would have stopped being reported. Verified: 3 findings → 0.
+
+The check therefore spans the `Hyperglycemia` and baseline groups together. That union
+is provably the old `Hyperglycemia` group — baseline is exactly its `TAR == 0` subset
+of `lbgi <= 1 and dka == 0` — so the compared population is unchanged. It is evaluated
+at whichever of the two groups `harm_groups` reaches first, and built from
+`profile_harms` order, so findings keep their emitted order too.
+
+**Net effect: no rendered output changes.** The results table never used this mapping
+(`build_assessment` already used `calculate_hyperglycemia_score` on averaged TAR); the
+inline score fed only outlier grouping, and its `_severity` return was discarded.
+Equivalence was verified by an exhaustive sweep of `detect_outliers` across the fix —
+2, 3 and 4 profiles over a grid of TAR/LBGI/DKA values, comparing findings as ordered
+tuples: **133,632 cases, 0 differences**. The same sweep reports 1,044 differences for
+the naive fix, so it is not vacuous. 11 tests added, 3 of which fail against the naive
+fix.
+
+`BASELINE_HARM` names the baseline label, since `detect_outliers` now has to reason
+about that group and a typo would silently empty the union.
+
 ### Deliberately out of scope
 
-- The `detect_outliers` hyperglycemia deviation (`hyper_score = 1 if tar < 12.0 else 2`,
-  no zero case) — preserved exactly; a separate correctness decision.
 - Splitting the third condition still inside `'no_data'`: profiles that parse but
   where none is complete across all three stages (TRSET-28 Decision B).
 - Analyzing the M usable profiles instead of abandoning outlier analysis on the

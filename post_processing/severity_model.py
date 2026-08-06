@@ -28,9 +28,9 @@ status and SeverityAssessment.usable_profile_count. See README_severity_model.md
 Provenance flags on scores:
   - round-half-up on averaged scores: script convention (conservative), NOT SOP-mandated.
   - hyperglycemia TAR->score mapping: script convention; DOC-0015 treats hyperglycemia as
-    secondary and defines no TAR->severity map. The main-path mapping
-    (calculate_hyperglycemia_score) honors SOP intent that a score of 0 means the index
-    is truly 0. See KNOWN INCONSISTENCY note in detect_outliers().
+    secondary and defines no TAR->severity map. calculate_hyperglycemia_score honors SOP
+    intent that a score of 0 means the index is truly 0, and is now the ONLY mapping in
+    the module -- detect_outliers used to compute its own without a zero case.
 """
 
 import math
@@ -75,6 +75,12 @@ STAGE_PREFIXES = {
 
 STAGE_ORDER = ['pre', 'no_loop', 'post']
 STAGE_DISPLAY = {'pre': 'Pre-mitigation', 'no_loop': 'No Loop', 'post': 'Post-mitigation'}
+
+# The harm label for "no harm indicated" (all three component scores zero). Named
+# because detect_outliers has to reason about this group as well as 'Hyperglycemia'
+# -- see the hyperglycemia-axis comment there. The string is the RTF cell text, so
+# it is exactly what determine_harm_and_severity returned before it was named.
+BASELINE_HARM = 'Severity = baseline'
 
 
 # =============================================================================
@@ -451,7 +457,7 @@ def determine_harm_and_severity(lbgi_score, dka_score, hyperglycemia_score):
       - else -> DKA (score = dka)
     """
     if lbgi_score == 0 and dka_score == 0 and hyperglycemia_score == 0:
-        return ("Severity = baseline", "0")
+        return (BASELINE_HARM, "0")
     if lbgi_score <= 1 and dka_score == 0:
         return ("Hyperglycemia", str(hyperglycemia_score))
     if lbgi_score >= dka_score:
@@ -625,17 +631,20 @@ def detect_outliers(tlr_dir, severity_updates=None):
     findings lives in the consumer (create_severity_summary.render_*).
 
     ---------------------------------------------------------------------------
-    KNOWN INCONSISTENCY (preserved deliberately; flagged for adjudication):
-    This function computes each profile's per-stage hyperglycemia score inline as
+    RESOLVED (was: KNOWN INCONSISTENCY). This function used to compute each
+    profile's per-stage hyperglycemia score inline as
         hyper_score = 1 if tar < 12.0 else 2
-    which has NO zero case. This CONTRADICTS SOP intent (a score of 0 should mean
-    the index — TAR% — is truly 0), and it differs from the main path's
-    calculate_hyperglycemia_score(), which correctly returns 0 for TAR==0.0.
+    which has NO zero case, contradicting SOP intent (a score of 0 should mean the
+    index -- TAR% -- is truly 0) and disagreeing with calculate_hyperglycemia_score.
+    It now calls that function, so the module has ONE such mapping.
 
-    The main path is the SOP-correct one; the outlier path is the deviant one.
-    It is preserved here EXACTLY so the refactor produces byte-identical output.
-    Do NOT "fix" it as part of the refactor — changing it alters results and is a
-    separate, deliberate correctness decision for Shawn to make.
+    Correcting the score reclassifies a profile with TAR == 0 and no hypo/DKA risk:
+    determine_harm_and_severity(0, 0, 0) is baseline, where the old score of 1 made
+    it 'Hyperglycemia'. Since the zero-TAR outlier check keyed on that group, the
+    naive fix would have silently STOPPED FLAGGING the cleanest profiles. The check
+    now spans the Hyperglycemia and baseline groups together -- provably the same
+    population as the old Hyperglycemia group -- so no finding is gained or lost.
+    See the hyperglycemia-axis block below.
     ---------------------------------------------------------------------------
     """
     profile_data, metrics_status = get_profile_metrics(tlr_dir, severity_updates)
@@ -670,8 +679,8 @@ def detect_outliers(tlr_dir, severity_updates=None):
             lbgi = stages[stage]['lbgi']
             dka = stages[stage]['dka']
             tar = stages[stage]['tar']
-            # PRESERVED inconsistency (see docstring): no zero case here.
-            hyper_score = 1 if tar < 12.0 else 2
+            # The module's single TAR->score mapping (see the RESOLVED note above).
+            hyper_score = calculate_hyperglycemia_score(tar)
             harm, _severity = determine_harm_and_severity(lbgi, dka, hyper_score)
             profile_harms[profile] = {'harm': harm, 'lbgi': lbgi, 'dka': dka, 'tar': tar}
 
@@ -680,7 +689,42 @@ def detect_outliers(tlr_dir, severity_updates=None):
         for profile, data in profile_harms.items():
             harm_groups.setdefault(data['harm'], []).append(profile)
 
+        # The hyperglycemia-AXIS population: profiles compared on TAR% rather than
+        # on a risk score. It spans two harm groups, because a profile with TAR == 0
+        # and no hypo/DKA risk is now correctly 'Severity = baseline' rather than
+        # 'Hyperglycemia'. Their union is exactly the old Hyperglycemia group
+        # ('lbgi <= 1 and dka == 0' -- baseline is the subset of that with TAR == 0),
+        # so the compared population is unchanged by the score fix.
+        #
+        # Built from profile_harms, so profile order matches complete_profiles order
+        # as the per-group lists did; and evaluated at whichever of the two groups
+        # harm_groups reaches first, which is where the undivided Hyperglycemia group
+        # sat. Findings therefore keep both their identity and their emitted order.
+        hyper_axis_harms = ('Hyperglycemia', BASELINE_HARM)
+        hyper_axis_profiles = [
+            profile for profile, data in profile_harms.items()
+            if data['harm'] in hyper_axis_harms
+        ]
+        hyper_axis_at = next(
+            (harm_type for harm_type in harm_groups if harm_type in hyper_axis_harms),
+            None,
+        )
+
         for harm_type, profiles in harm_groups.items():
+            if harm_type == hyper_axis_at and len(hyper_axis_profiles) >= 2:
+                zero_profiles = [p for p in hyper_axis_profiles if profile_harms[p]['tar'] == 0.0]
+                non_zero_profiles = [p for p in hyper_axis_profiles if profile_harms[p]['tar'] != 0.0]
+                if len(zero_profiles) > 0 and len(non_zero_profiles) > 0:
+                    all_others_high = all(profile_harms[p]['tar'] >= 12.0 for p in non_zero_profiles)
+                    if all_others_high:
+                        non_zero_tars = [profile_harms[p]['tar'] for p in non_zero_profiles]
+                        median_tar = sorted(non_zero_tars)[len(non_zero_tars) // 2]
+                        for zero_profile in zero_profiles:
+                            findings.append(OutlierFinding(
+                                stage=stage, profile=zero_profile, harm_type='Hyperglycemia',
+                                value=0.0, comparison_median=float(median_tar),
+                            ))
+
             if len(profiles) < 2:
                 continue
 
@@ -705,20 +749,6 @@ def detect_outliers(tlr_dir, severity_updates=None):
                             stage=stage, profile=profile, harm_type='DKA',
                             value=float(dka), comparison_median=float(median_dka),
                         ))
-
-            if harm_type == 'Hyperglycemia':
-                zero_profiles = [p for p in profiles if profile_harms[p]['tar'] == 0.0]
-                non_zero_profiles = [p for p in profiles if profile_harms[p]['tar'] != 0.0]
-                if len(zero_profiles) > 0 and len(non_zero_profiles) > 0:
-                    all_others_high = all(profile_harms[p]['tar'] >= 12.0 for p in non_zero_profiles)
-                    if all_others_high:
-                        non_zero_tars = [profile_harms[p]['tar'] for p in non_zero_profiles]
-                        median_tar = sorted(non_zero_tars)[len(non_zero_tars) // 2]
-                        for zero_profile in zero_profiles:
-                            findings.append(OutlierFinding(
-                                stage=stage, profile=zero_profile, harm_type='Hyperglycemia',
-                                value=0.0, comparison_median=float(median_tar),
-                            ))
 
     return (findings, 'ok')
 
