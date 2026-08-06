@@ -85,11 +85,20 @@ def render_catastrophic_identifier(catastrophic_findings):
     return "\n".join(rtf_lines)
 
 
-def render_outlier_results(outlier_findings, status):
+def render_outlier_results(outlier_findings, status,
+                           profile_count=None, usable_profile_count=None):
     """Text for the Outlier Results section.
 
     Reproduces the original generate_outlier_results_section() output exactly,
     driven by structured OutlierFinding objects + a status string.
+
+    profile_count / usable_profile_count scope the claim. An unreadable profile is
+    now excluded from outlier analysis rather than abandoning it, so when fewer
+    profiles were analyzed than were present, the statuses that ASSERT something
+    about the profiles ('ok', 'single_profile') carry a sentence saying so. Without
+    it, "No outlier profiles exist. All results are within 1 severity level of one
+    another." reads as a claim over the whole run when it covered a subset. Both
+    default to None (unknown), which renders exactly as before.
     """
     if status == 'malformed_data':
         # NOT "Data not available": the data was there and could not be read.
@@ -105,11 +114,15 @@ def render_outlier_results(outlier_findings, status):
                 "three evaluation stages.")
     if status == 'no_data':
         return "Data not available for outlier analysis."
+
+    scope = _render_outlier_scope(profile_count, usable_profile_count)
+
     if status == 'single_profile':
-        return "Only one profile present, so outliers are not relevant."
+        return "Only one profile present, so outliers are not relevant." + scope
 
     if not outlier_findings:
-        return "No outlier profiles exist. All results are within 1 severity level of one another."
+        return ("No outlier profiles exist. All results are within 1 severity level "
+                "of one another.") + scope
 
     messages = []
     for f in outlier_findings:
@@ -129,7 +142,24 @@ def render_outlier_results(outlier_findings, status):
                 f"Outlier profile exists. {f.profile} has a Hyperglycemia percent_cgm_gt_180 of 0.0 at {stage_name}, "
                 f"while other profiles have a Hyperglycemia percent_cgm_gt_180 of {f.comparison_median:.1f}."
             )
-    return " ".join(messages)
+    return " ".join(messages) + scope
+
+
+def _render_outlier_scope(profile_count, usable_profile_count):
+    """A trailing sentence scoping an outlier claim to the profiles analyzed.
+
+    Empty -- so the section renders byte-for-byte as before -- unless profiles were
+    actually excluded. The count line above the section already reports the drop;
+    this repeats it inside the Outlier Results section because that section is read,
+    and quoted, on its own, and its sentences are absolute claims.
+    """
+    if profile_count is None or usable_profile_count is None:
+        return ""
+    if usable_profile_count >= profile_count:
+        return ""
+    excluded = profile_count - usable_profile_count
+    return (f" This analysis covered {usable_profile_count} of {profile_count} "
+            f"profiles; {excluded} could not be read.")
 
 
 def render_profile_count(profile_count, usable_profile_count=None):
@@ -175,7 +205,10 @@ def render_rtf(assessment):
     dkai = {stage: stages[stage].dka_index_value_avg for stage in STAGE_ORDER}
 
     catastrophic_content = render_catastrophic_identifier(assessment.catastrophic_findings)
-    outlier_content = render_outlier_results(assessment.outlier_findings, assessment.outlier_status)
+    outlier_content = render_outlier_results(
+        assessment.outlier_findings, assessment.outlier_status,
+        assessment.profile_count, assessment.usable_profile_count,
+    )
     profile_count_content = render_profile_count(
         assessment.profile_count, assessment.usable_profile_count
     )

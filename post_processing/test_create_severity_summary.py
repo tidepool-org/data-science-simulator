@@ -29,7 +29,7 @@ from create_severity_summary import (
     render_rtf,
     round_half_up,
 )
-from severity_model import build_assessment
+from severity_model import build_assessment, OutlierFinding
 
 
 class TestRoundHalfUp:
@@ -600,9 +600,16 @@ class TestRenderedDegradedPath:
             "1 summary results file could not be read."
         ) in partial_rtf
 
-    def test_the_outlier_section_says_unreadable_not_unavailable(self, partial_rtf):
-        assert _MALFORMED_OUTLIER_LINE in partial_rtf
+    def test_the_outlier_analysis_runs_over_the_readable_profiles(self, partial_rtf):
+        """Decision C: the excluded file used to abandon outlier analysis for the
+        whole directory, rendering the malformed sentence. The two readable profiles
+        are now compared, and the section scopes its claim instead."""
+        assert _MALFORMED_OUTLIER_LINE not in partial_rtf
         assert "Data not available for outlier analysis." not in partial_rtf
+        assert "No outlier profiles exist." in partial_rtf
+
+    def test_the_outlier_section_scopes_its_claim_to_what_was_analyzed(self, partial_rtf):
+        assert "This analysis covered 2 of 3 profiles; 1 could not be read." in partial_rtf
 
     def test_the_table_still_renders(self, partial_rtf):
         """A partial document is still a complete document."""
@@ -746,3 +753,55 @@ class TestRenderedIncompleteStagesDocument:
         post_row = next(row for row in rows[1:] if row[0] == "Post-mitigation")
         tir_index = rows[0].index("TIR % (70 - 180 mg/dL)")
         assert post_row[tir_index] == "NA"
+
+
+class TestOutlierScopeSentence:
+    """Decision C: an outlier claim over a subset must say so.
+
+    The count line above the section already reports the drop, but the Outlier
+    Results sentences are absolute claims read (and quoted) on their own.
+    """
+
+    _CLEAN_FINDING = OutlierFinding("pre", "sensitive", "Hypoglycemia", 4.0, 2.0)
+
+    def test_no_scope_sentence_when_nothing_was_excluded(self):
+        assert render_outlier_results([], "ok", 3, 3) == _CLEAN_OUTLIER_LINE
+
+    def test_no_scope_sentence_when_counts_are_unknown(self):
+        """Both default to None, so an older caller renders exactly as before."""
+        assert render_outlier_results([], "ok") == _CLEAN_OUTLIER_LINE
+        assert render_outlier_results([], "ok", None, None) == _CLEAN_OUTLIER_LINE
+
+    def test_the_no_outliers_claim_is_scoped(self):
+        assert render_outlier_results([], "ok", 3, 2) == (
+            _CLEAN_OUTLIER_LINE
+            + " This analysis covered 2 of 3 profiles; 1 could not be read."
+        )
+
+    def test_a_findings_claim_is_scoped_too(self):
+        rendered = render_outlier_results([self._CLEAN_FINDING], "ok", 4, 2)
+
+        assert rendered.startswith("Outlier profile exists.")
+        assert rendered.endswith(
+            " This analysis covered 2 of 4 profiles; 2 could not be read."
+        )
+
+    def test_single_profile_is_scoped_because_it_asserts_a_count(self):
+        """'Only one profile present' would be false when three were present and two
+        were excluded."""
+        rendered = render_outlier_results([], "single_profile", 3, 1)
+
+        assert rendered == (
+            "Only one profile present, so outliers are not relevant."
+            " This analysis covered 1 of 3 profiles; 2 could not be read."
+        )
+
+    def test_statuses_that_assert_nothing_are_not_scoped(self):
+        """These already say the analysis did not happen, and why; appending a scope
+        sentence would only repeat the count line."""
+        for status in ("no_data", "malformed_data", "incomplete_stages"):
+            assert "This analysis covered" not in render_outlier_results([], status, 3, 1)
+
+    def test_a_count_above_the_total_is_not_scoped(self):
+        """Defensive: never render 'more analyzed than present'."""
+        assert render_outlier_results([], "ok", 2, 3) == _CLEAN_OUTLIER_LINE

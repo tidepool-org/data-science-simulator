@@ -97,8 +97,10 @@ files: `test_consensus_risk_list.py`, `test_jira_risk_probabilities.py`,
 
 **Breaking changes — migration.** Two return contracts changed:
 
-- `get_profile_metrics` now returns `(profile_data, status)`, not a bare
-  `profile_data`/`None`. Callers must unpack.
+- `get_profile_metrics` now returns a `ProfileMetrics` object (`profiles`, `excluded`,
+  `files_present`), not a bare `profile_data`/`None`.
+- `render_outlier_results` takes two further optional arguments, `profile_count` and
+  `usable_profile_count`. Both default to `None`, so an existing call renders as before.
 - `detect_outliers`' status set gains `'malformed_data'` and `'incomplete_stages'`. A
   consumer branching on status must handle both, or they will fall through to whatever
   its `else` renders. The GUI reads `SeverityAssessment.outlier_status` and needs the
@@ -192,8 +194,49 @@ absent stages render `NA` as before.
 `render_outlier_results` falls through to the findings text for a status it does not
 recognize, so a future status cannot silently render a degraded sentence.
 
+## Excluding a bad profile instead of abandoning the analysis (separate commit)
+
+`get_profile_metrics` returned on the **first** unreadable file, so one bad profile
+cost the outlier analysis of every good one in the directory. This is the one change
+in TRSET-28 that alters which outliers are **found** (Decision C).
+
+An unreadable file is now excluded and named; the readable profiles are compared. A
+real example, three good profiles and one bad:
+
+| | Before | Now |
+|---|---|---|
+| Outlier Results | `Outlier analysis not performed: profile data is present but could not be read. Check data configuration.` | `Outlier profile exists. median has a Hypoglycemia score of 4 at Pre-mitigation, while other profiles have a Hypoglycemia score of 2. …` |
+
+A genuine severity-4 hypoglycemia outlier was being suppressed by an unrelated
+malformed file.
+
+Because the findings are scoped to what survived, the statuses that **assert**
+something about the profiles (`ok`, `single_profile`) carry a trailing sentence:
+*"This analysis covered 3 of 4 profiles; 1 could not be read."* The count line above
+already reports the drop, but the Outlier Results sentences are absolute claims read
+and quoted on their own. The three statuses that say the analysis did not happen are
+not scoped — that would only repeat the count line.
+
+`get_profile_metrics` now returns a `ProfileMetrics` (`profiles` / `excluded` /
+`files_present`) rather than a tuple; `files_present` is what distinguishes "nothing
+there" from "everything there was excluded", which an empty `profiles` cannot. A
+profile is published only once fully built, so a row-level failure part-way through
+can no longer leave a half-populated profile behind — it previously did not matter
+because any exception discarded the directory.
+
+**Two precedences moved, deliberately:**
+
+- `'malformed_data'` now means **every** per-profile file failed, not "at least one
+  did". Reaching it needs a usable non-profile file to keep M ≥ 1 (otherwise
+  `build_assessment_result` reports the directory malformed and writes no document).
+- `incomplete_stages` now **outranks** an excluded file, reversing the earlier
+  precedence. An unreadable file no longer poisons the directory, so what the reader
+  needs is the state of the data that remains: readable, but stage-thin.
+
+Equivalence on the clean path is unaffected: the `detect_outliers` sweep still
+reports 133,632 cases / 0 differences against the pre-TRSET-28 module, and RTF output
+is byte-identical when nothing is excluded.
+
 ### Deliberately out of scope
 
-- Analyzing the M usable profiles instead of abandoning outlier analysis on the
-  first malformed file — that changes which outliers are *found* (TRSET-28 Decision C).
 - `STAGE_PREFIXES` fragile prefix matching, noted in the module.

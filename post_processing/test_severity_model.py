@@ -381,7 +381,7 @@ class TestSummaryResultsGlobIsSharedAndLoose:
         assert count_profiles(tlr) == 2
         assert count_usable_profiles(tlr) == 2
         assert extract_metric_data(tlr, "lbgi_risk_score")["pre"] == [3, 3]
-        assert set(get_profile_metrics(tlr)[0]) == {"median", "adolescent"}
+        assert set(get_profile_metrics(tlr).profiles) == {"median", "adolescent"}
         assert identify_severity_4_hypoglycemia(tlr) == {}  # no score-4 rows, but it read them
 
         outcome = build_assessment_result(tlr, "2026-08-06T00:00:00")
@@ -646,51 +646,101 @@ class TestClassifySummaryFiles:
         assert classify_summary_files(str(tmp_path)) == ([], [])
 
 
-class TestGetProfileMetricsStatus:
-    """Finding 2 at the source: absent and malformed are now separate."""
+class TestGetProfileMetrics:
+    """Finding 2 at the source, plus Decision C: an unreadable file is EXCLUDED and
+    named rather than discarding every readable profile with it."""
 
-    def test_no_files_is_no_data(self, tmp_path):
-        assert get_profile_metrics(str(tmp_path)) == (None, "no_data")
+    def test_no_files_means_no_files_present(self, tmp_path):
+        metrics = get_profile_metrics(str(tmp_path))
 
-    def test_missing_required_columns_is_malformed(self, tmp_path):
+        assert metrics.files_present is False
+        assert metrics.profiles == {}
+        assert metrics.excluded == []
+
+    def test_a_file_missing_required_columns_is_excluded_and_named(self, tmp_path):
         tlr = str(tmp_path)
-        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS,
-                           columns=_MISSING_REQUIRED_COLUMNS)
+        broken = _write_summary_csv(tlr, "median", _PROFILE_A_ROWS,
+                                    columns=_MISSING_REQUIRED_COLUMNS)
 
-        profile_data, status = get_profile_metrics(tlr)
+        metrics = get_profile_metrics(tlr)
 
-        assert status == "malformed_data"
-        assert profile_data is None
+        assert metrics.files_present is True
+        assert metrics.profiles == {}
+        assert metrics.excluded == [broken]
 
-    def test_an_unreadable_file_is_malformed(self, tmp_path):
+    def test_an_unreadable_file_is_excluded_and_named(self, tmp_path):
         tlr = str(tmp_path)
-        _write_unreadable_csv(tlr, "median")
+        broken = _write_unreadable_csv(tlr, "median")
 
-        assert get_profile_metrics(tlr)[1] == "malformed_data"
+        assert get_profile_metrics(tlr).excluded == [broken]
 
-    def test_clean_data_is_ok(self, tmp_path):
+    def test_clean_data_yields_its_profiles_and_excludes_nothing(self, tmp_path):
         tlr = str(tmp_path)
         _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
 
-        profile_data, status = get_profile_metrics(tlr)
+        metrics = get_profile_metrics(tlr)
 
-        assert status == "ok"
-        assert set(profile_data) == {"median"}
+        assert set(metrics.profiles) == {"median"}
+        assert metrics.excluded == []
+
+    def test_one_bad_file_no_longer_discards_the_good_ones(self, tmp_path):
+        """The Decision C change. This used to return None for the whole directory,
+        so a single malformed profile cost the outlier analysis of every valid one."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+        broken = _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                                    columns=_MISSING_REQUIRED_COLUMNS)
+
+        metrics = get_profile_metrics(tlr)
+
+        assert set(metrics.profiles) == {"median", "adolescent"}
+        assert metrics.excluded == [broken]
+
+    def test_an_excluded_file_leaves_no_partial_profile_behind(self, tmp_path):
+        """Profiles are published only once fully built, so an excluded file cannot
+        appear in `profiles` with some stages filled in."""
+        tlr = str(tmp_path)
+        _write_unreadable_csv(tlr, "broken")
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+
+        metrics = get_profile_metrics(tlr)
+
+        assert "broken" not in metrics.profiles
+        assert set(metrics.profiles) == {"median"}
 
 
 class TestDetectOutliersStatus:
     """Finding 2 at the boundary the renderer reads."""
 
-    def test_malformed_data_is_not_reported_as_no_data(self, tmp_path):
+    def test_every_profile_file_unreadable_is_malformed_not_no_data(self, tmp_path):
+        """'malformed_data' now means NOTHING survived exclusion (Decision C): one
+        bad file among good ones is excluded and the good ones analyzed."""
         tlr = str(tmp_path)
-        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
-        _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+        _write_summary_csv(tlr, "brokenA", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+        _write_summary_csv(tlr, "brokenB", _PROFILE_B_ROWS,
                            columns=_MISSING_REQUIRED_COLUMNS)
 
         findings, status = detect_outliers(tlr)
 
         assert status == "malformed_data"
         assert findings == []
+
+    def test_one_bad_file_among_good_ones_no_longer_blocks_the_analysis(self, tmp_path):
+        """Was 'malformed_data' with zero findings for the whole directory. The two
+        readable profiles are now compared, and the drop is disclosed by the
+        renderer from the assessment's usable-vs-total counts."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+        _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        findings, status = detect_outliers(tlr)
+
+        assert status == "ok"
+        assert findings == []       # these two profiles simply have no outlier
 
     def test_a_genuinely_absent_directory_is_still_no_data(self, tmp_path):
         assert detect_outliers(str(tmp_path)) == ([], "no_data")
@@ -710,11 +760,31 @@ class TestDetectOutliersStatus:
 
     def test_the_status_reaches_the_assessment(self, tmp_path):
         tlr = str(tmp_path)
+        _write_summary_csv(tlr, "brokenA", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+        _write_summary_csv(tlr, "brokenB", _PROFILE_B_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+        # A usable file with NO profile part in its name, so M >= 1 and
+        # build_assessment produces a document at all -- while leaving every
+        # per-profile file excluded. Written by hand: _write_summary_csv always
+        # appends '_<profile>_profile.csv', which would make it a valid profile.
+        aggregate = os.path.join(tlr, f"summary_results_{_NARROW_STEM}.csv")
+        with open(aggregate, "w") as fh:
+            fh.write(",".join(_SUMMARY_COLUMNS) + "\n")
+            for row in _PROFILE_A_ROWS:
+                fh.write(",".join(str(v) for v in row) + "\n")
+
+        assert build_assessment(tlr, "2026-08-06T00:00:00").outlier_status == "malformed_data"
+
+    def test_a_surviving_profile_beside_an_excluded_one_is_single_profile(self, tmp_path):
+        """One readable profile plus one excluded: there is one analyzable profile,
+        which is the single-profile case -- not 'malformed_data' as it used to be."""
+        tlr = str(tmp_path)
         _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
         _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
                            columns=_MISSING_REQUIRED_COLUMNS)
 
-        assert build_assessment(tlr, "2026-08-06T00:00:00").outlier_status == "malformed_data"
+        assert detect_outliers(tlr)[1] == "single_profile"
 
 
 class TestOptionalColumnIsNotCalledMalformed:
@@ -947,9 +1017,11 @@ class TestIncompleteStagesIsNotReportedAsAbsent:
     def test_an_empty_directory_is_still_no_data(self, tmp_path):
         assert detect_outliers(str(tmp_path))[1] == "no_data"
 
-    def test_malformed_still_outranks_incomplete(self, tmp_path):
-        """A directory that is BOTH unreadable and thin reports the unreadability --
-        the more actionable fault, and the one that makes the rest unknowable."""
+    def test_incomplete_now_outranks_an_excluded_file(self, tmp_path):
+        """Precedence FLIPPED with Decision C, deliberately. An unreadable file no
+        longer poisons the directory -- it is excluded -- so what the reader needs to
+        know is the state of the data that REMAINS: readable, but stage-thin.
+        'malformed_data' is reserved for nothing surviving at all."""
         tlr = str(tmp_path)
         self._write_partial_stage_profile(
             tlr, "median", ("pre-Loop_NoMitigations_t1",),
@@ -957,7 +1029,7 @@ class TestIncompleteStagesIsNotReportedAsAbsent:
         _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
                            columns=_MISSING_REQUIRED_COLUMNS)
 
-        assert detect_outliers(tlr)[1] == "malformed_data"
+        assert detect_outliers(tlr)[1] == "incomplete_stages"
 
     def test_one_complete_profile_is_still_single_profile(self, tmp_path):
         """A complete profile alongside incomplete ones is the single-profile case,

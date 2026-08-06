@@ -521,28 +521,48 @@ def extract_profile_from_filename(csv_path):
     return None
 
 
+@dataclass
+class ProfileMetrics:
+    """Outlier-detection inputs for one TLR directory, and what was left out.
+
+    profiles:      profile name -> stage -> {'lbgi', 'dka', 'tar'}
+    excluded:      paths of per-profile summary files that could not contribute
+    files_present: whether the directory held any summary results files at all.
+                   Distinguishes "nothing there" from "everything there was excluded",
+                   which an empty ``profiles`` dict alone cannot.
+    """
+    profiles: dict = field(default_factory=dict)
+    excluded: list = field(default_factory=list)
+    files_present: bool = True
+
+    def to_dict(self):
+        return {
+            'profiles': self.profiles,
+            'excluded': list(self.excluded),
+            'files_present': self.files_present,
+        }
+
+
 def get_profile_metrics(tlr_dir, severity_updates=None):
     """Per-profile, per-stage {lbgi, dka, tar} for outlier detection.
 
-    Returns ``(profile_data, status)``:
-      'ok'              -> profile_data is a dict (possibly empty, if no filename
-                           yielded a profile name)
-      'no_data'         -> no summary results files at all; profile_data is None
-      'malformed_data'  -> files present but unreadable or missing a required
-                           column; profile_data is None
+    Returns a ProfileMetrics. An unreadable file is EXCLUDED and named, rather than
+    abandoning the directory: one bad profile used to cost the outlier analysis of
+    every good one, which is a strictly worse regulatory outcome than analyzing the
+    readable profiles and disclosing the scope. The exclusions travel with the data
+    so the caller can do that disclosing -- see detect_outliers and
+    create_severity_summary.render_outlier_results.
 
-    CONTRACT CHANGE: this used to return a bare ``None`` for both the absent and
-    the malformed case, collapsing them into detect_outliers' 'no_data' and thence
-    into an RTF line asserting the data was *unavailable* rather than *unusable*.
-    A malformed file still abandons the whole analysis (unchanged -- partially
-    analyzing would change which outliers are FOUND, a results change out of scope
-    here); it is only the REPORTING of that refusal that is now accurate.
+    CONTRACT CHANGE (twice over on this branch): this returned a bare
+    ``profile_data``/``None``, then ``(profile_data, status)``. Callers now read
+    ``.profiles`` / ``.excluded`` / ``.files_present``.
     """
     import pandas as pd
-    profile_data = {}
     csv_files = find_summary_files(tlr_dir)
     if not csv_files:
-        return (None, 'no_data')
+        return ProfileMetrics(files_present=False)
+
+    metrics = ProfileMetrics()
     for csv_file in csv_files:
         profile_name = extract_profile_from_filename(csv_file)
         if not profile_name:
@@ -550,9 +570,15 @@ def get_profile_metrics(tlr_dir, severity_updates=None):
         try:
             df = pd.read_csv(csv_file)
             if not all(col in df.columns for col in REQUIRED_SUMMARY_COLUMNS):
-                print(f"  Summary results file missing required columns: {csv_file}")
-                return (None, 'malformed_data')
-            profile_data[profile_name] = {'pre': {}, 'no_loop': {}, 'post': {}}
+                print(f"  Summary results file missing required columns, excluded "
+                      f"from outlier analysis: {csv_file}")
+                metrics.excluded.append(csv_file)
+                continue
+            # Built into a local dict and only then published, so a row-level
+            # failure part-way through cannot leave a half-populated profile in
+            # `profiles` -- it used to not matter, because any exception discarded
+            # the whole directory.
+            stages = {'pre': {}, 'no_loop': {}, 'post': {}}
             for _, row in df.iterrows():
                 sim_id = row['sim_id']
                 lbgi_score = row['lbgi_risk_score']
@@ -564,16 +590,18 @@ def get_profile_metrics(tlr_dir, severity_updates=None):
                     continue
                 stage = classify_sim_id(sim_id)
                 if stage is not None:
-                    profile_data[profile_name][stage] = {
+                    stages[stage] = {
                         'lbgi': int(lbgi_score),
                         'dka': int(dka_score),
                         'tar': float(tar_value),
                     }
+            metrics.profiles[profile_name] = stages
         except Exception as e:
-            print(f"  Error processing CSV for outlier detection: {csv_file}")
+            print(f"  Error processing CSV for outlier detection, excluded: {csv_file}")
             print(f"  Error details: {e}")
-            return (None, 'malformed_data')
-    return (profile_data, 'ok')
+            metrics.excluded.append(csv_file)
+            continue
+    return metrics
 
 
 def extract_simulation_id(summary_file_path):
@@ -614,17 +642,22 @@ def detect_outliers(tlr_dir, severity_updates=None):
         status_str is one of:
           'ok'                -> findings list is authoritative (may be empty)
           'no_data'           -> no per-profile results exist to compare
-          'malformed_data'    -> data IS present but unreadable/missing a required
-                                 column, so the analysis was not performed
+          'malformed_data'    -> every per-profile file was unreadable/missing a
+                                 required column, so nothing survived to analyze
           'incomplete_stages' -> profiles exist and parse, but none carries results
                                  for all three stages, so there is nothing to
                                  compare like-for-like
-          'single_profile'    -> only one profile, outliers not meaningful
+          'single_profile'    -> only one analyzable profile, outliers not meaningful
 
     'no_data' used to cover all three of absent, malformed and incomplete input,
     which the renderer then reported as "Data not available" -- a regulatory
     document asserting the data was missing when it was in fact corrupt, or real but
     thin. All three are now separate, and only genuine absence keeps that sentence.
+
+    A single unreadable file no longer costs the analysis of every readable profile:
+    it is excluded and the rest are compared. The findings are therefore scoped to
+    the profiles that survived, which the renderer discloses from the assessment's
+    usable-vs-total counts. 'malformed_data' now means every one of them failed.
 
     This is the detection half only. Rendering the RTF/GUI text from these
     findings lives in the consumer (create_severity_summary.render_*).
@@ -646,17 +679,19 @@ def detect_outliers(tlr_dir, severity_updates=None):
     See the hyperglycemia-axis block below.
     ---------------------------------------------------------------------------
     """
-    profile_data, metrics_status = get_profile_metrics(tlr_dir, severity_updates)
-
-    if metrics_status == 'malformed_data':
-        print("  Summary results data present but unusable; check data configuration.")
-        return ([], 'malformed_data')
+    metrics = get_profile_metrics(tlr_dir, severity_updates)
+    profile_data = metrics.profiles
 
     if not profile_data:
-        # Either no summary files at all (get_profile_metrics said 'no_data', and
-        # profile_data is None), or files whose names identify no profile -- an
-        # aggregate-only directory with no '*_profile.csv'. Either way there are no
-        # per-profile results in existence to compare, which is what 'no_data' means.
+        if metrics.excluded:
+            # Every per-profile file there was got excluded, so nothing survives to
+            # analyze. This is the only path left to 'malformed_data': a single bad
+            # file among good ones is now excluded and the rest analyzed.
+            print("  Summary results data present but unusable; check data configuration.")
+            return ([], 'malformed_data')
+        # No summary files at all, or files whose names identify no profile -- an
+        # aggregate-only directory with no '*_profile.csv'. Either way no per-profile
+        # results exist to compare, which is what 'no_data' means.
         print("  Necessary data not present; check configurations.")
         return ([], 'no_data')
 
