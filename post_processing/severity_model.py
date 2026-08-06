@@ -18,12 +18,19 @@ SOP grounding (see 'Using the Tidepool Risk Severity Evaluation Tool' docs):
   - Averaging across profiles per stage (TWI-0006 2.g).
   - Catastrophic 4->5 escalation read from the TSV (DOC-0015 Table 1 / TWI-0006 2.f).
 
+Failure reporting (TRSET-28): a directory that cannot be assessed reports WHY.
+build_assessment_result returns an AssessmentOutcome whose status separates a
+genuinely empty directory from real-but-malformed data; build_assessment remains a
+wrapper returning Optional[SeverityAssessment] for consumers typed on it. Malformed
+input is never reported as absent input -- see detect_outliers' 'malformed_data'
+status and SeverityAssessment.usable_profile_count. See README_severity_model.md.
+
 Provenance flags on scores:
   - round-half-up on averaged scores: script convention (conservative), NOT SOP-mandated.
   - hyperglycemia TAR->score mapping: script convention; DOC-0015 treats hyperglycemia as
-    secondary and defines no TAR->severity map. The main-path mapping
-    (calculate_hyperglycemia_score) honors SOP intent that a score of 0 means the index
-    is truly 0. See KNOWN INCONSISTENCY note in detect_outliers().
+    secondary and defines no TAR->severity map. calculate_hyperglycemia_score honors SOP
+    intent that a score of 0 means the index is truly 0, and is now the ONLY mapping in
+    the module -- detect_outliers used to compute its own without a zero case.
 """
 
 import math
@@ -68,6 +75,52 @@ STAGE_PREFIXES = {
 
 STAGE_ORDER = ['pre', 'no_loop', 'post']
 STAGE_DISPLAY = {'pre': 'Pre-mitigation', 'no_loop': 'No Loop', 'post': 'Post-mitigation'}
+
+# The harm label for "no harm indicated" (all three component scores zero). Named
+# because detect_outliers has to reason about this group as well as 'Hyperglycemia'
+# -- see the hyperglycemia-axis comment there. The string is the RTF cell text, so
+# it is exactly what determine_harm_and_severity returned before it was named.
+BASELINE_HARM = 'Severity = baseline'
+
+
+# =============================================================================
+# Summary results discovery (single source of truth)
+# -----------------------------------------------------------------------------
+# The module previously matched summary CSVs with two different patterns:
+# build_assessment required 'summary_results_Simulation-Configuration-TLR*.csv'
+# while count_profiles, extract_metric_data, get_profile_metrics and
+# identify_severity_4_hypoglycemia all used the looser 'summary_results_*.csv'. A
+# directory matching only the loose pattern was therefore reported unusable even
+# though every downstream helper would have read it. All five now go through
+# find_summary_files().
+#
+# REQUIRED_SUMMARY_COLUMNS is the set a summary CSV must carry to contribute to
+# the severity VERDICT: the sim identity plus the three columns that feed
+# determine_harm_and_severity. TIR/TBR ('percent_values_ge_70_le_180',
+# 'percent_cgm_lt_54') and the raw values ('lbgi', 'dka_index') are *reported*
+# metrics, not verdict inputs -- they degrade to 'NA' by design, so their absence
+# must not mark a file malformed.
+# =============================================================================
+
+SUMMARY_RESULTS_GLOB = 'summary_results_*.csv'
+
+REQUIRED_SUMMARY_COLUMNS = (
+    'sim_id',
+    'lbgi_risk_score',
+    'dka_risk_score',
+    'percent_cgm_gt_180',
+)
+
+
+def find_summary_files(tlr_dir):
+    """Every summary results CSV in tlr_dir, sorted.
+
+    Sorted, not raw glob order: simulation-ID resolution reads the filenames in
+    order, and glob returns whatever the filesystem hands back. Under the old
+    narrow pattern every match carried the same 'Simulation-Configuration-TLR'
+    stem so arbitrary order was harmless; under the loose pattern it is not.
+    """
+    return sorted(glob.glob(os.path.join(tlr_dir, SUMMARY_RESULTS_GLOB)))
 
 
 def classify_sim_id(sim_id):
@@ -154,11 +207,17 @@ class SeverityAssessment:
     simulation_id: str
     subdirectory_name: str
     timestamp: str
-    profile_count: int
+    profile_count: int              # N: total summary results files present
     stages: dict                    # stage -> StageResult
     catastrophic_findings: list = field(default_factory=list)   # list[CatastrophicFinding]
     outlier_findings: list = field(default_factory=list)        # list[OutlierFinding]
-    outlier_status: str = 'ok'      # 'ok' | 'no_data' | 'single_profile'
+    # 'ok' | 'no_data' | 'malformed_data' | 'incomplete_stages' | 'single_profile'
+    outlier_status: str = 'ok'
+    # M: how many of the N files could actually contribute a value. None means
+    # "not measured" and is treated as M == N by consumers, so an object built by
+    # an older positional constructor renders exactly as it used to.
+    # build_assessment always populates it.
+    usable_profile_count: Optional[int] = None
 
     def to_dict(self):
         return {
@@ -166,6 +225,7 @@ class SeverityAssessment:
             'subdirectory_name': self.subdirectory_name,
             'timestamp': self.timestamp,
             'profile_count': self.profile_count,
+            'usable_profile_count': self.usable_profile_count,
             'stages': {stage: sr.to_dict() for stage, sr in self.stages.items()},
             'catastrophic_findings': [c.to_dict() for c in self.catastrophic_findings],
             'outlier_findings': [o.to_dict() for o in self.outlier_findings],
@@ -233,7 +293,7 @@ def identify_severity_4_hypoglycemia(tlr_dir):
     """Find all sim_ids with lbgi_risk_score == 4, mapped to their stage."""
     import pandas as pd
     severity_4_sim_ids = {}
-    csv_files = glob.glob(os.path.join(tlr_dir, 'summary_results_*.csv'))
+    csv_files = find_summary_files(tlr_dir)
     for csv_file in csv_files:
         try:
             df = pd.read_csv(csv_file)
@@ -285,7 +345,7 @@ def extract_metric_data(tlr_dir, column_name, severity_updates=None):
     """
     import pandas as pd
     metric_data = {'pre': [], 'no_loop': [], 'post': []}
-    csv_files = glob.glob(os.path.join(tlr_dir, 'summary_results_*.csv'))
+    csv_files = find_summary_files(tlr_dir)
     if not csv_files:
         print(f"  Warning: No CSV files found in {tlr_dir}")
         return metric_data
@@ -293,7 +353,16 @@ def extract_metric_data(tlr_dir, column_name, severity_updates=None):
         try:
             df = pd.read_csv(csv_file)
             if 'sim_id' not in df.columns or column_name not in df.columns:
-                print(f"  CSV file malformed; check data configuration: {csv_file}")
+                # A REQUIRED column absent means the file is malformed. An
+                # optional/reported column absent is the designed 'NA' degrade
+                # (older CSVs predate 'lbgi'/'dka_index'), so calling it
+                # malformed cried wolf on valid data -- but it is still not
+                # silent: say which metric will report NA.
+                if 'sim_id' not in df.columns or column_name in REQUIRED_SUMMARY_COLUMNS:
+                    print(f"  CSV file malformed; check data configuration: {csv_file}")
+                else:
+                    print(f"  Column '{column_name}' not present in {csv_file}; "
+                          f"this metric will report NA.")
                 continue
             for _, row in df.iterrows():
                 sim_id = row['sim_id']
@@ -388,7 +457,7 @@ def determine_harm_and_severity(lbgi_score, dka_score, hyperglycemia_score):
       - else -> DKA (score = dka)
     """
     if lbgi_score == 0 and dka_score == 0 and hyperglycemia_score == 0:
-        return ("Severity = baseline", "0")
+        return (BASELINE_HARM, "0")
     if lbgi_score <= 1 and dka_score == 0:
         return ("Hyperglycemia", str(hyperglycemia_score))
     if lbgi_score >= dka_score:
@@ -397,8 +466,45 @@ def determine_harm_and_severity(lbgi_score, dka_score, hyperglycemia_score):
 
 
 def count_profiles(tlr_dir):
-    """Number of summary_results_*.csv files (== profile count)."""
-    return len(glob.glob(os.path.join(tlr_dir, 'summary_results_*.csv')))
+    """Number of summary results files (== total profile count, N).
+
+    This is the TOTAL, which is not the same as the number that CONTRIBUTED a
+    value -- see count_usable_profiles for M.
+    """
+    return len(find_summary_files(tlr_dir))
+
+
+def classify_summary_files(tlr_dir):
+    """Split the directory's summary CSVs into (usable, unusable) path lists.
+
+    Usable means: parses as CSV and carries every REQUIRED_SUMMARY_COLUMNS entry,
+    i.e. it can contribute to the severity verdict. This is what separates
+    "N profiles were aggregated" from "N files were present": extract_metric_data
+    skips a malformed file and averages the remainder, so the file count alone
+    could name more profiles than contributed a single value.
+    """
+    import pandas as pd
+    usable, unusable = [], []
+    for csv_file in find_summary_files(tlr_dir):
+        try:
+            df = pd.read_csv(csv_file)
+        except Exception as e:
+            print(f"  Summary results file unreadable: {csv_file}")
+            print(f"  Error details: {e}")
+            unusable.append(csv_file)
+            continue
+        missing = [col for col in REQUIRED_SUMMARY_COLUMNS if col not in df.columns]
+        if missing:
+            print(f"  Summary results file missing required column(s) {missing}: {csv_file}")
+            unusable.append(csv_file)
+            continue
+        usable.append(csv_file)
+    return usable, unusable
+
+
+def count_usable_profiles(tlr_dir):
+    """Number of summary results files that can contribute a value (M)."""
+    return len(classify_summary_files(tlr_dir)[0])
 
 
 def extract_profile_from_filename(csv_path):
@@ -415,26 +521,64 @@ def extract_profile_from_filename(csv_path):
     return None
 
 
+@dataclass
+class ProfileMetrics:
+    """Outlier-detection inputs for one TLR directory, and what was left out.
+
+    profiles:      profile name -> stage -> {'lbgi', 'dka', 'tar'}
+    excluded:      paths of per-profile summary files that could not contribute
+    files_present: whether the directory held any summary results files at all.
+                   Distinguishes "nothing there" from "everything there was excluded",
+                   which an empty ``profiles`` dict alone cannot.
+    """
+    profiles: dict = field(default_factory=dict)
+    excluded: list = field(default_factory=list)
+    files_present: bool = True
+
+    def to_dict(self):
+        return {
+            'profiles': self.profiles,
+            'excluded': list(self.excluded),
+            'files_present': self.files_present,
+        }
+
+
 def get_profile_metrics(tlr_dir, severity_updates=None):
     """Per-profile, per-stage {lbgi, dka, tar} for outlier detection.
 
-    Returns None if any CSV is malformed/missing required columns (preserves original).
+    Returns a ProfileMetrics. An unreadable file is EXCLUDED and named, rather than
+    abandoning the directory: one bad profile used to cost the outlier analysis of
+    every good one, which is a strictly worse regulatory outcome than analyzing the
+    readable profiles and disclosing the scope. The exclusions travel with the data
+    so the caller can do that disclosing -- see detect_outliers and
+    create_severity_summary.render_outlier_results.
+
+    CONTRACT CHANGE (twice over on this branch): this returned a bare
+    ``profile_data``/``None``, then ``(profile_data, status)``. Callers now read
+    ``.profiles`` / ``.excluded`` / ``.files_present``.
     """
     import pandas as pd
-    profile_data = {}
-    csv_files = glob.glob(os.path.join(tlr_dir, 'summary_results_*.csv'))
+    csv_files = find_summary_files(tlr_dir)
     if not csv_files:
-        return None
+        return ProfileMetrics(files_present=False)
+
+    metrics = ProfileMetrics()
     for csv_file in csv_files:
         profile_name = extract_profile_from_filename(csv_file)
         if not profile_name:
             continue
         try:
             df = pd.read_csv(csv_file)
-            required_cols = ['sim_id', 'lbgi_risk_score', 'dka_risk_score', 'percent_cgm_gt_180']
-            if not all(col in df.columns for col in required_cols):
-                return None
-            profile_data[profile_name] = {'pre': {}, 'no_loop': {}, 'post': {}}
+            if not all(col in df.columns for col in REQUIRED_SUMMARY_COLUMNS):
+                print(f"  Summary results file missing required columns, excluded "
+                      f"from outlier analysis: {csv_file}")
+                metrics.excluded.append(csv_file)
+                continue
+            # Built into a local dict and only then published, so a row-level
+            # failure part-way through cannot leave a half-populated profile in
+            # `profiles` -- it used to not matter, because any exception discarded
+            # the whole directory.
+            stages = {'pre': {}, 'no_loop': {}, 'post': {}}
             for _, row in df.iterrows():
                 sim_id = row['sim_id']
                 lbgi_score = row['lbgi_risk_score']
@@ -446,16 +590,18 @@ def get_profile_metrics(tlr_dir, severity_updates=None):
                     continue
                 stage = classify_sim_id(sim_id)
                 if stage is not None:
-                    profile_data[profile_name][stage] = {
+                    stages[stage] = {
                         'lbgi': int(lbgi_score),
                         'dka': int(dka_score),
                         'tar': float(tar_value),
                     }
+            metrics.profiles[profile_name] = stages
         except Exception as e:
-            print(f"  Error processing CSV for outlier detection: {csv_file}")
+            print(f"  Error processing CSV for outlier detection, excluded: {csv_file}")
             print(f"  Error details: {e}")
-            return None
-    return profile_data
+            metrics.excluded.append(csv_file)
+            continue
+    return metrics
 
 
 def extract_simulation_id(summary_file_path):
@@ -465,6 +611,22 @@ def extract_simulation_id(summary_file_path):
     for i, part in enumerate(parts):
         if part == 'TLR':
             return f"TLR-{parts[i + 1].split('.')[0].split('_')[0]}"
+    return None
+
+
+def resolve_simulation_id(summary_files):
+    """The first TLR ID any of these filenames yields, or None if none does.
+
+    build_assessment used to read summary_files[0] alone. Under the old narrow
+    glob every candidate carried the 'Simulation-Configuration-TLR' stem, so
+    whichever one glob returned first gave the same answer. The loose glob admits
+    filenames with no TLR part, so taking [0] blindly would skip a directory that
+    renders today purely on filesystem ordering.
+    """
+    for summary_file in summary_files:
+        simulation_id = extract_simulation_id(summary_file)
+        if simulation_id:
+            return simulation_id
     return None
 
 
@@ -479,29 +641,57 @@ def detect_outliers(tlr_dir, severity_updates=None):
         (list[OutlierFinding], status_str)
         status_str is one of:
           'ok'                -> findings list is authoritative (may be empty)
-          'no_data'           -> data missing/malformed
-          'single_profile'    -> only one profile, outliers not meaningful
+          'no_data'           -> no per-profile results exist to compare
+          'malformed_data'    -> every per-profile file was unreadable/missing a
+                                 required column, so nothing survived to analyze
+          'incomplete_stages' -> profiles exist and parse, but none carries results
+                                 for all three stages, so there is nothing to
+                                 compare like-for-like
+          'single_profile'    -> only one analyzable profile, outliers not meaningful
+
+    'no_data' used to cover all three of absent, malformed and incomplete input,
+    which the renderer then reported as "Data not available" -- a regulatory
+    document asserting the data was missing when it was in fact corrupt, or real but
+    thin. All three are now separate, and only genuine absence keeps that sentence.
+
+    A single unreadable file no longer costs the analysis of every readable profile:
+    it is excluded and the rest are compared. The findings are therefore scoped to
+    the profiles that survived, which the renderer discloses from the assessment's
+    usable-vs-total counts. 'malformed_data' now means every one of them failed.
 
     This is the detection half only. Rendering the RTF/GUI text from these
     findings lives in the consumer (create_severity_summary.render_*).
 
     ---------------------------------------------------------------------------
-    KNOWN INCONSISTENCY (preserved deliberately; flagged for adjudication):
-    This function computes each profile's per-stage hyperglycemia score inline as
+    RESOLVED (was: KNOWN INCONSISTENCY). This function used to compute each
+    profile's per-stage hyperglycemia score inline as
         hyper_score = 1 if tar < 12.0 else 2
-    which has NO zero case. This CONTRADICTS SOP intent (a score of 0 should mean
-    the index — TAR% — is truly 0), and it differs from the main path's
-    calculate_hyperglycemia_score(), which correctly returns 0 for TAR==0.0.
+    which has NO zero case, contradicting SOP intent (a score of 0 should mean the
+    index -- TAR% -- is truly 0) and disagreeing with calculate_hyperglycemia_score.
+    It now calls that function, so the module has ONE such mapping.
 
-    The main path is the SOP-correct one; the outlier path is the deviant one.
-    It is preserved here EXACTLY so the refactor produces byte-identical output.
-    Do NOT "fix" it as part of the refactor — changing it alters results and is a
-    separate, deliberate correctness decision for Shawn to make.
+    Correcting the score reclassifies a profile with TAR == 0 and no hypo/DKA risk:
+    determine_harm_and_severity(0, 0, 0) is baseline, where the old score of 1 made
+    it 'Hyperglycemia'. Since the zero-TAR outlier check keyed on that group, the
+    naive fix would have silently STOPPED FLAGGING the cleanest profiles. The check
+    now spans the Hyperglycemia and baseline groups together -- provably the same
+    population as the old Hyperglycemia group -- so no finding is gained or lost.
+    See the hyperglycemia-axis block below.
     ---------------------------------------------------------------------------
     """
-    profile_data = get_profile_metrics(tlr_dir, severity_updates)
+    metrics = get_profile_metrics(tlr_dir, severity_updates)
+    profile_data = metrics.profiles
 
-    if profile_data is None:
+    if not profile_data:
+        if metrics.excluded:
+            # Every per-profile file there was got excluded, so nothing survives to
+            # analyze. This is the only path left to 'malformed_data': a single bad
+            # file among good ones is now excluded and the rest analyzed.
+            print("  Summary results data present but unusable; check data configuration.")
+            return ([], 'malformed_data')
+        # No summary files at all, or files whose names identify no profile -- an
+        # aggregate-only directory with no '*_profile.csv'. Either way no per-profile
+        # results exist to compare, which is what 'no_data' means.
         print("  Necessary data not present; check configurations.")
         return ([], 'no_data')
 
@@ -512,8 +702,16 @@ def detect_outliers(tlr_dir, severity_updates=None):
     }
 
     if len(complete_profiles) == 0:
-        print("  Necessary data not present; check configurations.")
-        return ([], 'no_data')
+        # Profiles DO exist and parsed; none carries results for all three stages,
+        # so there is no like-for-like comparison to make. Distinct from 'no_data'
+        # (nothing to compare) and from 'malformed_data' (unreadable): this data is
+        # readable and real, just too thin for a cross-stage comparison. Reporting it
+        # as absent hid a recoverable configuration problem -- a run that produced
+        # only some stages -- behind the same sentence as a missing directory.
+        print(f"  No profile in {tlr_dir} has results for all three evaluation "
+              f"stages ({len(profile_data)} profile(s) found); "
+              f"outlier comparison needs at least two that do.")
+        return ([], 'incomplete_stages')
 
     if len(complete_profiles) == 1:
         return ([], 'single_profile')
@@ -527,8 +725,8 @@ def detect_outliers(tlr_dir, severity_updates=None):
             lbgi = stages[stage]['lbgi']
             dka = stages[stage]['dka']
             tar = stages[stage]['tar']
-            # PRESERVED inconsistency (see docstring): no zero case here.
-            hyper_score = 1 if tar < 12.0 else 2
+            # The module's single TAR->score mapping (see the RESOLVED note above).
+            hyper_score = calculate_hyperglycemia_score(tar)
             harm, _severity = determine_harm_and_severity(lbgi, dka, hyper_score)
             profile_harms[profile] = {'harm': harm, 'lbgi': lbgi, 'dka': dka, 'tar': tar}
 
@@ -537,7 +735,42 @@ def detect_outliers(tlr_dir, severity_updates=None):
         for profile, data in profile_harms.items():
             harm_groups.setdefault(data['harm'], []).append(profile)
 
+        # The hyperglycemia-AXIS population: profiles compared on TAR% rather than
+        # on a risk score. It spans two harm groups, because a profile with TAR == 0
+        # and no hypo/DKA risk is now correctly 'Severity = baseline' rather than
+        # 'Hyperglycemia'. Their union is exactly the old Hyperglycemia group
+        # ('lbgi <= 1 and dka == 0' -- baseline is the subset of that with TAR == 0),
+        # so the compared population is unchanged by the score fix.
+        #
+        # Built from profile_harms, so profile order matches complete_profiles order
+        # as the per-group lists did; and evaluated at whichever of the two groups
+        # harm_groups reaches first, which is where the undivided Hyperglycemia group
+        # sat. Findings therefore keep both their identity and their emitted order.
+        hyper_axis_harms = ('Hyperglycemia', BASELINE_HARM)
+        hyper_axis_profiles = [
+            profile for profile, data in profile_harms.items()
+            if data['harm'] in hyper_axis_harms
+        ]
+        hyper_axis_at = next(
+            (harm_type for harm_type in harm_groups if harm_type in hyper_axis_harms),
+            None,
+        )
+
         for harm_type, profiles in harm_groups.items():
+            if harm_type == hyper_axis_at and len(hyper_axis_profiles) >= 2:
+                zero_profiles = [p for p in hyper_axis_profiles if profile_harms[p]['tar'] == 0.0]
+                non_zero_profiles = [p for p in hyper_axis_profiles if profile_harms[p]['tar'] != 0.0]
+                if len(zero_profiles) > 0 and len(non_zero_profiles) > 0:
+                    all_others_high = all(profile_harms[p]['tar'] >= 12.0 for p in non_zero_profiles)
+                    if all_others_high:
+                        non_zero_tars = [profile_harms[p]['tar'] for p in non_zero_profiles]
+                        median_tar = sorted(non_zero_tars)[len(non_zero_tars) // 2]
+                        for zero_profile in zero_profiles:
+                            findings.append(OutlierFinding(
+                                stage=stage, profile=zero_profile, harm_type='Hyperglycemia',
+                                value=0.0, comparison_median=float(median_tar),
+                            ))
+
             if len(profiles) < 2:
                 continue
 
@@ -563,20 +796,6 @@ def detect_outliers(tlr_dir, severity_updates=None):
                             value=float(dka), comparison_median=float(median_dka),
                         ))
 
-            if harm_type == 'Hyperglycemia':
-                zero_profiles = [p for p in profiles if profile_harms[p]['tar'] == 0.0]
-                non_zero_profiles = [p for p in profiles if profile_harms[p]['tar'] != 0.0]
-                if len(zero_profiles) > 0 and len(non_zero_profiles) > 0:
-                    all_others_high = all(profile_harms[p]['tar'] >= 12.0 for p in non_zero_profiles)
-                    if all_others_high:
-                        non_zero_tars = [profile_harms[p]['tar'] for p in non_zero_profiles]
-                        median_tar = sorted(non_zero_tars)[len(non_zero_tars) // 2]
-                        for zero_profile in zero_profiles:
-                            findings.append(OutlierFinding(
-                                stage=stage, profile=zero_profile, harm_type='Hyperglycemia',
-                                value=0.0, comparison_median=float(median_tar),
-                            ))
-
     return (findings, 'ok')
 
 
@@ -584,26 +803,88 @@ def detect_outliers(tlr_dir, severity_updates=None):
 # Orchestrator — build the structured assessment (no I/O side effects beyond reads)
 # =============================================================================
 
+@dataclass
+class AssessmentOutcome:
+    """What build_assessment_result found in one TLR directory.
+
+    status:
+      'ok'        -> assessment is a SeverityAssessment
+      'empty'     -> no summary results files at all (nothing ran here);
+                     assessment is None
+      'malformed' -> summary files ARE present but none is usable, or none names a
+                     TLR simulation; assessment is None
+
+    'empty' and 'malformed' both used to be a bare None, so a caller could not tell
+    "nothing ran here" from "the data is broken." Both remain PARTIAL outcomes for
+    one directory -- neither is raised, so a run containing one still summarizes
+    every other directory (TRSET-27's fatal-vs-partial split).
+
+    detail is a human-readable reason a caller can report verbatim.
+    """
+    assessment: Optional[SeverityAssessment]
+    status: str
+    detail: str = ''
+
+    def to_dict(self):
+        return {
+            'assessment': self.assessment.to_dict() if self.assessment else None,
+            'status': self.status,
+            'detail': self.detail,
+        }
+
+
 def build_assessment(tlr_dir, timestamp):
-    """Build a SeverityAssessment for one TLR directory.
+    """The SeverityAssessment for one TLR directory, or None if unusable.
+
+    Backwards-compatible wrapper over build_assessment_result(), kept so consumers
+    typed on Optional[SeverityAssessment] -- the GUI runner's RiskDirRunResult, and
+    the GUI repo that reads it -- keep working unchanged. A caller that needs to
+    tell an empty directory from malformed data should call build_assessment_result
+    directly.
+    """
+    return build_assessment_result(tlr_dir, timestamp).assessment
+
+
+def build_assessment_result(tlr_dir, timestamp):
+    """Build an AssessmentOutcome for one TLR directory.
 
     Mirrors the per-TLR computation in the original process_results_directory(),
-    but RETURNS the structured object instead of writing RTF. Returns None if the
-    directory has no usable summary files (caller decides how to report).
+    but RETURNS the structured object instead of writing RTF.
     """
-    summary_files = glob.glob(
-        os.path.join(tlr_dir, 'summary_results_Simulation-Configuration-TLR*.csv')
-    )
+    summary_files = find_summary_files(tlr_dir)
     if not summary_files:
         print(f"  Warning: No summary results files found in {tlr_dir}")
-        return None
+        return AssessmentOutcome(
+            None, 'empty',
+            f"no {SUMMARY_RESULTS_GLOB} files found (nothing ran in this directory)",
+        )
 
-    simulation_id = extract_simulation_id(summary_files[0])
+    usable_files, unusable_files = classify_summary_files(tlr_dir)
+    if not usable_files:
+        # Every file unusable used to render a COMPLETE document with every metric
+        # 'NA'/0 and "Data not available for outlier analysis." -- a regulatory
+        # document asserting near-baseline results from data that could not be
+        # read. It is a malformed directory, and produces no document.
+        print(f"  Error: {len(unusable_files)} summary results file(s) present in "
+              f"{tlr_dir}, none usable")
+        return AssessmentOutcome(
+            None, 'malformed',
+            f"{len(unusable_files)} summary results file(s) present, none usable: "
+            f"unreadable or missing required column(s) "
+            f"{list(REQUIRED_SUMMARY_COLUMNS)}",
+        )
+
+    simulation_id = resolve_simulation_id(summary_files)
     if not simulation_id:
-        print(f"  Error: Could not extract simulation ID from {summary_files[0]}")
-        return None
+        print(f"  Error: Could not extract simulation ID from any summary results "
+              f"file in {tlr_dir}")
+        return AssessmentOutcome(
+            None, 'malformed',
+            "could not extract a TLR simulation ID from any summary results filename",
+        )
 
-    profile_count = count_profiles(tlr_dir)
+    profile_count = len(summary_files)
+    usable_profile_count = len(usable_files)
 
     # Catastrophic (4->5) assessment.
     severity_4_sim_ids = identify_severity_4_hypoglycemia(tlr_dir)
@@ -664,7 +945,7 @@ def build_assessment(tlr_dir, timestamp):
     # renderers never re-read the directory or re-derive the branch.
     outlier_list, outlier_status = detect_outliers(tlr_dir, assessment_results)
 
-    return SeverityAssessment(
+    assessment = SeverityAssessment(
         simulation_id=simulation_id,
         subdirectory_name=os.path.basename(tlr_dir),
         timestamp=timestamp,
@@ -673,4 +954,6 @@ def build_assessment(tlr_dir, timestamp):
         catastrophic_findings=catastrophic_findings,
         outlier_findings=outlier_list,
         outlier_status=outlier_status,
+        usable_profile_count=usable_profile_count,
     )
+    return AssessmentOutcome(assessment, 'ok')

@@ -24,10 +24,12 @@ from create_severity_summary import (
     TABLE_CELL_STOPS,
     calculate_integer_averages,
     process_results_directory,
+    render_outlier_results,
+    render_profile_count,
     render_rtf,
     round_half_up,
 )
-from severity_model import build_assessment
+from severity_model import build_assessment, OutlierFinding
 
 
 class TestRoundHalfUp:
@@ -470,3 +472,336 @@ class TestRtfOutputUnchanged:
         assessment = build_assessment(tlr_dir, _RUN_TIMESTAMP)
         with open(result.written[0]) as fh:
             assert fh.read() == render_rtf(assessment)
+
+
+# =============================================================================
+# TRSET-28 -- the two rendered strings that change, and only on degraded paths
+# =============================================================================
+
+# The verdict-input columns. Dropping them makes a file unusable; the fixture
+# below is how a "present but unreadable" profile is simulated.
+_MISSING_REQUIRED_COLUMNS = [
+    "sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54",
+]
+
+# The clean-path strings, pinned VERBATIM. TestRtfOutputUnchanged compares the
+# written file against the renderer's own output, so it is a self-consistency
+# check that would pass even if every string here changed. These are the actual
+# byte-identity guard for the two lines TRSET-28 touches.
+_CLEAN_PROFILE_COUNT_LINE = "2 virtual patient profiles aggregated for this summary."
+_CLEAN_OUTLIER_LINE = (
+    "No outlier profiles exist. All results are within 1 severity level of one another."
+)
+_MALFORMED_OUTLIER_LINE = (
+    "Outlier analysis not performed: profile data is present but could not be read. "
+    "Check data configuration."
+)
+
+
+def _malformed_tlr_dir(run_dir, name="TLR-500-malformed"):
+    """A TLR directory whose only summary CSV cannot contribute a value."""
+    tlr_dir = os.path.join(run_dir, name)
+    os.makedirs(tlr_dir)
+    _write_summary_csv(tlr_dir, "median", _PROFILE_A_ROWS,
+                       columns=_MISSING_REQUIRED_COLUMNS)
+    return tlr_dir
+
+
+def _partial_tlr_dir(run_dir, name="TLR-400-partial"):
+    """Two usable profiles plus one unusable file: M == 2, N == 3."""
+    tlr_dir = _usable_tlr_dir(run_dir, name)
+    _write_summary_csv(tlr_dir, "broken", _PROFILE_A_ROWS,
+                       columns=_MISSING_REQUIRED_COLUMNS)
+    return tlr_dir
+
+
+class TestRenderOutlierResults:
+    """Finding 2: malformed input must not render as absent input."""
+
+    def test_malformed_data_gets_its_own_text(self):
+        assert render_outlier_results([], "malformed_data") == _MALFORMED_OUTLIER_LINE
+
+    def test_malformed_text_does_not_claim_the_data_was_unavailable(self):
+        """The defect: a corrupt CSV produced a document asserting absence."""
+        assert "not available" not in render_outlier_results([], "malformed_data")
+
+    def test_no_data_text_is_unchanged(self):
+        assert render_outlier_results([], "no_data") == "Data not available for outlier analysis."
+
+    def test_single_profile_text_is_unchanged(self):
+        assert render_outlier_results([], "single_profile") == (
+            "Only one profile present, so outliers are not relevant."
+        )
+
+    def test_ok_with_no_findings_text_is_unchanged(self):
+        assert render_outlier_results([], "ok") == _CLEAN_OUTLIER_LINE
+
+
+class TestRenderProfileCount:
+    """Finding 3: M of N, and byte-identical when M == N."""
+
+    def test_m_equals_n_is_the_original_sentence(self):
+        assert render_profile_count(2, 2) == _CLEAN_PROFILE_COUNT_LINE
+
+    def test_unmeasured_count_is_the_original_sentence(self):
+        """usable=None means 'not measured' -- an older assessment renders as before."""
+        assert render_profile_count(2, None) == _CLEAN_PROFILE_COUNT_LINE
+        assert render_profile_count(2) == _CLEAN_PROFILE_COUNT_LINE
+
+    def test_one_dropped_file_is_singular(self):
+        assert render_profile_count(3, 2) == (
+            "2 of 3 virtual patient profiles aggregated for this summary. "
+            "1 summary results file could not be read."
+        )
+
+    def test_two_dropped_files_are_plural(self):
+        assert render_profile_count(4, 2) == (
+            "2 of 4 virtual patient profiles aggregated for this summary. "
+            "2 summary results files could not be read."
+        )
+
+    def test_a_count_above_n_degrades_to_the_original_sentence(self):
+        """Defensive: never render 'more usable than present'."""
+        assert render_profile_count(2, 3) == _CLEAN_PROFILE_COUNT_LINE
+
+
+class TestRenderedCleanPathIsPinned:
+    """The clean path (M == N, well-formed data) renders today's exact strings."""
+
+    def test_profile_count_line_is_verbatim(self, rendered_rtf):
+        assert _CLEAN_PROFILE_COUNT_LINE in rendered_rtf
+
+    def test_outlier_line_is_verbatim(self, rendered_rtf):
+        assert _CLEAN_OUTLIER_LINE in rendered_rtf
+
+    def test_no_degraded_wording_leaks_onto_the_clean_path(self, rendered_rtf):
+        assert "of 2 virtual patient profiles" not in rendered_rtf
+        assert "could not be read" not in rendered_rtf
+        assert "Outlier analysis not performed" not in rendered_rtf
+
+
+class TestRenderedDegradedPath:
+    """A document with a dropped file carries both new strings."""
+
+    @pytest.fixture
+    def partial_rtf(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+        _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+        assessment = build_assessment(tlr, "2026-08-06T00:00:00")
+        assert assessment is not None, "0 < M < N must still produce a document"
+        return render_rtf(assessment)
+
+    def test_the_count_line_names_both_numbers(self, partial_rtf):
+        assert (
+            "2 of 3 virtual patient profiles aggregated for this summary. "
+            "1 summary results file could not be read."
+        ) in partial_rtf
+
+    def test_the_outlier_analysis_runs_over_the_readable_profiles(self, partial_rtf):
+        """Decision C: the excluded file used to abandon outlier analysis for the
+        whole directory, rendering the malformed sentence. The two readable profiles
+        are now compared, and the section scopes its claim instead."""
+        assert _MALFORMED_OUTLIER_LINE not in partial_rtf
+        assert "Data not available for outlier analysis." not in partial_rtf
+        assert "No outlier profiles exist." in partial_rtf
+
+    def test_the_outlier_section_scopes_its_claim_to_what_was_analyzed(self, partial_rtf):
+        assert "This analysis covered 2 of 3 profiles; 1 could not be read." in partial_rtf
+
+    def test_the_table_still_renders(self, partial_rtf):
+        """A partial document is still a complete document."""
+        assert len(_table_rows(partial_rtf)) == 4
+
+
+class TestSkipReasonsDistinguishEmptyFromMalformed:
+    """Finding 1 at the reporting boundary: both used to be one shared string."""
+
+    def test_an_empty_directory_reports_empty(self, tmp_path):
+        _write_metadata(str(tmp_path))
+        os.makedirs(os.path.join(str(tmp_path), "TLR-000-empty"))
+
+        result = process_results_directory(str(tmp_path))
+
+        assert "empty" in result.skipped[0][1]
+
+    def test_a_malformed_directory_reports_malformed(self, tmp_path):
+        _write_metadata(str(tmp_path))
+        _malformed_tlr_dir(str(tmp_path))
+
+        result = process_results_directory(str(tmp_path))
+
+        assert result.written == []
+        assert "malformed" in result.skipped[0][1]
+
+    def test_the_two_reasons_are_not_the_same_string(self, tmp_path):
+        _write_metadata(str(tmp_path))
+        os.makedirs(os.path.join(str(tmp_path), "TLR-000-empty"))
+        _malformed_tlr_dir(str(tmp_path))
+
+        reasons = {reason for _, reason in process_results_directory(str(tmp_path)).skipped}
+
+        assert len(reasons) == 2
+
+    def test_a_malformed_directory_writes_no_document(self, tmp_path):
+        """It used to write a complete document with every metric NA/0."""
+        _write_metadata(str(tmp_path))
+        tlr_dir = _malformed_tlr_dir(str(tmp_path))
+
+        process_results_directory(str(tmp_path))
+
+        assert [f for f in os.listdir(tlr_dir) if f.endswith(".rtf")] == []
+
+    def test_one_malformed_directory_does_not_cost_the_others(self, tmp_path):
+        """TRSET-27's fatal-vs-partial split: malformed is still per-directory."""
+        _write_metadata(str(tmp_path))
+        usable = _usable_tlr_dir(str(tmp_path))
+        malformed = _malformed_tlr_dir(str(tmp_path))
+
+        result = process_results_directory(str(tmp_path))
+
+        assert [os.path.dirname(p) for p in result.written] == [usable]
+        assert [d for d, _ in result.skipped] == [malformed]
+
+    def test_a_partially_usable_directory_is_written_not_skipped(self, tmp_path):
+        _write_metadata(str(tmp_path))
+        partial = _partial_tlr_dir(str(tmp_path))
+
+        result = process_results_directory(str(tmp_path))
+
+        assert [os.path.dirname(p) for p in result.written] == [partial]
+        assert result.skipped == []
+
+    def test_a_malformed_only_run_exits_nonzero(self, tmp_path, monkeypatch):
+        _write_metadata(str(tmp_path))
+        _malformed_tlr_dir(str(tmp_path))
+        monkeypatch.setattr(sys, "argv", ["create_severity_summary.py", str(tmp_path)])
+
+        assert main() == 1
+
+
+_INCOMPLETE_STAGES_LINE = (
+    "Outlier analysis not performed: no profile has results for all "
+    "three evaluation stages."
+)
+
+
+class TestRenderOutlierResultsIncompleteStages:
+    """TRSET-28 Decision B: the third condition that hid inside 'no_data'."""
+
+    def test_incomplete_stages_gets_its_own_text(self):
+        assert render_outlier_results([], "incomplete_stages") == _INCOMPLETE_STAGES_LINE
+
+    def test_it_does_not_claim_the_data_was_unavailable(self):
+        assert "not available" not in render_outlier_results([], "incomplete_stages")
+
+    def test_it_is_distinct_from_the_malformed_text(self):
+        """Both are "present but unusable for this analysis" -- for different, and
+        differently actionable, reasons."""
+        assert render_outlier_results([], "incomplete_stages") != render_outlier_results(
+            [], "malformed_data"
+        )
+
+    def test_the_three_degraded_statuses_render_three_different_sentences(self):
+        rendered = {
+            render_outlier_results([], status)
+            for status in ("no_data", "malformed_data", "incomplete_stages")
+        }
+        assert len(rendered) == 3
+
+    def test_an_unknown_status_still_falls_through_to_the_findings_text(self):
+        """Defensive: a status this renderer does not know must not silently render
+        a degraded sentence. With no findings it reports none found."""
+        assert render_outlier_results([], "some_future_status") == _CLEAN_OUTLIER_LINE
+
+
+class TestRenderedIncompleteStagesDocument:
+    """The whole path: partial-stage CSVs -> assessment -> rendered document."""
+
+    _OUTLIER_COLUMNS = [
+        "sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54",
+        "percent_cgm_gt_180", "lbgi_risk_score", "dka_risk_score",
+    ]
+
+    @pytest.fixture
+    def incomplete_rtf(self, tmp_path):
+        tlr = str(tmp_path)
+        for profile in ("median", "adolescent"):
+            rows = [
+                (f"{stem}_{profile}", 80.0, 1.0, 20.0, 1, 0)
+                for stem in ("pre-Loop_NoMitigations_t1", "pre-noLoop_t1")
+            ]  # no post- row -> no profile is stage-complete
+            _write_summary_csv(tlr, profile, rows, columns=self._OUTLIER_COLUMNS)
+        assessment = build_assessment(tlr, "2026-08-06T00:00:00")
+        assert assessment is not None, "readable data must still produce a document"
+        return render_rtf(assessment)
+
+    def test_the_outlier_section_names_the_missing_stages(self, incomplete_rtf):
+        assert _INCOMPLETE_STAGES_LINE in incomplete_rtf
+
+    def test_it_does_not_say_the_data_was_unavailable(self, incomplete_rtf):
+        assert "Data not available for outlier analysis." not in incomplete_rtf
+
+    def test_the_count_line_is_clean_because_both_files_are_usable(self, incomplete_rtf):
+        """Thin data is not malformed data: M == N, so finding 3's line is unchanged."""
+        assert "2 virtual patient profiles aggregated for this summary." in incomplete_rtf
+
+    def test_the_missing_stage_renders_na_not_a_blank_cell(self, incomplete_rtf):
+        rows = _table_rows(incomplete_rtf)
+        post_row = next(row for row in rows[1:] if row[0] == "Post-mitigation")
+        tir_index = rows[0].index("TIR % (70 - 180 mg/dL)")
+        assert post_row[tir_index] == "NA"
+
+
+class TestOutlierScopeSentence:
+    """Decision C: an outlier claim over a subset must say so.
+
+    The count line above the section already reports the drop, but the Outlier
+    Results sentences are absolute claims read (and quoted) on their own.
+    """
+
+    _CLEAN_FINDING = OutlierFinding("pre", "sensitive", "Hypoglycemia", 4.0, 2.0)
+
+    def test_no_scope_sentence_when_nothing_was_excluded(self):
+        assert render_outlier_results([], "ok", 3, 3) == _CLEAN_OUTLIER_LINE
+
+    def test_no_scope_sentence_when_counts_are_unknown(self):
+        """Both default to None, so an older caller renders exactly as before."""
+        assert render_outlier_results([], "ok") == _CLEAN_OUTLIER_LINE
+        assert render_outlier_results([], "ok", None, None) == _CLEAN_OUTLIER_LINE
+
+    def test_the_no_outliers_claim_is_scoped(self):
+        assert render_outlier_results([], "ok", 3, 2) == (
+            _CLEAN_OUTLIER_LINE
+            + " This analysis covered 2 of 3 profiles; 1 could not be read."
+        )
+
+    def test_a_findings_claim_is_scoped_too(self):
+        rendered = render_outlier_results([self._CLEAN_FINDING], "ok", 4, 2)
+
+        assert rendered.startswith("Outlier profile exists.")
+        assert rendered.endswith(
+            " This analysis covered 2 of 4 profiles; 2 could not be read."
+        )
+
+    def test_single_profile_is_scoped_because_it_asserts_a_count(self):
+        """'Only one profile present' would be false when three were present and two
+        were excluded."""
+        rendered = render_outlier_results([], "single_profile", 3, 1)
+
+        assert rendered == (
+            "Only one profile present, so outliers are not relevant."
+            " This analysis covered 1 of 3 profiles; 2 could not be read."
+        )
+
+    def test_statuses_that_assert_nothing_are_not_scoped(self):
+        """These already say the analysis did not happen, and why; appending a scope
+        sentence would only repeat the count line."""
+        for status in ("no_data", "malformed_data", "incomplete_stages"):
+            assert "This analysis covered" not in render_outlier_results([], status, 3, 1)
+
+    def test_a_count_above_the_total_is_not_scoped(self):
+        """Defensive: never render 'more analyzed than present'."""
+        assert render_outlier_results([], "ok", 2, 3) == _CLEAN_OUTLIER_LINE

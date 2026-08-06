@@ -18,14 +18,27 @@ import os
 
 import pytest
 
+import severity_model
 from severity_model import (
     build_assessment,
+    build_assessment_result,
     calculate_truncated_averages,
+    classify_summary_files,
+    count_profiles,
+    count_usable_profiles,
+    detect_outliers,
     determine_harm_and_severity,
     calculate_hyperglycemia_score,
     check_consecutive_low_values,
     classify_sim_id,
+    extract_metric_data,
+    find_summary_files,
+    get_profile_metrics,
+    identify_severity_4_hypoglycemia,
+    resolve_simulation_id,
     truncate_2dp,
+    REQUIRED_SUMMARY_COLUMNS,
+    SUMMARY_RESULTS_GLOB,
     StageResult,
     CatastrophicFinding,
     OutlierFinding,
@@ -184,10 +197,14 @@ _PROFILE_B_ROWS = [
 ]
 
 
-def _write_summary_csv(directory, profile, rows, columns=_SUMMARY_COLUMNS):
+_NARROW_STEM = "Simulation-Configuration-TLR-999-test"
+
+
+def _write_summary_csv(directory, profile, rows, columns=_SUMMARY_COLUMNS,
+                       stem=_NARROW_STEM):
     path = os.path.join(
         directory,
-        f"summary_results_Simulation-Configuration-TLR-999-test_{profile}_profile.csv",
+        f"summary_results_{stem}_{profile}_profile.csv",
     )
     with open(path, "w") as fh:
         fh.write(",".join(columns) + "\n")
@@ -303,3 +320,743 @@ class TestBuildAssessmentValueFields:
         sr = StageResult("pre", "Hypoglycemia", "3", "78.0", "4.5", "17.5", 3, 1, 2, 2)
         assert sr.lbgi_value_avg == "NA"
         assert sr.dka_index_value_avg == "NA"
+
+
+# =============================================================================
+# TRSET-28 -- silent/ambiguous failures in the post-processing layer
+# =============================================================================
+
+# Column sets for the degraded fixtures. "Required" is the verdict-input set:
+# without it a file cannot contribute to harm/severity at all. Dropping only the
+# reported metrics (TIR/TBR) or the raw values (lbgi/dka_index) leaves a file
+# perfectly usable -- that distinction is what keeps an older-format directory off
+# the malformed path.
+_MISSING_REQUIRED_COLUMNS = ["sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54"]
+_WITHOUT_RAW_VALUE_COLUMNS = _SUMMARY_COLUMNS[:-2]
+
+
+def _write_unreadable_csv(directory, profile):
+    """A file that pandas cannot parse at all (ragged rows), not merely one with
+    the wrong columns -- the other half of 'present but unusable'."""
+    path = os.path.join(
+        directory, f"summary_results_{_NARROW_STEM}_{profile}_profile.csv"
+    )
+    with open(path, "w") as fh:
+        fh.write("a,b\n1,2,3,4,5\n")
+    return path
+
+
+class TestSummaryResultsGlobIsSharedAndLoose:
+    """Finding 4: one pattern, defined once, honored by every call site."""
+
+    def test_the_pattern_is_the_loose_one(self):
+        assert SUMMARY_RESULTS_GLOB == "summary_results_*.csv"
+
+    def test_glob_is_called_in_exactly_one_place(self):
+        """The DRY guard. Five call sites each built their own glob expression,
+        and build_assessment's disagreed with the other four."""
+        with open(severity_model.__file__) as fh:
+            source = fh.read()
+        assert source.count("glob.glob(") == 1
+
+    def test_files_are_returned_sorted(self, tmp_path):
+        """Unsorted glob order made simulation-ID resolution depend on the
+        filesystem once the pattern widened."""
+        tlr = str(tmp_path)
+        for profile in ("zebra", "alpha", "median"):
+            _write_summary_csv(tlr, profile, _PROFILE_A_ROWS)
+
+        found = find_summary_files(tlr)
+
+        assert found == sorted(found)
+        assert len(found) == 3
+
+    def test_every_helper_reads_a_loosely_named_file(self, tmp_path):
+        """A directory whose CSVs match the loose pattern but not the old narrow
+        one: previously build_assessment alone rejected it."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS, stem="Config-TLR-777")
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS, stem="Config-TLR-777")
+
+        assert count_profiles(tlr) == 2
+        assert count_usable_profiles(tlr) == 2
+        assert extract_metric_data(tlr, "lbgi_risk_score")["pre"] == [3, 3]
+        assert set(get_profile_metrics(tlr).profiles) == {"median", "adolescent"}
+        assert identify_severity_4_hypoglycemia(tlr) == {}  # no score-4 rows, but it read them
+
+        outcome = build_assessment_result(tlr, "2026-08-06T00:00:00")
+        assert outcome.status == "ok"
+        assert outcome.assessment.simulation_id == "TLR-777"
+
+    def test_a_narrowly_named_directory_still_works(self, tmp_path):
+        """The widening must not cost the directories that already worked."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+
+        outcome = build_assessment_result(tlr, "2026-08-06T00:00:00")
+
+        assert outcome.status == "ok"
+        assert outcome.assessment.simulation_id == "TLR-999"
+
+
+class TestResolveSimulationId:
+    """Finding 4 fallout: summary_files[0] alone is no longer safe."""
+
+    def test_falls_through_to_the_first_filename_that_yields_an_id(self):
+        """Sorted first is a file with no TLR part. Reading [0] blindly would
+        return None and skip a directory that renders today."""
+        assert resolve_simulation_id([
+            "summary_results_AAA-noTLRhere_median_profile.csv",
+            "summary_results_Config-TLR-777_adolescent_profile.csv",
+        ]) == "TLR-777"
+
+    def test_none_when_no_filename_carries_a_tlr_part(self):
+        assert resolve_simulation_id([
+            "summary_results_AAA-nope_median_profile.csv",
+        ]) is None
+
+    def test_empty_input_is_none(self):
+        assert resolve_simulation_id([]) is None
+
+    def test_a_mixed_directory_resolves_rather_than_skipping(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS, stem="AAA-noTLRhere")
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS, stem="Config-TLR-777")
+
+        outcome = build_assessment_result(tlr, "2026-08-06T00:00:00")
+
+        assert outcome.status == "ok"
+        assert outcome.assessment.simulation_id == "TLR-777"
+
+
+class TestAssessmentOutcomeDistinguishesEmptyFromMalformed:
+    """Finding 1: the two conditions used to collapse into a bare None."""
+
+    def test_empty_directory_is_empty(self, tmp_path):
+        outcome = build_assessment_result(str(tmp_path), "2026-08-06T00:00:00")
+
+        assert outcome.status == "empty"
+        assert outcome.assessment is None
+        assert outcome.detail
+
+    def test_all_files_unusable_is_malformed_not_empty(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        outcome = build_assessment_result(tlr, "2026-08-06T00:00:00")
+
+        assert outcome.status == "malformed"
+        assert outcome.assessment is None
+
+    def test_unreadable_file_is_malformed_not_empty(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_unreadable_csv(tlr, "median")
+
+        outcome = build_assessment_result(tlr, "2026-08-06T00:00:00")
+
+        assert outcome.status == "malformed"
+
+    def test_unresolvable_simulation_id_is_malformed(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS, stem="AAA-noTLRhere")
+
+        outcome = build_assessment_result(tlr, "2026-08-06T00:00:00")
+
+        assert outcome.status == "malformed"
+        assert outcome.assessment is None
+
+    def test_the_two_statuses_carry_different_details(self, tmp_path):
+        empty_dir = tmp_path / "empty"
+        empty_dir.mkdir()
+        broken_dir = tmp_path / "broken"
+        broken_dir.mkdir()
+        _write_summary_csv(str(broken_dir), "median", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        empty = build_assessment_result(str(empty_dir), "2026-08-06T00:00:00")
+        broken = build_assessment_result(str(broken_dir), "2026-08-06T00:00:00")
+
+        assert empty.status != broken.status
+        assert empty.detail != broken.detail
+
+    def test_a_malformed_directory_no_longer_renders_an_all_na_assessment(self, tmp_path):
+        """The worst of the four findings: every metric unreadable used to still
+        produce a complete assessment (and so a complete document)."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        assert build_assessment_result(tlr, "2026-08-06T00:00:00").assessment is None
+
+    def test_good_directory_is_ok(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+
+        outcome = build_assessment_result(tlr, "2026-08-06T00:00:00")
+
+        assert outcome.status == "ok"
+        assert isinstance(outcome.assessment, SeverityAssessment)
+
+    def test_outcome_to_dict_is_json_serializable(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+
+        payload = json.dumps(build_assessment_result(tlr, "2026-08-06T00:00:00").to_dict())
+
+        assert json.loads(payload)["status"] == "ok"
+
+    def test_empty_outcome_to_dict_carries_no_assessment(self, tmp_path):
+        payload = build_assessment_result(str(tmp_path), "2026-08-06T00:00:00").to_dict()
+
+        assert payload["assessment"] is None
+        assert payload["status"] == "empty"
+
+
+class TestBuildAssessmentWrapperContract:
+    """The Optional[SeverityAssessment] contract the GUI runner is typed on."""
+
+    def test_returns_the_assessment_when_usable(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+
+        assert isinstance(build_assessment(tlr, "2026-08-06T00:00:00"), SeverityAssessment)
+
+    def test_returns_none_for_both_failure_conditions(self, tmp_path):
+        empty_dir = tmp_path / "empty"
+        empty_dir.mkdir()
+        broken_dir = tmp_path / "broken"
+        broken_dir.mkdir()
+        _write_summary_csv(str(broken_dir), "median", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        assert build_assessment(str(empty_dir), "2026-08-06T00:00:00") is None
+        assert build_assessment(str(broken_dir), "2026-08-06T00:00:00") is None
+
+
+class TestUsableProfileCount:
+    """Finding 3: the count must reflect contribution, not just file presence."""
+
+    def test_m_equals_n_on_clean_data(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+
+        assessment = build_assessment(tlr, "2026-08-06T00:00:00")
+
+        assert assessment.profile_count == 2
+        assert assessment.usable_profile_count == 2
+
+    def test_m_is_less_than_n_when_a_file_is_dropped(self, tmp_path):
+        """3 files, 1 malformed: extract_metric_data averages 2, so the old
+        unqualified count named 3 profiles when 2 contributed."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+        _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        assessment = build_assessment(tlr, "2026-08-06T00:00:00")
+
+        assert assessment.profile_count == 3
+        assert assessment.usable_profile_count == 2
+
+    def test_an_unreadable_file_also_reduces_m(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_unreadable_csv(tlr, "broken")
+
+        assessment = build_assessment(tlr, "2026-08-06T00:00:00")
+
+        assert (assessment.profile_count, assessment.usable_profile_count) == (2, 1)
+
+    def test_missing_only_the_raw_value_columns_keeps_a_file_usable(self, tmp_path):
+        """Older CSVs predate lbgi/dka_index and are DESIGNED to degrade to 'NA'.
+        Counting them unusable would drop a clean directory to M == 0."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS,
+                           columns=_WITHOUT_RAW_VALUE_COLUMNS)
+
+        assessment = build_assessment(tlr, "2026-08-06T00:00:00")
+
+        assert assessment is not None
+        assert assessment.usable_profile_count == assessment.profile_count == 1
+
+    def test_count_is_carried_through_to_dict(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        payload = build_assessment(tlr, "2026-08-06T00:00:00").to_dict()
+
+        assert payload["profile_count"] == 2
+        assert payload["usable_profile_count"] == 1
+
+    def test_it_defaults_to_none_for_older_constructors(self):
+        """None means 'not measured' and renders as M == N, so an assessment built
+        without it is unaffected."""
+        assessment = SeverityAssessment(
+            simulation_id="TLR-TEST", subdirectory_name="TLR-TEST",
+            timestamp="2026-08-06T00:00:00", profile_count=2, stages={},
+        )
+
+        assert assessment.usable_profile_count is None
+
+
+class TestClassifySummaryFiles:
+    """The usable/unusable split that defines M."""
+
+    def test_clean_files_are_all_usable(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+
+        usable, unusable = classify_summary_files(tlr)
+
+        assert len(usable) == 2
+        assert unusable == []
+
+    def test_a_file_missing_a_required_column_is_unusable(self, tmp_path):
+        tlr = str(tmp_path)
+        broken = _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                                    columns=_MISSING_REQUIRED_COLUMNS)
+
+        usable, unusable = classify_summary_files(tlr)
+
+        assert usable == []
+        assert unusable == [broken]
+
+    def test_every_required_column_is_load_bearing(self, tmp_path):
+        """Each REQUIRED_SUMMARY_COLUMNS entry, dropped on its own, makes the file
+        unusable -- so the constant is not carrying a column that does not matter."""
+        for dropped in REQUIRED_SUMMARY_COLUMNS:
+            directory = tmp_path / f"without_{dropped}"
+            directory.mkdir()
+            columns = [c for c in _SUMMARY_COLUMNS if c != dropped]
+            _write_summary_csv(str(directory), "median", _PROFILE_A_ROWS, columns=columns)
+
+            usable, unusable = classify_summary_files(str(directory))
+
+            assert usable == [], f"{dropped} should be required"
+            assert len(unusable) == 1
+
+    def test_an_empty_directory_splits_to_two_empty_lists(self, tmp_path):
+        assert classify_summary_files(str(tmp_path)) == ([], [])
+
+
+class TestGetProfileMetrics:
+    """Finding 2 at the source, plus Decision C: an unreadable file is EXCLUDED and
+    named rather than discarding every readable profile with it."""
+
+    def test_no_files_means_no_files_present(self, tmp_path):
+        metrics = get_profile_metrics(str(tmp_path))
+
+        assert metrics.files_present is False
+        assert metrics.profiles == {}
+        assert metrics.excluded == []
+
+    def test_a_file_missing_required_columns_is_excluded_and_named(self, tmp_path):
+        tlr = str(tmp_path)
+        broken = _write_summary_csv(tlr, "median", _PROFILE_A_ROWS,
+                                    columns=_MISSING_REQUIRED_COLUMNS)
+
+        metrics = get_profile_metrics(tlr)
+
+        assert metrics.files_present is True
+        assert metrics.profiles == {}
+        assert metrics.excluded == [broken]
+
+    def test_an_unreadable_file_is_excluded_and_named(self, tmp_path):
+        tlr = str(tmp_path)
+        broken = _write_unreadable_csv(tlr, "median")
+
+        assert get_profile_metrics(tlr).excluded == [broken]
+
+    def test_clean_data_yields_its_profiles_and_excludes_nothing(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+
+        metrics = get_profile_metrics(tlr)
+
+        assert set(metrics.profiles) == {"median"}
+        assert metrics.excluded == []
+
+    def test_one_bad_file_no_longer_discards_the_good_ones(self, tmp_path):
+        """The Decision C change. This used to return None for the whole directory,
+        so a single malformed profile cost the outlier analysis of every valid one."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+        broken = _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                                    columns=_MISSING_REQUIRED_COLUMNS)
+
+        metrics = get_profile_metrics(tlr)
+
+        assert set(metrics.profiles) == {"median", "adolescent"}
+        assert metrics.excluded == [broken]
+
+    def test_an_excluded_file_leaves_no_partial_profile_behind(self, tmp_path):
+        """Profiles are published only once fully built, so an excluded file cannot
+        appear in `profiles` with some stages filled in."""
+        tlr = str(tmp_path)
+        _write_unreadable_csv(tlr, "broken")
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+
+        metrics = get_profile_metrics(tlr)
+
+        assert "broken" not in metrics.profiles
+        assert set(metrics.profiles) == {"median"}
+
+
+class TestDetectOutliersStatus:
+    """Finding 2 at the boundary the renderer reads."""
+
+    def test_every_profile_file_unreadable_is_malformed_not_no_data(self, tmp_path):
+        """'malformed_data' now means NOTHING survived exclusion (Decision C): one
+        bad file among good ones is excluded and the good ones analyzed."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "brokenA", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+        _write_summary_csv(tlr, "brokenB", _PROFILE_B_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        findings, status = detect_outliers(tlr)
+
+        assert status == "malformed_data"
+        assert findings == []
+
+    def test_one_bad_file_among_good_ones_no_longer_blocks_the_analysis(self, tmp_path):
+        """Was 'malformed_data' with zero findings for the whole directory. The two
+        readable profiles are now compared, and the drop is disclosed by the
+        renderer from the assessment's usable-vs-total counts."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+        _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        findings, status = detect_outliers(tlr)
+
+        assert status == "ok"
+        assert findings == []       # these two profiles simply have no outlier
+
+    def test_a_genuinely_absent_directory_is_still_no_data(self, tmp_path):
+        assert detect_outliers(str(tmp_path)) == ([], "no_data")
+
+    def test_one_profile_is_still_single_profile(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+
+        assert detect_outliers(tlr)[1] == "single_profile"
+
+    def test_clean_multi_profile_data_is_still_ok(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "adolescent", _PROFILE_B_ROWS)
+
+        assert detect_outliers(tlr)[1] == "ok"
+
+    def test_the_status_reaches_the_assessment(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "brokenA", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+        _write_summary_csv(tlr, "brokenB", _PROFILE_B_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+        # A usable file with NO profile part in its name, so M >= 1 and
+        # build_assessment produces a document at all -- while leaving every
+        # per-profile file excluded. Written by hand: _write_summary_csv always
+        # appends '_<profile>_profile.csv', which would make it a valid profile.
+        aggregate = os.path.join(tlr, f"summary_results_{_NARROW_STEM}.csv")
+        with open(aggregate, "w") as fh:
+            fh.write(",".join(_SUMMARY_COLUMNS) + "\n")
+            for row in _PROFILE_A_ROWS:
+                fh.write(",".join(str(v) for v in row) + "\n")
+
+        assert build_assessment(tlr, "2026-08-06T00:00:00").outlier_status == "malformed_data"
+
+    def test_a_surviving_profile_beside_an_excluded_one_is_single_profile(self, tmp_path):
+        """One readable profile plus one excluded: there is one analyzable profile,
+        which is the single-profile case -- not 'malformed_data' as it used to be."""
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS)
+        _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        assert detect_outliers(tlr)[1] == "single_profile"
+
+
+class TestOptionalColumnIsNotCalledMalformed:
+    """An older CSV that legitimately degrades to 'NA' was labeled malformed on
+    the console -- valid data reported as broken, the inverse of finding 2."""
+
+    def test_absent_optional_column_is_reported_as_na_not_malformed(self, tmp_path, capsys):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS,
+                           columns=_WITHOUT_RAW_VALUE_COLUMNS)
+
+        extract_metric_data(tlr, "lbgi")
+        output = capsys.readouterr().out
+
+        assert "malformed" not in output
+        assert "will report NA" in output
+
+    def test_absent_required_column_is_still_reported_as_malformed(self, tmp_path, capsys):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        extract_metric_data(tlr, "lbgi_risk_score")
+
+        assert "malformed" in capsys.readouterr().out
+
+
+# =============================================================================
+# Hyperglycemia zero case in the outlier path (was: KNOWN INCONSISTENCY)
+# =============================================================================
+
+# detect_outliers computed its own TAR->score mapping without a zero case, so a
+# profile with TAR == 0.0 scored 1 where calculate_hyperglycemia_score gives 0.
+# Correcting it moves such a profile from the 'Hyperglycemia' harm group to
+# baseline -- and the zero-TAR outlier check keyed on that group, so the naive fix
+# would have stopped flagging the cleanest profiles. These tests pin BOTH halves:
+# the score is now the module's single mapping, AND the check still fires.
+
+_OUTLIER_COLUMNS = [
+    "sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54",
+    "percent_cgm_gt_180", "lbgi_risk_score", "dka_risk_score",
+]
+_OUTLIER_STAGE_STEMS = (
+    "pre-Loop_NoMitigations_t1", "pre-noLoop_t1", "post-Loop_WithMitigations_t1",
+)
+
+
+def _write_outlier_profile(directory, profile, tar, lbgi, dka):
+    """A profile complete across all three stages, every stage carrying the same
+    (tar, lbgi, dka) -- so a finding appears once per stage and the assertions do
+    not depend on which stage is which."""
+    rows = [
+        (f"{stem}_{profile}", 80.0, 1.0, tar, lbgi, dka)
+        for stem in _OUTLIER_STAGE_STEMS
+    ]
+    return _write_summary_csv(directory, profile, rows, columns=_OUTLIER_COLUMNS)
+
+
+def _hyper_outliers(tlr_dir):
+    findings, status = detect_outliers(tlr_dir)
+    assert status == "ok", f"expected usable data, got {status!r}"
+    return [f for f in findings if f.harm_type == "Hyperglycemia"]
+
+
+class TestHyperglycemiaScoreHasOneMapping:
+    """The outlier path no longer carries its own TAR->score mapping."""
+
+    def test_the_outlier_path_calls_the_shared_mapping(self):
+        """Asserted over the parsed AST, not the source text: the docstring quotes
+        the old inline expression verbatim, so a substring check would pass or fail
+        on prose rather than on code."""
+        import ast
+        import inspect
+
+        tree = ast.parse(inspect.getsource(detect_outliers))
+        called = {
+            node.func.id for node in ast.walk(tree)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+
+        assert "calculate_hyperglycemia_score" in called
+
+    def test_baseline_label_is_named_once(self):
+        """detect_outliers has to reason about the baseline GROUP, so the label and
+        the string determine_harm_and_severity returns must not drift apart."""
+        assert determine_harm_and_severity(0, 0, 0) == (severity_model.BASELINE_HARM, "0")
+
+    def test_true_zero_tar_scores_zero_on_the_outlier_path_too(self):
+        """The mapping the outlier path now shares: 0 only if TAR is truly 0."""
+        assert calculate_hyperglycemia_score(0.0) == 0
+        assert calculate_hyperglycemia_score(5.0) == 1
+        assert calculate_hyperglycemia_score(20.0) == 2
+
+
+class TestZeroTarOutlierStillFlagged:
+    """The regression the naive score fix would have introduced."""
+
+    def test_flagged_when_the_zero_profile_has_no_hypo_or_dka_risk(self, tmp_path):
+        """lbgi=0/dka=0/TAR=0 is now baseline, not Hyperglycemia. Keying the check
+        on the Hyperglycemia group alone would silently drop this finding -- the
+        cleanest profile among high-TAR peers is exactly the one worth flagging."""
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "zero", tar=0.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "highA", tar=20.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "highB", tar=25.0, lbgi=0, dka=0)
+
+        found = _hyper_outliers(tlr)
+
+        assert {f.profile for f in found} == {"zero"}
+        assert sorted(f.stage for f in found) == ["no_loop", "post", "pre"]
+        assert all(f.value == 0.0 for f in found)
+
+    def test_flagged_when_the_zero_profile_stays_in_the_hyperglycemia_group(self, tmp_path):
+        """lbgi=1 keeps it out of baseline, so this half worked before and after."""
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "zero", tar=0.0, lbgi=1, dka=0)
+        _write_outlier_profile(tlr, "highA", tar=20.0, lbgi=1, dka=0)
+        _write_outlier_profile(tlr, "highB", tar=25.0, lbgi=1, dka=0)
+
+        assert {f.profile for f in _hyper_outliers(tlr)} == {"zero"}
+
+    def test_the_reported_median_is_of_the_non_zero_profiles(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "zero", tar=0.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "highA", tar=20.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "highB", tar=30.0, lbgi=0, dka=0)
+
+        assert {f.comparison_median for f in _hyper_outliers(tlr)} == {30.0}
+
+    def test_several_zero_profiles_are_each_flagged(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "zeroA", tar=0.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "zeroB", tar=0.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "high", tar=20.0, lbgi=0, dka=0)
+
+        assert {f.profile for f in _hyper_outliers(tlr)} == {"zeroA", "zeroB"}
+
+    def test_not_flagged_when_a_peer_is_not_high(self, tmp_path):
+        """Unchanged gate: every non-zero profile must be >= 12.0 TAR."""
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "zero", tar=0.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "mid", tar=5.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "high", tar=20.0, lbgi=0, dka=0)
+
+        assert _hyper_outliers(tlr) == []
+
+    def test_not_flagged_when_no_profile_is_at_zero(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "a", tar=15.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "b", tar=20.0, lbgi=0, dka=0)
+
+        assert _hyper_outliers(tlr) == []
+
+    def test_a_zero_tar_profile_with_hypo_risk_is_not_swept_in(self, tmp_path):
+        """The check spans Hyperglycemia + baseline only. A TAR == 0 profile whose
+        LBGI puts it in the Hypoglycemia group was never compared on the
+        hyperglycemia axis, and still is not."""
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "hypoZero", tar=0.0, lbgi=4, dka=0)
+        _write_outlier_profile(tlr, "highA", tar=20.0, lbgi=0, dka=0)
+        _write_outlier_profile(tlr, "highB", tar=25.0, lbgi=0, dka=0)
+
+        assert _hyper_outliers(tlr) == []
+
+    def test_hypoglycemia_outliers_are_unaffected(self, tmp_path):
+        """The score fix touches only the hyperglycemia axis.
+
+        lbgi=2, not 1, for the peers: determine_harm_and_severity sends lbgi<=1 with
+        dka==0 to Hyperglycemia, so lbgi=1 peers would never form a Hypoglycemia
+        group to be an outlier within.
+        """
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "severe", tar=20.0, lbgi=4, dka=0)
+        _write_outlier_profile(tlr, "mildA", tar=20.0, lbgi=2, dka=0)
+        _write_outlier_profile(tlr, "mildB", tar=20.0, lbgi=2, dka=0)
+
+        findings, status = detect_outliers(tlr)
+
+        assert status == "ok"
+        hypo = [f for f in findings if f.harm_type == "Hypoglycemia"]
+        assert {f.profile for f in hypo} == {"severe"}
+
+
+class TestIncompleteStagesIsNotReportedAsAbsent:
+    """The third condition that used to hide inside 'no_data' (TRSET-28 Decision B).
+
+    Profiles that parse but where none carries all three stages is neither absence
+    nor corruption -- it is a run that produced only some stages, a recoverable
+    configuration problem that was reported with the same sentence as a missing
+    directory.
+    """
+
+    def _write_partial_stage_profile(self, directory, profile, stems):
+        """A profile whose rows cover only `stems`, so it is never stage-complete."""
+        rows = [(f"{stem}_{profile}", 80.0, 1.0, 20.0, 1, 0) for stem in stems]
+        return _write_summary_csv(directory, profile, rows, columns=_OUTLIER_COLUMNS)
+
+    def test_profiles_missing_a_stage_report_incomplete_not_no_data(self, tmp_path):
+        tlr = str(tmp_path)
+        for profile in ("median", "adolescent"):
+            self._write_partial_stage_profile(
+                tlr, profile, ("pre-Loop_NoMitigations_t1", "pre-noLoop_t1"),
+            )  # no post- row anywhere
+
+        findings, status = detect_outliers(tlr)
+
+        assert status == "incomplete_stages"
+        assert findings == []
+
+    def test_a_single_missing_stage_is_enough(self, tmp_path):
+        """Only the post stage is absent; pre and no_loop are fully populated."""
+        tlr = str(tmp_path)
+        self._write_partial_stage_profile(
+            tlr, "median", ("pre-Loop_NoMitigations_t1", "pre-noLoop_t1"),
+        )
+
+        assert detect_outliers(tlr)[1] == "incomplete_stages"
+
+    def test_no_profile_names_at_all_is_still_no_data(self, tmp_path):
+        """An aggregate-only directory: summary CSVs exist but none is a per-profile
+        file, so no per-profile results exist to compare. Genuine absence."""
+        tlr = str(tmp_path)
+        path = os.path.join(tlr, f"summary_results_{_NARROW_STEM}.csv")
+        with open(path, "w") as fh:
+            fh.write(",".join(_OUTLIER_COLUMNS) + "\n")
+            fh.write("pre-Loop_NoMitigations_t1_x,80.0,1.0,20.0,1,0\n")
+
+        assert detect_outliers(tlr)[1] == "no_data"
+
+    def test_an_empty_directory_is_still_no_data(self, tmp_path):
+        assert detect_outliers(str(tmp_path))[1] == "no_data"
+
+    def test_incomplete_now_outranks_an_excluded_file(self, tmp_path):
+        """Precedence FLIPPED with Decision C, deliberately. An unreadable file no
+        longer poisons the directory -- it is excluded -- so what the reader needs to
+        know is the state of the data that REMAINS: readable, but stage-thin.
+        'malformed_data' is reserved for nothing surviving at all."""
+        tlr = str(tmp_path)
+        self._write_partial_stage_profile(
+            tlr, "median", ("pre-Loop_NoMitigations_t1",),
+        )
+        _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        assert detect_outliers(tlr)[1] == "incomplete_stages"
+
+    def test_one_complete_profile_is_still_single_profile(self, tmp_path):
+        """A complete profile alongside incomplete ones is the single-profile case,
+        not the incomplete one -- the check is 'none complete', not 'any incomplete'."""
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "complete", tar=20.0, lbgi=1, dka=0)
+        self._write_partial_stage_profile(
+            tlr, "partial", ("pre-Loop_NoMitigations_t1",),
+        )
+
+        assert detect_outliers(tlr)[1] == "single_profile"
+
+    def test_complete_profiles_are_still_ok(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "median", tar=20.0, lbgi=1, dka=0)
+        _write_outlier_profile(tlr, "adolescent", tar=25.0, lbgi=1, dka=0)
+
+        assert detect_outliers(tlr)[1] == "ok"
+
+    def test_the_status_reaches_the_assessment(self, tmp_path):
+        tlr = str(tmp_path)
+        for profile in ("median", "adolescent"):
+            self._write_partial_stage_profile(
+                tlr, profile, ("pre-Loop_NoMitigations_t1", "pre-noLoop_t1"),
+            )
+
+        assessment = build_assessment(tlr, "2026-08-06T00:00:00")
+
+        assert assessment is not None, "readable data must still produce a document"
+        assert assessment.outlier_status == "incomplete_stages"
