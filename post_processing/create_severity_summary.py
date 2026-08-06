@@ -15,11 +15,17 @@ inline.
 Backwards compatibility: round_half_up and calculate_integer_averages are
 re-exported from severity_model so the existing test_create_severity_summary.py
 imports continue to resolve unchanged.
+
+Failure contract: process_results_directory raises SeveritySummaryError when a
+results directory cannot be summarized at all, and returns a SummaryResult
+naming what it wrote and what it skipped. It previously printed and returned
+None on both, so neither the CLI nor the GUI export could tell a no-op run from
+a successful one.
 """
 
 import os
 import json
-import glob
+from dataclasses import dataclass, field
 
 from severity_model import (
     build_assessment,
@@ -224,29 +230,106 @@ Auto-generated output from Tidepool Risk Severity Evaluation Simulator Tool
 # Directory processing (orchestration + file writing)
 # =============================================================================
 
-def process_results_directory(results_dir):
-    """Process a results directory: build each TLR's assessment and write its RTF."""
-    metadata_path = os.path.join(results_dir, 'metadata.json')
+METADATA_FILENAME = 'metadata.json'
+TLR_DIR_PREFIX = 'TLR-'
+# The keys a run's metadata.json may carry its run timestamp under. Read in this
+# order; absent both, the run cannot be dated and is an error rather than a
+# summary stamped with a placeholder.
+_TIMESTAMP_KEYS = ('timestamp', 'run_timestamp')
+
+
+class SeveritySummaryError(Exception):
+    """A results directory cannot be summarized at all.
+
+    Raised instead of printing and returning, so a caller (the CLI, the GUI
+    export) can tell an unusable directory from a successful run. A single TLR
+    directory with no usable data is NOT this -- that is a partial outcome,
+    reported in SummaryResult.skipped.
+    """
+
+
+@dataclass
+class SummaryResult:
+    """What process_results_directory actually did.
+
+    written: the RTF paths it wrote, one per TLR directory that produced an
+    assessment. skipped: ``(tlr_dir, reason)`` for each directory that did not,
+    so a caller can report them rather than silently shipping fewer summaries
+    than there were directories.
+    """
+    written: list = field(default_factory=list)
+    skipped: list = field(default_factory=list)
+
+
+def _read_run_timestamp(results_dir):
+    """The run timestamp from results_dir/metadata.json.
+
+    Raises SeveritySummaryError if the file is missing, unreadable, or carries no
+    recognized timestamp key -- every summary is dated from this, so a placeholder
+    would silently put "Unknown" on a regulatory document.
+    """
+    metadata_path = os.path.join(results_dir, METADATA_FILENAME)
     if not os.path.exists(metadata_path):
-        print(f"Error: metadata.json not found in {results_dir}")
-        return
+        raise SeveritySummaryError(
+            f"{METADATA_FILENAME} not found in {results_dir}: the run cannot be dated. "
+            "A GUI run writes it automatically; for a CLI run, check that this is a "
+            "run directory produced by loop_risk_v2_0."
+        )
+    try:
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+    except (json.JSONDecodeError, OSError) as exc:
+        raise SeveritySummaryError(f"Could not read {metadata_path}: {exc}") from exc
 
-    with open(metadata_path, 'r') as f:
-        metadata = json.load(f)
-    timestamp = metadata.get('timestamp', metadata.get('run_timestamp', 'Unknown'))
+    for key in _TIMESTAMP_KEYS:
+        if metadata.get(key):
+            return metadata[key]
+    raise SeveritySummaryError(
+        f"{metadata_path} carries none of {list(_TIMESTAMP_KEYS)}, so the run cannot be dated."
+    )
 
-    tlr_dirs = glob.glob(os.path.join(results_dir, 'TLR-*'))
+
+def _find_tlr_dirs(results_dir):
+    """The TLR-* subdirectories of results_dir, sorted.
+
+    Directories only -- a file named e.g. TLR-notes.txt is not a run directory and
+    must not be handed to build_assessment. Sorted so processing order (and so the
+    reported order) is the same on every machine.
+    """
+    return sorted(
+        os.path.join(results_dir, name)
+        for name in os.listdir(results_dir)
+        if name.startswith(TLR_DIR_PREFIX) and os.path.isdir(os.path.join(results_dir, name))
+    )
+
+
+def process_results_directory(results_dir):
+    """Build each TLR directory's assessment and write its RTF; return a SummaryResult.
+
+    Raises SeveritySummaryError if the directory cannot be summarized at all --
+    unreadable/undated metadata.json, or no TLR-* subdirectory. A single TLR
+    directory that yields no assessment is recorded in the result's ``skipped``
+    list instead, since a run legitimately can contain one.
+    """
+    timestamp = _read_run_timestamp(results_dir)
+
+    tlr_dirs = _find_tlr_dirs(results_dir)
     if not tlr_dirs:
-        print(f"No TLR-* subdirectories found in {results_dir}")
-        return
+        raise SeveritySummaryError(
+            f"No {TLR_DIR_PREFIX}* subdirectories found in {results_dir}: nothing to summarize."
+        )
 
     print(f"Found {len(tlr_dirs)} TLR subdirectories")
+    result = SummaryResult()
 
     for tlr_dir in tlr_dirs:
         print(f"\nProcessing: {tlr_dir}")
 
         assessment = build_assessment(tlr_dir, timestamp)
         if assessment is None:
+            reason = "no usable summary results data"
+            print(f"  Skipped: {reason}")
+            result.skipped.append((tlr_dir, reason))
             continue
 
         print(f"  Simulation ID: {assessment.simulation_id}")
@@ -266,7 +349,10 @@ def process_results_directory(results_dir):
         output_path = os.path.join(tlr_dir, f"risk_summary_{assessment.simulation_id}.rtf")
         with open(output_path, 'w') as f:
             f.write(rtf)
+        result.written.append(output_path)
         print(f"Created shell document: {output_path}")
+
+    return result
 
 
 def main():
@@ -282,8 +368,21 @@ def main():
         print(f"Error: Directory not found: {args.results_dir}")
         return 1
 
-    process_results_directory(args.results_dir)
-    print("\nDone!")
+    try:
+        result = process_results_directory(args.results_dir)
+    except SeveritySummaryError as exc:
+        print(f"Error: {exc}")
+        return 1
+
+    for tlr_dir, reason in result.skipped:
+        print(f"Skipped {tlr_dir}: {reason}")
+    print(f"\nWrote {len(result.written)} summary document(s); "
+          f"skipped {len(result.skipped)} directory(ies).")
+    # An invocation that produced no document is not a success, whatever the
+    # per-directory reasons were -- callers (and CI) read this exit code.
+    if not result.written:
+        print("Error: no summary documents were written.")
+        return 1
     return 0
 
 
