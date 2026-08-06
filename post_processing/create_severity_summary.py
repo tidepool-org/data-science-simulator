@@ -97,6 +97,12 @@ def render_outlier_results(outlier_findings, status):
         # diagnostic; a regulatory document should not carry local filesystem paths.
         return ("Outlier analysis not performed: profile data is present but could "
                 "not be read. Check data configuration.")
+    if status == 'incomplete_stages':
+        # Also NOT "Data not available": the data is present and readable, just too
+        # thin to compare across stages. Naming the cause is what lets a reader tell
+        # a partial run from a missing one.
+        return ("Outlier analysis not performed: no profile has results for all "
+                "three evaluation stages.")
     if status == 'no_data':
         return "Data not available for outlier analysis."
     if status == 'single_profile':

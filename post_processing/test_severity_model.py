@@ -896,3 +896,95 @@ class TestZeroTarOutlierStillFlagged:
         assert status == "ok"
         hypo = [f for f in findings if f.harm_type == "Hypoglycemia"]
         assert {f.profile for f in hypo} == {"severe"}
+
+
+class TestIncompleteStagesIsNotReportedAsAbsent:
+    """The third condition that used to hide inside 'no_data' (TRSET-28 Decision B).
+
+    Profiles that parse but where none carries all three stages is neither absence
+    nor corruption -- it is a run that produced only some stages, a recoverable
+    configuration problem that was reported with the same sentence as a missing
+    directory.
+    """
+
+    def _write_partial_stage_profile(self, directory, profile, stems):
+        """A profile whose rows cover only `stems`, so it is never stage-complete."""
+        rows = [(f"{stem}_{profile}", 80.0, 1.0, 20.0, 1, 0) for stem in stems]
+        return _write_summary_csv(directory, profile, rows, columns=_OUTLIER_COLUMNS)
+
+    def test_profiles_missing_a_stage_report_incomplete_not_no_data(self, tmp_path):
+        tlr = str(tmp_path)
+        for profile in ("median", "adolescent"):
+            self._write_partial_stage_profile(
+                tlr, profile, ("pre-Loop_NoMitigations_t1", "pre-noLoop_t1"),
+            )  # no post- row anywhere
+
+        findings, status = detect_outliers(tlr)
+
+        assert status == "incomplete_stages"
+        assert findings == []
+
+    def test_a_single_missing_stage_is_enough(self, tmp_path):
+        """Only the post stage is absent; pre and no_loop are fully populated."""
+        tlr = str(tmp_path)
+        self._write_partial_stage_profile(
+            tlr, "median", ("pre-Loop_NoMitigations_t1", "pre-noLoop_t1"),
+        )
+
+        assert detect_outliers(tlr)[1] == "incomplete_stages"
+
+    def test_no_profile_names_at_all_is_still_no_data(self, tmp_path):
+        """An aggregate-only directory: summary CSVs exist but none is a per-profile
+        file, so no per-profile results exist to compare. Genuine absence."""
+        tlr = str(tmp_path)
+        path = os.path.join(tlr, f"summary_results_{_NARROW_STEM}.csv")
+        with open(path, "w") as fh:
+            fh.write(",".join(_OUTLIER_COLUMNS) + "\n")
+            fh.write("pre-Loop_NoMitigations_t1_x,80.0,1.0,20.0,1,0\n")
+
+        assert detect_outliers(tlr)[1] == "no_data"
+
+    def test_an_empty_directory_is_still_no_data(self, tmp_path):
+        assert detect_outliers(str(tmp_path))[1] == "no_data"
+
+    def test_malformed_still_outranks_incomplete(self, tmp_path):
+        """A directory that is BOTH unreadable and thin reports the unreadability --
+        the more actionable fault, and the one that makes the rest unknowable."""
+        tlr = str(tmp_path)
+        self._write_partial_stage_profile(
+            tlr, "median", ("pre-Loop_NoMitigations_t1",),
+        )
+        _write_summary_csv(tlr, "broken", _PROFILE_A_ROWS,
+                           columns=_MISSING_REQUIRED_COLUMNS)
+
+        assert detect_outliers(tlr)[1] == "malformed_data"
+
+    def test_one_complete_profile_is_still_single_profile(self, tmp_path):
+        """A complete profile alongside incomplete ones is the single-profile case,
+        not the incomplete one -- the check is 'none complete', not 'any incomplete'."""
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "complete", tar=20.0, lbgi=1, dka=0)
+        self._write_partial_stage_profile(
+            tlr, "partial", ("pre-Loop_NoMitigations_t1",),
+        )
+
+        assert detect_outliers(tlr)[1] == "single_profile"
+
+    def test_complete_profiles_are_still_ok(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_outlier_profile(tlr, "median", tar=20.0, lbgi=1, dka=0)
+        _write_outlier_profile(tlr, "adolescent", tar=25.0, lbgi=1, dka=0)
+
+        assert detect_outliers(tlr)[1] == "ok"
+
+    def test_the_status_reaches_the_assessment(self, tmp_path):
+        tlr = str(tmp_path)
+        for profile in ("median", "adolescent"):
+            self._write_partial_stage_profile(
+                tlr, profile, ("pre-Loop_NoMitigations_t1", "pre-noLoop_t1"),
+            )
+
+        assessment = build_assessment(tlr, "2026-08-06T00:00:00")
+
+        assert assessment is not None, "readable data must still produce a document"
+        assert assessment.outlier_status == "incomplete_stages"

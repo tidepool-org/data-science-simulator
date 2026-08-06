@@ -62,6 +62,7 @@ verified against the pre-change module. Only degraded paths change text:
 | M == N | `2 virtual patient profiles aggregated for this summary.` | *unchanged* |
 | 0 < M < N | `3 virtual patient profiles aggregated for this summary.` (named 3; 2 contributed) | `2 of 3 virtual patient profiles aggregated for this summary. 1 summary results file could not be read.` |
 | malformed outlier input | `Data not available for outlier analysis.` | `Outlier analysis not performed: profile data is present but could not be read. Check data configuration.` |
+| no profile complete across all three stages | `Data not available for outlier analysis.` | `Outlier analysis not performed: no profile has results for all three evaluation stages.` |
 | M == 0, N > 0 | a full document of `NA`/`0` | no document; reported as malformed |
 
 The malformed text deliberately does not name the offending file — the path stays in
@@ -98,11 +99,11 @@ files: `test_consensus_risk_list.py`, `test_jira_risk_probabilities.py`,
 
 - `get_profile_metrics` now returns `(profile_data, status)`, not a bare
   `profile_data`/`None`. Callers must unpack.
-- `detect_outliers`' status set gains `'malformed_data'`. A consumer branching on
-  status must handle it, or it will fall through to whatever its `else` renders.
-  The GUI reads `SeverityAssessment.outlier_status` and needs the new value in its
-  own mapping; unmapped, a malformed directory shows the GUI's fallback text rather
-  than the `'no_data'` text it used to show.
+- `detect_outliers`' status set gains `'malformed_data'` and `'incomplete_stages'`. A
+  consumer branching on status must handle both, or they will fall through to whatever
+  its `else` renders. The GUI reads `SeverityAssessment.outlier_status` and needs the
+  new values in its own mapping; unmapped, those directories show the GUI's fallback
+  text rather than the `'no_data'` text they used to show.
 
 `build_assessment` is **unchanged** — still `Optional[SeverityAssessment]` — and
 stays importable from both `severity_model` and `gui_runner`, so a consumer that
@@ -164,10 +165,35 @@ fix.
 `BASELINE_HARM` names the baseline label, since `detect_outliers` now has to reason
 about that group and a typo would silently empty the union.
 
+## Incomplete stage coverage (separate commit)
+
+`detect_outliers` returned `'no_data'` from two places, and the second was not
+absence: profiles that parse fine but where **none carries results for all three
+stages**. That is a run which produced only some stages — a real, recoverable
+configuration problem — reported with the same sentence as a missing directory.
+
+It now reports `'incomplete_stages'`, rendering *"Outlier analysis not performed: no
+profile has results for all three evaluation stages."* The three degraded statuses are
+now three distinct sentences, and only genuine absence keeps the original text.
+
+Precedence, and why: `malformed_data` still outranks `incomplete_stages` — an
+unreadable file is the more actionable fault and makes the rest unknowable. A
+directory with *one* complete profile alongside incomplete ones is still
+`single_profile`, since the gate is "none complete", not "any incomplete".
+
+`'no_data'` now means exactly one thing: no per-profile results exist. That covers no
+summary files at all, and an aggregate-only directory whose filenames identify no
+profile (no `*_profile.csv`) — both genuine absence.
+
+**Thin data is not malformed data.** Such a directory still renders a document, and
+its files still count toward M, so finding 3's count line stays in its clean form and
+absent stages render `NA` as before.
+
+`render_outlier_results` falls through to the findings text for a status it does not
+recognize, so a future status cannot silently render a degraded sentence.
+
 ### Deliberately out of scope
 
-- Splitting the third condition still inside `'no_data'`: profiles that parse but
-  where none is complete across all three stages (TRSET-28 Decision B).
 - Analyzing the M usable profiles instead of abandoning outlier analysis on the
   first malformed file — that changes which outliers are *found* (TRSET-28 Decision C).
 - `STAGE_PREFIXES` fragile prefix matching, noted in the module.

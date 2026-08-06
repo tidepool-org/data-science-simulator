@@ -673,3 +673,76 @@ class TestSkipReasonsDistinguishEmptyFromMalformed:
         monkeypatch.setattr(sys, "argv", ["create_severity_summary.py", str(tmp_path)])
 
         assert main() == 1
+
+
+_INCOMPLETE_STAGES_LINE = (
+    "Outlier analysis not performed: no profile has results for all "
+    "three evaluation stages."
+)
+
+
+class TestRenderOutlierResultsIncompleteStages:
+    """TRSET-28 Decision B: the third condition that hid inside 'no_data'."""
+
+    def test_incomplete_stages_gets_its_own_text(self):
+        assert render_outlier_results([], "incomplete_stages") == _INCOMPLETE_STAGES_LINE
+
+    def test_it_does_not_claim_the_data_was_unavailable(self):
+        assert "not available" not in render_outlier_results([], "incomplete_stages")
+
+    def test_it_is_distinct_from_the_malformed_text(self):
+        """Both are "present but unusable for this analysis" -- for different, and
+        differently actionable, reasons."""
+        assert render_outlier_results([], "incomplete_stages") != render_outlier_results(
+            [], "malformed_data"
+        )
+
+    def test_the_three_degraded_statuses_render_three_different_sentences(self):
+        rendered = {
+            render_outlier_results([], status)
+            for status in ("no_data", "malformed_data", "incomplete_stages")
+        }
+        assert len(rendered) == 3
+
+    def test_an_unknown_status_still_falls_through_to_the_findings_text(self):
+        """Defensive: a status this renderer does not know must not silently render
+        a degraded sentence. With no findings it reports none found."""
+        assert render_outlier_results([], "some_future_status") == _CLEAN_OUTLIER_LINE
+
+
+class TestRenderedIncompleteStagesDocument:
+    """The whole path: partial-stage CSVs -> assessment -> rendered document."""
+
+    _OUTLIER_COLUMNS = [
+        "sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54",
+        "percent_cgm_gt_180", "lbgi_risk_score", "dka_risk_score",
+    ]
+
+    @pytest.fixture
+    def incomplete_rtf(self, tmp_path):
+        tlr = str(tmp_path)
+        for profile in ("median", "adolescent"):
+            rows = [
+                (f"{stem}_{profile}", 80.0, 1.0, 20.0, 1, 0)
+                for stem in ("pre-Loop_NoMitigations_t1", "pre-noLoop_t1")
+            ]  # no post- row -> no profile is stage-complete
+            _write_summary_csv(tlr, profile, rows, columns=self._OUTLIER_COLUMNS)
+        assessment = build_assessment(tlr, "2026-08-06T00:00:00")
+        assert assessment is not None, "readable data must still produce a document"
+        return render_rtf(assessment)
+
+    def test_the_outlier_section_names_the_missing_stages(self, incomplete_rtf):
+        assert _INCOMPLETE_STAGES_LINE in incomplete_rtf
+
+    def test_it_does_not_say_the_data_was_unavailable(self, incomplete_rtf):
+        assert "Data not available for outlier analysis." not in incomplete_rtf
+
+    def test_the_count_line_is_clean_because_both_files_are_usable(self, incomplete_rtf):
+        """Thin data is not malformed data: M == N, so finding 3's line is unchanged."""
+        assert "2 virtual patient profiles aggregated for this summary." in incomplete_rtf
+
+    def test_the_missing_stage_renders_na_not_a_blank_cell(self, incomplete_rtf):
+        rows = _table_rows(incomplete_rtf)
+        post_row = next(row for row in rows[1:] if row[0] == "Post-mitigation")
+        tir_index = rows[0].index("TIR % (70 - 180 mg/dL)")
+        assert post_row[tir_index] == "NA"

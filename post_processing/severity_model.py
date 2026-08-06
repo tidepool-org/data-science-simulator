@@ -211,7 +211,7 @@ class SeverityAssessment:
     stages: dict                    # stage -> StageResult
     catastrophic_findings: list = field(default_factory=list)   # list[CatastrophicFinding]
     outlier_findings: list = field(default_factory=list)        # list[OutlierFinding]
-    # 'ok' | 'no_data' | 'malformed_data' | 'single_profile'
+    # 'ok' | 'no_data' | 'malformed_data' | 'incomplete_stages' | 'single_profile'
     outlier_status: str = 'ok'
     # M: how many of the N files could actually contribute a value. None means
     # "not measured" and is treated as M == N by consumers, so an object built by
@@ -613,19 +613,18 @@ def detect_outliers(tlr_dir, severity_updates=None):
         (list[OutlierFinding], status_str)
         status_str is one of:
           'ok'                -> findings list is authoritative (may be empty)
-          'no_data'           -> the data needed for the comparison is not present
+          'no_data'           -> no per-profile results exist to compare
           'malformed_data'    -> data IS present but unreadable/missing a required
                                  column, so the analysis was not performed
+          'incomplete_stages' -> profiles exist and parse, but none carries results
+                                 for all three stages, so there is nothing to
+                                 compare like-for-like
           'single_profile'    -> only one profile, outliers not meaningful
 
-    'no_data' used to cover both absent and malformed input, which the renderer
-    then reported as "Data not available" -- a regulatory document asserting the
-    data was missing when in fact it was corrupt. The two are now separate.
-
-    Note: a directory whose profiles parse but where no profile is complete across
-    all three stages still reports 'no_data' -- the data needed for the comparison
-    genuinely is not available. That third condition is deliberately not split out
-    here (TRSET-28 Decision B).
+    'no_data' used to cover all three of absent, malformed and incomplete input,
+    which the renderer then reported as "Data not available" -- a regulatory
+    document asserting the data was missing when it was in fact corrupt, or real but
+    thin. All three are now separate, and only genuine absence keeps that sentence.
 
     This is the detection half only. Rendering the RTF/GUI text from these
     findings lives in the consumer (create_severity_summary.render_*).
@@ -653,7 +652,11 @@ def detect_outliers(tlr_dir, severity_updates=None):
         print("  Summary results data present but unusable; check data configuration.")
         return ([], 'malformed_data')
 
-    if profile_data is None:
+    if not profile_data:
+        # Either no summary files at all (get_profile_metrics said 'no_data', and
+        # profile_data is None), or files whose names identify no profile -- an
+        # aggregate-only directory with no '*_profile.csv'. Either way there are no
+        # per-profile results in existence to compare, which is what 'no_data' means.
         print("  Necessary data not present; check configurations.")
         return ([], 'no_data')
 
@@ -664,8 +667,16 @@ def detect_outliers(tlr_dir, severity_updates=None):
     }
 
     if len(complete_profiles) == 0:
-        print("  Necessary data not present; check configurations.")
-        return ([], 'no_data')
+        # Profiles DO exist and parsed; none carries results for all three stages,
+        # so there is no like-for-like comparison to make. Distinct from 'no_data'
+        # (nothing to compare) and from 'malformed_data' (unreadable): this data is
+        # readable and real, just too thin for a cross-stage comparison. Reporting it
+        # as absent hid a recoverable configuration problem -- a run that produced
+        # only some stages -- behind the same sentence as a missing directory.
+        print(f"  No profile in {tlr_dir} has results for all three evaluation "
+              f"stages ({len(profile_data)} profile(s) found); "
+              f"outlier comparison needs at least two that do.")
+        return ([], 'incomplete_stages')
 
     if len(complete_profiles) == 1:
         return ([], 'single_profile')
