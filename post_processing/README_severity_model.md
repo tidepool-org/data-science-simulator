@@ -79,8 +79,15 @@ string above pinned verbatim. Clean-path byte-identity was additionally verified
 out-of-band by rendering the same fixture through the pre-change module and
 `diff`ing (1846 bytes, identical).
 
+A further 5 tests cover `gui_runner`'s migration (empty vs. malformed surfaced on
+`RiskDirRunResult`, and positional construction still working); its eight
+`build_assessment` monkeypatches now patch `build_assessment_result` and return a
+real `AssessmentOutcome`, so a fake of the wrong shape cannot pass. The unpatched
+path was additionally exercised out-of-band against real good/empty/malformed
+directories through `gui_runner`'s own import.
+
 Suites: `test_severity_model.py` + `test_create_severity_summary.py` +
-`tests/test_gui_runner.py` — 165 passed. Full suite: 644 passed / 8 failed / 5
+`tests/test_gui_runner.py` — 170 passed. Full suite: 649 passed / 8 failed / 5
 skipped, the 8 being pre-existing and unrelated (all in untracked local scratch
 files: `test_consensus_risk_list.py`, `test_jira_risk_probabilities.py`,
 `test_simulation_results_columns.py`) — verified identical on a stash of this change.
@@ -97,11 +104,19 @@ files: `test_consensus_risk_list.py`, `test_jira_risk_probabilities.py`,
   own mapping; unmapped, a malformed directory shows the GUI's fallback text rather
   than the `'no_data'` text it used to show.
 
-`build_assessment` is **unchanged** — still `Optional[SeverityAssessment]` — so
-`gui_runner.RiskDirRunResult` and the GUI repo that reads it need no change. That
-also means `gui_runner` still cannot tell empty from malformed; migrating it to
-`build_assessment_result` is a follow-up (it requires updating the eight
-`build_assessment` monkeypatches in `tests/test_gui_runner.py`).
+`build_assessment` is **unchanged** — still `Optional[SeverityAssessment]` — and
+stays importable from both `severity_model` and `gui_runner`, so a consumer that
+imports it keeps working.
+
+**`gui_runner` is migrated to `build_assessment_result`.** `RiskDirRunResult` gains
+two keyword-defaulted fields appended after the existing ones —
+`assessment_status` (`'ok'` | `'empty'` | `'malformed'`) and `assessment_detail` —
+so positional construction and existing field access are unaffected, and the GUI
+can now say *why* a directory produced no assessment instead of only "no data".
+`AssessmentOutcome` is re-exported from `gui_runner` for consumers that want to
+branch on the outcome directly. A GUI showing a single "no data" state for
+`assessment is None` still renders correctly; adopting `assessment_status` is
+opt-in.
 
 `SeverityAssessment.usable_profile_count` is additive and defaults to `None`
 ("not measured"), which renders as M == N — so an object built by an older

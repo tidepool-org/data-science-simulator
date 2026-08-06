@@ -4,7 +4,7 @@ in-process. GUI and other consumers (ad hoc scripts) call only this module;
 none of them reach into simulator internals directly.
 
 Wraps loop_risk_v2_0.build_risk_sim_generator + run_simulations +
-severity_model.build_assessment. Library-browsing/resolution (listing
+severity_model.build_assessment_result. Library-browsing/resolution (listing
 available config collections, mapping a chosen name to its path) is
 deliberately NOT handled here -- it lives in the GUI's view layer, so a
 future "configure parameters directly" mode can hand this module a
@@ -41,7 +41,16 @@ _POST_PROCESSING_DIR = os.path.join(PROJECT_ROOT_DIR, "post_processing")
 if _POST_PROCESSING_DIR not in sys.path:
     sys.path.insert(0, _POST_PROCESSING_DIR)
 
-from severity_model import build_assessment, SeverityAssessment  # noqa: E402
+from severity_model import (  # noqa: E402
+    build_assessment_result,
+    AssessmentOutcome,  # noqa: F401  (re-exported: GUI consumers branch on .status)
+    SeverityAssessment,
+    # This module now calls build_assessment_result, but build_assessment stays
+    # importable from here: it was reachable on this entry point before TRSET-28,
+    # and dropping the name would break a consumer that imports it rather than
+    # giving them a reason to migrate.
+    build_assessment,  # noqa: F401  (re-export, superseded by the *_result form)
+)
 # Re-exported for GUI consumers (TRSET-23). severity_model remains the single
 # source of truth for stage identity; it lives in the simulator's top-level
 # post_processing/ dir, which is NOT part of the installed package and is only
@@ -84,10 +93,19 @@ class ConfigValidationResult:
 
 @dataclass
 class RiskDirRunResult:
-    """Outcome for one TLR-* directory. assessment is None when build_assessment
-    found no usable data for it -- surfaced explicitly, never silently dropped.
-    (severity_model.build_assessment_result additionally distinguishes an empty
-    directory from malformed data; adopting it here is a follow-up to TRSET-28.)
+    """Outcome for one TLR-* directory. assessment is None when the directory
+    yielded no usable data -- surfaced explicitly, never silently dropped.
+
+    assessment_status says WHY it is None (TRSET-28), straight from
+    severity_model.AssessmentOutcome: 'ok' (assessment is present), 'empty'
+    (nothing ran in this directory), or 'malformed' (summary results ARE present
+    and cannot be read). Those last two used to be indistinguishable, so a GUI
+    could only ever say "no data" for a directory whose data was in fact corrupt.
+    assessment_detail is the reportable reason, suitable for display as-is.
+
+    Both are keyword-defaulted and appended after the existing fields, so a
+    consumer constructing or unpacking this positionally is unaffected.
+
     png_paths has one entry per scenario config file run in this directory.
 
     trace_paths (TRSET-23) exposes each completed sim's per-run ``<sim_id>.tsv``
@@ -102,6 +120,8 @@ class RiskDirRunResult:
     assessment: Optional[SeverityAssessment]
     png_paths: list = field(default_factory=list)
     trace_paths: dict = field(default_factory=dict)
+    assessment_status: str = 'ok'
+    assessment_detail: str = ''
 
 
 @dataclass
@@ -209,9 +229,12 @@ def run_risk_assessment(
     def _finalize(risk_dir_name, png_paths, trace_paths):
         nonlocal completed_count
         risk_result_dirpath = os.path.join(save_dir, risk_dir_name)
-        assessment = build_assessment(risk_result_dirpath, timestamp)
+        outcome = build_assessment_result(risk_result_dirpath, timestamp)
         risk_dir_results.append(
-            RiskDirRunResult(risk_dir_name, assessment, png_paths, trace_paths)
+            RiskDirRunResult(
+                risk_dir_name, outcome.assessment, png_paths, trace_paths,
+                outcome.status, outcome.detail,
+            )
         )
         completed_count += 1
         if progress_callback is not None:

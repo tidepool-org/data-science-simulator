@@ -2,7 +2,7 @@
 Unit tests for gui_runner.py, the single validated entry point Phase 3's
 Streamlit GUI (and any other consumer) calls to run a risk assessment.
 
-build_risk_sim_generator, run_simulations, build_assessment, and
+build_risk_sim_generator, run_simulations, build_assessment_result, and
 ConfigValidator are monkeypatched throughout -- these are exercised for real
 in the separately-approved Phase 3 integration test plan; these tests target
 gui_runner's own orchestration logic (finalize-once-per-TLR-dir, progress
@@ -149,6 +149,17 @@ def run_env(monkeypatch):
     shutil.rmtree(save_dir, ignore_errors=True)
 
 
+# build_assessment_result returns an AssessmentOutcome (TRSET-28), so the fakes
+# below return the real dataclass rather than a bare assessment-or-None -- a fake
+# with the wrong shape would pass while the GUI's own status branch broke.
+def _ok_outcome(assessment=None):
+    return gui_runner.AssessmentOutcome(assessment or SimpleNamespace(), "ok")
+
+
+def _no_assessment_outcome(status="empty", detail="nothing ran in this directory"):
+    return gui_runner.AssessmentOutcome(None, status, detail)
+
+
 def test_happy_path_finalizes_once_per_risk_dir(run_env, monkeypatch):
     save_dir, monkeypatch = run_env
 
@@ -162,11 +173,11 @@ def test_happy_path_finalizes_once_per_risk_dir(run_env, monkeypatch):
 
     assessment_calls = []
 
-    def fake_build_assessment(tlr_dir, timestamp):
+    def fake_build_assessment_result(tlr_dir, timestamp):
         assessment_calls.append(tlr_dir)
-        return SimpleNamespace(simulation_id=os.path.basename(tlr_dir))
+        return _ok_outcome(SimpleNamespace(simulation_id=os.path.basename(tlr_dir)))
 
-    monkeypatch.setattr(gui_runner, "build_assessment", fake_build_assessment)
+    monkeypatch.setattr(gui_runner, "build_assessment_result", fake_build_assessment_result)
 
     progress_calls = []
     result = gui_runner.run_risk_assessment(
@@ -203,8 +214,12 @@ def test_cancel_mid_run_stops_before_finalizing_in_progress_dir(run_env, monkeyp
     monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1", "TLR-2"])
 
     assessment_calls = []
-    monkeypatch.setattr(gui_runner, "build_assessment",
-                         lambda tlr_dir, timestamp: assessment_calls.append(tlr_dir))
+
+    def fake_build_assessment_result(tlr_dir, timestamp):
+        assessment_calls.append(tlr_dir)
+        return _ok_outcome()
+
+    monkeypatch.setattr(gui_runner, "build_assessment_result", fake_build_assessment_result)
 
     result = gui_runner.run_risk_assessment("unused_config_dir", cancel_event=cancel_event)
 
@@ -236,13 +251,72 @@ def test_none_assessment_is_included_not_dropped(run_env, monkeypatch):
     generator_items = [("TLR-1", "scenario_a.json", _fake_sim_suite())]
     monkeypatch.setattr(gui_runner, "build_risk_sim_generator", lambda *a, **kw: iter(generator_items))
     monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1"])
-    monkeypatch.setattr(gui_runner, "build_assessment", lambda tlr_dir, timestamp: None)
+    monkeypatch.setattr(gui_runner, "build_assessment_result",
+                        lambda tlr_dir, timestamp: _no_assessment_outcome())
 
     result = gui_runner.run_risk_assessment("unused_config_dir")
 
     assert len(result.risk_dir_results) == 1
     assert result.risk_dir_results[0].risk_dir_name == "TLR-1"
     assert result.risk_dir_results[0].assessment is None
+
+
+class TestAssessmentStatusIsSurfaced:
+    """TRSET-28: a GUI could only say "no data" for a directory whose data was in
+    fact corrupt, because both conditions arrived as a bare None."""
+
+    def _run_with(self, monkeypatch, outcome):
+        monkeypatch.setattr(gui_runner, "build_risk_sim_generator",
+                            lambda *a, **kw: iter([("TLR-1", "scenario_a.json", _fake_sim_suite())]))
+        monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1"])
+        monkeypatch.setattr(gui_runner, "build_assessment_result",
+                            lambda tlr_dir, timestamp: outcome)
+        result = gui_runner.run_risk_assessment("unused_config_dir")
+        return result.risk_dir_results[0]
+
+    def test_an_empty_directory_reports_empty(self, run_env, monkeypatch):
+        save_dir, monkeypatch = run_env
+
+        risk_dir_result = self._run_with(monkeypatch, _no_assessment_outcome("empty", "nothing ran"))
+
+        assert risk_dir_result.assessment_status == "empty"
+        assert risk_dir_result.assessment_detail == "nothing ran"
+
+    def test_a_malformed_directory_reports_malformed(self, run_env, monkeypatch):
+        save_dir, monkeypatch = run_env
+
+        risk_dir_result = self._run_with(
+            monkeypatch, _no_assessment_outcome("malformed", "3 files present, none usable")
+        )
+
+        assert risk_dir_result.assessment_status == "malformed"
+        assert risk_dir_result.assessment_detail == "3 files present, none usable"
+
+    def test_the_two_are_distinguishable(self, run_env, monkeypatch):
+        """The whole point: both used to be assessment=None and nothing else."""
+        save_dir, monkeypatch = run_env
+
+        empty = self._run_with(monkeypatch, _no_assessment_outcome("empty"))
+        malformed = self._run_with(monkeypatch, _no_assessment_outcome("malformed", "unreadable"))
+
+        assert empty.assessment is malformed.assessment is None
+        assert empty.assessment_status != malformed.assessment_status
+
+    def test_a_usable_directory_reports_ok(self, run_env, monkeypatch):
+        save_dir, monkeypatch = run_env
+
+        risk_dir_result = self._run_with(monkeypatch, _ok_outcome())
+
+        assert risk_dir_result.assessment_status == "ok"
+        assert risk_dir_result.assessment is not None
+
+    def test_the_new_fields_default_so_positional_construction_still_works(self):
+        """Appended after the existing fields, so a consumer building this
+        positionally the old way is unaffected."""
+        risk_dir_result = gui_runner.RiskDirRunResult("TLR-1", None, ["a.png"], {})
+
+        assert risk_dir_result.assessment_status == "ok"
+        assert risk_dir_result.assessment_detail == ""
 
 
 def test_target_risk_dir_passed_through_to_generator(run_env, monkeypatch):
@@ -286,7 +360,8 @@ def test_trace_paths_grouped_by_scenario_file_and_keyed_by_sim_id(run_env, monke
     generator_items = [("TLR-1", name, _fake_sim_suite()) for name in sims_by_scenario]
     monkeypatch.setattr(gui_runner, "build_risk_sim_generator", lambda *a, **kw: iter(generator_items))
     monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1"])
-    monkeypatch.setattr(gui_runner, "build_assessment", lambda tlr_dir, timestamp: SimpleNamespace())
+    monkeypatch.setattr(gui_runner, "build_assessment_result",
+                        lambda tlr_dir, timestamp: _ok_outcome())
     monkeypatch.setattr(
         gui_runner, "run_simulations",
         lambda sims, **kw: (sims_by_scenario[kw["name"]], None),
@@ -318,7 +393,8 @@ def test_trace_paths_are_reset_between_risk_dirs(run_env, monkeypatch):
     ]
     monkeypatch.setattr(gui_runner, "build_risk_sim_generator", lambda *a, **kw: iter(generator_items))
     monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1", "TLR-2"])
-    monkeypatch.setattr(gui_runner, "build_assessment", lambda tlr_dir, timestamp: SimpleNamespace())
+    monkeypatch.setattr(gui_runner, "build_assessment_result",
+                        lambda tlr_dir, timestamp: _ok_outcome())
     monkeypatch.setattr(
         gui_runner, "run_simulations",
         lambda sims, **kw: (per_scenario_sims[kw["name"]], None),
@@ -362,8 +438,8 @@ def test_run_writes_metadata_json_with_the_assessment_timestamp(run_env, monkeyp
                         lambda *a, **kw: iter([("TLR-1", "scenario_a.json", _fake_sim_suite())]))
     monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1"])
     monkeypatch.setattr(
-        gui_runner, "build_assessment",
-        lambda tlr_dir, timestamp: assessment_timestamps.append(timestamp) or SimpleNamespace(),
+        gui_runner, "build_assessment_result",
+        lambda tlr_dir, timestamp: assessment_timestamps.append(timestamp) or _ok_outcome(),
     )
 
     gui_runner.run_risk_assessment("unused_config_dir")
@@ -393,7 +469,8 @@ def test_metadata_json_is_written_before_any_simulation_runs(run_env, monkeypatc
     monkeypatch.setattr(gui_runner, "build_risk_sim_generator",
                         lambda *a, **kw: iter([("TLR-1", "scenario_a.json", _fake_sim_suite())]))
     monkeypatch.setattr(gui_runner, "_list_target_risk_dirs", lambda *a, **kw: ["TLR-1"])
-    monkeypatch.setattr(gui_runner, "build_assessment", lambda tlr_dir, timestamp: SimpleNamespace())
+    monkeypatch.setattr(gui_runner, "build_assessment_result",
+                        lambda tlr_dir, timestamp: _ok_outcome())
     monkeypatch.setattr(gui_runner, "run_simulations", _observing_run_simulations)
 
     gui_runner.run_risk_assessment("unused_config_dir")
