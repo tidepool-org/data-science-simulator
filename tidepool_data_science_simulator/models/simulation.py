@@ -557,18 +557,26 @@ class SettingSchedule24Hr(SimulationComponent):
 
         return values, start_times, end_times
 
-    def get_loop_swift_inputs(self):
+    def get_loop_swift_inputs(self, now=None):
         """
-        Get the inputs in datetime.datetime for SwiftLoop
+        Get the inputs in datetime.datetime for SwiftLoop.
+
+        The Swift algorithm requires the settings timelines to cover the full
+        dose history through the prediction horizon, so the repeating 24-hour
+        schedule is projected over a window anchored at `now` (current
+        simulation time; defaults to the schedule's construction day, which
+        only supports sims up to ~2 days).
         """
         values = []
         start_datetimes = []
         end_datetimes = []
-        
-        days = 2
-        for day in range(days):
+
+        base = min(start for (start, _) in self.schedule_timeline.keys())
+        day_offset = 0 if now is None else (now.date() - base.date()).days
+
+        for day in range(day_offset - 1, day_offset + 3):
             td = datetime.timedelta(days=day)
-            
+
             for (start_datetime, end_datetime), setting in self.schedule_timeline.items():
                 values.append(setting.value)
                 start_datetimes.append(start_datetime + td)
@@ -631,25 +639,30 @@ class TargetRangeSchedule24hr(SettingSchedule24Hr):
 
         return min_values, max_values, start_times, end_times
 
-    def get_loop_swift_inputs(self):
+    def get_loop_swift_inputs(self, now=None):
         """
-        Get the inputs in datetime.datetime for SwiftLoop
+        Get the inputs in datetime.datetime for SwiftLoop.
+
+        See SettingSchedule24Hr.get_loop_swift_inputs: the window is anchored
+        at `now` so multi-day simulations keep full settings coverage.
         """
         min_values = []
         max_values = []
         start_datetimes = []
         end_datetimes = []
-        
-        days = 2
-        for day in range(days):
+
+        base = min(start for (start, _) in self.schedule_timeline.keys())
+        day_offset = 0 if now is None else (now.date() - base.date()).days
+
+        for day in range(day_offset - 1, day_offset + 3):
             td = datetime.timedelta(days=day)
-            
+
             for (start_datetime, end_datetime), target_range in self.schedule_timeline.items():
                 min_values.append(target_range.min_value)
                 max_values.append(target_range.max_value)
                 start_datetimes.append(start_datetime + td)
                 end_datetimes.append(end_datetime + td)
-        
+
         return min_values, max_values, start_datetimes, end_datetimes
         
         

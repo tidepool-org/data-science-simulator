@@ -37,7 +37,11 @@ class SwiftLoopController(LoopController):
         dict
             Inputs for the Swift Loop Algorithm
         """
-        glucose_dates, glucose_values = virtual_patient.sensor.get_loop_inputs()
+        # bounded history: the Swift algorithm requires the settings
+        # timelines to cover every input sample, so an unbounded (growing)
+        # glucose history both bloats the payload and breaks multi-day runs
+        glucose_dates, glucose_values = virtual_patient.sensor.get_loop_inputs(
+            self.time, num_hours_history=self.num_hours_history)
 
         bolus_event_timeline, carb_event_timeline, temp_basal_event_timeline = self.get_dose_event_timelines(virtual_patient)
 
@@ -51,16 +55,16 @@ class SwiftLoopController(LoopController):
             carb_event_timeline.get_loop_inputs(self.time, num_hours_history=self.num_hours_history)
 
         basal_rate_values, basal_rate_start_times, basal_rate_end_times = \
-            virtual_patient.pump.pump_config.basal_schedule.get_loop_swift_inputs()
+            virtual_patient.pump.pump_config.basal_schedule.get_loop_swift_inputs(self.time)
 
         isf_values, isf_start_times, isf_end_times = \
-            virtual_patient.pump.pump_config.insulin_sensitivity_schedule.get_loop_swift_inputs()
+            virtual_patient.pump.pump_config.insulin_sensitivity_schedule.get_loop_swift_inputs(self.time)
 
         cir_values, cir_start_times, cir_end_times = \
-            virtual_patient.pump.pump_config.carb_ratio_schedule.get_loop_swift_inputs()
+            virtual_patient.pump.pump_config.carb_ratio_schedule.get_loop_swift_inputs(self.time)
 
         tr_min_values, tr_max_values, tr_start_times, tr_end_times = \
-            virtual_patient.pump.pump_config.target_range_schedule.get_loop_swift_inputs()
+            virtual_patient.pump.pump_config.target_range_schedule.get_loop_swift_inputs(self.time)
         
         ##########################
         # Create the Swift Loop input structure
