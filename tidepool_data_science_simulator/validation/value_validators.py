@@ -662,10 +662,10 @@ class ValueValidators:
         if 'value' in entry:
             try:
                 value = float(entry['value'])
-                if not 0 < value <= 500:
+                if value <= 0:
                     errors.append(ValidationError(
                         f"{field_path}.value",
-                        "Carb value must be between 0 and 500 grams",
+                        "Carb value must be greater than 0 grams",
                         value
                     ))
             except (ValueError, TypeError):
