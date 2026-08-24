@@ -451,7 +451,8 @@ class ScenarioParserV2(SimulationParser):
         # Define subdirectory search paths based on folder type
         subdirectories = []
         if "simulations" in folder_path:
-            subdirectories = ["base", "suspend", "loop_versions", "specialized"]
+            subdirectories = ["base", "suspend", "loop_versions", "specialized",
+                              "versions", "1xComparator", "custom_presets"]
         elif "metabolism_settings" in folder_path:
             subdirectories = ["profiles", "suspensions", "presets", "versions", "types"]
 
