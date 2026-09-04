@@ -120,9 +120,12 @@ class SwiftLoopController(LoopController):
             data['recommendationType'] = 'tempBasal'
             data['includePositiveVelocityAndRC'] = True
 
-        # If includePositiveVelocityAndRC is set in the settings, override the default value
-        if settings_dictionary.get('includePositiveVelocityAndRC'):
-            data['includePositiveVelocityAndRC'] = settings_dictionary['include_positive_velocity_and_RC']
+        # An explicit setting wins over the dosing-mode default chosen above.
+        # Test for membership, not truthiness: every settings file that carries
+        # this flag sets it to false, and a truthiness guard discards exactly
+        # that value, leaving the hardcoded default standing.
+        if 'includePositiveVelocityAndRC' in settings_dictionary:
+            data['includePositiveVelocityAndRC'] = settings_dictionary['includePositiveVelocityAndRC']
 
         # BASAL RATE
         data_entries = []
