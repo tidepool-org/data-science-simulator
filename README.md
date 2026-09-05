@@ -78,6 +78,14 @@ The `SwiftLoopController` class can be directly substituted for the `LoopControl
 
 The SwiftLoopController can be selected via configuration override by specifying ` "controller": { "id": "swift"}` instead of `"controller": {"id": "pyloopkit_v1"}`.
 
+#### Which `loop_settings` keys the swift path actually reads
+
+`SwiftLoopController.prepare_inputs` builds the Swift payload **key by key**. A setting in a `reusable/loop_settings/*.json` file reaches the algorithm only if that method explicitly puts it there. Every other key in the file is inert on the swift path, no matter how plausible its name.
+
+**`maximum_autobolus` and `minimum_autobolus` are the keys that catch people out.** They appear in several `reusable/loop_settings/*.json` files and are declared on `schema_models.LoopSettings`, but `SwiftLoopController.prepare_inputs` never sends them, so the swift controller ignores them entirely. The only code that receives them is `LoopController.prepare_inputs`, which passes the whole settings dict through to pyloopkit's `loop_predict` — and **pyloopkit is legacy and unmaintained**, not where current controller behavior lives.
+
+So these two keys change nothing that the product actually runs. Do not scope work against them expecting an effect on the swift path. Note in particular that writing `maximum_autobolus` as a *config override* is worse than a silent no-op: an override naming a key the resolver does not apply fails the run with `"Only applied 1 of 2 overriding values"`.
+
 ## Contributing Guide
 1. All are welcome to contribute to this project.
 1. Naming convention for notebooks is 

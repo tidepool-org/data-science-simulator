@@ -34,7 +34,7 @@
   },
   "controller": {
     "id": "swift",
-    "settings": "reusable.loop_settings.1dotx",
+    "settings": "reusable.loop_settings.1dotX",
     "automation_control_timeline": []
   }
 }

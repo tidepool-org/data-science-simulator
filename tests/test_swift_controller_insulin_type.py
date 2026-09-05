@@ -12,6 +12,9 @@ Run with:
 """
 
 import datetime
+import json
+import os
+
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -283,6 +286,105 @@ class TestOptionalControllerSettings:
         with pytest.raises(KeyError):
             _prepare_inputs_with_mocked_timelines(ctrl)
 
+
+# ---------------------------------------------------------------------------
+# Tests: includePositiveVelocityAndRC override (TRSET-49)
+# ---------------------------------------------------------------------------
+
+_LOOP_SETTINGS_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "scenario_configs", "tidepool_risk_v2", "reusable", "loop_settings",
+)
+
+
+def _load_loop_settings(filename: str) -> dict:
+    """Load one of the shared reusable loop_settings files."""
+    with open(os.path.join(_LOOP_SETTINGS_DIR, filename)) as f:
+        return json.load(f)
+
+
+class TestIncludePositiveVelocityAndRCOverride:
+    """
+    The dosing mode picks a default, but a settings file that names the flag
+    overrides it.  The override used to guard on truthiness, which discarded
+    the only value any settings file actually sets (false) and left the
+    hardcoded default in place.
+    """
+
+    def test_explicit_false_overrides_temp_basal_default(self):
+        """
+        The regression guard.  tempBasal defaults the flag to True; a config
+        saying false must win.  A truthiness guard leaves True here.
+        """
+        settings = dict(_REQUIRED_ONLY, includePositiveVelocityAndRC=False)
+        ctrl = _make_controller_from_settings(settings)
+        payload = _prepare_inputs_with_mocked_timelines(ctrl)
+
+        assert payload["recommendationType"] == "tempBasal"
+        assert payload["includePositiveVelocityAndRC"] is False
+
+    def test_explicit_true_overrides_automatic_bolus_default(self):
+        """
+        The override works in both directions.  This is also the path that
+        used to raise KeyError, the guard reading one spelling and the
+        assignment indexing another.
+        """
+        settings = dict(
+            _REQUIRED_ONLY,
+            partial_application_factor=0.4,
+            includePositiveVelocityAndRC=True,
+        )
+        ctrl = _make_controller_from_settings(settings)
+        payload = _prepare_inputs_with_mocked_timelines(ctrl)
+
+        assert payload["recommendationType"] == "automaticBolus"
+        assert payload["includePositiveVelocityAndRC"] is True
+
+    def test_absent_flag_keeps_temp_basal_default(self):
+        """No flag in the config leaves the tempBasal default untouched."""
+        ctrl = _make_controller_from_settings(dict(_REQUIRED_ONLY))
+        payload = _prepare_inputs_with_mocked_timelines(ctrl)
+
+        assert payload["recommendationType"] == "tempBasal"
+        assert payload["includePositiveVelocityAndRC"] is True
+
+    def test_absent_flag_keeps_automatic_bolus_default(self):
+        """No flag in the config leaves the automaticBolus default untouched."""
+        settings = dict(_REQUIRED_ONLY, partial_application_factor=0.4)
+        ctrl = _make_controller_from_settings(settings)
+        payload = _prepare_inputs_with_mocked_timelines(ctrl)
+
+        assert payload["recommendationType"] == "automaticBolus"
+        assert payload["includePositiveVelocityAndRC"] is False
+
+    def test_loop_1x_settings_file_sends_false(self):
+        """
+        Driven by the real 1dotX.json rather than a hand-built dict: this is
+        the config whose payload the fix actually changes, from True to False.
+        """
+        settings = _load_loop_settings("1dotX.json")
+        assert settings["includePositiveVelocityAndRC"] is False
+        assert settings["partial_application_factor"] == 0.0
+
+        ctrl = _make_controller_from_settings(settings)
+        payload = _prepare_inputs_with_mocked_timelines(ctrl)
+
+        assert payload["recommendationType"] == "tempBasal"
+        assert payload["includePositiveVelocityAndRC"] is False
+
+    def test_loop_2x_settings_file_unchanged(self):
+        """
+        The 2.x counterpart sits in automaticBolus mode, where the default and
+        the file value agree.  It must not move.
+        """
+        settings = _load_loop_settings("2_0_v1.json")
+        assert settings["includePositiveVelocityAndRC"] is False
+
+        ctrl = _make_controller_from_settings(settings)
+        payload = _prepare_inputs_with_mocked_timelines(ctrl)
+
+        assert payload["recommendationType"] == "automaticBolus"
+        assert payload["includePositiveVelocityAndRC"] is False
 
 # ---------------------------------------------------------------------------
 # Tests: SWIFT_CONTROLLER_MODEL_NAME_MAP entries

@@ -87,6 +87,19 @@ class SwiftLoopController(LoopController):
         data = {}
 
         # SETTINGS
+        # This payload is built key by key below: a setting reaches Swift only if
+        # something here explicitly puts it there. Anything else in the settings
+        # file is inert on this path, however plausible its name looks.
+        #
+        # maximum_autobolus / minimum_autobolus are the case that catches people.
+        # They appear in several reusable/loop_settings files and are declared on
+        # schema_models.LoopSettings, but nothing below sends them, so the swift
+        # controller ignores them outright. The only code that receives them is
+        # LoopController.prepare_inputs, which hands the whole settings dict to
+        # pyloopkit's loop_predict -- and pyloopkit is legacy and unmaintained,
+        # not where current controller behavior lives. So: these two keys change
+        # nothing that the product actually runs. Do not write a ticket or a
+        # config override against them expecting an effect here.
         settings_dictionary = self.controller_config.controller_settings
 
         data['predictionStart'] = t_now.strftime(format=format_string)
@@ -120,9 +133,12 @@ class SwiftLoopController(LoopController):
             data['recommendationType'] = 'tempBasal'
             data['includePositiveVelocityAndRC'] = True
 
-        # If includePositiveVelocityAndRC is set in the settings, override the default value
-        if settings_dictionary.get('includePositiveVelocityAndRC'):
-            data['includePositiveVelocityAndRC'] = settings_dictionary['include_positive_velocity_and_RC']
+        # An explicit setting wins over the dosing-mode default chosen above.
+        # Test for membership, not truthiness: every settings file that carries
+        # this flag sets it to false, and a truthiness guard discards exactly
+        # that value, leaving the hardcoded default standing.
+        if 'includePositiveVelocityAndRC' in settings_dictionary:
+            data['includePositiveVelocityAndRC'] = settings_dictionary['includePositiveVelocityAndRC']
 
         # BASAL RATE
         data_entries = []
