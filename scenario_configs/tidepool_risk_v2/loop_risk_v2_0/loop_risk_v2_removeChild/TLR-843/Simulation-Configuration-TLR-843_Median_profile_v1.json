@@ -12,7 +12,7 @@
       "duration_hours": 23.0,
       "controller": {
         "settings": {
-          "glucose_safety_limit": 180
+          "suspend_threshold": 180
         }
       },
       "patient": {
