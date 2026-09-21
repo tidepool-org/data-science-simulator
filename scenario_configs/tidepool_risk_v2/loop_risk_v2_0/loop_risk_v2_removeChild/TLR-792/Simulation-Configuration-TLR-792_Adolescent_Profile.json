@@ -11,7 +11,7 @@
       "sim_id": "pre-Loop-noMitigations_t1_adolescent",
       "controller": {
         "settings": {
-          "glucose_safety_limit": 54
+          "suspend_threshold": 54
         }
       }
     },

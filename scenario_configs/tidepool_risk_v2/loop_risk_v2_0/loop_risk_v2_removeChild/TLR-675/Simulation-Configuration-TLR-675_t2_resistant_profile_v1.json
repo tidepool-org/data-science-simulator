@@ -96,7 +96,7 @@
       "controller": {
         "settings": {
           "max_bolus": 9.0,
-          "glucose_safety_limit": 80,
+          "suspend_threshold": 80,
           "max_basal_rate": 7.91
         }
       }

@@ -8,6 +8,7 @@ setup(
     package_dir={'tidepool_data_science_simulator': 'tidepool_data_science_simulator'},
     packages=[
         'tidepool_data_science_simulator',
+        'tidepool_data_science_simulator.diagramgen',
         'tidepool_data_science_simulator.evaluation',
         'tidepool_data_science_simulator.legacy',
         'tidepool_data_science_simulator.makedata',

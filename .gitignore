@@ -20,6 +20,18 @@ PHI-*
 data/
 figures/
 
+# Swift Loop algorithm per-control-cycle I/O. SwiftLoopController falls back to
+# the working directory when loop_algo_io_dir is unset, and a 3 x 23 h run
+# writes roughly 1,100 of these to the repository root.
+loop_algo_input_*.json
+loop_algo_output_*.json
+
+# Architecture diagram generator (TRSET-51). The filtered trace is a local
+# diagnostic, ~7 MB per run, and nothing downstream reads it back: the figures
+# and the coverage report are derived during the run that writes it. The other
+# four artifacts in that directory ARE committed.
+.docs/architecture/trace.jsonl
+
 
 # ---- Catch all ----
 
@@ -105,3 +117,4 @@ venv.bak/
 
 *.swp
 *.swo
+/post_processing/.env.example

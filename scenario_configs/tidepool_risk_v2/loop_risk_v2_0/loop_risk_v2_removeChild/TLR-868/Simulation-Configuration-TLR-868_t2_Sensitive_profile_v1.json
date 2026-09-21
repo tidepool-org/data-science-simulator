@@ -76,7 +76,7 @@
           }
         ],
         "settings": {
-            "glucose_safety_limit": 80,
+            "suspend_threshold": 80,
             "max_basal_rate": 1.4
           }
     },
