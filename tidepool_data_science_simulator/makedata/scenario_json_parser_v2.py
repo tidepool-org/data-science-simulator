@@ -73,6 +73,15 @@ PYLOOPKIT_CONTROLLER_MODEL_NAME_MAP = {
     "glargine": [540, 1440]
 }
 
+# Default AielloPAModel metabolism parameters, only valid when there are no PA entries
+# to model (w_hr=0.0 makes the exercise effect a no-op). See resolve_pa_metabolism_params.
+PA_METABOLISM_PARAM_DEFAULTS = {
+    "w_hr": 0.0,
+    "a": 1.0,
+    "tau": 60.0,
+    "n": 1.0,
+}
+
 class ScenarioParserV2(SimulationParser):
     """
     Redesigned scenario parser for Tidepool Risk automated pipeline, Feb 2021.
@@ -333,22 +342,17 @@ class ScenarioParserV2(SimulationParser):
         for k, v in value.items():
             current_key = f"{key_prefix}.{k}" if key_prefix else k
 
-            if self.is_config_file_pointer(v):
-                loaded_value = self.load_pointer(v)
+            # physical_activity_entries owns its own pointer resolution (bare profile
+            # references, list-wrapped references, and per-entry activity_ref pointers)
+            # in the PA-specific pipeline in build_model_from_config. Generic resolution
+            # here would strip the profile's metabolism_parameters (only the entries list
+            # would survive) or replace an activity_ref string with a full profile dict
+            # before resolve_pa_activity_ref ever sees it. Leave it untouched.
+            if k == "physical_activity_entries":
+                continue
 
-                # Special handling for physical_activity_entries pointing to profiles
-                # If we're loading a PA profile (which has both metadata and entries),
-                # and the key is 'physical_activity_entries', extract just the entries list
-                if k == "physical_activity_entries" and isinstance(loaded_value, dict):
-                    if "physical_activity_entries" in loaded_value:
-                        # This is a profile with metadata - extract just the entries
-                        value[k] = loaded_value["physical_activity_entries"]
-                        logger.info(f"Extracted PA entries from profile for key '{current_key}'")
-                    else:
-                        # Regular pointer resolution
-                        value[k] = loaded_value
-                else:
-                    value[k] = loaded_value
+            if self.is_config_file_pointer(v):
+                value[k] = self.load_pointer(v)
             elif isinstance(v, dict):
                 self.resolve_pointers(v, current_key)
             elif isinstance(v, list):
@@ -992,22 +996,19 @@ class ScenarioParserV2(SimulationParser):
         # Extract metabolism parameters from PA profiles if available
         pa_metabolism_params = self.extract_metabolism_params_from_pa_profiles(pa_entries)
 
-        # Physical activity and metabolism model parameters with defaults
-        # Priority: explicit model_config > explicit metabolism_settings > profile defaults > global defaults
-        # IMPORTANT: Check both metabolism_settings AND model_config top level for PA parameters
-        # This ensures PA parameters are preserved when metabolism_settings is overridden
-        model["w_hr"] = model_config.get("w_hr",
-                          metabolism_settings.get("w_hr",
-                              pa_metabolism_params.get("w_hr", 0.0)))
-        model["a"] = model_config.get("a",
-                       metabolism_settings.get("a",
-                           pa_metabolism_params.get("a", 1.0)))
-        model["tau"] = model_config.get("tau",
-                         metabolism_settings.get("tau",
-                             pa_metabolism_params.get("tau", 60.0)))
-        model["n"] = model_config.get("n",
-                       metabolism_settings.get("n",
-                           pa_metabolism_params.get("n", 1.0)))
+        # Physical activity and metabolism model parameters.
+        # Priority: explicit model_config > explicit metabolism_settings > PA profile
+        # parameters > default. The default tier only applies when there are no PA
+        # entries (no activity to model, so the parameters are inert). If PA entries
+        # are present but none of the tiers above resolve a value, raise rather than
+        # silently defaulting to values (w_hr=0.0 in particular) that zero out the
+        # exercise effect. See resolve_pa_metabolism_params.
+        pa_metabolism_param_values = self.resolve_pa_metabolism_params(
+            model_config, metabolism_settings, pa_metabolism_params, pa_entries)
+        model["w_hr"] = pa_metabolism_param_values["w_hr"]
+        model["a"] = pa_metabolism_param_values["a"]
+        model["tau"] = pa_metabolism_param_values["tau"]
+        model["n"] = pa_metabolism_param_values["n"]
 
         # Specific to pump
         if "target_range" in model_config:
@@ -1094,6 +1095,57 @@ class ScenarioParserV2(SimulationParser):
 
     # ===== PHYSICAL ACTIVITY SUPPORT WITH VALIDATION =====
 
+    def resolve_pa_metabolism_params(self, model_config, metabolism_settings, pa_metabolism_params, pa_entries):
+        """
+        Resolve the four AielloPAModel metabolism parameters (w_hr, a, tau, n) using the
+        documented precedence: explicit model_config > explicit metabolism_settings > PA
+        profile parameters > default.
+
+        The default tier is only reachable when there are no PA entries configured, since
+        the parameters are inert (w_hr=0.0 zeroes the exercise effect) with no activity to
+        model. If PA entries are present and no tier above the default resolves a value,
+        raise rather than silently falling through to those defaults.
+
+        Parameters
+        ----------
+        model_config : dict
+        metabolism_settings : dict
+        pa_metabolism_params : dict
+            Parameters extracted from referenced PA profiles, from
+            extract_metabolism_params_from_pa_profiles.
+        pa_entries : list
+            The (possibly still-unresolved) PA entries for this model, used only to decide
+            whether the default tier is reachable and to name the entries in the error.
+
+        Returns
+        -------
+        dict
+            Resolved values for "w_hr", "a", "tau", "n".
+        """
+        resolved = {}
+        missing_params = []
+
+        for param_name, default_value in PA_METABOLISM_PARAM_DEFAULTS.items():
+            if param_name in model_config:
+                resolved[param_name] = model_config[param_name]
+            elif param_name in metabolism_settings:
+                resolved[param_name] = metabolism_settings[param_name]
+            elif param_name in pa_metabolism_params:
+                resolved[param_name] = pa_metabolism_params[param_name]
+            elif not pa_entries:
+                resolved[param_name] = default_value
+            else:
+                missing_params.append(param_name)
+
+        if missing_params:
+            raise ValueError(
+                "Physical activity entries {} are configured but metabolism parameter(s) {} "
+                "could not be resolved from model_config, metabolism_settings, or PA profile "
+                "parameters. Refusing to silently default them to inert values.".format(
+                    pa_entries, missing_params))
+
+        return resolved
+
     def validate_metabolism_parameters(self, params):
         """
         Validate PA metabolism parameters.
@@ -1148,6 +1200,12 @@ class ScenarioParserV2(SimulationParser):
         """
         Extract metabolism parameters from PA profile configurations.
 
+        Handles all three profile-reference forms: a bare "reusable." profile reference
+        (or one wrapped in a list), and an entry dict carrying a per-entry "activity_ref"
+        pointer. Every entry is checked, but only the first profile whose
+        metabolism_parameters resolves wins (priority to the first profile encountered),
+        matching the documented precedence in resolve_pa_metabolism_params.
+
         Parameters
         ----------
         pa_entries : list
@@ -1165,36 +1223,38 @@ class ScenarioParserV2(SimulationParser):
 
         # Check each entry for profile references with metabolism parameters
         for entry in pa_entries:
-            try:
-                # Check if this is a profile reference string
-                if isinstance(entry, str) and entry.startswith('reusable.'):
-                    profile_config = self.load_reusable_pa_config(entry)
-
-                    # Extract metabolism_parameters if present
-                    if 'metabolism_parameters' in profile_config:
-                        profile_params = profile_config['metabolism_parameters']
-
-                        # Validate parameters
-                        validation_errors = self.validate_metabolism_parameters(profile_params)
-                        if validation_errors:
-                            error_msg = f"Metabolism parameter validation errors in {entry}:\n" + "\n".join(validation_errors)
-                            logger.error(error_msg)
-                            raise ValueError(error_msg)
-
-                        # Use parameters from first profile with metabolism_parameters
-                        # (Priority is given to the first profile encountered)
-                        if not pa_metabolism_params:
-                            pa_metabolism_params = profile_params.copy()
-                            logger.info(f"Extracted metabolism parameters from PA profile: {entry}")
-                            break
-
-            except ValueError:
-                # Re-raise validation errors
-                raise
-            except Exception as e:
-                # Log but don't fail for other errors - just skip this entry
-                logger.warning(f"Could not extract metabolism parameters from PA entry: {e}")
+            if isinstance(entry, str) and entry.startswith('reusable.'):
+                profile_ref = entry
+            elif isinstance(entry, dict) and isinstance(entry.get('activity_ref'), str) \
+                    and entry['activity_ref'].startswith('reusable.'):
+                profile_ref = entry['activity_ref']
+            else:
                 continue
+
+            try:
+                profile_config = self.load_reusable_pa_config(profile_ref)
+            except Exception as e:
+                raise ValueError(
+                    f"Could not load PA profile '{profile_ref}' while extracting metabolism "
+                    f"parameters: {e}") from e
+
+            # Extract metabolism_parameters if present
+            if 'metabolism_parameters' in profile_config:
+                profile_params = profile_config['metabolism_parameters']
+
+                # Validate parameters
+                validation_errors = self.validate_metabolism_parameters(profile_params)
+                if validation_errors:
+                    error_msg = f"Metabolism parameter validation errors in {profile_ref}:\n" + "\n".join(validation_errors)
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+
+                # Use parameters from first profile with metabolism_parameters
+                # (Priority is given to the first profile encountered)
+                if not pa_metabolism_params:
+                    pa_metabolism_params = profile_params.copy()
+                    logger.info(f"Extracted metabolism parameters from PA profile: {profile_ref}")
+                    break
 
         return pa_metabolism_params
 
@@ -1502,11 +1562,13 @@ class ScenarioParserV2(SimulationParser):
             action_timeline=self.patient_model["action_timeline"],
             pa_timeline=pa_timeline_from_model,  # Phase 2: Add PA timeline
             patient_insulin_type=self.patient_model.get("patient_insulin_type", "rapid_acting_adult"),
-            # Physical activity and metabolism model parameters with sensible defaults
-            w_hr=self.patient_model.get("w_hr", 0.0),  # Heart rate weight parameter
-            a=self.patient_model.get("a", 1.0),        # Metabolism model parameter
-            tau=self.patient_model.get("tau", 60.0),   # Time constant parameter
-            n=self.patient_model.get("n", 1.0),        # Exponential parameter
+            # Physical activity and metabolism model parameters. These are always set by
+            # build_model_from_config (via resolve_pa_metabolism_params), which is the one
+            # place parameters are resolved -- no independent fallback here.
+            w_hr=self.patient_model["w_hr"],  # Heart rate weight parameter
+            a=self.patient_model["a"],        # Metabolism model parameter
+            tau=self.patient_model["tau"],    # Time constant parameter
+            n=self.patient_model["n"],        # Exponential parameter
         )
 
         # Phase 2: Generate heart rate trace based on physical activity
