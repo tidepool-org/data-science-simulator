@@ -2,8 +2,8 @@
      generator: 1.0.0
      allowlist sha256:  43824f058c9c1df26be14e0e31e3313ef481efbcda4ebf897429fd44a8448744
      exclusions sha256: ad3514343661bd84cc4252e7b4ca2cb0faeeb6c52b5839c8633a0f1f7ec98420
-     python files scanned:  65
-     python files excluded: 14381
+     python files scanned:  64
+     python files excluded: 81
      python files that failed to parse: 0
      allowlisted functions that executed: 202
 -->

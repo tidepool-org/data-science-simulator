@@ -17,6 +17,7 @@ import collections
 from tidepool_data_science_simulator.diagramgen.naming import NATIVE_PACKAGE
 
 __all__ = [
+    "BLANK_HEADER_LINE",
     "HEADER_PREFIX",
     "normalized_body",
     "render_data_flow",
@@ -26,6 +27,15 @@ __all__ = [
 ]
 
 HEADER_PREFIX = "%%"
+
+# Mermaid strips comments with a pattern equivalent to ``/^\s*%%[^\n]+\n?/gm``,
+# which needs at least one character after the marker. A line that is exactly
+# ``%%`` therefore survives the strip, reaches the parser, and the surviving
+# markers run together into something the flowchart grammar rejects outright.
+# Blank stanza separators in the provenance header carry a visible ``--`` rather
+# than a trailing space: whitespace is invisible in review and any tool that
+# strips it on save would silently re-break a committed figure.
+BLANK_HEADER_LINE = "--"
 
 PACKAGE_TITLES = {
     "tidepool_data_science_simulator": "data-science-simulator",
@@ -66,8 +76,13 @@ def _short_symbol(qualname):
 
 
 def render_header(lines):
-    """Render provenance lines as a ``%%`` comment block."""
-    return "\n".join("{} {}".format(HEADER_PREFIX, line).rstrip() for line in lines)
+    """Render provenance lines as a ``%%`` comment block.
+
+    No emitted line is ever exactly ``%%``; see ``BLANK_HEADER_LINE``.
+    """
+    return "\n".join(
+        "{} {}".format(HEADER_PREFIX, line.rstrip() or BLANK_HEADER_LINE) for line in lines
+    )
 
 
 def normalized_body(text):

@@ -219,7 +219,6 @@ def build_render_block(
     config_paths,
     figures,
     reproducibility_level,
-    normalized_header_lines=0,
     rendered_utc=None,
 ):
     """Assemble the ``render`` block for one render run.
@@ -276,21 +275,6 @@ def build_render_block(
                      "configs, bound at /data",
         },
         "configs": [_recorded_config(path, repo_root) for path in config_paths],
-        # Mermaid's comment strip requires a character after ``%%``, so the
-        # provenance header's bare ``%%`` separators reach the parser and the
-        # flowchart grammar rejects them. The render step gives each one a
-        # trailing space in its scratch copy. Recorded because a figure must
-        # never be quietly rendered from something other than what is committed;
-        # the emitter defect itself is a separate bugfix.
-        "source_normalization": {
-            "bare_comment_markers_padded": normalized_header_lines,
-            "reason": (
-                "mermaid strips ^\\s*%%[^\\n]+ and so leaves bare '%%' lines behind, which the "
-                "flowchart grammar rejects; the committed .mmd files are unmodified"
-            )
-            if normalized_header_lines
-            else None,
-        },
         "figures": list(figures),
         "rendered_utc": rendered_utc
         or datetime.datetime.now(datetime.timezone.utc).isoformat(),

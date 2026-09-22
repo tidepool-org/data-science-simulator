@@ -12,6 +12,7 @@ import textwrap
 
 import pytest
 
+from tidepool_data_science_simulator.diagramgen import cli
 from tidepool_data_science_simulator.diagramgen import config as diagram_config
 from tidepool_data_science_simulator.diagramgen import coverage as diagram_coverage
 from tidepool_data_science_simulator.diagramgen import manifest as diagram_manifest
@@ -172,6 +173,40 @@ def test_normalized_body_ignores_a_changed_header():
     first = mermaid.render_header(["commit aaa"]) + body
     second = mermaid.render_header(["commit bbb", "extra line"]) + body
     assert mermaid.normalized_body(first) == mermaid.normalized_body(second)
+
+
+def test_a_header_line_is_never_the_bare_comment_marker():
+    """Mermaid's comment strip needs a character after ``%%``.
+
+    Its pattern is equivalent to ``/^\\s*%%[^\\n]+\\n?/gm``, so a line that is
+    exactly ``%%`` is not stripped: it reaches the parser, the survivors run
+    together, and the flowchart grammar rejects the result outright
+    (``Parse error on line 1: %%%%%%flowchart``). The sequenceDiagram grammar
+    tolerates it, so only the flowchart fails loudly -- both are malformed.
+    """
+    rendered = mermaid.render_header(["real line", "", "   ", "\t", "after"])
+
+    for line in rendered.split("\n"):
+        # ``lstrip``, not ``strip``: leading whitespace is inside mermaid's
+        # pattern, trailing whitespace already satisfies its ``[^\\n]+``.
+        assert line.lstrip() != mermaid.HEADER_PREFIX, "bare marker emitted: {!r}".format(rendered)
+    assert "{} {}".format(mermaid.HEADER_PREFIX, mermaid.BLANK_HEADER_LINE) in rendered
+    assert rendered.startswith("%% real line")
+    assert rendered.endswith("%% after")
+
+
+def test_no_committed_figure_line_is_the_bare_comment_marker():
+    """The artifacts as shipped, not just the emitter that writes them."""
+    for name in cli.GATED_FILES:
+        path = _committed(os.path.join(".docs", "architecture", name))
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        for number, line in enumerate(text.split("\n"), start=1):
+            assert line.lstrip() != mermaid.HEADER_PREFIX, (
+                "{}:{} is a bare '{}', which mermaid does not strip; regenerate the "
+                "figures with 'python -m tidepool_data_science_simulator.diagramgen'"
+                .format(name, number, mermaid.HEADER_PREFIX)
+            )
 
 
 def test_data_flow_edges_are_sorted_by_caller_then_callee():

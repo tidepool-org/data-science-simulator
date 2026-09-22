@@ -16,7 +16,7 @@
     }
   },
   "generator": {
-    "generated_utc": "2026-09-21T18:15:32.225963+00:00",
+    "generated_utc": "2026-09-22T17:09:26.315211+00:00",
     "package": "tidepool_data_science_simulator.diagramgen",
     "platform": "darwin",
     "python": "3.12.0",
@@ -67,7 +67,7 @@
       "package": "tidepool_data_science_simulator",
       "path": "tidepool_data_science_simulator",
       "vcs": {
-        "commit": "3801ce4fe5c2f74e5d4fdeb6f0db06749ec454b5",
+        "commit": "259746e2e6dc98877fd8a84a3c295cca8f01b693",
         "commit_error": null,
         "dirty": true,
         "dirty_error": null,
@@ -162,19 +162,15 @@
     "node_version": "v22.23.2",
     "puppeteer_core_version": "25.11.0",
     "puppeteer_version": "25.11.0",
-    "rendered_utc": "2026-09-22T16:26:44.083986+00:00",
+    "rendered_utc": "2026-09-22T17:10:26.509697+00:00",
     "reproducibility_level": "bytes",
-    "source_normalization": {
-      "bare_comment_markers_padded": 6,
-      "reason": "mermaid strips ^\\s*%%[^\\n]+ and so leaves bare '%%' lines behind, which the flowchart grammar rejects; the committed .mmd files are unmodified"
-    },
     "toolchain_errors": null,
     "toolchain_probe": {
       "attempted": true,
       "reason": null
     }
   },
-  "repo_root": "~/PycharmProjects/data-science-simulator-v2/data-science-simulator",
+  "repo_root": "~/PycharmProjects/data-science-simulator-v2/data-science-simulator/.claude/worktrees/zen-jennings-3073f8",
   "scenario": {
     "path": "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_2_0_full/TLR-552/Simulation-Configuration-TLR-552_Median_profile.json",
     "resolved_pointer_files": [
@@ -211,8 +207,8 @@
     "timestep": 0
   },
   "static_pass": {
-    "files_excluded": 14381,
-    "files_scanned": 65,
+    "files_excluded": 81,
+    "files_scanned": 64,
     "reference_sites": 44,
     "unparsable_files": []
   }

@@ -172,36 +172,6 @@ plus a `viewBox` — so a vector has no pixel width to pin, and a `width_px` on 
 SVG output is rejected as a config error. Its intrinsic `viewBox` size is
 recorded instead.
 
-### Known defect: bare `%%` lines break the flowchart parser
-
-`data_flow.mmd` **does not parse as committed**. Mermaid strips comments with a
-pattern equivalent to `/^\s*%%[^\n]+\n?/gm`, which requires at least one
-character after the `%%`. The provenance header separates its stanzas with bare
-`%%` lines; those survive the strip, reach the parser and run together:
-
-```
-Error: Parse error on line 1:
-%%%%%%flowchart
-^
-Expecting 'NEWLINE', 'SPACE', 'GRAPH', got 'NODE_STRING'
-```
-
-The `sequenceDiagram` grammar tolerates them, which is why only the flowchart
-fails. Both committed figures carry three such lines.
-
-The render step works around it by giving each bare marker a single trailing
-space **in its scratch copy** — nothing else changes, and the committed files
-are untouched. `manifest.json` records under `render.source_normalization` that
-this was applied, so a figure is never quietly rendered from something other
-than what is committed.
-
-**This is a workaround, not the fix.** The defect is in the header emitter in
-`mermaid.py`, and the committed `.mmd` stays broken for every other Mermaid
-consumer — mermaid.live, the GitHub renderer, any editor plugin — until that is
-corrected under its own bugfix request, the same treatment workflow §7 gives the
-`_escape()` angle-bracket gap. `test_the_committed_figures_are_the_reason_normalization_exists`
-fails once the emitter is fixed, which is the signal to drop the workaround.
-
 ### Two outputs, two configs
 
 | Output | `htmlLabels` | Why |

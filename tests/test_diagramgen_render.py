@@ -285,47 +285,6 @@ def test_a_width_on_an_svg_output_is_rejected(tmp_path):
     assert "responsive root" in str(raised.value)
 
 
-# -- the header the flowchart parser rejects ------------------------------
-
-
-def test_bare_comment_markers_are_padded_so_the_flowchart_parser_accepts_them():
-    """Mermaid's comment strip needs a character after ``%%``.
-
-    A bare ``%%`` line survives the strip, reaches the parser and makes the
-    flowchart grammar fail outright. The sequenceDiagram grammar tolerates it,
-    which is why only ``data_flow.mmd`` is affected.
-    """
-    source = "%% header\n%%\n%% more\n%%   \n\nflowchart LR\n    a --> b\n"
-    normalized, changed = diagram_render.normalize_mermaid_source(source)
-
-    assert changed == 1, "only the truly bare marker needs padding"
-    assert "\n%% \n" in normalized
-    # Nothing but the bare markers moves.
-    assert normalized.replace("%% \n", "%%\n") == source
-    for line in normalized.split("\n"):
-        # `.lstrip()`, not `.strip()`: the padded form is exactly what we want,
-        # and it strips back to "%%".
-        assert line.lstrip() != "%%", "a bare marker survived normalization"
-
-
-def test_the_committed_figures_are_the_reason_normalization_exists():
-    """Both committed figures carry bare markers today; this is not hypothetical."""
-    for name in cli.GATED_FILES:
-        with open(os.path.join(ARCHITECTURE_DIR, name), encoding="utf-8") as handle:
-            source = handle.read()
-        _normalized, changed = diagram_render.normalize_mermaid_source(source)
-        assert changed > 0, "{} no longer needs normalization -- the emitter may be fixed, in " \
-                            "which case drop the workaround".format(name)
-
-
-def test_normalization_never_touches_the_committed_file(tmp_path):
-    output_dir = _prepare(tmp_path / "out")
-    before = open(os.path.join(output_dir, FIXTURE_FLOWCHART), encoding="utf-8").read()
-    with pytest.raises(RenderError):
-        diagram_render.render(output_dir, docker=str(tmp_path / "no-such-docker"))
-    assert open(os.path.join(output_dir, FIXTURE_FLOWCHART), encoding="utf-8").read() == before
-
-
 # -- dimension readers ----------------------------------------------------
 
 
