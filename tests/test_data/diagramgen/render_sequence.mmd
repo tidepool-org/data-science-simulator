@@ -1,0 +1,13 @@
+%% Render fixture: a structural twin of timestep_sequence.mmd. Exercises
+%% sequenceDiagram, autonumber, a self-call and a nested call chain.
+sequenceDiagram
+    autonumber
+    participant nfixture0004 as Simulation
+    participant nfixture0002 as VirtualPatient
+    participant nfixture0003 as libLoopAlgorithmToPython.dylib
+
+    nfixture0004 ->> nfixture0004: update
+    nfixture0004 ->> nfixture0002: update
+    nfixture0002 ->> nfixture0003: getLoopRecommendations
+    nfixture0003 -->> nfixture0002: recommendation
+    nfixture0004 ->> nfixture0002: apply_loop_recommendations

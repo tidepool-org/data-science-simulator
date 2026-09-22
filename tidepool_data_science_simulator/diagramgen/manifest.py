@@ -18,6 +18,7 @@ home-redacted otherwise. Two of the four packages install from
 """
 
 import datetime
+import hashlib
 import os
 import subprocess
 import sys
@@ -25,7 +26,13 @@ import sys
 from tidepool_data_science_simulator.diagramgen import __version__
 from tidepool_data_science_simulator.diagramgen.naming import redact_path, repo_relative
 
-__all__ = ["build_manifest", "package_provenance"]
+__all__ = ["MANIFEST_SCHEMA", "build_manifest", "build_render_block", "package_provenance"]
+
+# Bumped to /2 by the addition of the optional ``render`` block. The block is
+# additive: a consumer reading a /1 manifest, or a /2 manifest that has not been
+# through the render step, should treat a missing ``render`` as "this figure was
+# not produced by a pinned toolchain" rather than as an error.
+MANIFEST_SCHEMA = "trset51-architecture-manifest/2"
 
 _GIT_TIMEOUT_SECONDS = 20
 
@@ -146,7 +153,7 @@ def build_manifest(repo_root, scenario_path, run_result, allowlist, exclusions, 
     pointer_files = sorted({repo_relative(path, repo_root) for path in run_result.pointer_paths})
 
     return {
-        "schema": "trset51-architecture-manifest/1",
+        "schema": MANIFEST_SCHEMA,
         "generator": {
             "package": "tidepool_data_science_simulator.diagramgen",
             "version": __version__,
@@ -183,4 +190,137 @@ def build_manifest(repo_root, scenario_path, run_result, allowlist, exclusions, 
             "unparsable_files": [{"path": path, "error": error} for path, error in scan_result.unparsable],
         },
         "repo_root": redact_path(repo_root),
+    }
+
+
+# Every toolchain fact the render probe is expected to read out of the container.
+# A field that is listed here and comes back empty is *unresolved* and says so;
+# a probe that never ran is a different fact again, recorded on
+# ``toolchain_probe``. The two must not look alike in a validation record.
+_RENDER_TOOLCHAIN_FIELDS = (
+    "mermaid_cli_version",
+    "mermaid_version",
+    "puppeteer_version",
+    "puppeteer_core_version",
+    "browser",
+    "node_version",
+    "base_image",
+    "entrypoint_puppeteer_config",
+)
+
+
+def build_render_block(
+    repo_root,
+    image,
+    facts,
+    probe_status,
+    font_family,
+    font_note,
+    config_paths,
+    figures,
+    reproducibility_level,
+    normalized_header_lines=0,
+    rendered_utc=None,
+):
+    """Assemble the ``render`` block for one render run.
+
+    ``render.py`` invokes Docker and gathers raw facts; this function is the only
+    place that decides how they are *recorded* -- which mirrors the split between
+    ``runner.py`` and this module for the generation side.
+
+    Degradation follows ``package_provenance()`` exactly. Nothing here raises: a
+    figure that rendered correctly is not thrown away because a version string
+    could not be read. But an unread value is never made to look like an absent
+    one, so ``toolchain_errors`` names every expected field that came back empty
+    and ``toolchain_probe`` says whether the probe ran at all.
+    """
+    facts = facts or {}
+    attempted = bool(probe_status.get("attempted"))
+
+    recorded = {}
+    errors = {}
+    for field in _RENDER_TOOLCHAIN_FIELDS:
+        value = (facts.get(field) or "").strip()
+        recorded[field] = value or None
+        if not value:
+            errors[field] = (
+                probe_status.get("reason") or "the probe returned no value for this field"
+            ) if attempted else "the version probe was not run"
+
+    block = {
+        "image": image,
+        "font_family": font_family,
+        # Present only when the font list itself could not be read. An
+        # *unavailable* font is an error that stops the render, so it can never
+        # reach a manifest; an unreadable list is a degraded probe, not a wrong
+        # figure, and is recorded rather than raised.
+        "font_verification_error": font_note,
+        "reproducibility_level": reproducibility_level,
+        "toolchain_probe": {"attempted": attempted, "reason": probe_status.get("reason")},
+        "toolchain_errors": errors or None,
+        # Stated, not assumed. The published image's ENTRYPOINT is
+        # ``mmdc -p /puppeteer-config.json`` and that file sets ``--no-sandbox``;
+        # Chromium's sandbox needs user namespaces Docker denies by default, so
+        # overriding the entrypoint breaks the render rather than hardening it.
+        # The isolation boundary for this render is the container and its single
+        # ``/data`` mount, and a reader of this manifest should know that.
+        "isolation": {
+            "chromium_sandbox": False,
+            "chromium_sandbox_reason": (
+                "the pinned image's ENTRYPOINT supplies -p /puppeteer-config.json, which sets "
+                "--no-sandbox; it is not overridden. The container and its single /data mount "
+                "are the isolation boundary, not the browser sandbox."
+            ),
+            "network": "none",
+            "mount": "a scratch directory containing only the .mmd sources and the Mermaid "
+                     "configs, bound at /data",
+        },
+        "configs": [_recorded_config(path, repo_root) for path in config_paths],
+        # Mermaid's comment strip requires a character after ``%%``, so the
+        # provenance header's bare ``%%`` separators reach the parser and the
+        # flowchart grammar rejects them. The render step gives each one a
+        # trailing space in its scratch copy. Recorded because a figure must
+        # never be quietly rendered from something other than what is committed;
+        # the emitter defect itself is a separate bugfix.
+        "source_normalization": {
+            "bare_comment_markers_padded": normalized_header_lines,
+            "reason": (
+                "mermaid strips ^\\s*%%[^\\n]+ and so leaves bare '%%' lines behind, which the "
+                "flowchart grammar rejects; the committed .mmd files are unmodified"
+            )
+            if normalized_header_lines
+            else None,
+        },
+        "figures": list(figures),
+        "rendered_utc": rendered_utc
+        or datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+    # The probed versions sit at the top level of the block, beside the digest
+    # they came from, rather than in a nested object -- a reader asking "what
+    # rendered this?" should not have to walk into a sub-key to find out.
+    block.update(recorded)
+    return block
+
+
+def _sha256_file(path):
+    with open(path, "rb") as handle:
+        return hashlib.sha256(handle.read()).hexdigest()
+
+
+def _recorded_config(path, repo_root):
+    """Record a config file's location without ever emitting an absolute path.
+
+    ``repo_relative`` covers the two cases that matter in practice -- inside the
+    repo, or under ``$HOME`` -- but falls back to the absolute path for anything
+    else, and a manifest is a committed artifact that must not carry one. A
+    config from outside both keeps its basename and says so, rather than
+    naming a directory on somebody's machine.
+    """
+    relative = repo_relative(path, repo_root)
+    if not os.path.isabs(relative):
+        return {"path": relative, "sha256": _sha256_file(path)}
+    return {
+        "path": os.path.basename(path),
+        "sha256": _sha256_file(path),
+        "outside_repo": True,
     }

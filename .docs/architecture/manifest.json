@@ -16,10 +16,10 @@
     }
   },
   "generator": {
-    "generated_utc": "2026-09-21T18:04:53.189751+00:00",
+    "generated_utc": "2026-09-21T18:15:32.225963+00:00",
     "package": "tidepool_data_science_simulator.diagramgen",
     "platform": "darwin",
-    "python": "3.12.3",
+    "python": "3.12.0",
     "version": "1.0.0"
   },
   "packages": [
@@ -27,24 +27,24 @@
       "available": true,
       "distribution_version": "0.1.0",
       "package": "loop_to_python_api",
-      "path": "venv/src/loop-to-python-api/loop_to_python_api",
+      "path": "~/PycharmProjects/data-science-simulator-v2/LoopAlgorithmToPython/loop_to_python_api",
       "vcs": {
-        "commit": "a3382d792afeb584cc009afe32d2f6cd0b9cf7e9",
+        "commit": "cf4a12bc27fedc0113632c8cb0e78db3d0449dba",
         "commit_error": null,
-        "dirty": false,
+        "dirty": true,
         "dirty_error": null,
         "kind": "git",
-        "toplevel": "venv/src/loop-to-python-api"
+        "toplevel": "~/PycharmProjects/data-science-simulator-v2/LoopAlgorithmToPython"
       }
     },
     {
       "available": true,
       "distribution_version": "0.1.1",
       "package": "tidepool_data_science_metrics",
-      "path": "venv/lib/python3.12/site-packages/tidepool_data_science_metrics",
+      "path": "~/miniconda3/envs/tidepool-data-science-simulator/lib/python3.12/site-packages/tidepool_data_science_metrics",
       "vcs": {
         "kind": "none",
-        "reason": "not tracked by the enclosing repository at .: error: pathspec '.' did not match any file(s) known to git\nDid you forget to 'git add'?"
+        "reason": "fatal: not a git repository (or any of the parent directories): .git"
       }
     },
     {
@@ -67,7 +67,7 @@
       "package": "tidepool_data_science_simulator",
       "path": "tidepool_data_science_simulator",
       "vcs": {
-        "commit": "2561f1798eb8128f3ee8d20fdd3199fa9e77482a",
+        "commit": "3801ce4fe5c2f74e5d4fdeb6f0db06749ec454b5",
         "commit_error": null,
         "dirty": true,
         "dirty_error": null,
@@ -76,6 +76,104 @@
       }
     }
   ],
+  "render": {
+    "base_image": "Alpine Linux v3.24",
+    "browser": "Chromium 152.0.7977.82 Alpine Linux",
+    "configs": [
+      {
+        "path": ".docs/architecture/render.json",
+        "sha256": "8389d1bcafac49c8253d0e52f989baecbe3cd958a0f7163d6505ecc5140606fe"
+      },
+      {
+        "path": ".docs/architecture/mermaid_config_png.json",
+        "sha256": "8ef336ff65b5ea02401879dd7744753eb868bc9da52f2b40e789d1343a679c6b"
+      },
+      {
+        "path": ".docs/architecture/mermaid_config_svg.json",
+        "sha256": "1413e872e53c9be3d752d23c5100022c2fc40974a28afa79715342c8c9df0be9"
+      }
+    ],
+    "entrypoint_puppeteer_config": "{\"executablePath\":\"/usr/bin/chromium-browser\",\"args\":[\"--no-sandbox\"]}",
+    "figures": [
+      {
+        "background": "white",
+        "format": "png",
+        "height_px": 930,
+        "natural_height_px": 662,
+        "natural_width_px": 1922,
+        "output": "data_flow.png",
+        "scale": 1.404787,
+        "sha256": "810ee789504160221f6aac8da3ddb8940bdbee2f243a4e4fffe6f8c07b2cc9c4",
+        "source": "data_flow.mmd",
+        "target_width_px": 2700,
+        "width_px": 2700
+      },
+      {
+        "background": "white",
+        "format": "svg",
+        "height_px": 683,
+        "natural_height_px": 683,
+        "natural_width_px": 1454,
+        "output": "data_flow.svg",
+        "scale": null,
+        "sha256": "0e1d7a0abac158c0c7d220029bdd2dac0f3761ce444da11df3c95bdd2a2955a8",
+        "source": "data_flow.mmd",
+        "target_width_px": null,
+        "width_px": 1454
+      },
+      {
+        "background": "white",
+        "format": "png",
+        "height_px": 1302,
+        "natural_height_px": 1131,
+        "natural_width_px": 1737,
+        "output": "timestep_sequence.png",
+        "scale": 1.15141,
+        "sha256": "8d9a40e2eae60a6715e6ba60fa590d28c7f350919bde2bb1041cd037685fcdaf",
+        "source": "timestep_sequence.mmd",
+        "target_width_px": 2000,
+        "width_px": 2000
+      },
+      {
+        "background": "white",
+        "format": "svg",
+        "height_px": 1131,
+        "natural_height_px": 1131,
+        "natural_width_px": 1737,
+        "output": "timestep_sequence.svg",
+        "scale": null,
+        "sha256": "b43707ba540077909c4949a9af199de5889cd372215cadc6b054f7862e83f496",
+        "source": "timestep_sequence.mmd",
+        "target_width_px": null,
+        "width_px": 1737
+      }
+    ],
+    "font_family": "DejaVu Sans",
+    "font_verification_error": null,
+    "image": "ghcr.io/mermaid-js/mermaid-cli/mermaid-cli@sha256:a391a89762ec7715b547f5433f6d65badc9157bcde9dc9536a6aab7e82493904",
+    "isolation": {
+      "chromium_sandbox": false,
+      "chromium_sandbox_reason": "the pinned image's ENTRYPOINT supplies -p /puppeteer-config.json, which sets --no-sandbox; it is not overridden. The container and its single /data mount are the isolation boundary, not the browser sandbox.",
+      "mount": "a scratch directory containing only the .mmd sources and the Mermaid configs, bound at /data",
+      "network": "none"
+    },
+    "mermaid_cli_version": "11.17.0",
+    "mermaid_version": "12.0.0",
+    "node_version": "v22.23.2",
+    "puppeteer_core_version": "25.11.0",
+    "puppeteer_version": "25.11.0",
+    "rendered_utc": "2026-09-22T16:26:44.083986+00:00",
+    "reproducibility_level": "bytes",
+    "source_normalization": {
+      "bare_comment_markers_padded": 6,
+      "reason": "mermaid strips ^\\s*%%[^\\n]+ and so leaves bare '%%' lines behind, which the flowchart grammar rejects; the committed .mmd files are unmodified"
+    },
+    "toolchain_errors": null,
+    "toolchain_probe": {
+      "attempted": true,
+      "reason": null
+    }
+  },
   "repo_root": "~/PycharmProjects/data-science-simulator-v2/data-science-simulator",
   "scenario": {
     "path": "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_2_0_full/TLR-552/Simulation-Configuration-TLR-552_Median_profile.json",
@@ -107,7 +205,7 @@
       }
     ]
   },
-  "schema": "trset51-architecture-manifest/1",
+  "schema": "trset51-architecture-manifest/2",
   "sequence_diagram": {
     "stage": "post-Loop_WithMitigations_t1_median",
     "timestep": 0
