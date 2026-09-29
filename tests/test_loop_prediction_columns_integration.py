@@ -1,10 +1,16 @@
-"""End-to-end integration test for TRSET-24 Loop prediction/effect/COB columns.
+"""End-to-end integration test for TRSET-24/TRSET-25 Loop prediction/effect/COB columns.
 
 Runs a real ``loop_risk_v2_0`` scenario config through the actual parser and the
 real Swift ``.dylib`` (no mocks) and asserts on the resulting ``get_results_df()``
 dataframe at the system boundary. The harness config is the ``TLR-000-swift``
 median suite, whose three stages exercise both Loop-active (SwiftLoopController)
 and Loop-inactive (DoNothingController) paths in a single run.
+
+TRSET-24 left ``loop_final_insulin_effect`` / ``loop_final_carb_effect`` /
+``loop_final_momentum_effect`` / ``loop_final_rc_effect`` /
+``loop_recommended_bolus_value`` unbacked (D1/D5 below); TRSET-25 backs all
+five, so this module now asserts they populate on active Loop steps instead of
+asserting they stay empty.
 
 Run under the arm64 conda env ``tidepool-data-science-simulator`` (the one that
 matches the committed .dylib). The module skips cleanly when the dylib isn't
@@ -13,6 +19,7 @@ importable, so the suite stays portable.
 import datetime
 import os
 
+import pandas as pd
 import pytest
 
 # Importing the api module loads the .dylib at import time (ctypes.CDLL); an
@@ -42,17 +49,17 @@ CONFIG = os.path.join(
 
 RUN_HOURS = 1  # early-stop keeps the run near the ~1-min budget
 
-# Columns that have NO Swift API source (D1) + the deprecated bolus column (D5):
-# these must remain empty everywhere -- no fabrication (AC#3).
-UNBACKED_COLUMNS = [
+# TRSET-25: these were unbacked under TRSET-24 (D1/D5) -- now sourced from the
+# new getPredictionEffects bridge call (the four effect columns) and from the
+# existing recommendation object's automatic/manual precedence (bolus value).
+EFFECT_COLUMNS = [
     "loop_final_insulin_effect",
     "loop_final_carb_effect",
     "loop_final_momentum_effect",
     "loop_final_rc_effect",
-    "loop_recommended_bolus_value",
 ]
 
-# Columns the feature newly populates from the Swift prediction API.
+# Columns the TRSET-24 feature populates from the Swift prediction API.
 PREDICTION_COLUMNS = [
     "loop_final_glucose_pred",
     "loop_final_counteraction_effect",
@@ -122,14 +129,35 @@ def test_cob_and_counteraction_populated_on_active_loop_steps(sim_results):
 
 def test_no_prediction_data_on_donothing_stage(sim_results):
     df = _nonloop_sim(sim_results)
-    for col in PREDICTION_COLUMNS:
+    for col in PREDICTION_COLUMNS + EFFECT_COLUMNS + ["loop_recommended_bolus_value"]:
         assert df[col].isna().all(), f"{col} fabricated on a non-Loop stage"
 
 
-def test_unbacked_columns_stay_empty_everywhere(sim_results):
-    for _sim_id, (_sim, df) in sim_results.items():
-        for col in UNBACKED_COLUMNS:
-            assert df[col].isna().all(), f"{col} unexpectedly populated (D1/D5)"
+# --- TRSET-25 AC#19: effect columns + bolus value populate on active Loop steps
+
+def test_effect_columns_populated_on_active_loop_steps(sim_results):
+    df = _loop_sim(sim_results)
+    active = df[df["active"] == 1]
+    for col in EFFECT_COLUMNS:
+        assert active[col].notna().all(), f"{col} has gaps on active Loop steps"
+
+
+def test_bolus_value_matches_automatic_or_manual_precedence(sim_results):
+    """Per-row check: automatic wins when present (0.0 counts), else manual,
+    else None. The TLR-000-swift harness runs tempBasal-only mode, so it never
+    actually exercises a populated bolus -- the precedence unit tests in
+    tests/test_loop_effect_columns.py cover the populated cases directly."""
+    df = _loop_sim(sim_results)
+    active = df[df["active"] == 1]
+    for _, row in active.iterrows():
+        auto = row["loop_automatic_bolus_rec"]
+        manual = row["loop_manual_bolus_rec"]
+        expected = auto if pd.notna(auto) else (manual if pd.notna(manual) else None)
+        actual = row["loop_recommended_bolus_value"]
+        if expected is None:
+            assert pd.isna(actual)
+        else:
+            assert actual == expected
 
 
 # --- AC#6: existing populated columns unchanged ------------------------------

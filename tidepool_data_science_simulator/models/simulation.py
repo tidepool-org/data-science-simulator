@@ -326,6 +326,33 @@ class Simulation(multiprocessing.Process):
                         # COB is a scalar; 0.0 is a legitimate value (no active carbs).
                         loop_cob = pred_out.get("active_carbs")
 
+                        # Effect series (TRSET-25): each is a list of {date, value}
+                        # points; the column value is the last point's value.
+                        insulin_effect_series = pred_out.get("insulin_effect_values")
+                        if insulin_effect_series:
+                            final_insulin_effect = insulin_effect_series[-1].get("value")
+
+                        carb_effect_series = pred_out.get("carb_effect_values")
+                        if carb_effect_series:
+                            final_carb_effect = carb_effect_series[-1].get("value")
+
+                        momentum_effect_series = pred_out.get("momentum_effect_values")
+                        if momentum_effect_series:
+                            final_momentum_effect = momentum_effect_series[-1].get("value")
+
+                        rc_effect_series = pred_out.get("retrospective_correction_effect_values")
+                        if rc_effect_series:
+                            final_rc_effect = rc_effect_series[-1].get("value")
+
+                    # Recommended bolus (TRSET-25): automatic bolus takes precedence
+                    # over manual, matching Loop's own dosing precedence. Checked with
+                    # `is not None`, not truthiness, so a bolus of 0.0 counts as present.
+                    loop_bolus_rec = (
+                        loop_automatic_bolus_rec
+                        if loop_automatic_bolus_rec is not None
+                        else loop_manual_bolus_rec
+                    )
+
                 except Exception as e:
                     # No silent failures (workflow section 4 / AC #4): log and continue
                     # with empty loop columns for this step rather than swallowing.

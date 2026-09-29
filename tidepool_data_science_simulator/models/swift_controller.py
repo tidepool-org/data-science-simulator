@@ -14,6 +14,7 @@ from loop_to_python_api.api import (
     get_loop_recommendations,
     get_prediction_values_and_dates,
     get_glucose_velocity_values_and_dates,
+    get_prediction_effects,
     get_active_carbs,
     get_active_insulin,
 )
@@ -255,16 +256,23 @@ class SwiftLoopController(LoopController):
         dict | None
             Payload with ``predicted_glucose_values`` / ``predicted_glucose_dates``
             (lists), ``glucose_effect_velocity_values`` (list, counteraction/ICE),
-            ``active_carbs`` (float COB) and ``active_insulin`` (float IOB); or ``None``
-            if the prediction API call fails.
+            ``insulin_effect_values`` / ``carb_effect_values`` / ``momentum_effect_values``
+            / ``retrospective_correction_effect_values`` (lists of ``{date, value}``
+            points, TRSET-25), ``active_carbs`` (float COB) and ``active_insulin``
+            (float IOB); or ``None`` if the prediction API call fails.
         """
         try:
             pred_values, pred_dates = get_prediction_values_and_dates(loop_inputs_dict)
             ice_values, _ice_dates = get_glucose_velocity_values_and_dates(loop_inputs_dict)
+            effects = get_prediction_effects(loop_inputs_dict)
             return {
                 "predicted_glucose_values": pred_values,
                 "predicted_glucose_dates": pred_dates,
                 "glucose_effect_velocity_values": ice_values,
+                "insulin_effect_values": effects.get("insulin"),
+                "carb_effect_values": effects.get("carbs"),
+                "momentum_effect_values": effects.get("momentum"),
+                "retrospective_correction_effect_values": effects.get("retrospectiveCorrection"),
                 "active_carbs": get_active_carbs(loop_inputs_dict),
                 "active_insulin": get_active_insulin(loop_inputs_dict),
             }
