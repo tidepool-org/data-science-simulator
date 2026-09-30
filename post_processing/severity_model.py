@@ -511,7 +511,14 @@ def extract_profile_from_filename(csv_path):
     """Parse the profile name out of a summary_results_*_<Profile>_profile.csv filename."""
     filename = os.path.basename(csv_path)
     if '_profile.csv' in filename or '_profile' in filename:
-        parts = filename.replace('.csv', '').split('_')
+        # run.py names the file after the scenario JSON, so it may end in
+        # '_profile.json.csv'. Drop both extensions, else the token after the profile
+        # name is 'profile.json', the profile is never found, and the whole outlier
+        # analysis reports 'no_data'.
+        stem = filename[:-len('.csv')] if filename.endswith('.csv') else filename
+        if stem.endswith('.json'):
+            stem = stem[:-len('.json')]
+        parts = stem.split('_')
         try:
             profile_index = parts.index('profile')
             if profile_index > 0:
