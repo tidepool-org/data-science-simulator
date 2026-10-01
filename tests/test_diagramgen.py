@@ -9,6 +9,7 @@ tracing, the four cross-package edges, the drift gate -- is covered by
 
 import os
 import textwrap
+import types
 
 import pytest
 
@@ -216,6 +217,58 @@ def test_data_flow_edges_are_sorted_by_caller_then_callee():
     edges = [(caller_b, target, ["z"]), (caller_a, target, ["y"])]
     rendered = mermaid.render_data_flow([], edges, ["header"])
     assert rendered.index(caller_a.mermaid_id + " -.->") < rendered.index(caller_b.mermaid_id + " -.->")
+
+
+def _call(stage, timestep, callee, phase="run"):
+    return types.SimpleNamespace(stage=stage, phase=phase, timestep=timestep, callee_qualname=callee)
+
+
+def test_first_cycle_selects_the_lowest_run_timestep_of_the_stage():
+    records = [
+        _call("other", 0, "A.update"),
+        _call("null", 3, "A.update"),
+        _call("null", 2, "DoNothingController.get_loop_recommendations"),
+        _call("null", 7, "A.update"),
+        _call("null", 0, "A.init", phase="construct"),
+    ]
+    assert mermaid.select_sequence_timestep(records, "null", "run", mermaid.SEQUENCE_CYCLE_FIRST_CYCLE) == 2
+
+
+def test_first_recommendation_is_the_default_and_needs_apply_loop_recommendations():
+    records = [
+        _call("loop", 1, "A.update"),
+        _call("loop", 4, "Simulation.apply_loop_recommendations"),
+        _call("loop", 6, "Simulation.apply_loop_recommendations"),
+    ]
+    assert mermaid.select_sequence_timestep(records, "loop", "run") == 4
+    assert mermaid.select_sequence_timestep(records, "loop", "run", mermaid.SEQUENCE_CYCLE_FIRST_CYCLE) == 1
+
+
+def test_first_recommendation_on_a_stage_that_never_recommends_returns_none():
+    records = [_call("null", 1, "A.update"), _call("null", 2, "A.update")]
+    assert mermaid.select_sequence_timestep(records, "null", "run") is None
+
+
+def test_first_cycle_on_an_unknown_stage_returns_none():
+    assert mermaid.select_sequence_timestep([_call("a", 1, "x")], "b", "run", mermaid.SEQUENCE_CYCLE_FIRST_CYCLE) is None
+
+
+def test_an_unknown_cycle_rule_is_rejected():
+    with pytest.raises(ValueError):
+        mermaid.select_sequence_timestep([], "a", "run", "nonsense")
+
+
+def test_cli_sequence_cycle_flag_defaults_to_first_recommendation():
+    parser = cli.build_parser()
+    assert parser.parse_args([]).sequence_cycle == "first-recommendation"
+    assert parser.parse_args(["--sequence-cycle", "first-cycle"]).sequence_cycle == "first-cycle"
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--sequence-cycle", "bogus"])
+
+
+def test_every_cycle_rule_has_a_header_description():
+    for rule in mermaid.SEQUENCE_CYCLE_RULES:
+        assert "{}" in cli._CYCLE_DESCRIPTIONS[rule]
 
 
 # -- static pass ----------------------------------------------------------

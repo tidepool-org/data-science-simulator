@@ -1,0 +1,88 @@
+{
+  "metadata": {
+    "risk-id": "TRSET-57",
+    "simulation_id": "TRSET-57-diagramgen-pa-fixture",
+    "risk_description": "Short-duration structural twin of the TLR-549 median physical-activity scenario (jogging_v1 inside the run window), used only by the architecture diagram generator's integration test. Not a risk scenario: it lives under tests/ rather than scenario_configs/ so a loop_risk_v2_0.py directory walk cannot sweep it into a risk run.",
+    "config_format_version": "v1.0"
+  },
+  "base_config": "reusable.simulations.activity_presets.ap_bike_median_2_0_v1",
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "duration_hours": 1.6,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                0.0
+              ]
+            }
+          }
+        },
+        "patient_model": {
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "max_basal_rate": 0.0,
+          "partial_application_factor": 0.0
+        }
+      }
+    },
+    {
+      "sim_id": "pre-NoLoop_t1_median",
+      "duration_hours": 1.6,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                0.0
+              ]
+            }
+          }
+        },
+        "patient_model": {
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_median",
+      "duration_hours": 1.6,
+      "patient": {
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00"
+              ],
+              "values": [
+                0.0
+              ]
+            }
+          },
+          "target_range": "reusable.mitigations.guardrails.target_range_median_v1"
+        },
+        "patient_model": {
+          "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1"
+        }
+      },
+      "controller": {
+        "settings": {
+          "max_basal_rate": 0.0,
+          "partial_application_factor": 0.0
+        }
+      }
+    }
+  ]
+}

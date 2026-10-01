@@ -31,6 +31,8 @@ loop_algo_output_*.json
 # and the coverage report are derived during the run that writes it. The other
 # four artifacts in that directory ARE committed.
 .docs/architecture/trace.jsonl
+# Same, for the per-scenario output directories under .docs/architecture/<ticket>/.
+.docs/architecture/**/trace.jsonl
 
 
 # ---- Catch all ----

@@ -30,6 +30,9 @@ from tidepool_data_science_simulator.diagramgen.mermaid import (
     render_data_flow,
     render_timestep_sequence,
     select_sequence_timestep,
+    SEQUENCE_CYCLE_FIRST_CYCLE,
+    SEQUENCE_CYCLE_FIRST_RECOMMENDATION,
+    SEQUENCE_CYCLE_RULES,
 )
 from tidepool_data_science_simulator.diagramgen.naming import Node, repo_relative, top_package
 from tidepool_data_science_simulator.diagramgen.runner import run_traced
@@ -87,12 +90,32 @@ def _node_factory(module, qualified_symbol):
     return Node(top_package(module), module, component)
 
 
+_CYCLE_DESCRIPTIONS = {
+    SEQUENCE_CYCLE_FIRST_RECOMMENDATION: (
+        "control cycle: first one at which the controller returned a non-empty recommendation "
+        "(timestep index {})"
+    ),
+    SEQUENCE_CYCLE_FIRST_CYCLE: (
+        "control cycle: first run-phase timestep of the stage, whether or not the controller "
+        "recommended anything (timestep index {})"
+    ),
+}
+
+
 def _write(path, text):
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(text)
 
 
-def generate(output_dir, scenario_path, allowlist_path, exclusions_path, sequence_stage, repo_root=REPO_ROOT):
+def generate(
+    output_dir,
+    scenario_path,
+    allowlist_path,
+    exclusions_path,
+    sequence_stage,
+    repo_root=REPO_ROOT,
+    sequence_cycle=SEQUENCE_CYCLE_FIRST_RECOMMENDATION,
+):
     """Run the scenario, emit all five artifacts into ``output_dir``.
 
     Returns the manifest dict.
@@ -119,8 +142,13 @@ def generate(output_dir, scenario_path, allowlist_path, exclusions_path, sequenc
 
     data_flow = render_data_flow(run_result.records, bind_edges, header_lines)
 
-    timestep = select_sequence_timestep(run_result.records, sequence_stage, PHASE_RUN)
+    timestep = select_sequence_timestep(run_result.records, sequence_stage, PHASE_RUN, sequence_cycle)
     if timestep is None:
+        if sequence_cycle == SEQUENCE_CYCLE_FIRST_CYCLE:
+            raise SystemExit(
+                "Stage {!r} has no run-phase timestep in the trace; the sequence diagram has "
+                "nothing to show. Check the stage name.".format(sequence_stage)
+            )
         raise SystemExit(
             "No control cycle in stage {!r} reached apply_loop_recommendations; the sequence "
             "diagram has nothing to show. Check that the scenario's controller is configured."
@@ -128,8 +156,8 @@ def generate(output_dir, scenario_path, allowlist_path, exclusions_path, sequenc
         )
     sequence_header = header_lines + [
         "stage: {}".format(sequence_stage),
-        "control cycle: first one at which the controller returned a non-empty recommendation "
-        "(timestep index {})".format(timestep),
+        "sequence cycle rule: {}".format(sequence_cycle),
+        _CYCLE_DESCRIPTIONS[sequence_cycle].format(timestep),
     ]
     sequence = render_timestep_sequence(
         run_result.records, sequence_stage, PHASE_RUN, timestep, sequence_header
@@ -144,7 +172,11 @@ def generate(output_dir, scenario_path, allowlist_path, exclusions_path, sequenc
         classified, scan_result, run_result, allowlist, exclusions, len(traced_edges)
     )
 
-    manifest["sequence_diagram"] = {"stage": sequence_stage, "timestep": timestep}
+    manifest["sequence_diagram"] = {
+        "stage": sequence_stage,
+        "timestep": timestep,
+        "cycle_rule": sequence_cycle,
+    }
 
     os.makedirs(output_dir, exist_ok=True)
     _write(os.path.join(output_dir, DATA_FLOW_FILENAME), data_flow)
@@ -169,7 +201,7 @@ def _provenance_header(manifest):
         "Drift gate: python -m tidepool_data_science_simulator.diagramgen --check",
         "",
         "This figure records cross-package calls OBSERVED during a real, in-process run",
-        "of the reference scenario. It is evidence of executed behavior, not an",
+        "of the scenario named below. It is evidence of executed behavior, not an",
         "assertion about permitted structure.",
         "",
         "scenario: {}".format(manifest["scenario"]["path"]),
@@ -199,11 +231,21 @@ def _provenance_header(manifest):
     return lines
 
 
-def _check(output_dir, scenario_path, allowlist_path, exclusions_path, sequence_stage, repo_root):
+def _check(
+    output_dir,
+    scenario_path,
+    allowlist_path,
+    exclusions_path,
+    sequence_stage,
+    repo_root,
+    sequence_cycle=SEQUENCE_CYCLE_FIRST_RECOMMENDATION,
+):
     """Regenerate into a scratch directory and diff the gated bodies."""
     scratch = tempfile.mkdtemp(prefix="trset51-check-")
     try:
-        generate(scratch, scenario_path, allowlist_path, exclusions_path, sequence_stage, repo_root)
+        generate(
+            scratch, scenario_path, allowlist_path, exclusions_path, sequence_stage, repo_root, sequence_cycle
+        )
         drifted = []
         for filename in GATED_FILES:
             committed_path = os.path.join(output_dir, filename)
@@ -238,6 +280,14 @@ def build_parser():
         help="Scenario stage the single-timestep sequence diagram is cut from.",
     )
     parser.add_argument(
+        "--sequence-cycle",
+        choices=SEQUENCE_CYCLE_RULES,
+        default=SEQUENCE_CYCLE_FIRST_RECOMMENDATION,
+        help="Control cycle the sequence diagram is cut from: the first cycle whose controller "
+        "returned a recommendation (default), or the first run-phase cycle of the stage "
+        "(needed for a null-controller stage, which never recommends).",
+    )
+    parser.add_argument(
         "--check",
         action="store_true",
         help="Regenerate and exit non-zero if a committed figure's normalized body has drifted.",
@@ -254,7 +304,8 @@ def main(argv=None):
 
     if args.check:
         drifted = _check(
-            output_dir, args.scenario, allowlist_path, exclusions_path, args.sequence_stage, REPO_ROOT
+            output_dir, args.scenario, allowlist_path, exclusions_path, args.sequence_stage, REPO_ROOT,
+            args.sequence_cycle,
         )
         if drifted:
             sys.stderr.write("Architecture figures have drifted from the code:\n")
@@ -268,7 +319,8 @@ def main(argv=None):
         return 0
 
     manifest = generate(
-        output_dir, args.scenario, allowlist_path, exclusions_path, args.sequence_stage, REPO_ROOT
+        output_dir, args.scenario, allowlist_path, exclusions_path, args.sequence_stage, REPO_ROOT,
+        args.sequence_cycle,
     )
     sys.stdout.write(
         "Wrote {} artifacts to {}\n".format(len(ARTIFACT_FILENAMES), repo_relative(output_dir, REPO_ROOT))
