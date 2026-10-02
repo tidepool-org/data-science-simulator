@@ -60,7 +60,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_adolescent_t1_adolescent",
+      "sim_id": "post-Loop_WithMitigations_adolescent_t1_adolescent",
       "patient": {
         "patient_model": {
           "glucose_history": "reusable.glucose.flat_250_12hr",

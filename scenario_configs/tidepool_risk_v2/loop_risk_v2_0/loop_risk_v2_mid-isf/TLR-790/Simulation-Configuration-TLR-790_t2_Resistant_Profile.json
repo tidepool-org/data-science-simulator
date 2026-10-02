@@ -35,7 +35,7 @@
             "controller": null
         },
         {
-            "sim_id": "post-Loop-WithMitigations_t2_resistant",
+            "sim_id": "post-Loop_WithMitigations_t2_resistant",
             "patient": {
               "pump": {
                 "metabolism_settings": {

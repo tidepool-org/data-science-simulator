@@ -30,7 +30,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t1_median",
+      "sim_id": "post-Loop_WithMitigations_t1_median",
       "patient": {
         "pump": {
           "metabolism_settings": "reusable.metabolism_settings.median_preset_180_v1",

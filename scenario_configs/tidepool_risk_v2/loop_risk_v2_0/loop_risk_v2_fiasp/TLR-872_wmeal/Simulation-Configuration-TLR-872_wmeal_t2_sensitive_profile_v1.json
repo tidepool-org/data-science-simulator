@@ -36,7 +36,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t2_sensitive",
+      "sim_id": "post-Loop_WithMitigations_t2_sensitive",
       "patient": {
         "patient_model": {
           "carb_entries": "reusable.carb_doses.t2_sensitive_profile_v1",

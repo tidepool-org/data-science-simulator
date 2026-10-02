@@ -1060,3 +1060,16 @@ class TestIncompleteStagesIsNotReportedAsAbsent:
 
         assert assessment is not None, "readable data must still produce a document"
         assert assessment.outlier_status == "incomplete_stages"
+
+
+# --- profile name from summary filename ----------------------------------------
+
+@pytest.mark.parametrize("filename, expected", [
+    ("summary_results_Simulation-Configuration-TLR-552_Adolescent_profile.csv", "Adolescent"),
+    # run.py names the file after the scenario JSON, so '.json' precedes '.csv'.
+    ("summary_results_Simulation-Configuration-TLR-552_Adolescent_profile.json.csv", "Adolescent"),
+    ("summary_results_Simulation-Configuration-TLR-000-base_median_profile_v1.csv", "median"),
+    ("summary_results_base_median.csv", None),
+])
+def test_extract_profile_from_filename(filename, expected):
+    assert severity_model.extract_profile_from_filename(os.path.join("any", "dir", filename)) == expected

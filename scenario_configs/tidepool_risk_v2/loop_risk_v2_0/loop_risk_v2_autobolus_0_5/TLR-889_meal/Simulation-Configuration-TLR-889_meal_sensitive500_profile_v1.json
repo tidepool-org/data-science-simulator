@@ -76,7 +76,7 @@
       },
       "controller": null
     },
-    {"sim_id": "post-Loop-WithMitigations_t1_sensitive500",
+    {"sim_id": "post-Loop_WithMitigations_t1_sensitive500",
       "patient": {
         "patient_model": {
           "carb_entries": [

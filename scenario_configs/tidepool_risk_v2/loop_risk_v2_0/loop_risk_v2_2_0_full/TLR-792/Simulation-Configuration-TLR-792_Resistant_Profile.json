@@ -20,7 +20,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "sim_id": "post-Loop_WithMitigations_t1_resistant",
       "patient": {
         "pump": {
           "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"

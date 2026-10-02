@@ -25,7 +25,7 @@
       "controller": null
       },
     {
-      "sim_id": "post-Loop-WithMitigations_t2_median",
+      "sim_id": "post-Loop_WithMitigations_t2_median",
       "patient": {
         "pump": {
           "metabolism_settings": "reusable.metabolism_settings.t2_median_preset_70_2hrs_v1",

@@ -73,7 +73,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t1_median",
+      "sim_id": "post-Loop_WithMitigations_t1_median",
       "duration_hours": 23.0,
       "controller": {
         "automation_control_timeline": [

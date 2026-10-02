@@ -35,7 +35,7 @@
         }
       }
     },
-    {"sim_id": "post-Loop-WithMitigations_t1_median",
+    {"sim_id": "post-Loop_WithMitigations_t1_median",
       "patient": {
         "sensor": {
           "glucose_history": "reusable.glucose.flat_54_12hr"
