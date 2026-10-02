@@ -4,18 +4,18 @@
 %% Drift gate: python -m tidepool_data_science_simulator.diagramgen --check
 %% --
 %% This figure records cross-package calls OBSERVED during a real, in-process run
-%% of the reference scenario. It is evidence of executed behavior, not an
+%% of the scenario named below. It is evidence of executed behavior, not an
 %% assertion about permitted structure.
 %% --
 %% scenario: scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_2_0_full/TLR-552/Simulation-Configuration-TLR-552_Median_profile.json
-%% generated (UTC): 2026-09-22T17:09:26.315211+00:00
+%% generated (UTC): 2026-10-02T18:04:43.189788+00:00
 %% allowlist sha256: 43824f058c9c1df26be14e0e31e3313ef481efbcda4ebf897429fd44a8448744
 %% --
 %% package provenance:
-%%     loop_to_python_api: cf4a12bc27fedc0113632c8cb0e78db3d0449dba (dirty)
+%%     loop_to_python_api: 38408b1786abfc1997c13185249d47248d4453a9 (dirty)
 %%     tidepool_data_science_metrics: no git working tree; distribution version 0.1.1
 %%     tidepool_data_science_models: 0c5b809e2a4a4eef79851b24a8820b4b4748ddb6 (dirty)
-%%     tidepool_data_science_simulator: 259746e2e6dc98877fd8a84a3c295cca8f01b693 (dirty)
+%%     tidepool_data_science_simulator: 5307af7eabd9a5083f6ddcb7f98edff700ddceff (clean)
 
 flowchart LR
     subgraph sg_tidepool_data_science_simulator["data-science-simulator"]
@@ -43,10 +43,10 @@ flowchart LR
         nb3eb3d1ba5["insulin.insulin"]
     end
 
-    n7ba8183db9 ==>|"generatePrediction<br/>getActiveCarbs<br/>getActiveInsulin<br/>getGlucoseEffectVelocity<br/>getGlucoseEffectVelocityDates<br/>getLoopRecommendations<br/>getPredictionDates"| ncd9406fc74
+    n7ba8183db9 ==>|"generatePrediction<br/>getActiveCarbs<br/>getActiveInsulin<br/>getGlucoseEffectVelocity<br/>getGlucoseEffectVelocityDates<br/>getLoopRecommendations<br/>getPredictionDates<br/>getPredictionEffects"| ncd9406fc74
     n9ece8a88c3 -.->|"binds (construction)<br/>SimpleMetabolismModel"| nbf33d0b2b9
     n90d2281816 -->|"SimpleMetabolismModel()<br/>get_iob_from_sbr<br/>run"| nbf33d0b2b9
-    n9ab6438beb -->|"get_active_carbs<br/>get_active_insulin<br/>get_glucose_velocity_values_and_dates<br/>get_loop_recommendations<br/>get_prediction_values_and_dates"| n7ba8183db9
+    n9ab6438beb -->|"get_active_carbs<br/>get_active_insulin<br/>get_glucose_velocity_values_and_dates<br/>get_loop_recommendations<br/>get_prediction_effects<br/>get_prediction_values_and_dates"| n7ba8183db9
     ndb5a159ba0 -->|"results path<br/>blood_glucose_risk_index<br/>lbgi_risk_score<br/>percent_values_ge_70_le_180<br/>percent_values_gt_180<br/>percent_values_gt_250<br/>percent_values_lt_40<br/>percent_values_lt_54"| n557ce96a10
     ndb5a159ba0 -->|"results path<br/>dka_index<br/>dka_risk_score"| nb3eb3d1ba5
 
