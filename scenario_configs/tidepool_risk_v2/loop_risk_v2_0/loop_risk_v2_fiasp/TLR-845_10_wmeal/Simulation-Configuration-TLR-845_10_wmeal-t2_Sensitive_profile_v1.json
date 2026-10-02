@@ -53,7 +53,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t2_sensitive",
+      "sim_id": "post-Loop_WithMitigations_t2_sensitive",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {

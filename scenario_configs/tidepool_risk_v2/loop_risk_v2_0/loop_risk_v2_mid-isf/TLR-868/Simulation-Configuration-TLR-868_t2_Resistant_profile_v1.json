@@ -63,7 +63,7 @@
       }
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t2_median",
+      "sim_id": "post-Loop_WithMitigations_t2_median",
       "controller": {
         "automation_control_timeline": [
           {

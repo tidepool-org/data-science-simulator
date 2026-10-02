@@ -70,7 +70,7 @@
       }
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t2_sensitive",
+      "sim_id": "post-Loop_WithMitigations_t2_sensitive",
       "controller": {
         "automation_control_timeline": [
           {

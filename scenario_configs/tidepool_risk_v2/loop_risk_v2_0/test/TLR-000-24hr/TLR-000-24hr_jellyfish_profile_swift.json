@@ -7,7 +7,7 @@
   },
   "base_config": "reusable.simulations.base_jellyfish_2_0_v1",
   "override_config": [
-    {"sim_id": "post-Loop-WithMitigations_t1_jellyfish",
+    {"sim_id": "post-Loop_WithMitigations_t1_jellyfish",
       "duration_hours": 24.0,
       "patient": {
         "sensor": {

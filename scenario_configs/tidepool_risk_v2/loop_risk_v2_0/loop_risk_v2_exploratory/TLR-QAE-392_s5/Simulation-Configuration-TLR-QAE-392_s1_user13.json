@@ -7,7 +7,7 @@
   },
   "base_config": "reusable.simulations.base_user13_v1",
   "override_config": [
-    {"sim_id": "post-Loop-WithMitigations_t1_user13",
+    {"sim_id": "post-Loop_WithMitigations_t1_user13",
       "duration_hours": 80.0,
       "patient": {
         "patient_model": {

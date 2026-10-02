@@ -46,7 +46,7 @@
       },
       "controller": null
     },
-    {"sim_id": "post-Loop-WithMitigations_t1_resistant",
+    {"sim_id": "post-Loop_WithMitigations_t1_resistant",
       "patient": {
         "pump": {
           "metabolism_settings": "reusable.metabolism_settings.profiles.resistant_v1",

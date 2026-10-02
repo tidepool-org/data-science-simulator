@@ -71,7 +71,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t2_resistant",
+      "sim_id": "post-Loop_WithMitigations_t2_resistant",
       "duration_hours": 23.0,
       "patient": {
         "patient_model": {

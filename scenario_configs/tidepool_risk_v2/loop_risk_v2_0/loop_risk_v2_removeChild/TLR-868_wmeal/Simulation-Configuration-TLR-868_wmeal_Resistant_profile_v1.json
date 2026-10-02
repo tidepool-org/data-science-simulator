@@ -80,7 +80,7 @@
       }
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t1_resistant",
+      "sim_id": "post-Loop_WithMitigations_t1_resistant",
       "controller": {
         "automation_control_timeline": [
           {

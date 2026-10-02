@@ -20,7 +20,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t2_median",
+      "sim_id": "post-Loop_WithMitigations_t2_median",
       "patient": {
         "pump": {
           "target_range": "reusable.mitigations.guardrails.target_range_median_v1"

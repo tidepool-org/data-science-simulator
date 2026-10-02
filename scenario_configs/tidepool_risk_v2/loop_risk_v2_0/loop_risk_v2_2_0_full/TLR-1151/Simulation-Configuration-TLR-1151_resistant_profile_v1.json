@@ -79,7 +79,7 @@
       },
       "controller": null
       },
-    {"sim_id": "post-Loop-WithMitigations_t1_resistant",
+    {"sim_id": "post-Loop_WithMitigations_t1_resistant",
       "patient": {
         "patient_model": {
           "physical_activity_entries": "reusable.physical_activities.profiles.jogging_v1",

@@ -36,7 +36,7 @@
       },
       "controller": null
       },
-    {"sim_id": "post-Loop-WithMitigations_t1_sensitive",
+    {"sim_id": "post-Loop_WithMitigations_t1_sensitive",
       "patient": {
         "sensor": {
           "glucose_history": "reusable.glucose.flat_70_12hr"

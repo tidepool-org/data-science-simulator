@@ -8,7 +8,7 @@
   "base_config": "reusable.simulations.base_sensitive_2_0_v1",
   "override_config": [
     {
-      "sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "sim_id": "post-Loop_WithMitigations_t1_sensitive",
       "duration_hours": 24.0,
       "patient": {
         "sensor": {

@@ -62,7 +62,7 @@
       },
       "controller": null
     },
-    {"sim_id": "post-Loop-WithMitigations_median",
+    {"sim_id": "post-Loop_WithMitigations_median",
       "patient": {
         "patient_model": {
           "carb_entries": [

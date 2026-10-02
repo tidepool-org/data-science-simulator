@@ -7,7 +7,7 @@
   },
   "base_config": "reusable.simulations.base_median_swift",
   "override_config": [
-    {"sim_id": "post-Loop-WithMitigations_t1_median",
+    {"sim_id": "post-Loop_WithMitigations_t1_median",
       "duration_hours": 24.0,
       "patient": {
         "sensor": {

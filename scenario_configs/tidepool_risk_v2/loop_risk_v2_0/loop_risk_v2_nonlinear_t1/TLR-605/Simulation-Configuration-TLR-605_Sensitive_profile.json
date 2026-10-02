@@ -35,7 +35,7 @@
       "controller": null
     },
     {
-      "sim_id": "post-Loop-WithMitigations_t1_sensitive",
+      "sim_id": "post-Loop_WithMitigations_t1_sensitive",
       "patient": {
         "patient_model": {
           "bolus_entries": [
