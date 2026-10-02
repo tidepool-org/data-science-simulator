@@ -1,0 +1,38 @@
+# TRSET-51 -- capture filter for the trace-based architecture diagram generator.
+#
+# Maintained artifact. This file decides what the profile callback keeps, and it
+# must stay in step with the committed figures: widening it adds edges to
+# data_flow.mmd, narrowing it removes them, and either fires the --check gate.
+#
+# Matching rules:
+#   module_prefixes   top-level package of the CALLEE's module. An event is
+#                     considered only when the callee lives in one of these.
+#   named_steps       an entry containing a dot matches the whole qualified
+#                     name; a bare entry matches that method on any class. Used
+#                     to keep intra-simulator control-flow steps that are not
+#                     cross-package but are needed for the sequence diagram.
+#   timestep_boundary the call that delimits one control cycle.
+#   pointer_capture   the parser method whose return locals carry the resolved
+#                     path of a `reusable.*` pointer file.
+
+version: 1
+
+module_prefixes:
+  - tidepool_data_science_simulator
+  - loop_to_python_api
+  - tidepool_data_science_models
+  - tidepool_data_science_metrics
+
+named_steps:
+  - Simulation.update
+  - VirtualPatient.update
+  # Bare names so every controller implementation is visible, including the
+  # DoNothingController that the `"controller": null` stage resolves to. That
+  # stage's absence of a Loop edge is the negative evidence that the tracer
+  # observes rather than asserts.
+  - get_loop_recommendations
+  - apply_loop_recommendations
+
+timestep_boundary: Simulation.step
+
+pointer_capture: ScenarioParserV2.load_pointer

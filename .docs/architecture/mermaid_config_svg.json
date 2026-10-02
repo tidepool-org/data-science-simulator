@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Mermaid config for the SVG kept in the repository.",
+    "",
+    "htmlLabels: false, so the committed vector stays consumable by non-browser tooling.",
+    "resvg, CairoSVG, librsvg and the Word and Google Docs importers do not implement",
+    "foreignObject; a browser-only SVG would look empty in all of them. This is",
+    "future-proofing the repo copy, not a condition on the deliverable -- the PNG is what",
+    "is submitted.",
+    "",
+    "Everything else matches mermaid_config_png.json. The two must name the same",
+    "fontFamily: the manifest records one font for the run, and the render step refuses",
+    "to proceed if they disagree."
+  ],
+  "theme": "default",
+  "securityLevel": "strict",
+  "htmlLabels": false,
+  "flowchart": {"htmlLabels": false},
+  "themeVariables": {"fontFamily": "DejaVu Sans"}
+}

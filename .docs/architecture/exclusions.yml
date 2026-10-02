@@ -1,0 +1,38 @@
+# TRSET-51 -- curated exclusion list for the whole-repo static pass.
+#
+# Maintained artifact. The static pass enumerates cross-package call sites by
+# AST and diffs them against what the traced run actually exercised; anything
+# excluded here is declared to be outside the architecture this description
+# covers. The exclusion set is expected to be LARGER than the inclusion set --
+# the simulator carries substantial design-and-development data science
+# deliberately outside this description.
+#
+# New files default to INCLUDED. Adding a path here is a positive act, and the
+# coverage report stamps this file's SHA so a jump in unexercised edges is
+# traceable to a stale list rather than mistaken for an architecture change.
+#
+# `build/`, `.claude/worktrees/`, `venv*/` and `notebooks/` are excluded
+# unconditionally in code (see config.UNCONDITIONAL_DIR_EXCLUSIONS) and are not
+# repeated here: a search for `loop_risk_v2_0.py` returns three copies, and only
+# the one under the package tree is the real thing.
+
+version: 1
+
+path_prefixes:
+  # Superseded implementations kept for reference and comparison.
+  - tidepool_data_science_simulator/legacy
+
+  # Exploratory and reporting code that consumes finished results; not part of
+  # the runtime path the figures describe.
+  - post_processing
+  - reports
+  - scripts
+  - tidepool_data_science_simulator/evaluation
+  - tidepool_data_science_simulator/visualization
+  - tidepool_data_science_simulator/validation
+
+  # The test suite exercises the packages but is not the architecture.
+  - tests
+
+  # The generator itself. It stands outside the system it describes.
+  - tidepool_data_science_simulator/diagramgen

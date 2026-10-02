@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Mermaid config for the PNG deliverable -- the figure inserted into the TRSET",
+    "position paper.",
+    "",
+    "htmlLabels: true is correct here. Chrome rasterizes its own foreignObject, so the",
+    "<br/> labels the emitter produces render as intended.",
+    "",
+    "fontFamily: DejaVu Sans. Pinned explicitly, never inherited from the host.",
+    "Verified present in the pinned image before every render; a family the image does",
+    "not ship is an error, because fontconfig would otherwise fall back silently and",
+    "the figure would still render with different metrics and no indication of it.",
+    "The image installs ttf-dejavu, ttf-freefont, ttf-linux-libertine, ttf-inconsolata,",
+    "terminus-font, ttf-font-awesome, font-noto-cjk and font-noto-emoji.",
+    "",
+    "securityLevel is stated rather than left default: 'loose' plus themeCSS/--cssFile",
+    "are the surfaces the published Mermaid CSS-injection advisories exercise, and this",
+    "generator uses none of them."
+  ],
+  "theme": "default",
+  "securityLevel": "strict",
+  "htmlLabels": true,
+  "flowchart": {"htmlLabels": true},
+  "themeVariables": {"fontFamily": "DejaVu Sans"}
+}

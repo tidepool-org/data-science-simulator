@@ -1,0 +1,18 @@
+%% Render fixture: a structural twin of data_flow.mmd, small enough to render in
+%% seconds. Exercises flowchart LR, a subgraph, both a solid and a dashed edge,
+%% and -- the part that matters -- multi-line <br/> labels on both a node and an
+%% edge. Those are the labels Mermaid emits as a foreignObject when htmlLabels is
+%% on, so they are what distinguishes the PNG config from the SVG one.
+flowchart LR
+    subgraph sg_fixture["fixture package"]
+        direction TB
+        nfixture0001["ScenarioParserV2<br/>makedata.scenario_json_parser_v2"]
+        nfixture0002["VirtualPatient<br/>models.patient"]
+    end
+    subgraph sg_native["Swift shared library"]
+        direction TB
+        nfixture0003["libLoopAlgorithmToPython.dylib<br/>ctypes CDLL"]
+    end
+
+    nfixture0001 -.->|"binds (construction)<br/>SimpleMetabolismModel"| nfixture0002
+    nfixture0002 ==>|"getLoopRecommendations<br/>getPredictionDates"| nfixture0003

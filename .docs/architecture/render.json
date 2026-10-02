@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "Render settings for the Docker-pinned Mermaid render step.",
+    "Read by tidepool_data_science_simulator.diagramgen.render; every value here is",
+    "recorded, with this file's SHA-256, in manifest.json's render block.",
+    "",
+    "image: digest-pinned, never a tag. The digest fixes @mermaid-js/mermaid-cli, the",
+    "resolved mermaid, puppeteer, the Chromium build and the Alpine font set together.",
+    "A tag-only reference is rejected outright rather than warned about. Resolved from",
+    "ghcr.io tag 11.17.1 -- note the tag and the packaged version disagree upstream",
+    "(that tag ships mermaid-cli-11.17.0.tgz), which is why the manifest records",
+    "versions read out of the running container rather than restating them here.",
+    "",
+    "width_px: the pixel width the PNG must come out at. mmdc has no flag that sets an",
+    "output width -- --width caps the viewport and --scale multiplies the natural layout",
+    "size -- so the render step measures each figure and derives the scale that hits this",
+    "target. A scale factor fixed here instead would give a different width, and a",
+    "different effective DPI, every time the traced graph changed. 2700 targets a",
+    "landscape full-width placement at 300 DPI, 2000 a portrait one: data_flow is a",
+    "flowchart LR and lays out wide, timestep_sequence is a sequence diagram and lays out",
+    "tall. SVG outputs carry no width_px -- mermaid-cli emits a responsive root, so a",
+    "vector has no pixel width to pin.",
+    "",
+    "reproducibility_level: what the integration suite asserts when the same .mmd is",
+    "rendered twice with this image. Set to 'bytes' on 2026-09-22 after measurement:",
+    "five renders of each committed figure on macOS arm64 / Docker 29.8.0 produced one",
+    "distinct SHA-256 per figure. Lower it back to 'dimensions' if a host is found",
+    "where that does not hold. See the generator README."
+  ],
+  "schema": "trset51-render-config/1",
+  "image": "ghcr.io/mermaid-js/mermaid-cli/mermaid-cli@sha256:a391a89762ec7715b547f5433f6d65badc9157bcde9dc9536a6aab7e82493904",
+  "reproducibility_level": "bytes",
+  "mermaid_configs": {
+    "png": "mermaid_config_png.json",
+    "svg": "mermaid_config_svg.json"
+  },
+  "figures": [
+    {
+      "source": "data_flow.mmd",
+      "outputs": [
+        {"format": "png", "width_px": 2700, "background": "white"},
+        {"format": "svg", "background": "white"}
+      ]
+    },
+    {
+      "source": "timestep_sequence.mmd",
+      "outputs": [
+        {"format": "png", "width_px": 2000, "background": "white"},
+        {"format": "svg", "background": "white"}
+      ]
+    }
+  ]
+}
