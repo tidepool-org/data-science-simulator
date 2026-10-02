@@ -17,15 +17,28 @@ import collections
 from tidepool_data_science_simulator.diagramgen.naming import NATIVE_PACKAGE
 
 __all__ = [
+    "BLANK_HEADER_LINE",
     "HEADER_PREFIX",
     "normalized_body",
     "render_data_flow",
     "render_header",
     "render_timestep_sequence",
     "select_sequence_timestep",
+    "SEQUENCE_CYCLE_FIRST_CYCLE",
+    "SEQUENCE_CYCLE_FIRST_RECOMMENDATION",
+    "SEQUENCE_CYCLE_RULES",
 ]
 
 HEADER_PREFIX = "%%"
+
+# Mermaid strips comments with a pattern equivalent to ``/^\s*%%[^\n]+\n?/gm``,
+# which needs at least one character after the marker. A line that is exactly
+# ``%%`` therefore survives the strip, reaches the parser, and the surviving
+# markers run together into something the flowchart grammar rejects outright.
+# Blank stanza separators in the provenance header carry a visible ``--`` rather
+# than a trailing space: whitespace is invisible in review and any tool that
+# strips it on save would silently re-break a committed figure.
+BLANK_HEADER_LINE = "--"
 
 PACKAGE_TITLES = {
     "tidepool_data_science_simulator": "data-science-simulator",
@@ -66,8 +79,13 @@ def _short_symbol(qualname):
 
 
 def render_header(lines):
-    """Render provenance lines as a ``%%`` comment block."""
-    return "\n".join("{} {}".format(HEADER_PREFIX, line).rstrip() for line in lines)
+    """Render provenance lines as a ``%%`` comment block.
+
+    No emitted line is ever exactly ``%%``; see ``BLANK_HEADER_LINE``.
+    """
+    return "\n".join(
+        "{} {}".format(HEADER_PREFIX, line.rstrip() or BLANK_HEADER_LINE) for line in lines
+    )
 
 
 def normalized_body(text):
@@ -174,22 +192,39 @@ def render_data_flow(records, static_bind_edges, header_lines):
 # -- sequence -------------------------------------------------------------
 
 
-def select_sequence_timestep(records, stage, run_phase):
+SEQUENCE_CYCLE_FIRST_RECOMMENDATION = "first-recommendation"
+SEQUENCE_CYCLE_FIRST_CYCLE = "first-cycle"
+SEQUENCE_CYCLE_RULES = (SEQUENCE_CYCLE_FIRST_RECOMMENDATION, SEQUENCE_CYCLE_FIRST_CYCLE)
+
+
+def select_sequence_timestep(records, stage, run_phase, rule=SEQUENCE_CYCLE_FIRST_RECOMMENDATION):
     """Pick the control cycle the sequence diagram is cut from.
 
-    The first timestep of ``stage`` at which the controller returns a non-empty
-    recommendation -- observed as ``apply_loop_recommendations`` being reached,
-    since ``Simulation.update`` only calls it when the recommendation is
-    truthy. That is the first fully-exercised control cycle, past warm-up. The
-    ``Simulation.init()`` call at t=0 is excluded for free: it runs during the
-    construction phase, before the loop, and has a different shape.
+    ``first-recommendation`` (default): the first timestep of ``stage`` at which
+    the controller returns a non-empty recommendation -- observed as
+    ``apply_loop_recommendations`` being reached, since ``Simulation.update``
+    only calls it when the recommendation is truthy. That is the first
+    fully-exercised control cycle, past warm-up. The ``Simulation.init()`` call
+    at t=0 is excluded for free: it runs during the construction phase, before
+    the loop, and has a different shape. A stage whose controller never
+    recommends (``"controller": null``) has no such cycle; this rule returns
+    ``None`` for it rather than falling back silently.
+
+    ``first-cycle``: the lowest run-phase timestep index in ``stage`` that has
+    any recorded call. Use it to draw a null-controller stage.
 
     Returns the timestep index, or ``None`` when no cycle qualifies.
     """
+    if rule not in SEQUENCE_CYCLE_RULES:
+        raise ValueError("Unknown sequence cycle rule {!r}; expected one of {}".format(rule, SEQUENCE_CYCLE_RULES))
+
     candidates = collections.defaultdict(list)
     for record in records:
         if record.stage == stage and record.phase == run_phase and record.timestep is not None:
             candidates[record.timestep].append(record)
+
+    if rule == SEQUENCE_CYCLE_FIRST_CYCLE:
+        return min(candidates) if candidates else None
 
     for timestep in sorted(candidates):
         for record in candidates[timestep]:

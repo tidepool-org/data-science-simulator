@@ -35,6 +35,9 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIXTURE_SCENARIO = os.path.join(
     REPO_ROOT, "tests", "test_data", "diagramgen", "Simulation-Configuration-TRSET51-fixture.json"
 )
+PA_FIXTURE_SCENARIO = os.path.join(
+    REPO_ROOT, "tests", "test_data", "diagramgen", "Simulation-Configuration-TRSET57-pa-fixture.json"
+)
 ALLOWLIST = os.path.join(REPO_ROOT, ".docs", "architecture", "allowlist.yml")
 EXCLUSIONS = os.path.join(REPO_ROOT, ".docs", "architecture", "exclusions.yml")
 
@@ -267,6 +270,87 @@ def test_two_runs_produce_byte_identical_normalized_bodies(tmp_path):
     # The unnormalized text differs, because the header carries a timestamp --
     # which is exactly why the gate strips it.
     assert _read(first, cli.DATA_FLOW_FILENAME) != _read(second, cli.DATA_FLOW_FILENAME)
+
+
+# -- TRSET-57: null-stage sequence diagram and PA twin ---------------------
+
+
+def _generate_with(output_dir, scenario=FIXTURE_SCENARIO, stage=SEQUENCE_STAGE, cycle=None):
+    kwargs = {} if cycle is None else {"sequence_cycle": cycle}
+    return cli.generate(
+        output_dir=str(output_dir),
+        scenario_path=scenario,
+        allowlist_path=ALLOWLIST,
+        exclusions_path=EXCLUSIONS,
+        sequence_stage=stage,
+        repo_root=REPO_ROOT,
+        **kwargs
+    )
+
+
+def test_it1_null_stage_first_cycle_sequence(tmp_path):
+    manifest = _generate_with(tmp_path, stage=NULL_CONTROLLER_STAGE, cycle="first-cycle")
+    sequence = _read(tmp_path, cli.SEQUENCE_FILENAME)
+    # The header's package-provenance list names loop_to_python_api whatever
+    # the stage; the participants and messages are in the body.
+    body = normalized_body(sequence)
+
+    assert "DoNothingController" in body
+    assert "get_loop_recommendations" in body
+    assert "loop_to_python_api" not in body
+    assert "libLoopAlgorithmToPython.dylib" not in body
+    assert "apply_loop_recommendations" not in body
+
+    assert manifest["sequence_diagram"]["cycle_rule"] == "first-cycle"
+    assert "%% sequence cycle rule: first-cycle" in sequence
+    assert "first run-phase timestep of the stage" in sequence
+    assert "reference scenario" not in sequence
+
+
+def test_default_header_and_manifest_record_first_recommendation(generated):
+    output_dir, manifest = generated
+    sequence = _read(output_dir, cli.SEQUENCE_FILENAME)
+    assert manifest["sequence_diagram"]["cycle_rule"] == "first-recommendation"
+    assert "%% sequence cycle rule: first-recommendation" in sequence
+    assert "non-empty recommendation" in sequence
+
+
+def test_it2_pa_loop_stage_matches_the_committed_architecture(tmp_path):
+    from tidepool_data_science_simulator.makedata.scenario_json_parser_v2 import ScenarioParserV2
+
+    # Precondition: the PA scenario really has an activity configured, so the
+    # comparison below is not vacuous.
+    sims = ScenarioParserV2(path_to_json_config=PA_FIXTURE_SCENARIO).get_sims()
+    timeline = sims[SEQUENCE_STAGE].virtual_patient.patient_config.pa_timeline
+    assert timeline is not None and len(timeline.events) > 0, "PA fixture has no physical activity"
+
+    base_dir = tmp_path / "base"
+    pa_dir = tmp_path / "pa"
+    _generate_with(base_dir)
+    _generate_with(pa_dir, scenario=PA_FIXTURE_SCENARIO)
+
+    assert normalized_body(_read(pa_dir, cli.SEQUENCE_FILENAME)) == normalized_body(
+        _read(base_dir, cli.SEQUENCE_FILENAME)
+    )
+
+
+def test_it3_default_invocation_passes_the_drift_gate(tmp_path):
+    out = tmp_path / "default"
+    assert cli.main(["--scenario", FIXTURE_SCENARIO, "--output-dir", str(out),
+                     "--allowlist", ALLOWLIST, "--exclusions", EXCLUSIONS,
+                     "--sequence-stage", SEQUENCE_STAGE]) == 0
+    assert cli.main(["--scenario", FIXTURE_SCENARIO, "--output-dir", str(out),
+                     "--allowlist", ALLOWLIST, "--exclusions", EXCLUSIONS,
+                     "--sequence-stage", SEQUENCE_STAGE, "--check"]) == 0
+
+
+def test_it4_first_recommendation_on_a_null_stage_fails_and_writes_nothing(tmp_path):
+    out = tmp_path / "untouched"
+    out.mkdir()
+    with pytest.raises(SystemExit) as excinfo:
+        _generate_with(out, stage=NULL_CONTROLLER_STAGE)
+    assert "apply_loop_recommendations" in str(excinfo.value)
+    assert os.listdir(str(out)) == []
 
 
 # -- the full reference scenario ------------------------------------------

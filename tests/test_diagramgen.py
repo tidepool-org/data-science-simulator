@@ -9,9 +9,11 @@ tracing, the four cross-package edges, the drift gate -- is covered by
 
 import os
 import textwrap
+import types
 
 import pytest
 
+from tidepool_data_science_simulator.diagramgen import cli
 from tidepool_data_science_simulator.diagramgen import config as diagram_config
 from tidepool_data_science_simulator.diagramgen import coverage as diagram_coverage
 from tidepool_data_science_simulator.diagramgen import manifest as diagram_manifest
@@ -174,6 +176,40 @@ def test_normalized_body_ignores_a_changed_header():
     assert mermaid.normalized_body(first) == mermaid.normalized_body(second)
 
 
+def test_a_header_line_is_never_the_bare_comment_marker():
+    """Mermaid's comment strip needs a character after ``%%``.
+
+    Its pattern is equivalent to ``/^\\s*%%[^\\n]+\\n?/gm``, so a line that is
+    exactly ``%%`` is not stripped: it reaches the parser, the survivors run
+    together, and the flowchart grammar rejects the result outright
+    (``Parse error on line 1: %%%%%%flowchart``). The sequenceDiagram grammar
+    tolerates it, so only the flowchart fails loudly -- both are malformed.
+    """
+    rendered = mermaid.render_header(["real line", "", "   ", "\t", "after"])
+
+    for line in rendered.split("\n"):
+        # ``lstrip``, not ``strip``: leading whitespace is inside mermaid's
+        # pattern, trailing whitespace already satisfies its ``[^\\n]+``.
+        assert line.lstrip() != mermaid.HEADER_PREFIX, "bare marker emitted: {!r}".format(rendered)
+    assert "{} {}".format(mermaid.HEADER_PREFIX, mermaid.BLANK_HEADER_LINE) in rendered
+    assert rendered.startswith("%% real line")
+    assert rendered.endswith("%% after")
+
+
+def test_no_committed_figure_line_is_the_bare_comment_marker():
+    """The artifacts as shipped, not just the emitter that writes them."""
+    for name in cli.GATED_FILES:
+        path = _committed(os.path.join(".docs", "architecture", name))
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        for number, line in enumerate(text.split("\n"), start=1):
+            assert line.lstrip() != mermaid.HEADER_PREFIX, (
+                "{}:{} is a bare '{}', which mermaid does not strip; regenerate the "
+                "figures with 'python -m tidepool_data_science_simulator.diagramgen'"
+                .format(name, number, mermaid.HEADER_PREFIX)
+            )
+
+
 def test_data_flow_edges_are_sorted_by_caller_then_callee():
     caller_b = naming.Node("pkg_b", "pkg_b.mod", "")
     caller_a = naming.Node("pkg_a", "pkg_a.mod", "")
@@ -181,6 +217,58 @@ def test_data_flow_edges_are_sorted_by_caller_then_callee():
     edges = [(caller_b, target, ["z"]), (caller_a, target, ["y"])]
     rendered = mermaid.render_data_flow([], edges, ["header"])
     assert rendered.index(caller_a.mermaid_id + " -.->") < rendered.index(caller_b.mermaid_id + " -.->")
+
+
+def _call(stage, timestep, callee, phase="run"):
+    return types.SimpleNamespace(stage=stage, phase=phase, timestep=timestep, callee_qualname=callee)
+
+
+def test_first_cycle_selects_the_lowest_run_timestep_of_the_stage():
+    records = [
+        _call("other", 0, "A.update"),
+        _call("null", 3, "A.update"),
+        _call("null", 2, "DoNothingController.get_loop_recommendations"),
+        _call("null", 7, "A.update"),
+        _call("null", 0, "A.init", phase="construct"),
+    ]
+    assert mermaid.select_sequence_timestep(records, "null", "run", mermaid.SEQUENCE_CYCLE_FIRST_CYCLE) == 2
+
+
+def test_first_recommendation_is_the_default_and_needs_apply_loop_recommendations():
+    records = [
+        _call("loop", 1, "A.update"),
+        _call("loop", 4, "Simulation.apply_loop_recommendations"),
+        _call("loop", 6, "Simulation.apply_loop_recommendations"),
+    ]
+    assert mermaid.select_sequence_timestep(records, "loop", "run") == 4
+    assert mermaid.select_sequence_timestep(records, "loop", "run", mermaid.SEQUENCE_CYCLE_FIRST_CYCLE) == 1
+
+
+def test_first_recommendation_on_a_stage_that_never_recommends_returns_none():
+    records = [_call("null", 1, "A.update"), _call("null", 2, "A.update")]
+    assert mermaid.select_sequence_timestep(records, "null", "run") is None
+
+
+def test_first_cycle_on_an_unknown_stage_returns_none():
+    assert mermaid.select_sequence_timestep([_call("a", 1, "x")], "b", "run", mermaid.SEQUENCE_CYCLE_FIRST_CYCLE) is None
+
+
+def test_an_unknown_cycle_rule_is_rejected():
+    with pytest.raises(ValueError):
+        mermaid.select_sequence_timestep([], "a", "run", "nonsense")
+
+
+def test_cli_sequence_cycle_flag_defaults_to_first_recommendation():
+    parser = cli.build_parser()
+    assert parser.parse_args([]).sequence_cycle == "first-recommendation"
+    assert parser.parse_args(["--sequence-cycle", "first-cycle"]).sequence_cycle == "first-cycle"
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--sequence-cycle", "bogus"])
+
+
+def test_every_cycle_rule_has_a_header_description():
+    for rule in mermaid.SEQUENCE_CYCLE_RULES:
+        assert "{}" in cli._CYCLE_DESCRIPTIONS[rule]
 
 
 # -- static pass ----------------------------------------------------------

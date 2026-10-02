@@ -5,7 +5,7 @@
      python files scanned:  64
      python files excluded: 84
      python files that failed to parse: 0
-     allowlisted functions that executed: 204
+     allowlisted functions that executed: 218
 -->
 
 # Cross-package coverage report

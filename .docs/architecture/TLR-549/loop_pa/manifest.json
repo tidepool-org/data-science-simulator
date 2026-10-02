@@ -1,9 +1,9 @@
 {
   "capture": {
-    "executed_functions": 204,
+    "executed_functions": 218,
     "native_calls": "sys.monitoring CALL, filtered to ctypes function pointers",
     "python_calls": "sys.setprofile",
-    "records": 12492
+    "records": 4872
   },
   "config": {
     "allowlist": {
@@ -16,7 +16,7 @@
     }
   },
   "generator": {
-    "generated_utc": "2026-10-02T18:04:43.189788+00:00",
+    "generated_utc": "2026-10-02T18:05:19.723695+00:00",
     "package": "tidepool_data_science_simulator.diagramgen",
     "platform": "darwin",
     "python": "3.12.0",
@@ -69,7 +69,7 @@
       "vcs": {
         "commit": "5307af7eabd9a5083f6ddcb7f98edff700ddceff",
         "commit_error": null,
-        "dirty": false,
+        "dirty": true,
         "dirty_error": null,
         "kind": "git",
         "toplevel": "."
@@ -124,12 +124,12 @@
       {
         "background": "white",
         "format": "png",
-        "height_px": 1415,
-        "natural_height_px": 1229,
+        "height_px": 1526,
+        "natural_height_px": 1325,
         "natural_width_px": 1737,
         "output": "timestep_sequence.png",
         "scale": 1.15141,
-        "sha256": "15b7a8385f41a1df8ff5114845a6454be2fe9bc1527b237b2fe743daf4c8f206",
+        "sha256": "d8b2641962b67b6e00acc8bcf3e26b74ffc538f0231641507db8e552f9596b47",
         "source": "timestep_sequence.mmd",
         "target_width_px": 2000,
         "width_px": 2000
@@ -137,12 +137,12 @@
       {
         "background": "white",
         "format": "svg",
-        "height_px": 1229,
-        "natural_height_px": 1229,
+        "height_px": 1325,
+        "natural_height_px": 1325,
         "natural_width_px": 1737,
         "output": "timestep_sequence.svg",
         "scale": null,
-        "sha256": "cf4cc571561d214d07d6ccd0dade73d38ee2d9c285e045f81cf6a8bd1cd79a25",
+        "sha256": "f3e4e516bea6fafb07ecd80fea3bd60bddf439cbedd5088c525370053be7fd4c",
         "source": "timestep_sequence.mmd",
         "target_width_px": null,
         "width_px": 1737
@@ -162,7 +162,7 @@
     "node_version": "v22.23.2",
     "puppeteer_core_version": "25.11.0",
     "puppeteer_version": "25.11.0",
-    "rendered_utc": "2026-10-02T18:05:28.411298+00:00",
+    "rendered_utc": "2026-10-02T18:05:41.884054+00:00",
     "reproducibility_level": "bytes",
     "toolchain_errors": null,
     "toolchain_probe": {
@@ -172,39 +172,43 @@
   },
   "repo_root": "~/PycharmProjects/data-science-simulator-v2/data-science-simulator/.claude/worktrees/zen-jennings-3073f8",
   "scenario": {
-    "path": "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_2_0_full/TLR-552/Simulation-Configuration-TLR-552_Median_profile.json",
+    "path": "scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_2_0_full/TLR-549/Simulation-Configuration-TLR-549_30_median_profile_v1.json",
     "resolved_pointer_files": [
       "scenario_configs/tidepool_risk_v2/reusable/glucose/flat_110_12hr.csv",
+      "scenario_configs/tidepool_risk_v2/reusable/glucose/flat_120_12hr.csv",
       "scenario_configs/tidepool_risk_v2/reusable/loop_settings/2_0_v1.json",
+      "scenario_configs/tidepool_risk_v2/reusable/metabolism_settings/activity_presets/median_preset_22_30m_v1.json",
+      "scenario_configs/tidepool_risk_v2/reusable/metabolism_settings/profiles/adolescent_v1.json",
       "scenario_configs/tidepool_risk_v2/reusable/metabolism_settings/profiles/median_v1.json",
+      "scenario_configs/tidepool_risk_v2/reusable/mitigations/guardrails/controller_settings_median_wmax.json",
       "scenario_configs/tidepool_risk_v2/reusable/mitigations/guardrails/target_range_median_v1.json",
-      "scenario_configs/tidepool_risk_v2/reusable/simulations/base/base_median_2_0_v1.json"
+      "scenario_configs/tidepool_risk_v2/reusable/simulations/activity_presets/ap_bike_median_2_0_v1.json"
     ],
     "stages": [
       {
         "controller": "SwiftLoopController",
-        "duration_hrs": 23.0,
+        "duration_hrs": 8.0,
         "sim_id": "pre-Loop_NoMitigations_t1_median",
-        "steps": 276
+        "steps": 96
       },
       {
         "controller": "DoNothingController",
-        "duration_hrs": 23.0,
-        "sim_id": "pre-NoLoop_t1_median",
-        "steps": 276
+        "duration_hrs": 8.0,
+        "sim_id": "pre-noLoop_t1_median",
+        "steps": 96
       },
       {
         "controller": "SwiftLoopController",
-        "duration_hrs": 23.0,
-        "sim_id": "post-Loop_WithMitigations_t1_median",
-        "steps": 276
+        "duration_hrs": 8.0,
+        "sim_id": "post-Loop-WithMitigations_t1_median",
+        "steps": 96
       }
     ]
   },
   "schema": "trset51-architecture-manifest/2",
   "sequence_diagram": {
     "cycle_rule": "first-recommendation",
-    "stage": "post-Loop_WithMitigations_t1_median",
+    "stage": "post-Loop-WithMitigations_t1_median",
     "timestep": 0
   },
   "static_pass": {

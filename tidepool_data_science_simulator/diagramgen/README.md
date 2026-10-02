@@ -17,7 +17,7 @@ Writes five artifacts into `.docs/architecture/`:
 | File | What it is |
 | --- | --- |
 | `data_flow.mmd` | Cross-package data flow, Mermaid `flowchart` |
-| `timestep_sequence.mmd` | One fully-exercised control cycle, Mermaid `sequenceDiagram` |
+| `timestep_sequence.mmd` | One control cycle (see [Sequence diagram timestep](#sequence-diagram-timestep)), Mermaid `sequenceDiagram` |
 | `manifest.json` | Provenance: package commits, resolved pointer files, config SHAs |
 | `trace.jsonl` | The filtered trace the figures were derived from — **gitignored** |
 | `coverage_report.md` | Static cross-package reference sites diffed against what ran |
@@ -171,36 +171,6 @@ SVG carries **no** width. mermaid-cli emits a responsive root — `width="100%"`
 plus a `viewBox` — so a vector has no pixel width to pin, and a `width_px` on an
 SVG output is rejected as a config error. Its intrinsic `viewBox` size is
 recorded instead.
-
-### Known defect: bare `%%` lines break the flowchart parser
-
-`data_flow.mmd` **does not parse as committed**. Mermaid strips comments with a
-pattern equivalent to `/^\s*%%[^\n]+\n?/gm`, which requires at least one
-character after the `%%`. The provenance header separates its stanzas with bare
-`%%` lines; those survive the strip, reach the parser and run together:
-
-```
-Error: Parse error on line 1:
-%%%%%%flowchart
-^
-Expecting 'NEWLINE', 'SPACE', 'GRAPH', got 'NODE_STRING'
-```
-
-The `sequenceDiagram` grammar tolerates them, which is why only the flowchart
-fails. Both committed figures carry three such lines.
-
-The render step works around it by giving each bare marker a single trailing
-space **in its scratch copy** — nothing else changes, and the committed files
-are untouched. `manifest.json` records under `render.source_normalization` that
-this was applied, so a figure is never quietly rendered from something other
-than what is committed.
-
-**This is a workaround, not the fix.** The defect is in the header emitter in
-`mermaid.py`, and the committed `.mmd` stays broken for every other Mermaid
-consumer — mermaid.live, the GitHub renderer, any editor plugin — until that is
-corrected under its own bugfix request, the same treatment workflow §7 gives the
-`_escape()` angle-bracket gap. `test_the_committed_figures_are_the_reason_normalization_exists`
-fails once the emitter is fixed, which is the signal to drop the workaround.
 
 ### Two outputs, two configs
 
@@ -357,12 +327,73 @@ traced edge and appears on the sequence diagram.
 
 ### Sequence diagram timestep
 
-The first control cycle of `post-Loop_WithMitigations_t1_median` at which the
-Swift controller returned a non-empty recommendation — observed as
-`apply_loop_recommendations` being reached, since `Simulation.update` only calls
-it when the recommendation is truthy. That is the first fully-exercised cycle,
-past warm-up. The `Simulation.init()` call at t=0 is excluded for free: it runs
-during the construction phase, before the loop, and has a different shape.
+`--sequence-cycle` selects which control cycle of `--sequence-stage` the
+sequence diagram is cut from. The rule used is stamped into the `%%` header
+(`sequence cycle rule:` and `control cycle:` lines) and into
+`manifest.json` as `sequence_diagram.cycle_rule`.
+
+| Rule | Cycle selected |
+| --- | --- |
+| `first-recommendation` (default) | The first cycle of the stage at which the controller returned a non-empty recommendation — observed as `apply_loop_recommendations` being reached, since `Simulation.update` only calls it when the recommendation is truthy. That is the first fully-exercised cycle, past warm-up. |
+| `first-cycle` | The lowest run-phase timestep index in the stage, whether or not anything was recommended. |
+
+The `Simulation.init()` call at t=0 is excluded for free under both rules: it
+runs during the construction phase, before the loop, and has a different shape.
+
+A `"controller": null` stage resolves to `DoNothingController`, whose
+`get_loop_recommendations` returns `None`, so `apply_loop_recommendations` is
+never reached. `first-recommendation` on such a stage exits non-zero with
+"No control cycle in stage ... reached apply_loop_recommendations" and writes
+nothing; there is deliberately no silent fallback. Ask for `first-cycle`
+explicitly to draw it.
+
+### TLR-549 figures (TRSET-57)
+
+Committed under `.docs/architecture/TLR-549/`, one directory per figure set,
+each with the `.mmd` sources, `manifest.json`, `coverage_report.md`, PNG and
+SVG. They are **not** part of the drift gate: `GATED_FILES` and the scope of
+`--check` are unchanged, and the TLR-552 figures in `.docs/architecture/` are
+untouched. Each run regenerates `data_flow.mmd` and `coverage_report.md`, so
+those are duplicated across the two directories by design.
+
+```bash
+S=scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_2_0_full/TLR-549/Simulation-Configuration-TLR-549_30_median_profile_v1.json
+
+# noLoop cycle: DoNothingController, no Loop API, no dylib
+python -m tidepool_data_science_simulator.diagramgen --scenario $S \
+  --sequence-stage pre-noLoop_t1_median --sequence-cycle first-cycle \
+  --output-dir .docs/architecture/TLR-549/noloop
+
+# Loop cycle with physical activity configured (stage ID per the branch's config)
+python -m tidepool_data_science_simulator.diagramgen --scenario $S \
+  --sequence-stage post-Loop-WithMitigations_t1_median \
+  --output-dir .docs/architecture/TLR-549/loop_pa
+
+# Render. --render-config is required for a non-default --output-dir
+python -m tidepool_data_science_simulator.diagramgen.render \
+  --output-dir .docs/architecture/TLR-549/noloop --render-config .docs/architecture/render.json
+python -m tidepool_data_science_simulator.diagramgen.render \
+  --output-dir .docs/architecture/TLR-549/loop_pa --render-config .docs/architecture/render.json
+```
+
+Render config resolution: `--render-config` defaults to
+`<output-dir>/render.json`, and the two `mermaid_config_*.json` files it names
+are resolved relative to *that file's* directory. The new directories hold no
+render config, so pass the pinned `.docs/architecture/render.json`. The allowlist
+and exclusions default to `.docs/architecture/` regardless of `--output-dir`.
+
+Once the stage-ID rename lands (`post-Loop-` to `post-Loop_`), use the
+underscore form for `--sequence-stage`.
+
+**Physical activity and the Loop figure.** The generator was not changed to
+trace PA processing, and the allowlist is unchanged. Compared with the
+committed TLR-552 figure, the `loop_pa` sequence has one additional
+`SimpleMetabolismModel()` / `run` pair in `VirtualPatient.update`. That pair is
+the `abs_insulin_amount != 0` branch (`patient.py`), which depends on delivered
+insulin and not on activity: an ablation run of the short fixture with the
+activity removed and a non-zero basal shows the same extra pair. So this is not
+evidence that PA adds a participant or message. Why TLR-552's cycle does not
+take that branch was not investigated.
 
 ## Determinism
 

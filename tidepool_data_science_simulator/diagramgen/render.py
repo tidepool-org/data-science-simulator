@@ -495,39 +495,6 @@ def _svg_dimensions(path):
     return width, height
 
 
-def normalize_mermaid_source(text):
-    r"""Make a committed figure parseable, returning ``(text, lines_changed)``.
-
-    Mermaid strips comments with a pattern equivalent to ``/^\s*%%[^\n]+\n?/gm``,
-    which requires **at least one character** after the ``%%``. The generator's
-    provenance header separates its stanzas with bare ``%%`` lines, and those
-    survive the strip: they reach the parser, get run together, and the
-    flowchart grammar rejects the result outright --
-    ``Parse error on line 1: %%%%%%flowchart``. The sequenceDiagram grammar
-    happens to tolerate them, which is why only ``data_flow.mmd`` fails.
-
-    Giving each bare marker a single trailing space brings it inside the strip
-    pattern and changes nothing else -- not a node, not an edge, not a label.
-
-    This is a **workaround, not the fix**. The defect is in the header emitter
-    in ``mermaid.py``, and the committed ``.mmd`` stays broken for every other
-    Mermaid consumer until that is corrected under its own bugfix request (the
-    same treatment workflow section 7 gives the ``_escape()`` angle-bracket
-    gap). The manifest records that this normalization was applied, so a figure
-    is never quietly rendered from something other than what is committed.
-    """
-    lines = text.split("\n")
-    changed = 0
-    for index, line in enumerate(lines):
-        # Exactly ``%%`` and nothing after it. ``%%   `` already satisfies
-        # mermaid's ``[^\n]+`` and is stripped correctly, so padding it would
-        # rewrite a line that was never a problem.
-        if line.lstrip() == "%%":
-            lines[index] = "%% "
-            changed += 1
-    return "\n".join(lines), changed
-
-
 def _dimensions(path, fmt):
     return _png_dimensions(path) if fmt == "png" else _svg_dimensions(path)
 
@@ -684,14 +651,10 @@ def render(output_dir, render_config_path=None, docker="docker", repo_root=diagr
 
         # The container sees this directory and nothing else: the trace, the
         # manifest and the two maintained config files are never mounted.
-        normalized_lines = 0
         for figure in config.figures:
-            with open(os.path.join(output_dir, figure.source), encoding="utf-8") as handle:
-                source_text = handle.read()
-            source_text, changed = normalize_mermaid_source(source_text)
-            normalized_lines += changed
-            with open(os.path.join(work, figure.source), "w", encoding="utf-8") as handle:
-                handle.write(source_text)
+            shutil.copyfile(
+                os.path.join(output_dir, figure.source), os.path.join(work, figure.source)
+            )
         for fmt, config_path in config.mermaid_configs.items():
             shutil.copyfile(config_path, os.path.join(work, os.path.basename(config_path)))
 
@@ -717,7 +680,6 @@ def render(output_dir, render_config_path=None, docker="docker", repo_root=diagr
         config_paths=config.config_paths,
         figures=rendered,
         reproducibility_level=config.reproducibility_level,
-        normalized_header_lines=normalized_lines,
     )
 
     with open(manifest_path, encoding="utf-8") as handle:
