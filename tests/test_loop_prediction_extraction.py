@@ -87,21 +87,30 @@ def test_no_prediction_output_leaves_prediction_columns_none():
         assert row[col] is None
 
 
-def test_unbacked_effect_columns_and_bolus_value_stay_none():
-    """D1: the four effect columns have no API source. D5: loop_recommended_bolus_value deprecated."""
+def test_effect_columns_and_bolus_value_populated_trset25():
+    """TRSET-25: the four effect columns now come from the prediction payload's
+    *_effect_values series (last value), and loop_recommended_bolus_value comes
+    from the recommendation's automatic/manual precedence. Supersedes the old
+    TRSET-24 D1/D5 "stays None" expectation -- see test_loop_effect_columns.py
+    for the dedicated column-extraction unit tests."""
     payload = {
         "predicted_glucose_values": [120.0],
         "glucose_effect_velocity_values": [0.0],
         "active_carbs": 0.0,
         "active_insulin": 0.0,
+        "insulin_effect_values": [{"date": "a", "value": -1.5}],
+        "carb_effect_values": [{"date": "a", "value": 2.5}],
+        "momentum_effect_values": [{"date": "a", "value": 0.5}],
+        "retrospective_correction_effect_values": [{"date": "a", "value": -0.5}],
     }
     df = _results_df(ControllerState(pyloopkit_recommendations={"automatic": {"bolusUnits": 1.0}},
                                      prediction_output=payload))
     row = df.loc[T0]
-    for col in ["loop_final_insulin_effect", "loop_final_carb_effect",
-                "loop_final_momentum_effect", "loop_final_rc_effect",
-                "loop_recommended_bolus_value"]:
-        assert row[col] is None
+    assert row["loop_final_insulin_effect"] == -1.5
+    assert row["loop_final_carb_effect"] == 2.5
+    assert row["loop_final_momentum_effect"] == 0.5
+    assert row["loop_final_rc_effect"] == -0.5
+    assert row["loop_recommended_bolus_value"] == 1.0
 
 
 # --- U2a: no silent swallow in get_results_df --------------------------------
@@ -121,11 +130,19 @@ def test_malformed_prediction_output_is_logged_not_swallowed(caplog):
 def test_compute_prediction_output_assembles_payload_from_same_dict(monkeypatch):
     seen = {}
     sentinel_dict = {"predictionStart": "2019-08-15T12:00:00Z"}
+    sentinel_effects = {
+        "insulin": [{"date": "a", "value": -1.0}],
+        "carbs": [{"date": "a", "value": 2.0}],
+        "momentum": [{"date": "a", "value": 0.1}],
+        "retrospectiveCorrection": [{"date": "a", "value": -0.2}],
+    }
 
     monkeypatch.setattr(swift_mod, "get_prediction_values_and_dates",
                         lambda d: (seen.setdefault("pred", d), ([300.0, 99.0], ["a", "b"]))[1])
     monkeypatch.setattr(swift_mod, "get_glucose_velocity_values_and_dates",
                         lambda d: (seen.setdefault("ice", d), ([0.0, 2.0], ["a", "b"]))[1])
+    monkeypatch.setattr(swift_mod, "get_prediction_effects",
+                        lambda d: (seen.setdefault("effects", d), sentinel_effects)[1])
     monkeypatch.setattr(swift_mod, "get_active_carbs",
                         lambda d: (seen.setdefault("cob", d), 7.5)[1])
     monkeypatch.setattr(swift_mod, "get_active_insulin",
@@ -137,10 +154,14 @@ def test_compute_prediction_output_assembles_payload_from_same_dict(monkeypatch)
 
     assert payload["predicted_glucose_values"] == [300.0, 99.0]
     assert payload["glucose_effect_velocity_values"] == [0.0, 2.0]
+    assert payload["insulin_effect_values"] == sentinel_effects["insulin"]
+    assert payload["carb_effect_values"] == sentinel_effects["carbs"]
+    assert payload["momentum_effect_values"] == sentinel_effects["momentum"]
+    assert payload["retrospective_correction_effect_values"] == sentinel_effects["retrospectiveCorrection"]
     assert payload["active_carbs"] == 7.5
     assert payload["active_insulin"] == 0.5
     # DRY: every API function received the *same* dict object, no rebuild
-    for key in ["pred", "ice", "cob", "iob"]:
+    for key in ["pred", "ice", "effects", "cob", "iob"]:
         assert seen[key] is sentinel_dict
 
 
