@@ -191,3 +191,21 @@ if __name__ == "__main__":
     # Save the summaries
     all_risk_results_df.to_csv(os.path.join(run_save_dir, "Risk_Results_{}.csv".format(get_timestamp())))
     json.dump(risk_run_metadata, open(os.path.join(run_save_dir, "metadata.json"), "w"), indent=4)
+
+    # Write the RTF severity summaries, as the GUI run does. post_processing/ is not
+    # part of the installed package, so it is put on sys.path here. A failure is
+    # reported, not swallowed, but does not undo the simulation results saved above.
+    import sys
+    _post_processing_dir = os.path.join(PROJECT_ROOT_DIR, "post_processing")
+    if _post_processing_dir not in sys.path:
+        sys.path.insert(0, _post_processing_dir)
+    from create_severity_summary import process_results_directory, SeveritySummaryError
+
+    try:
+        summary_result = process_results_directory(run_save_dir)
+        for tlr_dir, reason in summary_result.skipped:
+            print(f"Severity summary skipped {tlr_dir}: {reason}")
+        print(f"Wrote {len(summary_result.written)} severity summary document(s); "
+              f"skipped {len(summary_result.skipped)} directory(ies).")
+    except SeveritySummaryError as e:
+        print(f"Severity summary not written: {e}")
