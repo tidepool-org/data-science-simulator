@@ -7,7 +7,7 @@ with the Loop risk v2 naming convention:
 
   1. Pre-loop:  "pre-Loop_NoMitigations_<t1|t2>_<profile>"
   2. No-loop:   "pre-noLoop_<t1|t2>_<profile>"
-  3. Post-loop: "post-Loop-WithMitigations_<t1|t2>_<profile>"
+  3. Post-loop: "post-Loop_WithMitigations_<t1|t2>_<profile>"
 
 Usage:
   # Dry-run (default — no files modified, produces CSVs showing proposed changes):
@@ -33,7 +33,7 @@ from pathlib import Path
 # Compliance pattern — anything matching this is already correct
 # ---------------------------------------------------------------------------
 COMPLIANT_RE = re.compile(
-    r"^(pre-Loop_NoMitigations|pre-noLoop|post-Loop-WithMitigations)_(t1|t2)_\S+$"
+    r"^(pre-Loop_NoMitigations|pre-noLoop|post-Loop_WithMitigations)_(t1|t2)_\S+$"
 )
 
 # ---------------------------------------------------------------------------
@@ -78,39 +78,39 @@ def apply_rules(sim_id: str) -> str:
         sim_id = sim_id.replace("resistnat", "resistant")
 
         # Misplaced t2 token:
-        #   post-Loop-t2_WithMitigations_t2_<p> → post-Loop-WithMitigations_t2_<p>
+        #   post-Loop-t2_WithMitigations_t2_<p> → post-Loop_WithMitigations_t2_<p>
         sim_id = re.sub(
             r"^post-Loop-t2_WithMitigations_(t2_.+)$",
-            r"post-Loop-WithMitigations_\1",
+            r"post-Loop_WithMitigations_\1",
             sim_id,
         )
 
-        # All-underscores prefix:  post_Loop_WithMitigations_ → post-Loop-WithMitigations_
+        # All-underscores prefix:  post_Loop_WithMitigations_ → post-Loop_WithMitigations_
         sim_id = re.sub(
             r"^post_Loop_WithMitigations_",
-            "post-Loop-WithMitigations_",
+            "post-Loop_WithMitigations_",
             sim_id,
         )
 
-        # Missing hyphen:  post-LoopWithMitigations_ → post-Loop-WithMitigations_
+        # Missing hyphen:  post-LoopWithMitigations_ → post-Loop_WithMitigations_
         sim_id = re.sub(
             r"^post-LoopWithMitigations_",
-            "post-Loop-WithMitigations_",
+            "post-Loop_WithMitigations_",
             sim_id,
         )
 
-        # Underscore separator (any case of 'w'):
-        #   post-Loop_[Ww]ithMitigations_ → post-Loop-WithMitigations_
+        # Hyphen separator (TRSET-59: underscore is canonical):
+        #   post-Loop-[Ww]ithMitigations_ → post-Loop_WithMitigations_
         sim_id = re.sub(
-            r"^post-Loop_[Ww]ithMitigations_",
-            "post-Loop-WithMitigations_",
+            r"^post-Loop-[Ww]ithMitigations_",
+            "post-Loop_WithMitigations_",
             sim_id,
         )
 
-        # Lowercase 'w':  post-Loop-withMitigations_ → post-Loop-WithMitigations_
+        # Lowercase 'w':  post-Loop_withMitigations_ → post-Loop_WithMitigations_
         sim_id = re.sub(
-            r"^post-Loop-withMitigations_",
-            "post-Loop-WithMitigations_",
+            r"^post-Loop_withMitigations_",
+            "post-Loop_WithMitigations_",
             sim_id,
         )
 
@@ -118,10 +118,10 @@ def apply_rules(sim_id: str) -> str:
         sim_id = re.sub(r"_(T1)_", "_t1_", sim_id)
 
         # Redundant profile prefix before t1/t2 (applied last, after structural fixes):
-        #   post-Loop-WithMitigations_adolescent_t1_adolescent → _t1_adolescent
+        #   post-Loop_WithMitigations_adolescent_t1_adolescent → _t1_adolescent
         #   Matches: <correct-prefix>_<profile>_t{1|2}_<same-profile>
         sim_id = re.sub(
-            r"^(post-Loop-WithMitigations)"
+            r"^(post-Loop_WithMitigations)"
             r"_(adolescent|median|resistant|sensitive)"
             r"_(t[12]_(?:adolescent|median|resistant|sensitive))$",
             r"\1_\3",
@@ -169,10 +169,10 @@ def apply_rules(sim_id: str) -> str:
         )
 
         # Wrong scenario type — pre-loop labelled WithMitigations should be post-loop:
-        #   pre-Loop-WithMitigations_<t>_<profile> → post-Loop-WithMitigations_<t>_<profile>
+        #   pre-Loop-WithMitigations_<t>_<profile> → post-Loop_WithMitigations_<t>_<profile>
         sim_id = re.sub(
             r"^pre-Loop-WithMitigations_",
-            "post-Loop-WithMitigations_",
+            "post-Loop_WithMitigations_",
             sim_id,
         )
 
@@ -219,7 +219,7 @@ def classify_flagged(sim_id: str) -> str:
     # e.g. "post-Loop_WithMitigations", "pre-NoLoop"
     if re.match(
         r"^(pre-Loop_NoMitigations|pre-noLoop|pre-NoLoop"
-        r"|post-Loop-WithMitigations|post-Loop_WithMitigations)$",
+        r"|post-Loop_WithMitigations|post-Loop-WithMitigations)$",
         sim_id,
     ):
         return "missing_t_and_profile"
@@ -227,7 +227,7 @@ def classify_flagged(sim_id: str) -> str:
     # Correct (or near-correct) prefix present but t1/t2 component is absent
     # e.g. "pre-Loop_NoMitigations_adolescent", "pre-noLoop_Median"
     if re.match(
-        r"^(pre-Loop_NoMitigations|pre-noLoop|post-Loop-WithMitigations)"
+        r"^(pre-Loop_NoMitigations|pre-noLoop|post-Loop_WithMitigations)"
         r"_[^t]\S*$",
         sim_id,
     ):
