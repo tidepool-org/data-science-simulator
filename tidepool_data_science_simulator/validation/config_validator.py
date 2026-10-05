@@ -27,9 +27,12 @@ try:
         InsulinDosesAdapter,
         pydantic_errors_to_validation_errors,
     )
-    _PYDANTIC_AVAILABLE = True
-except ImportError:
-    _PYDANTIC_AVAILABLE = False
+except ImportError as _pydantic_import_error:
+    # Deferred so the package still imports; ConfigValidator refuses to
+    # construct, rather than silently skipping structural validation.
+    _PYDANTIC_IMPORT_ERROR: Optional[ImportError] = _pydantic_import_error
+else:
+    _PYDANTIC_IMPORT_ERROR = None
 
 
 class ConfigValidator:
@@ -43,7 +46,20 @@ class ConfigValidator:
         ----------
         pointer_object_dir : str, optional
             Directory containing reusable configuration files
+
+        Raises
+        ------
+        RuntimeError
+            If ``pydantic`` or ``schema_models`` cannot be imported. The
+            Pydantic structural layer is required; a validator that cannot
+            run it would otherwise report invalid configs as valid.
         """
+        if _PYDANTIC_IMPORT_ERROR is not None:
+            raise RuntimeError(
+                "ConfigValidator requires pydantic>=2 and "
+                "validation/schema_models.py: "
+                f"{_PYDANTIC_IMPORT_ERROR}"
+            ) from _PYDANTIC_IMPORT_ERROR
         self.pointer_object_dir = pointer_object_dir
         self.value_validators = ValueValidators()
         # Cache of already-loaded reusable reference files: path -> parsed JSON
@@ -171,7 +187,7 @@ class ConfigValidator:
 
         Produces richer error messages than the basic structural check and
         includes actionable fix suggestions. Requires pydantic>=2.0 to be
-        installed; silently skips if pydantic is unavailable.
+        installed (guaranteed by ``__init__``).
 
         Parameters
         ----------
@@ -185,9 +201,6 @@ class ConfigValidator:
         List[ValidationError]
             Structural validation errors with suggestions.
         """
-        if not _PYDANTIC_AVAILABLE:
-            return []
-
         try:
             ScenarioConfig.model_validate(config)
         except PydanticValidationError as exc:
@@ -519,9 +532,8 @@ class ConfigValidator:
             ))
             return errors
 
-        # File exists — validate its structure if Pydantic is available
-        if _PYDANTIC_AVAILABLE:
-            errors.extend(self._validate_reference_structure(ref_string, resolved_path, field_path))
+        # File exists — validate its structure
+        errors.extend(self._validate_reference_structure(ref_string, resolved_path, field_path))
 
         return errors
 

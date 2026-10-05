@@ -377,17 +377,6 @@ class TestPydanticStructureIntegration:
         assert len(errors) >= 1
         assert any("metadata" in e.field_path for e in errors)
 
-    def test_pydantic_not_available_returns_empty(self, monkeypatch):
-        """If Pydantic is not available, _validate_pydantic_structure returns []."""
-        import tidepool_data_science_simulator.validation.config_validator as cv_module
-        original = cv_module._PYDANTIC_AVAILABLE
-        monkeypatch.setattr(cv_module, "_PYDANTIC_AVAILABLE", False)
-        try:
-            result = self.validator._validate_pydantic_structure({}, "test.json")
-            assert result == []
-        finally:
-            monkeypatch.setattr(cv_module, "_PYDANTIC_AVAILABLE", original)
-
 
 # ---------------------------------------------------------------------------
 # TestSchemaModels (unit-level, but lives here as it tests integration of models)
