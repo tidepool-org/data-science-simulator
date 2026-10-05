@@ -80,3 +80,27 @@ change touching only orchestration. Not a breaking change to any signature or
 schema, so no migration of stored data applies; a revert is a single-commit
 revert of this change. `create_severity_summary_ORIGINAL.py` retains the old
 behavior and is deliberately untouched (legacy reference copy).
+
+## RTF byte-level regression gate (TRSET-42)
+
+`render_rtf()` output is a regulatory-consumption artifact. `test_rtf_regression.py`
+(run by plain `pytest`) renders two committed synthetic fixtures
+(`tests/fixtures/rtf_regression/`: `TLR-999` populated, `TLR-998` with `NA` cells and
+an absent stage) and fails on **any byte difference** from the committed goldens,
+printing a unified diff. Text, `\cellx` stops, control words, whitespace and line
+endings are all covered. `TestRtfOutputUnchanged` is *not* this check: it compares
+the renderer to itself and cannot see a text change.
+
+Neutralised non-deterministic field (the only one): the run timestamp, pinned to
+`FIXTURE_TIMESTAMP` in `rtf_regression_diff.py`.
+
+```bash
+# Check (also part of pytest):
+python post_processing/rtf_regression_diff.py
+
+# Regenerate goldens -- ONLY for an intentional, reviewed RTF change:
+python post_processing/rtf_regression_diff.py --regenerate
+```
+
+**Read the `git diff` of the goldens before committing.** Regenerating without reading
+the diff defeats the check; it must never be the automatic response to a failure.
