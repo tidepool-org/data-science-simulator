@@ -461,7 +461,12 @@ class TestCliExitCodes:
 
 
 class TestRtfOutputUnchanged:
-    """The whole point of the ticket's 'no output change' constraint."""
+    """The whole point of the ticket's 'no output change' constraint.
+
+    LIMITATION: this compares the renderer to ITSELF, so it passes even if the
+    RTF text changes. It is not a byte-level guard; see test_rtf_regression.py
+    (TRSET-42), which compares against committed golden RTF files.
+    """
 
     def test_written_rtf_is_byte_identical_to_the_renderer_output(self, tmp_path):
         _write_metadata(str(tmp_path))
