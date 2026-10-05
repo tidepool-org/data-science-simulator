@@ -1,0 +1,3 @@
+sim_id,total_basal_delivered,total_bolus_delivered,total_insulin_delivered,sensor_mard,sensor_mbe,lbgi_risk_score,dka_risk_score,percent_cgm_lt_40,percent_cgm_lt_54,percent_cgm_gt_180,percent_cgm_gt_250,percent_values_ge_70_le_180
+pre-Loop_NoMitigations_t1_median,0.0,0,0.0,0.0,0.0,3,1,0.0,5.0,79.0,66.787,20.0
+pre-NoLoop_t1_median,0.0,0,0.0,0.0,0.0,0,0,0.0,0.0,0.0,0.0,100.0
