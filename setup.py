@@ -6,6 +6,7 @@ setup(
     author="Cameron Summers",
     author_email="cameron@tidepool.org",
     package_dir={'tidepool_data_science_simulator': 'tidepool_data_science_simulator'},
+    install_requires=['pydantic>=2.0'],
     packages=[
         'tidepool_data_science_simulator',
         'tidepool_data_science_simulator.diagramgen',
