@@ -62,7 +62,7 @@ def build_risk_sim_generator(scenario_json_filepath, override_config_save_dir=No
 
     # List TLR-* directories directly in scenario_json_filepath (one flat level)
     risk_dirs = [risk_dir for risk_dir in os.listdir(scenario_json_filepath)
-                 if os.path.isdir(os.path.join(scenario_json_filepath, risk_dir)) and "TLR-" in risk_dir]
+                 if os.path.isdir(os.path.join(scenario_json_filepath, risk_dir)) and "TLR-899" in risk_dir]
     print(f"Found risk directories: {risk_dirs}")
 
     for risk_dir_name in risk_dirs:
