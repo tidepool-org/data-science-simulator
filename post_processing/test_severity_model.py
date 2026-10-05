@@ -1073,3 +1073,43 @@ class TestIncompleteStagesIsNotReportedAsAbsent:
 ])
 def test_extract_profile_from_filename(filename, expected):
     assert severity_model.extract_profile_from_filename(os.path.join("any", "dir", filename)) == expected
+
+
+# --- TRSET-59: .json.csv summaries reach the outlier analysis -------------------
+
+def _write_outlier_profile_named(directory, profile, suffix):
+    """_write_outlier_profile with a chosen summary-filename suffix."""
+    path = _write_outlier_profile(directory, profile, tar=10.0, lbgi=1.0, dka=1.0)
+    new = path[: -len("_profile.csv")] + suffix
+    os.rename(path, new)
+    return new
+
+
+@pytest.mark.parametrize("suffix", ["_profile.csv", "_profile.json.csv"])
+def test_outlier_analysis_runs_for_either_summary_filename_suffix(tmp_path, suffix):
+    for profile in ("adolescent", "median", "resistant", "sensitive"):
+        _write_outlier_profile_named(str(tmp_path), profile, suffix)
+
+    _, status = detect_outliers(str(tmp_path))
+
+    assert status != "no_data"
+
+
+def test_reverting_double_extension_handling_is_caught(tmp_path, monkeypatch):
+    """Mutation check: the pre-e378b9d parse (drop '.csv' only) must fail the
+    json.csv case, proving the test above depends on the fix."""
+    def old_extract(csv_path):
+        parts = os.path.basename(csv_path).replace('.csv', '').split('_')
+        try:
+            i = parts.index('profile')
+            return parts[i - 1] if i > 0 else None
+        except ValueError:
+            return None
+
+    for profile in ("adolescent", "median", "resistant", "sensitive"):
+        _write_outlier_profile_named(str(tmp_path), profile, "_profile.json.csv")
+    monkeypatch.setattr(severity_model, "extract_profile_from_filename", old_extract)
+
+    _, status = detect_outliers(str(tmp_path))
+
+    assert status == "no_data"
