@@ -379,12 +379,15 @@ def extract_metric_data(tlr_dir, column_name, severity_updates=None):
     return metric_data
 
 
+NA_VALUE = "NA"  # rendered in every value cell of a stage that had no sims
+
+
 def calculate_stage_averages(metric_data):
     """Average each stage to 1 decimal place as a string; 'NA' if no data."""
     averages = {}
     for stage in STAGE_ORDER:
         values = metric_data[stage]
-        averages[stage] = f"{sum(values) / len(values):.1f}" if values else "NA"
+        averages[stage] = f"{sum(values) / len(values):.1f}" if values else NA_VALUE
     return averages
 
 
@@ -411,7 +414,7 @@ def calculate_truncated_averages(metric_data):
     for stage in STAGE_ORDER:
         values = metric_data[stage]
         if not values:
-            averages[stage] = "NA"
+            averages[stage] = NA_VALUE
             continue
         truncated = truncate_2dp(sum(values) / len(values))
         if truncated == int(truncated):
@@ -942,7 +945,13 @@ def build_assessment_result(tlr_dir, timestamp):
     stages = {}
     for stage in STAGE_ORDER:
         hyper = calculate_hyperglycemia_score(tar_averages[stage])
-        harm, severity = determine_harm_and_severity(lbgi_averages[stage], dka_averages[stage], hyper)
+        if n_by_stage[stage] == 0:
+            # No sims ran in this stage: no verdict (TRSET-63). The placeholder
+            # component scores above are left as-is.
+            harm, severity = NA_VALUE, NA_VALUE
+        else:
+            harm, severity = determine_harm_and_severity(
+                lbgi_averages[stage], dka_averages[stage], hyper)
         stages[stage] = StageResult(
             stage=stage,
             harm_type=harm,

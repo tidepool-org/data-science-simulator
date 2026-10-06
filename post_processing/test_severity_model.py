@@ -1205,3 +1205,41 @@ def test_reverting_double_extension_handling_is_caught(tmp_path, monkeypatch):
     _, status = detect_outliers(str(tmp_path))
 
     assert status == "no_data"
+
+
+# =============================================================================
+# TRSET-63 -- a stage with no sims has no verdict
+# =============================================================================
+
+class TestEmptyStageNaVerdict:
+    """A stage with n_sims == 0 reports NA harm/severity, not Hyperglycemia/1."""
+
+    def _build(self, tmp_path, rows, bg=None):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", rows)
+        if bg is not None:
+            _write_tsv(tlr, _POST_SIM.format(p="median"), bg)
+        return build_assessment(tlr, "2026-10-06T00:00:00")
+
+    def test_empty_stage_is_na_na(self, tmp_path):
+        rows = [_PROFILE_A_ROWS[0], _PROFILE_A_ROWS[1]]   # no post-mitigation sims
+        stages = self._build(tmp_path, rows).stages
+        assert stages["post"].n_sims == 0
+        assert stages["post"].harm_type == "NA"
+        assert stages["post"].severity == "NA"
+
+    def test_all_stages_populated_unchanged(self, tmp_path):
+        stages = self._build(tmp_path, _PROFILE_A_ROWS).stages
+        for stage in ("pre", "no_loop", "post"):
+            assert stages[stage].n_sims == 1
+            assert stages[stage].harm_type != "NA"
+            assert stages[stage].severity != "NA"
+
+    def test_empty_stage_beside_floored_stage(self, tmp_path):
+        rows = [_post_row("median", 4)]                    # pre / no_loop empty
+        stages = self._build(tmp_path, rows, bg=[120, 0, 120]).stages
+        assert stages["post"].severity == "5"
+        assert stages["post"].harm_type == "Hypoglycemia"
+        for stage in ("pre", "no_loop"):
+            assert stages[stage].harm_type == "NA"
+            assert stages[stage].severity == "NA"
