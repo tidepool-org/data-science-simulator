@@ -43,6 +43,7 @@ from severity_model import (
     CatastrophicFinding,
     OutlierFinding,
     SeverityAssessment,
+    apply_catastrophic_floor,
 )
 
 
@@ -320,6 +321,97 @@ class TestBuildAssessmentValueFields:
         sr = StageResult("pre", "Hypoglycemia", "3", "78.0", "4.5", "17.5", 3, 1, 2, 2)
         assert sr.lbgi_value_avg == "NA"
         assert sr.dka_index_value_avg == "NA"
+
+
+# =============================================================================
+# TRSET-62 -- catastrophic (4->5) escalation must not be diluted by averaging
+# =============================================================================
+
+_POST_SIM = "post-Loop_WithMitigations_t1_{p}"
+_TSV_COLUMNS = "time\tbg\n"
+
+
+def _write_tsv(directory, sim_id, bg_values):
+    with open(os.path.join(directory, f"{sim_id}.tsv"), "w") as fh:
+        fh.write(_TSV_COLUMNS)
+        for i, bg in enumerate(bg_values):
+            fh.write(f"{i}\t{bg}\n")
+
+
+def _post_row(profile, lbgi_score):
+    return (_POST_SIM.format(p=profile), 90.0, 0.0, 5.0, lbgi_score, 0, 1.0, 10.0)
+
+
+class TestApplyCatastrophicFloor:
+    """The pure floor helper."""
+
+    def test_escalated_stage_floored_at_5(self):
+        results = {"s": {"stage": "post", "updated_severity": 5, "condition": "zero_or_negative"}}
+        out = apply_catastrophic_floor({"pre": 3, "no_loop": 2, "post": 4}, results)
+        assert out == {"pre": 3, "no_loop": 2, "post": 5}
+
+    def test_unescalated_sim_does_not_floor(self):
+        results = {"s": {"stage": "post", "updated_severity": 4, "condition": "none"}}
+        scores = {"pre": 3, "no_loop": 2, "post": 4}
+        assert apply_catastrophic_floor(scores, results) == scores
+
+    def test_no_results_returns_equal_copy(self):
+        scores = {"pre": 1, "no_loop": 2, "post": 3}
+        out = apply_catastrophic_floor(scores, {})
+        assert out == scores and out is not scores
+
+    def test_mixed_stages_only_escalated_moves(self):
+        results = {
+            "a": {"stage": "pre", "updated_severity": 5, "condition": "extended_low"},
+            "b": {"stage": "post", "updated_severity": 4, "condition": "none"},
+        }
+        out = apply_catastrophic_floor({"pre": 4, "no_loop": 4, "post": 4}, results)
+        assert out == {"pre": 5, "no_loop": 4, "post": 4}
+
+
+class TestCatastrophicFloorEndToEnd:
+    """build_assessment on the TLR-899 shape: one low profile must not dilute."""
+
+    def _build(self, tmp_path, profile_scores, bg_by_profile):
+        tlr = str(tmp_path)
+        for profile, score in profile_scores.items():
+            _write_summary_csv(tlr, profile, [_post_row(profile, score)])
+            _write_tsv(tlr, _POST_SIM.format(p=profile), bg_by_profile.get(profile, [120] * 10))
+        return build_assessment(tlr, "2026-10-06T00:00:00")
+
+    def test_diluted_case_post_is_5(self, tmp_path):
+        # TLR-899: adolescent 2, three profiles 4 with BG <= 0 -> mean(2,5,5,5)=4.25.
+        scores = {"adolescent": 2, "median": 4, "resistant": 4, "sensitive": 4}
+        bg = {p: [120, 0, 120] for p in ("median", "resistant", "sensitive")}
+        post = self._build(tmp_path, scores, bg).stages["post"]
+        assert post.lbgi_score_avg == 5
+        assert post.severity == "5" and post.harm_type == "Hypoglycemia"
+
+    def test_all_escalated_is_5(self, tmp_path):
+        scores = {"median": 4, "resistant": 4}
+        bg = {p: [120, -3, 120] for p in scores}
+        assert self._build(tmp_path, scores, bg).stages["post"].lbgi_score_avg == 5
+
+    def test_none_escalated_keeps_mean(self, tmp_path):
+        scores = {"adolescent": 2, "median": 4, "resistant": 3, "sensitive": 3}
+        # mean 3.0 -> 3; the 4 has healthy BG so it is not escalated.
+        assert self._build(tmp_path, scores, {}).stages["post"].lbgi_score_avg == 3
+
+    def test_extended_low_only_is_5(self, tmp_path):
+        scores = {"adolescent": 2, "median": 4}
+        bg = {"median": [35] * 48 + [120] * 10}   # <=40 for 48 readings, never <=0
+        post = self._build(tmp_path, scores, bg).stages["post"]
+        assert post.lbgi_score_avg == 5   # unfloored: round_half_up(3.5) = 4
+
+    def test_other_stages_unaffected(self, tmp_path):
+        tlr = str(tmp_path)
+        rows = [_post_row("median", 4),
+                ("pre-Loop_NoMitigations_t1_median", 90.0, 0.0, 5.0, 2, 0, 1.0, 10.0)]
+        _write_summary_csv(tlr, "median", rows)
+        _write_tsv(tlr, _POST_SIM.format(p="median"), [120, 0, 120])
+        stages = build_assessment(tlr, "2026-10-06T00:00:00").stages
+        assert stages["post"].lbgi_score_avg == 5
+        assert stages["pre"].lbgi_score_avg == 2
 
 
 # =============================================================================
