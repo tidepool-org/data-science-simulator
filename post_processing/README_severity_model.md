@@ -240,3 +240,27 @@ is byte-identical when nothing is excluded.
 ### Deliberately out of scope
 
 - `STAGE_PREFIXES` fragile prefix matching, noted in the module.
+
+## TRSET-62 — catastrophic escalation floors the stage score (bugfix)
+
+A stage's LBGI score is the mean of its per-profile scores, rounded half-up. A profile
+escalated 4→5 (BG ≤ 0 mg/dL, or ≤ 40 mg/dL for ≥ 48 consecutive readings) could be
+averaged back down by a low-scoring profile, e.g. (2+5+5+5)/4 = 4.25 → 4, so the RTF
+showed Severity 4 beside a Critical/Catastrophic Identifier listing ≤ 0 mg/dL traces.
+`apply_catastrophic_floor` now sets a stage's LBGI score to 5 if any sim in that stage
+was escalated. Stages with no escalation are unchanged.
+
+```python
+from severity_model import apply_catastrophic_floor
+apply_catastrophic_floor({"pre": 3, "no_loop": 2, "post": 4},
+                         {"sim": {"stage": "post", "updated_severity": 5}})
+# {"pre": 3, "no_loop": 2, "post": 5}
+```
+
+**Validation:** 9 new unit tests (diluted, all-escalated, none-escalated, extended-low
+only, mixed stages); 196 existing tests still pass. Re-running `TLR-899_10_175` now
+gives post-mitigation Hypoglycemia 5.
+
+**Cautions:** raw `lbgi` / `dka_index` value averages are deliberately not escalated.
+A missing or unreadable TSV still leaves a sim unescalated (separate finding, out of
+scope). Regression risk Medium; no breaking change.

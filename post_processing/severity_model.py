@@ -430,6 +430,26 @@ def calculate_integer_averages(metric_data):
     return averages
 
 
+CATASTROPHIC_SEVERITY = 5
+
+
+def apply_catastrophic_floor(lbgi_averages, assessment_results):
+    """Floor a stage's LBGI score at 5 if any of its sims was escalated 4->5.
+
+    Averaging per-profile scores can dilute an escalated sim (e.g. 2,5,5,5 -> 4);
+    a catastrophic finding in a stage must not be averaged away. Stages with no
+    escalation are returned unchanged. Returns a new dict.
+    """
+    escalated_stages = {
+        result['stage'] for result in assessment_results.values()
+        if result['updated_severity'] == CATASTROPHIC_SEVERITY
+    }
+    return {
+        stage: max(score, CATASTROPHIC_SEVERITY) if stage in escalated_stages else score
+        for stage, score in lbgi_averages.items()
+    }
+
+
 def calculate_hyperglycemia_score(tar_value):
     """Main-path TAR->hyperglycemia score. SOP-honoring: 0 only if TAR truly 0.
 
@@ -904,7 +924,8 @@ def build_assessment_result(tlr_dir, timestamp):
     tbr_averages = calculate_stage_averages(extract_metric_data(tlr_dir, 'percent_cgm_lt_54'))
     tar_averages = calculate_stage_averages(extract_metric_data(tlr_dir, 'percent_cgm_gt_180'))
     lbgi_data = extract_metric_data(tlr_dir, 'lbgi_risk_score', assessment_results)
-    lbgi_averages = calculate_integer_averages(lbgi_data)
+    lbgi_averages = apply_catastrophic_floor(
+        calculate_integer_averages(lbgi_data), assessment_results)
     dka_averages = calculate_integer_averages(extract_metric_data(tlr_dir, 'dka_risk_score'))
     # Raw averaged metric values (underlying LBGI / DKA-index, not the risk
     # scores) for consumers that surface the value itself. Truncated to 2dp, NOT
