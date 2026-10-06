@@ -810,3 +810,16 @@ class TestOutlierScopeSentence:
     def test_a_count_above_the_total_is_not_scoped(self):
         """Defensive: never render 'more analyzed than present'."""
         assert render_outlier_results([], "ok", 2, 3) == _CLEAN_OUTLIER_LINE
+
+
+# =============================================================================
+# TRSET-63 -- an empty stage renders NA in every value cell
+# =============================================================================
+
+class TestRenderEmptyStageRow:
+    def test_empty_stage_row_is_na_in_all_seven_value_cells(self, tmp_path):
+        tlr = str(tmp_path)
+        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS[:2])   # no post-mitigation
+        rows = _table_rows(render_rtf(build_assessment(tlr, "2026-10-06T00:00:00")))
+        post = next(row for row in rows if row[0] == "Post-mitigation")
+        assert post[1:] == ["NA"] * 7

@@ -264,3 +264,21 @@ gives post-mitigation Hypoglycemia 5.
 **Cautions:** raw `lbgi` / `dka_index` value averages are deliberately not escalated.
 A missing or unreadable TSV still leaves a sim unescalated (separate finding, out of
 scope). Regression risk Medium; no breaking change.
+
+## TRSET-63 — a stage with no sims has no verdict (bugfix)
+
+`build_assessment_result` derived harm and severity for every stage. A stage with zero
+sims averaged to LBGI 0 / DKA 0 / TAR `"NA"` (hyperglycemia score 1), so the RTF showed
+Hyperglycemia / 1 beside `NA` in every metric cell. A stage with `n_sims == 0` now gets
+`harm_type == "NA"` and `severity == "NA"` (module constant `NA_VALUE`, also used by
+`calculate_stage_averages` and `calculate_truncated_averages`). Stages with at least one
+sim, including partial profile coverage and the TRSET-62 floor, are unchanged.
+
+**Validation:** new unit tests (empty stage, all populated, empty beside a floored stage,
+rendered row reads `NA` in all seven value cells). The `TLR-998` RTF golden was
+regenerated deliberately: only the Post-mitigation Harm and Severity cells changed.
+
+**Cautions:** an empty `StageResult` still carries placeholder component scores
+(`lbgi_score_avg=0`, `dka_score_avg=0`, `hyperglycemia_score=1`); making them `Optional`
+would be a breaking schema change and is a possible follow-up. Regression risk Medium
+(output formatting); no breaking change.
