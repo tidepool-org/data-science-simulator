@@ -258,14 +258,15 @@ def save_test_results(sim_results_df, activity_profile, activity_name):
     Returns
     -------
     Path
-        Path to saved CSV file
+        Path to saved CSV file. Overwritten on each run.
     """
     # Create output directory if it doesn't exist
     TEST_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     
-    # Create filename with timestamp
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"pa_test_{activity_profile}_{timestamp}.csv"
+    # One stable filename per profile, overwritten on each run. A timestamp here
+    # would mean every run leaves four more files behind rather than replacing
+    # the previous set, and nothing reads the older ones.
+    filename = f"pa_test_{activity_profile}.csv"
     output_path = TEST_OUTPUT_DIR / filename
     
     # Save to CSV
@@ -407,8 +408,8 @@ def plot_activity_test_results(sim_results_df, activity_profile, activity_name, 
     
     plt.tight_layout()
     
-    # Save plot
-    plot_filename = f"pa_test_{activity_profile}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    # Save plot. Stable filename, overwritten each run -- see save_test_results.
+    plot_filename = f"pa_test_{activity_profile}.png"
     plot_path = TEST_OUTPUT_DIR / plot_filename
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     print(f"  Plot saved to: {plot_path}")
