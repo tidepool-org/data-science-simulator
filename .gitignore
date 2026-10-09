@@ -34,6 +34,12 @@ loop_algo_output_*.json
 # Same, for the per-scenario output directories under .docs/architecture/<ticket>/.
 .docs/architecture/**/trace.jsonl
 
+# Physical activity model test output. test_physical_activity_model.py writes a
+# timestamped CSV and PNG per activity profile into tests/test_data/ on every
+# run, so they accumulate instead of being overwritten. Scoped to the pa_test_
+# prefix: tests/test_data/ also holds real committed fixtures.
+tests/test_data/pa_test_*
+
 
 # ---- Catch all ----
 
