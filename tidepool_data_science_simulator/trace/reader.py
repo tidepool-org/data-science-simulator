@@ -21,7 +21,10 @@ its own follow-up ticket, not built here.
 import os
 from dataclasses import dataclass, fields
 
+import numpy as np
 import pandas as pd
+
+from tidepool_data_science_simulator.utils import LOOP_PLACEHOLDER
 
 # The time axis every series aligns to. Written by save_df() as the first
 # (index) column of the TSV.
@@ -158,10 +161,19 @@ def read_trace(path) -> SimulationTrace:
 
     # Column selection into aligned series -- no fillna/forward-fill, so empty
     # cells remain NaN (AC #4). sim_id is a convenience derived from the stem.
+    # The TSV writes LOOP_PLACEHOLDER where Loop produced no value (TRSET-53);
+    # map it back to NaN so numeric series stay numeric. Real values incl. 0 kept.
+    try:
+        numeric = {
+            column: pd.to_numeric(df[column].replace(LOOP_PLACEHOLDER, np.nan))
+            for column in FIELD_TO_COLUMN.values()
+        }
+    except (ValueError, TypeError) as e:  # non-numeric cell: surface, never swallow
+        raise TraceReadError(
+            "Trace file {} has a non-numeric value in a series column: {}".format(path, e)
+        ) from e
     series = {
-        field: pd.Series(
-            df[column].to_numpy(), index=time_index, name=field
-        )
+        field: pd.Series(numeric[column].to_numpy(), index=time_index, name=field)
         for field, column in FIELD_TO_COLUMN.items()
     }
     sim_id = os.path.splitext(os.path.basename(path))[0]
