@@ -1,0 +1,29 @@
+{
+  "run_name": "urai_rai_example",
+  "master_seed": 74,
+  "patient_pool_env_var": "URAI_RAI_PATIENT_POOL",
+  "min_age": 6,
+  "accept_smaller_group": false,
+  "default_n": 30,
+  "cohorts": [
+    {"name": "pediatric", "filter": {"age_min": 6, "age_max": 18}},
+    {"name": "adult", "filter": {"age_min": 18, "age_max": 55}},
+    {"name": "older_adult", "filter": {"age_min": 55}},
+    {"name": "isf_high", "filter": {"isf_min": 100}},
+    {"name": "isf_low", "filter": {"isf_max": 25}},
+    {"name": "unannounced_meals", "filter": {}, "announced": false}
+  ],
+  "controller": {"partial_application_factor": 0.4, "max_bolus": 20},
+  "meals": {
+    "meals_per_day": [2, 4],
+    "window_start": "05:00",
+    "window_end": "22:00",
+    "carbs_g": [20, 80],
+    "min_spacing_min": 60,
+    "seconds_pair_prob": 0.25,
+    "seconds_pair_gap_min": [5, 55],
+    "absorption_times_min": [30, 180, 300]
+  },
+  "glucose_seed": {"start": "08/15/2019 00:40:00", "points": 137, "interval_min": 5},
+  "run": {"start": "08/15/2019 12:00:00", "duration_hours": 24}
+}
