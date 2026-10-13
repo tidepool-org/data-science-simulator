@@ -29,6 +29,15 @@ from tidepool_data_science_simulator.models.events import CarbTimeline
 from tidepool_data_science_simulator.models.measures import Carb
 
 
+# Carb entry-time metadata lives on the unmerged branch sf/carb_enter_date
+# (Carb(entry_time=...), reported_carb_entry_time/_operation, true_carb_operation).
+# strict=True so these fail loudly (XPASS) once the feature merges and this marker should be removed.
+pytestmark = pytest.mark.xfail(
+    reason="Carb entry-time metadata not implemented on main; pending sf/carb_enter_date",
+    strict=True,
+)
+
+
 class TestSimulationResultsColumns:
     """Test that simulation results have correct column structure for carb tracking."""
 
