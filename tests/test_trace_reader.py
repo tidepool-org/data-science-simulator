@@ -172,3 +172,16 @@ def test_unparseable_time_column_raises(tmp_path):
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+def test_loop_placeholder_read_as_nan_and_zero_kept(tmp_path):
+    """TRSET-53: '--' in loop_cob reads back as NaN, numeric dtype; real 0 survives."""
+    df = _base_frame()
+    df["loop_cob"] = ["--", "0.0", "12.5"]
+    path = tmp_path / "sim.tsv"
+    _write_tsv(df, path)
+    trace = read_trace(str(path))
+    assert pd.api.types.is_float_dtype(trace.loop_cob)
+    assert trace.loop_cob.iloc[0] != trace.loop_cob.iloc[0]  # NaN
+    assert trace.loop_cob.iloc[1] == 0.0
+    assert trace.loop_cob.iloc[2] == 12.5
