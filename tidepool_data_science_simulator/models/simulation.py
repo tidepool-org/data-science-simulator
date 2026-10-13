@@ -258,6 +258,9 @@ class Simulation(multiprocessing.Process):
             pump_cir = None
             delivered_basal_insulin = None
             undelivered_basal_insulin = None
+            reported_bolus = None
+            reported_carb_value = None
+            reported_carb_duration = None
             if pump_state is not None:
                 temp_basal_value = pump_state.get_temp_basal_rate_value(
                     default=None
@@ -270,7 +273,10 @@ class Simulation(multiprocessing.Process):
                 pump_cir = pump_state.get_scheduled_carb_insulin_ratio_value()
                 delivered_basal_insulin = pump_state.delivered_basal_insulin
                 undelivered_basal_insulin = pump_state.undelivered_basal_insulin
-            
+                reported_bolus = pump_state.get_bolus_value()
+                reported_carb_value = pump_state.get_carb_value()
+                reported_carb_duration = pump_state.get_carb_duration()
+
             # Loop output - handle Swift Loop API format
             # Swift Loop returns: {'automatic': {'bolusUnits': X, 'basalAdjustment': {...}}, 'manual': {'amount': Y}}
             loop_cob = None
@@ -377,9 +383,9 @@ class Simulation(multiprocessing.Process):
                 "true_bolus": patient_state.get_bolus_value(),
                 "true_carb_value": patient_state.get_carb_value(),
                 "true_carb_duration": patient_state.get_carb_duration(),
-                "reported_bolus": pump_state.get_bolus_value(),
-                "reported_carb_value": pump_state.get_carb_value(),
-                "reported_carb_duration": pump_state.get_carb_duration(),
+                "reported_bolus": reported_bolus,
+                "reported_carb_value": reported_carb_value,
+                "reported_carb_duration": reported_carb_duration,
                 "delivered_basal_insulin": delivered_basal_insulin,
                 "undelivered_basal_insulin": undelivered_basal_insulin,
                 "randint": simulation_state.randint,
