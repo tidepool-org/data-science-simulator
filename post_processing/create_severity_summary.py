@@ -382,8 +382,13 @@ def _find_tlr_dirs(results_dir):
     )
 
 
-def process_results_directory(results_dir):
+def process_results_directory(results_dir, failed_tlrs=None):
     """Build each TLR directory's assessment and write its RTF; return a SummaryResult.
+
+    failed_tlrs maps a TLR directory name to the number of its scenarios that failed.
+    Each such TLR is skipped, with the reason "incomplete TLR: N failed", because a
+    severity summary built from an incomplete TLR can be misleading. TLRs not in the
+    mapping are processed as usual.
 
     Raises SeveritySummaryError if the directory cannot be summarized at all --
     unreadable/undated metadata.json, or no TLR-* subdirectory. A single TLR
@@ -402,8 +407,17 @@ def process_results_directory(results_dir):
     print(f"Found {len(tlr_dirs)} TLR subdirectories")
     result = SummaryResult()
 
+    failed_tlrs = failed_tlrs or {}
+
     for tlr_dir in tlr_dirs:
         print(f"\nProcessing: {tlr_dir}")
+
+        n_failed = failed_tlrs.get(os.path.basename(tlr_dir))
+        if n_failed:
+            reason = f"incomplete TLR: {n_failed} failed"
+            print(f"  Skipped: {reason}")
+            result.skipped.append((tlr_dir, reason))
+            continue
 
         outcome = build_assessment_result(tlr_dir, timestamp)
         assessment = outcome.assessment
