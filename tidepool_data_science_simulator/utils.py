@@ -119,7 +119,42 @@ def timing(f):
     return wrap
 
 
-def save_df(df_results, analysis_name, save_dir, save_type="tsv"):
+# Per-step columns that are blank when nothing was recorded (TRSET-53).
+EVENT_COLUMNS = [
+    "true_bolus", "true_carb_value", "true_carb_duration",
+    "reported_bolus", "reported_carb_value", "reported_carb_duration",
+]
+LOOP_COLUMNS = [
+    "loop_final_insulin_effect", "loop_final_carb_effect",
+    "loop_final_counteraction_effect", "loop_final_momentum_effect",
+    "loop_final_rc_effect", "loop_recommended_bolus_value", "loop_cob",
+    "loop_automatic_bolus_rec", "loop_manual_bolus_rec",
+    "loop_recommended_temp_basal_value", "loop_temp_basal_duration_sec",
+    "loop_final_glucose_pred",
+]
+# Written where nothing was recorded, so "no value" differs from a real 0.
+LOOP_PLACEHOLDER = "--"
+
+
+def format_results_for_file(df_results):
+    """Return a copy of per-step results with active-row blanks filled for file output.
+
+    Blanks in the event and Loop columns become LOOP_PLACEHOLDER, so "nothing
+    recorded" is never written as 0 (a real 0 is kept as is). Pre-sim rows
+    (active == 0) stay blank. The input is not mutated.
+    """
+    out = df_results.copy()
+    active = (out["active"] == 1).to_numpy()[:, None]
+    present = [c for c in EVENT_COLUMNS + LOOP_COLUMNS if c in out.columns]
+    block = out[present].astype(object)
+    out[present] = block.where(~(active & block.isna()), LOOP_PLACEHOLDER)
+    return out
+
+
+def save_df(df_results, analysis_name, save_dir, save_type="tsv", format_for_file=False):
+    """Write a dataframe to TSV/CSV; format_for_file=True applies the per-step fill."""
+    if format_for_file:
+        df_results = format_results_for_file(df_results)
     utc_string = dt.datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S")
     filename = "{}".format(analysis_name, utc_string)
     path = os.path.join(save_dir, filename)

@@ -149,7 +149,7 @@ def run_simulations(sims, save_dir,
                 logger.debug("Final Random Int: {}".format(results_df.iloc[-1]["randint"]))
 
                 if save_results:
-                    save_df(results_df, sim_id, save_dir)
+                    save_df(results_df, sim_id, save_dir, format_for_file=True)
 
                 full_results[sim_id] = results_df
 

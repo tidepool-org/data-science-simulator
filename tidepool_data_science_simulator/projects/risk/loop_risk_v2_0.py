@@ -101,6 +101,36 @@ def get_timestamp():
     return datetime.datetime.now().isoformat()
 
 
+def write_run_summary(all_risk_results, run_save_dir, risk_run_metadata):
+    """
+    Write one Risk_Results_<timestamp>.csv and one metadata.json for a run.
+
+    The CSV filename and the metadata timestamp share a single get_timestamp() call.
+    A failed concat or save is logged and raised; the CSV is written before
+    metadata.json so a failure never leaves metadata.json without its results.
+
+    :return: path of the CSV written
+    """
+    try:
+        all_risk_results_df = pd.concat(all_risk_results)
+        print(f"Final dataframe shape: {all_risk_results_df.shape}")
+
+        timestamp = get_timestamp()
+        risk_run_metadata["timestamp"] = timestamp
+
+        csv_path = os.path.join(run_save_dir, "Risk_Results_{}.csv".format(timestamp))
+        all_risk_results_df.to_csv(csv_path)
+        print("Results saved to CSV")
+
+        with open(os.path.join(run_save_dir, "metadata.json"), "w") as metadata_file:
+            json.dump(risk_run_metadata, metadata_file, indent=4)
+    except Exception:
+        logging.exception("Failed to write run summary to %s", run_save_dir)
+        raise
+
+    return csv_path
+
+
 if __name__ == "__main__":
     # Create place to save results
     run_save_dir = create_save_dir()
@@ -163,34 +193,9 @@ if __name__ == "__main__":
         dummy_df = pd.DataFrame({'dummy': [1]})
         all_risk_results.append(dummy_df)
 
-    try:
-        all_risk_results_df = pd.concat(all_risk_results)
-        print(f"Final dataframe shape: {all_risk_results_df.shape}")
-    except Exception as e:
-        print(f"Error concatenating results: {str(e)}")
-
-    # Add high-level metadata
-    risk_run_metadata["timestamp"] = get_timestamp()
-
-    # Save the summaries
-    try:
-        all_risk_results_df.to_csv(os.path.join(run_save_dir, "Risk_Results_{}.csv".format(get_timestamp())))
-        print("Results saved to CSV")
-    except Exception as e:
-        print(f"Error saving results to CSV: {str(e)}")
-
-    json.dump(risk_run_metadata, open(os.path.join(run_save_dir, "metadata.json"), "w"), indent=4)
-
-    all_risk_results_df = pd.concat(all_risk_results)
-
-    # Add high-level metadata
     # simulator_git_commit = subprocess.check_output(["git", "describe"]).strip()
     # risk_run_metadata["simulator_git_commit"] = simulator_git_commit
-    risk_run_metadata["timestamp"] = get_timestamp()
-
-    # Save the summaries
-    all_risk_results_df.to_csv(os.path.join(run_save_dir, "Risk_Results_{}.csv".format(get_timestamp())))
-    json.dump(risk_run_metadata, open(os.path.join(run_save_dir, "metadata.json"), "w"), indent=4)
+    write_run_summary(all_risk_results, run_save_dir, risk_run_metadata)
 
     # Write the RTF severity summaries, as the GUI run does. post_processing/ is not
     # part of the installed package, so it is put on sys.path here. A failure is

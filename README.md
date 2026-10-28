@@ -126,3 +126,29 @@ NOTE: PHI data is never stored in github and the .gitignore file includes this r
 |[Cameron Summers](https://github.com/[scaubrey]) |
 |[Anna Quinlan](https://github.com/[novalegra]) |
 |[Eden Grown-Haeberli](https://github.com/[edengh])  |
+
+## Results TSV: blank per-step cells are filled on write (TRSET-53)
+
+**Change type:** Bugfix (breaking for readers of per-step TSV/CSV files). **Regression risk:** Medium.
+
+When `run_simulations(save_results=True)` writes `<sim_id>.tsv`, blank cells on active rows (`active == 1`) are
+filled so none are empty. Both the six event columns (`true_*`, `reported_*` bolus/carb value/duration) and the twelve `loop_*` columns
+get `--` ("nothing recorded": no event, or Loop produced no value: did not run, no prediction, or extraction
+failed). A real `0` or `0.0` is kept as is, so "nothing recorded" is never confused with a recorded zero. Pre-sim rows (`active == 0`) stay
+blank. `Simulation.get_results_df()` is unchanged: it still returns NaN/None.
+
+```python
+from tidepool_data_science_simulator.utils import format_results_for_file, save_df
+save_df(results_df, sim_id, save_dir, format_for_file=True)   # what run.py does
+filled = format_results_for_file(results_df)                   # returns a copy
+```
+
+**Validation:** unit tests (`tests/test_tsv_zero_fill.py`) cover all 18 columns, real zeros, pre-sim rows, failed
+extraction, non-mutation and the no-fill default; an integration test writes and re-reads a Loop and a non-Loop
+stage. Full suite matches the `main` baseline (6 pre-existing `openpyxl` failures, 3 xfailed).
+
+**Cautions:** an extraction error also writes `--` (the logged warning is the record). Only `run.py` applies the
+fill; other `save_df()` callers and non-per-step tables are untouched.
+
+**Migration:** all 18 columns read back as text. Use `pd.to_numeric(df[col], errors="coerce")`.
+`trace.read_trace()` already maps `--` to NaN. Blank-as-"no event" checks on the event columns should test for `--`.
