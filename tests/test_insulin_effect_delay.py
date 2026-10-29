@@ -2,12 +2,16 @@ from functools import partial
 
 import numpy as np
 from numpy.random import RandomState
+from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
 
 from tidepool_data_science_simulator.models.simulation import Simulation
 from tidepool_data_science_simulator.makedata.make_controller import get_canonical_controller_config
-from tidepool_data_science_simulator.models.controller import LoopController
+from tidepool_data_science_simulator.makedata.make_patient import (
+    get_canonical_risk_patient_config, get_canonical_risk_pump_config, get_canonical_sensor_config)
+from tidepool_data_science_simulator.models.controller import DoNothingController
+from tidepool_data_science_simulator.models.events import BolusTimeline
+from tidepool_data_science_simulator.models.measures import Bolus
 from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
-from tidepool_data_science_simulator.makedata.scenario_parser import ScenarioParserCSV
 from tidepool_data_science_simulator.models.patient import VirtualPatient
 from tidepool_data_science_simulator.models.sensor import IdealSensor
 from tidepool_data_science_simulator.models.insulin_effect_delay import (
@@ -48,21 +52,33 @@ def test_timing_factor():
     assert abs(halfway[1] / halfway[0] - 1.2) < 0.01
 
 
-def test_simulation_runs():
+def run_bolus_sim(metabolism_model):
 
-    sim_parser = ScenarioParserCSV("tests/test_data/Scenario-0-simulation-template - inputs.tsv")
-    t0 = sim_parser.get_simulation_start_time()
+    t0, patient_config = get_canonical_risk_patient_config(start_glucose_value=250)
+    _, sensor_config = get_canonical_sensor_config(start_value=250)
+    _, controller_config = get_canonical_controller_config()
+    _, pump_config = get_canonical_risk_pump_config()
+    patient_config.bolus_event_timeline = BolusTimeline(datetimes=[t0], events=[Bolus(1.0, "U")])
+    pump_config.bolus_event_timeline = BolusTimeline(datetimes=[t0], events=[Bolus(1.0, "U")])
+
     vp = VirtualPatient(
         time=t0,
-        pump=ContinuousInsulinPump(time=t0, pump_config=sim_parser.get_pump_config()),
-        sensor=IdealSensor(time=t0, sensor_config=sim_parser.get_sensor_config()),
-        metabolism_model=partial(EffectDelayMetabolismModel, timing_factor=1.2, tau3=ACTION_DELAY_BY_SPREAD[0.26]),
-        patient_config=sim_parser.get_patient_config(),
+        pump=ContinuousInsulinPump(pump_config, t0),
+        sensor=IdealSensor(t0, sensor_config),
+        metabolism_model=metabolism_model,
+        patient_config=patient_config,
     )
-    _, controller_config = get_canonical_controller_config()
-    controller = LoopController(time=t0, controller_config=controller_config)
+    sim = Simulation(time=t0, duration_hrs=2.0, virtual_patient=vp,
+                     controller=DoNothingController(t0, controller_config), sim_id="Test Sim")
+    sim.run()
+    return vp, sim.get_results_df()["bg"].to_numpy()
 
-    Simulation(time=t0, duration_hrs=2.0, virtual_patient=vp, controller=controller, sim_id="Test Sim").run()
 
-    assert np.isfinite(vp.bg_current)
+def test_simulation_runs():
+
+    vp, bg_new = run_bolus_sim(partial(EffectDelayMetabolismModel, timing_factor=1.2, tau3=ACTION_DELAY_BY_SPREAD[0.26]))
+    _, bg_palerm = run_bolus_sim(SimpleMetabolismModel)
+
+    assert np.all(np.isfinite(bg_new))
     assert vp.instantiate_metabolism_model().insulin_model._timing_factor == 1.2
+    assert bg_new[-1] > bg_palerm[-1]  # delayed curve has lowered glucose less by 2 h
