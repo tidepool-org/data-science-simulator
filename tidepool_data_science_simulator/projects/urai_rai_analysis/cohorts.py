@@ -1,4 +1,8 @@
-"""Cohort filtering and sampling (TRSET-74). Cohorts are filtered from the full pool and sampled independently."""
+"""Cohort filtering and sampling (TRSET-74, TRSET-77).
+
+Cohorts are filtered from the eligible pool and sampled independently. Each cohort has a seeded ordering of its eligible
+patients; the first n are the cohort and the rest are the replacement candidates, in order.
+"""
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -11,8 +15,8 @@ from tidepool_data_science_simulator.projects.urai_rai_analysis.config import Co
 
 logger = logging.getLogger(__name__)
 
-AGE_BANDS = ((18, "<18"), (55, "18-54"))
-AGE_BAND_OLDEST = "55+"
+AGE_BANDS = ((18, "<18"), (60, "18-59"))
+AGE_BAND_OLDEST = "60+"
 
 
 def derive_seed(master_seed: int, *parts: str) -> int:
@@ -38,11 +42,6 @@ class CohortDraw:
     shortfall_note: Optional[str]
 
 
-def eligible_pool(table: pd.DataFrame, min_age: float) -> pd.DataFrame:
-    """Drop patients younger than the age floor. Done before any cohort filter."""
-    return table[table["age"] >= min_age]
-
-
 def apply_filter(table: pd.DataFrame, spec: CohortSpec) -> pd.DataFrame:
     """Rows of ``table`` matching the cohort filter (vectorised)."""
     mask = pd.Series(True, index=table.index)
@@ -58,16 +57,26 @@ def apply_filter(table: pd.DataFrame, spec: CohortSpec) -> pd.DataFrame:
     return table[mask]
 
 
+def cohort_order(table: pd.DataFrame, spec: CohortSpec, master_seed: int) -> List[str]:
+    """The cohort's eligible patients in seeded order (seed derived from the run seed and the cohort name).
+
+    ``table`` holds eligible patients only. The same table, spec and seed always give the same order.
+    """
+    ids = sorted(apply_filter(table, spec)["patient_id"])
+    seed = derive_seed(master_seed, "cohort", spec.name)
+    logger.info("Cohort %s: %d eligible, ordering seed %d", spec.name, len(ids), seed)
+    return np.random.default_rng(seed).permutation(np.array(ids, dtype=object)).tolist() if ids else []
+
+
 def draw_cohort(table: pd.DataFrame, spec: CohortSpec, config: RunConfig) -> CohortDraw:
-    """Sample one cohort from the eligible pool.
+    """Draw one cohort: the first n patients of its seeded order.
 
     Raises
     ------
     ValueError
         If fewer than ``spec.n`` patients are eligible and the config does not accept a smaller group.
     """
-    eligible = apply_filter(eligible_pool(table, config.min_age), spec)
-    ids = sorted(eligible["patient_id"])
+    ids = cohort_order(table, spec, config.master_seed)
     note = None
     n = spec.n
     if len(ids) < n:
@@ -76,6 +85,4 @@ def draw_cohort(table: pd.DataFrame, spec: CohortSpec, config: RunConfig) -> Coh
             raise ValueError(note + " (set accept_smaller_group to allow)")
         logger.warning("Accepted shortfall: %s", note)
         n = len(ids)
-    rng = np.random.default_rng(derive_seed(config.master_seed, "cohort", spec.name))
-    chosen = sorted(rng.choice(ids, size=n, replace=False).tolist()) if n else []
-    return CohortDraw(spec=spec, patient_ids=chosen, eligible=len(ids), shortfall_note=note)
+    return CohortDraw(spec=spec, patient_ids=ids[:n], eligible=len(ids), shortfall_note=note)

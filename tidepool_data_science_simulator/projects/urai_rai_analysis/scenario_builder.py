@@ -23,9 +23,10 @@ def glucose_pointer(run_name: str, patient_id: str) -> str:
 def glucose_seed_rows(record: PatientRecord, config: RunConfig) -> List[Dict[str, str]]:
     """Rows (datetime, value, units) of the glucose seed.
 
-    Selection rule: the first ``glucose_seed_points`` values of the patient's ``actual_blood_glucose`` row, in
-    column order, assigned in order to a 5-minute grid starting at ``glucose_seed_start``. Values keep their source
-    text (no rounding or reformatting).
+    Selection rule (TRSET-77): the first run of ``glucose_seed_points`` consecutive values of the patient's
+    ``actual_blood_glucose`` row with none missing, read positionally (see ``patient_pool.find_glucose_seed``) and
+    assigned in order to a 5-minute grid starting at ``glucose_seed_start``. Values keep their source text (no
+    rounding or reformatting).
     """
     start = datetime.datetime.strptime(config.glucose_seed_start, DATETIME_FORMAT)
     step = datetime.timedelta(minutes=config.glucose_interval_min)
@@ -43,18 +44,18 @@ def _entries(meals) -> List[Dict[str, Any]]:
     ]
 
 
-def controller_settings(record: PatientRecord, config: RunConfig, arm: str) -> Dict[str, Any]:
-    """Controller settings override for an arm."""
+def controller_settings(record: PatientRecord, config: RunConfig, arm: str, max_bolus: float) -> Dict[str, Any]:
+    """Controller settings override for an arm. ``max_bolus`` is the patient's value (identical in both arms)."""
     return {
         "suspend_threshold": record.suspend_threshold,
         "partial_application_factor": config.partial_application_factor,
-        "max_bolus": config.max_bolus,
+        "max_bolus": max_bolus,
         "model": ARM_INSULIN_MODEL[arm],
     }
 
 
 def build_scenario(record: PatientRecord, config: RunConfig, arm: str, cohort_name: str, meals: List[Meal],
-                   announced: bool) -> Dict[str, Any]:
+                   announced: bool, max_bolus: float) -> Dict[str, Any]:
     """Build one scenario config (base pointer plus a single override) for an arm.
 
     Every key overridden already exists in the base config, so no override adds a new key.
@@ -104,6 +105,6 @@ def build_scenario(record: PatientRecord, config: RunConfig, arm: str, cohort_na
             "time_to_calculate_at": config.run_start,
             "duration_hours": config.duration_hours,
             "patient": {"sensor": {"glucose_history": pointer}, "pump": pump, "patient_model": patient_model},
-            "controller": {"settings": controller_settings(record, config, arm)},
+            "controller": {"settings": controller_settings(record, config, arm, max_bolus)},
         }],
     }

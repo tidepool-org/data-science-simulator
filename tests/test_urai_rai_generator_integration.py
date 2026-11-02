@@ -1,4 +1,5 @@
-"""Integration test for the TRSET-74 URAI-RAI scenario generator.
+"""Integration test for the TRSET-74 URAI-RAI scenario generator (updated for TRSET-77: 8 DAP cohorts, E1-E6
+eligibility, per-patient max bolus, one TLR-000_<patient> folder per patient).
 
 Runs the real generator against the real virtual-patient pool (path from ``URAI_RAI_PATIENT_POOL``), loads every
 output through the real ``ScenarioParserV2``, and runs URAI/RAI pairs through the real Swift Loop controller. Nothing
@@ -16,9 +17,10 @@ import os
 import pandas as pd
 import pytest
 
-from urai_rai_support import load_sim, make_scenario_root
+from urai_rai_support import config_dict, load_sim, make_scenario_root
+from tidepool_data_science_simulator.projects.urai_rai_analysis.config import parse_run_config
+from tidepool_data_science_simulator.projects.urai_rai_analysis.eligibility import eligible_table, evaluate_pool
 from tidepool_data_science_simulator.projects.urai_rai_analysis.generate import generate_run
-from tidepool_data_science_simulator.projects.urai_rai_analysis.patient_pool import scan_pool
 
 try:
     import loop_to_python_api.api  # noqa: F401
@@ -37,10 +39,13 @@ INSULIN = {"urai": "fiasp", "rai": "rapid_acting_adult"}
 # ---- fixtures ----------------------------------------------------------------------------------------------
 
 def _hash_tree(path):
+    """SHA-256 of every file under ``path``, keyed by its path relative to ``path``."""
     digest = {}
-    for name in sorted(os.listdir(path)):
-        with open(os.path.join(path, name), "rb") as f:
-            digest[name] = hashlib.sha256(f.read()).hexdigest()
+    for folder, _, names in sorted(os.walk(path)):
+        for name in sorted(names):
+            full = os.path.join(folder, name)
+            with open(full, "rb") as f:
+                digest[os.path.relpath(full, path)] = hashlib.sha256(f.read()).hexdigest()
     return digest
 
 
@@ -59,9 +64,22 @@ def pool_hash_before(pool_dir):
     return _hash_tree(pool_dir)
 
 
+COHORTS = [
+    {"name": "pediatric_unannounced", "filter": {"age_min": 6, "age_max": 18}, "announced": False},
+    {"name": "adult_unannounced", "filter": {"age_min": 18, "age_max": 60}, "announced": False},
+    {"name": "older_adult_unannounced", "filter": {"age_min": 60}, "announced": False},
+    {"name": "pediatric_announced", "filter": {"age_min": 6, "age_max": 18}},
+    {"name": "adult_announced", "filter": {"age_min": 18, "age_max": 60}},
+    {"name": "older_adult_announced", "filter": {"age_min": 60}},
+    {"name": "isf_high", "filter": {"isf_min": 100}},
+    {"name": "isf_low", "filter": {"isf_max": 25}},
+]
+
+
 @pytest.fixture(scope="module")
 def pool_table(pool_dir):
-    return scan_pool(pool_dir)
+    """The eligible patients of the real pool (E1-E6 applied), as the generator sees them."""
+    return eligible_table(evaluate_pool(pool_dir, parse_run_config(config_dict(COHORTS))))
 
 
 @pytest.fixture(scope="module")
@@ -70,19 +88,11 @@ def run_config(pool_table):
     isf_sorted = sorted(pool_table["isf"], reverse=True)
     short_cutoff = isf_sorted[2]                                   # at least 3 eligible, usually exactly 3
     eligible = int((pool_table["isf"] >= short_cutoff).sum())
-    return {
-        "run_name": "it_run", "master_seed": 74, "default_n": N, "accept_smaller_group": True,
-        "cohorts": [
-            {"name": "pediatric", "filter": {"age_min": 6, "age_max": 18}},
-            {"name": "adult", "filter": {"age_min": 18, "age_max": 55}},
-            {"name": "older_adult", "filter": {"age_min": 55}},
-            {"name": "isf_high", "filter": {"isf_min": 100}},
-            {"name": "isf_low", "filter": {"isf_max": 25}},
-            {"name": "unannounced_meals", "filter": {}, "announced": False},
-            {"name": "isf_short", "filter": {"isf_min": short_cutoff}, "n": eligible + 2},
-        ],
-        "_eligible_short": eligible,
-    }
+    cfg = config_dict(COHORTS + [{"name": "isf_short", "filter": {"isf_min": short_cutoff}, "n": eligible + 2}],
+                      run_name="it_run", master_seed=74, default_n=N, accept_smaller_group=True,
+                      default_suspend_threshold=67)
+    cfg["_eligible_short"] = eligible
+    return cfg
 
 
 def _clean(cfg):
@@ -116,8 +126,15 @@ def manifest(run_a):
                        keep_default_na=False)
 
 
+def _path(run, file_name):
+    """Path of a scenario file, found through the run's manifest (files sit in per-patient folders)."""
+    manifest = run[1].manifest
+    patient_id = manifest.loc[manifest["file_name"] == file_name, "patient_id"].iloc[0]
+    return run[1].scenario_path(patient_id, file_name)
+
+
 def _scenario(run, file_name):
-    return json.load(open(os.path.join(run[1].scenario_dir, file_name)))["override_config"][0]
+    return json.load(open(_path(run, file_name)))["override_config"][0]
 
 
 def _meals(row):
@@ -135,12 +152,14 @@ def test_it1_pool_unchanged_and_no_patient_under_6(pool_dir, pool_hash_before, r
 # ---- IT-2: cohorts ------------------------------------------------------------------------------------------
 
 COHORT_RULES = {
-    "pediatric": lambda r: 6 <= r.age < 18,
-    "adult": lambda r: 18 <= r.age < 55,
-    "older_adult": lambda r: r.age >= 55,
+    "pediatric_unannounced": lambda r: 6 <= r.age < 18,
+    "adult_unannounced": lambda r: 18 <= r.age < 60,
+    "older_adult_unannounced": lambda r: r.age >= 60,
+    "pediatric_announced": lambda r: 6 <= r.age < 18,
+    "adult_announced": lambda r: 18 <= r.age < 60,
+    "older_adult_announced": lambda r: r.age >= 60,
     "isf_high": lambda r: r.isf >= 100,
     "isf_low": lambda r: r.isf <= 25,
-    "unannounced_meals": lambda r: True,
 }
 
 
@@ -194,7 +213,9 @@ def test_it4_controller_and_patient_settings(manifest, run_a):
     for _, row in manifest.iterrows():
         o = _scenario(run_a, row["file_name"])
         settings = o["controller"]["settings"]
-        assert settings["partial_application_factor"] == 0.4 and settings["max_bolus"] == 20
+        assert settings["partial_application_factor"] == 0.4
+        assert settings["max_bolus"] == row["max_bolus_u"] and 0 < row["max_bolus_u"] <= 30   # per patient, never 20
+        assert abs(row["max_bolus_u"] * 20 - round(row["max_bolus_u"] * 20)) < 1e-9          # on the 0.05 U grid
         assert settings["suspend_threshold"] == json.loads(row["controller_settings"])["suspend_threshold"]
         pump, patient = o["patient"]["pump"]["metabolism_settings"], o["patient"]["patient_model"]["metabolism_settings"]
         for key in ("basal_rate", "carb_insulin_ratio", "insulin_sensitivity_factor"):
@@ -240,7 +261,7 @@ def test_it7_announcement(manifest, run_a):
     for _, row in manifest.iterrows():
         o = _scenario(run_a, row["file_name"])["patient"]
         meals = _meals(row)
-        if row["cohort"] == "unannounced_meals":
+        if row["cohort"].endswith("_unannounced"):
             assert not row["meals_announced"]
             assert o["pump"]["carb_entries"] == [] and o["patient_model"]["bolus_entries"] == []
         else:
@@ -256,32 +277,32 @@ def test_it7_announcement(manifest, run_a):
 
 def test_it8_every_file_loads_through_the_parser(manifest, run_a):
     root, result = run_a
-    assert os.path.isfile(os.path.join(result.run_dir, "run_config.json"))
-    assert os.path.isfile(result.manifest_path)
+    for name in ("run_config.json", "manifest.csv", "exclusions.csv", "eligible_pool.csv"):
+        assert os.path.isfile(os.path.join(result.run_dir, name))
+    # the risk runner's discovery: TLR-* folders one level below the run folder, each holding only scenario JSONs
+    patient_dirs = [d for d in os.listdir(result.run_dir) if os.path.isdir(os.path.join(result.run_dir, d))
+                    and "TLR-" in d]
+    assert sorted(patient_dirs) == sorted("TLR-000_" + p for p in manifest["patient_id"].unique())
+    for d in patient_dirs:
+        assert all(f.startswith("Simulation-Configuration-TLR-") and f.endswith(".json")
+                   for f in os.listdir(os.path.join(result.run_dir, d)))
     files = list(manifest["file_name"])
     for name in files:
-        sim = load_sim(os.path.join(result.scenario_dir, name), root)   # raises if any override fails to apply
+        sim = load_sim(_path(run_a, name), root)                          # raises if any override fails to apply
         row = manifest[manifest["file_name"] == name].iloc[0]
         assert sim.virtual_patient.patient_config.patient_insulin_type == INSULIN[row["arm"]]
 
 
 # ---- IT-9: reproducibility ------------------------------------------------------------------------------
 
-def _compare_dirs(a, b, names):
-    for name in names:
-        assert filecmp.cmp(os.path.join(a, name), os.path.join(b, name), shallow=False), name
-
-
 def test_it9_same_config_and_seed_give_identical_bytes(run_a, run_b):
-    for key in ("scenario_dir", "glucose_dir"):
-        a, b = getattr(run_a[1], key), getattr(run_b[1], key)
-        assert sorted(os.listdir(a)) == sorted(os.listdir(b))
-        _compare_dirs(a, b, os.listdir(a))
+    for key in ("run_dir", "glucose_dir"):
+        assert _hash_tree(getattr(run_a[1], key)) == _hash_tree(getattr(run_b[1], key))
 
 
 def test_it9_adding_a_cohort_leaves_existing_draws_unchanged(run_a, run_c, manifest):
-    names = list(manifest["file_name"])
-    _compare_dirs(run_a[1].scenario_dir, run_c[1].scenario_dir, names)
+    for name in manifest["file_name"]:
+        assert filecmp.cmp(_path(run_a, name), _path(run_c, name), shallow=False), name
     extra = run_c[1].manifest
     assert (extra["cohort"] == "extra_cohort").any()
 
@@ -298,9 +319,10 @@ def test_it9_missing_master_seed_is_an_error(run_config, pool_dir, tmp_path):
 def test_it10_manifest_columns_and_join(manifest, run_a):
     expected = ["file_name", "patient_id", "cohort", "also_in_cohorts", "pair_id", "arm", "insulin_model",
                 "meals_announced", "age_band", "age", "isf", "derived_seed", "meal_schedule", "has_seconds_pair",
-                "controller_settings", "shortfall_note"]
+                "controller_settings", "shortfall_note", "default_suspend", "max_bolus_mode", "tdd_estimate_u",
+                "max_bolus_u", "max_bolus_clamped", "meal80_fits"]
     assert list(manifest.columns) == expected
-    on_disk = sorted(f for f in os.listdir(run_a[1].scenario_dir) if f.startswith("Simulation-Configuration"))
+    on_disk = sorted(f for d in run_a[1].patient_dirs() for f in os.listdir(d))
     assert sorted(manifest["file_name"]) == on_disk and manifest["file_name"].is_unique
     per_pair = manifest.groupby("pair_id")["derived_seed"].nunique()
     assert (per_pair == 1).all()                                       # both arms share the draw's seed
@@ -337,7 +359,7 @@ def test_it11_real_patient_values_pass_through_exactly(manifest, run_a, pool_dir
         assert t["lower_values"] == [float(v) for v in raw["target_range_minimum_values"]]
         assert t["upper_values"] == [float(v) for v in raw["target_range_maximum_values"]]
 
-        sim = load_sim(os.path.join(result.scenario_dir, row["file_name"]), root)
+        sim = load_sim(_path(run_a, row["file_name"]), root)
         vp = sim.virtual_patient
         expected = list(zip([datetime.datetime.strptime(d, FMT) for d in seed["datetime"]],
                             [float(v) for v in seed["value"]]))
@@ -362,13 +384,14 @@ def _first_early_meal_pair(manifest, cohort_filter):
 @pytest.mark.parametrize("announced", [True, False], ids=["announced", "unannounced"])
 def test_it12_pair_runs_end_to_end_through_swift(announced, manifest, run_a, tmp_path):
     root, result = run_a
-    is_cohort = (lambda m: m["cohort"] != "unannounced_meals") if announced else (lambda m: m["cohort"] == "unannounced_meals")
+    is_cohort = (lambda m: ~m["cohort"].str.endswith("_unannounced")) if announced else (
+        lambda m: m["cohort"].str.endswith("_unannounced"))
     pair_id, (meal_time, carbs, absorption) = _first_early_meal_pair(manifest, is_cohort)
     pair = manifest[manifest["pair_id"] == pair_id]
 
     frames = {}
     for _, row in pair.iterrows():
-        sim = load_sim(os.path.join(result.scenario_dir, row["file_name"]), root)
+        sim = load_sim(_path(run_a, row["file_name"]), root)
         sim.controller.loop_algo_io_dir = str(tmp_path)               # keep loop_algo_*.json out of the repo
         sim.run(early_stop_datetime=sim.start_time + datetime.timedelta(hours=SWIFT_HOURS))
         frames[row["arm"]] = sim.get_results_df()
@@ -388,3 +411,15 @@ def test_it12_pair_runs_end_to_end_through_swift(announced, manifest, run_a, tmp
             assert df["reported_carb_value"].isna().all()               # the pump never learns of the meal
     # the arms differ only through insulin model, so their results must differ
     assert not frames["urai"]["bg"].equals(frames["rai"]["bg"])
+
+
+# ---- IT-13: eligibility records and the flow counts ---------------------------------------------------------
+
+def test_it13_exclusions_and_eligible_pool_account_for_every_pool_file(run_a, manifest, pool_dir):
+    result = run_a[1]
+    n_files = len([f for f in os.listdir(pool_dir) if f.endswith(".csv")])
+    assert len(result.eligible_pool) + len(result.exclusions) == n_files
+    assert set(result.exclusions["rule"]) <= {"E1", "E2", "E3", "E4", "E5", "E6"}
+    assert not set(manifest["patient_id"]) & set(result.exclusions["patient_id"])      # excluded patients are never drawn
+    assert set(manifest["patient_id"]) <= set(result.eligible_pool["patient_id"])
+    assert (result.eligible_pool["max_bolus_u"] <= 30).all()

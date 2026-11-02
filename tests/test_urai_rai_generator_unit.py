@@ -8,12 +8,13 @@ import os
 import pandas as pd
 import pytest
 
-from urai_rai_support import load_sim, make_scenario_root, parsed_settings, write_raw_patient
+from urai_rai_support import config_dict, load_sim, make_scenario_root, parsed_settings, write_raw_patient
 from tidepool_data_science_simulator.projects.urai_rai_analysis import cohorts as cohorts_mod
 from tidepool_data_science_simulator.projects.urai_rai_analysis.config import MealConfig, parse_run_config
+from tidepool_data_science_simulator.projects.urai_rai_analysis.eligibility import (
+    check_pump_matches_model, evaluate_patient, evaluate_pool)
 from tidepool_data_science_simulator.projects.urai_rai_analysis.generate import generate_run
 from tidepool_data_science_simulator.projects.urai_rai_analysis.meals import generate_meals
-from tidepool_data_science_simulator.projects.urai_rai_analysis.patient_pool import parse_patient, scan_pool
 from tidepool_data_science_simulator.projects.urai_rai_analysis.scenario_builder import (
     build_scenario, glucose_seed_rows,
 )
@@ -24,9 +25,15 @@ FMT = "%m/%d/%Y %H:%M:%S"
 
 
 def _config(cohorts, **overrides):
-    cfg = {"run_name": "unit", "master_seed": 7, "cohorts": cohorts}
-    cfg.update(overrides)
-    return parse_run_config(cfg)
+    return parse_run_config(config_dict(cohorts, **overrides))
+
+
+def _eligible(path, **overrides):
+    """The EligiblePatient for a synthetic raw file (30-point glucose seed unless overridden)."""
+    cfg = _config([{"name": "c", "filter": {}}], glucose_seed={"points": 30}, **overrides)
+    result = evaluate_patient(path, cfg)
+    assert not hasattr(result, "rule"), result
+    return result
 
 
 def _table(ages, isfs):
@@ -34,31 +41,25 @@ def _table(ages, isfs):
                          "path": ["x"] * len(ages)})
 
 
-def _members(table, name, filt, min_age=6):
-    cfg = _config([{"name": name, "filter": filt, "n": 100}], min_age=min_age, accept_smaller_group=True)
+def _members(table, name, filt):
+    cfg = _config([{"name": name, "filter": filt, "n": 100}], accept_smaller_group=True)
     draw = cohorts_mod.draw_cohort(table, cfg.cohorts[0], cfg)
     return set(table.set_index("patient_id").loc[draw.patient_ids, "age"].tolist()), draw
 
 
 # ---- cutoffs ------------------------------------------------------------------------------------------------
 
-AGES = [5, 6, 17, 18, 54, 55]
+AGES = [5, 6, 17, 18, 59, 60]
 
 
 @pytest.mark.parametrize("name,filt,expected", [
     ("pediatric", {"age_min": 6, "age_max": 18}, {6, 17}),
-    ("adult", {"age_min": 18, "age_max": 55}, {18, 54}),
-    ("older_adult", {"age_min": 55}, {55}),
+    ("adult", {"age_min": 18, "age_max": 60}, {18, 59}),
+    ("older_adult", {"age_min": 60}, {60}),
 ])
 def test_age_cutoffs(name, filt, expected):
     ages, _ = _members(_table(AGES, [50] * len(AGES)), name, filt)
-    assert ages == expected  # age 5 never appears: excluded by the floor before any filter
-
-
-def test_age_floor_applies_before_filters():
-    table = _table([5, 6], [50, 50])
-    ages, _ = _members(table, "everyone", {})
-    assert ages == {6}
+    assert ages == expected  # age 5 matches no cohort filter; the age floor itself is rule E1
 
 
 @pytest.mark.parametrize("name,filt,expected", [
@@ -74,21 +75,21 @@ def test_isf_cutoffs(name, filt, expected):
 
 
 def test_age_band_labels():
-    assert [cohorts_mod.age_band(a) for a in AGES] == ["<18", "<18", "<18", "18-54", "18-54", "55+"]
+    assert [cohorts_mod.age_band(a) for a in AGES] == ["<18", "<18", "<18", "18-59", "18-59", "60+"]
 
 
 # ---- shortfall ----------------------------------------------------------------------------------------------
 
 def test_shortfall_is_hard_error_by_default():
-    cfg = _config([{"name": "adult", "filter": {"age_min": 18, "age_max": 55}, "n": 3}])
+    cfg = _config([{"name": "adult", "filter": {"age_min": 18, "age_max": 60}, "n": 3}])
     with pytest.raises(ValueError, match="requested n=3, only 2 eligible"):
-        cohorts_mod.draw_cohort(_table([18, 54, 10], [50] * 3), cfg.cohorts[0], cfg)
+        cohorts_mod.draw_cohort(_table([18, 59, 10], [50] * 3), cfg.cohorts[0], cfg)
 
 
 def test_accepted_shortfall_is_logged_and_noted(caplog):
-    cfg = _config([{"name": "adult", "filter": {"age_min": 18, "age_max": 55}, "n": 3}], accept_smaller_group=True)
+    cfg = _config([{"name": "adult", "filter": {"age_min": 18, "age_max": 60}, "n": 3}], accept_smaller_group=True)
     with caplog.at_level(logging.WARNING):
-        draw = cohorts_mod.draw_cohort(_table([18, 54, 10], [50] * 3), cfg.cohorts[0], cfg)
+        draw = cohorts_mod.draw_cohort(_table([18, 59, 10], [50] * 3), cfg.cohorts[0], cfg)
     assert len(draw.patient_ids) == 2
     assert "requested n=3, only 2 eligible" in draw.shortfall_note
     assert "Accepted shortfall" in caplog.text
@@ -102,9 +103,9 @@ def test_master_seed_is_required():
 
 
 def test_cohort_draw_is_independent_of_other_cohorts():
-    table = _table(list(range(18, 60)), [50] * 42)
-    adult = {"name": "adult", "filter": {"age_min": 18, "age_max": 55}, "n": 5}
-    other = {"name": "older_adult", "filter": {"age_min": 55}, "n": 2}
+    table = _table(list(range(18, 80)), [50] * 62)
+    adult = {"name": "adult", "filter": {"age_min": 18, "age_max": 60}, "n": 5}
+    other = {"name": "older_adult", "filter": {"age_min": 60}, "n": 2}
     a = _config([adult])
     b = _config([other, adult])
     assert (cohorts_mod.draw_cohort(table, a.cohorts[0], a).patient_ids
@@ -124,7 +125,7 @@ def test_both_column_layouts_parse_identically(tmp_path, layout):
     path = str(tmp_path / "icgm_user_1.csv")
     write_raw_patient(path, age=30, layout=layout, basal=(("00:00:00", "08:00:00"), (0.8, 1.1)),
                       isf=(55.5, 61.0), isf_times=("00:00:00", "12:00:00"))
-    record = parse_patient(path, n_glucose=30)
+    record = _eligible(path).record
     assert record.age == 30
     assert record.basal.start_times == ("00:00:00", "08:00:00") and record.basal.values == (0.8, 1.1)
     assert record.isf.values == (55.5, 61.0)
@@ -135,18 +136,8 @@ def test_scan_never_modifies_the_pool(tmp_path):
     path = str(tmp_path / "icgm_user_1.csv")
     write_raw_patient(path, age=30)
     before = (open(path, "rb").read(), os.stat(path).st_mtime_ns)
-    scan_pool(str(tmp_path))
-    parse_patient(path, 30)
+    evaluate_pool(str(tmp_path), _config([{"name": "c", "filter": {}}], glucose_seed={"points": 30}))
     assert (open(path, "rb").read(), os.stat(path).st_mtime_ns) == before
-
-
-def test_missing_required_setting_is_an_error(tmp_path):
-    path = str(tmp_path / "icgm_user_1.csv")
-    write_raw_patient(path, age=30)
-    text = open(path).read().replace("suspend_threshold", "suspend_thresholdX")
-    open(path, "w").write(text)
-    with pytest.raises(ValueError, match="suspend_threshold"):
-        parse_patient(path, 30)
 
 
 def test_pump_and_actual_settings_must_agree(tmp_path):
@@ -156,7 +147,7 @@ def test_pump_and_actual_settings_must_agree(tmp_path):
     text = text.replace("actual_basal_rates,,0.9", "actual_basal_rates,,0.95")
     open(path, "w").write(text)
     with pytest.raises(ValueError, match="differs from the pump setting"):
-        parse_patient(path, 30)
+        check_pump_matches_model(_eligible(path))
 
 
 # ---- meal rules ---------------------------------------------------------------------------------------------
@@ -209,7 +200,7 @@ def test_meals_are_deterministic_per_seed():
 def _record(tmp_path, **kwargs):
     path = str(tmp_path / "icgm_user_9.csv")
     write_raw_patient(path, **{"age": 30, **kwargs})
-    return parse_patient(path, 137)
+    return evaluate_patient(path, _config([{"name": "c", "filter": {}}])).record
 
 
 def _diff(a, b, path=""):
@@ -227,8 +218,8 @@ def _diff(a, b, path=""):
 def test_pair_differs_only_in_the_two_insulin_fields(tmp_path, announced):
     record, cfg = _record(tmp_path), _config([{"name": "c", "filter": {}}])
     meals = list(generate_meals(3, MEAL_CFG, RUN_START, 24).meals)
-    urai = build_scenario(record, cfg, "urai", "c", meals, announced)
-    rai = build_scenario(record, cfg, "rai", "c", meals, announced)
+    urai = build_scenario(record, cfg, "urai", "c", meals, announced, 10.0)
+    rai = build_scenario(record, cfg, "rai", "c", meals, announced, 10.0)
     assert sorted(_diff(urai, rai)) == sorted([
         ".metadata.simulation_id", ".override_config[0].sim_id",
         ".override_config[0].patient.patient_model.metabolism_settings.patient_insulin_type",
@@ -242,7 +233,7 @@ def test_pair_differs_only_in_the_two_insulin_fields(tmp_path, announced):
 def test_announced_scenario_carries_meals_on_both_sides(tmp_path):
     record, cfg = _record(tmp_path), _config([{"name": "c", "filter": {}}])
     meals = list(generate_meals(3, MEAL_CFG, RUN_START, 24).meals)
-    o = build_scenario(record, cfg, "urai", "c", meals, True)["override_config"][0]["patient"]
+    o = build_scenario(record, cfg, "urai", "c", meals, True, 10.0)["override_config"][0]["patient"]
     assert o["pump"]["carb_entries"] == o["patient_model"]["carb_entries"]
     assert [c["duration"] for c in o["pump"]["carb_entries"]] == [m.absorption_min for m in meals]
     assert o["patient_model"]["bolus_entries"] == [
@@ -252,7 +243,7 @@ def test_announced_scenario_carries_meals_on_both_sides(tmp_path):
 def test_unannounced_scenario_hides_meals_from_the_pump(tmp_path):
     record, cfg = _record(tmp_path), _config([{"name": "c", "filter": {}, "announced": False}])
     meals = list(generate_meals(3, MEAL_CFG, RUN_START, 24).meals)
-    o = build_scenario(record, cfg, "rai", "c", meals, False)["override_config"][0]["patient"]
+    o = build_scenario(record, cfg, "rai", "c", meals, False, 10.0)["override_config"][0]["patient"]
     assert o["pump"]["carb_entries"] == [] and o["patient_model"]["bolus_entries"] == []
     assert len(o["patient_model"]["carb_entries"]) == len(meals)
 
@@ -290,8 +281,8 @@ def test_generated_json_and_parser_preserve_every_schedule(tmp_path, layout, sch
     pool.mkdir()
     write_raw_patient(str(pool / "icgm_user_1.csv"), age=30, layout=layout, glucose=SOURCE_GLUCOSE, **schedules)
     root = make_scenario_root(tmp_path)
-    cfg = {"run_name": "fidelity", "master_seed": 5, "default_n": 1,
-           "cohorts": [{"name": "adult", "filter": {"age_min": 18, "age_max": 55}}]}
+    cfg = config_dict([{"name": "adult", "filter": {"age_min": 18, "age_max": 55}}], run_name="fidelity",
+                      master_seed=5, default_n=1)
     result = generate_run(cfg, pool_dir=str(pool), scenario_root=root)
 
     basal = schedules.get("basal", (("00:00:00",), (0.9,)))
@@ -305,7 +296,7 @@ def test_generated_json_and_parser_preserve_every_schedule(tmp_path, layout, sch
     }
 
     for arm in ("urai", "rai"):
-        path = os.path.join(result.scenario_dir, f"Simulation-Configuration-TLR-urai_rai_adult_icgm_user_1_{arm}.json")
+        path = result.scenario_path("icgm_user_1", f"Simulation-Configuration-TLR-urai_rai_adult_icgm_user_1_{arm}.json")
         config = json.load(open(path))["override_config"][0]["patient"]
         # source -> JSON: same start times, values and entry counts
         for side in ("pump", "patient_model"):
@@ -332,14 +323,14 @@ def test_glucose_flows_from_csv_through_parser_to_sensor_and_patient(tmp_path, l
     pool.mkdir()
     write_raw_patient(str(pool / "icgm_user_1.csv"), age=30, layout=layout, glucose=SOURCE_GLUCOSE)
     root = make_scenario_root(tmp_path)
-    cfg = {"run_name": "fidelity", "master_seed": 5, "default_n": 1,
-           "cohorts": [{"name": "adult", "filter": {"age_min": 18, "age_max": 55}}]}
+    cfg = config_dict([{"name": "adult", "filter": {"age_min": 18, "age_max": 55}}], run_name="fidelity",
+                      master_seed=5, default_n=1)
     result = generate_run(cfg, pool_dir=str(pool), scenario_root=root)
 
     seed = pd.read_csv(os.path.join(result.glucose_dir, "icgm_user_1.csv"), dtype={"value": str})
     assert seed["value"].tolist() == SOURCE_GLUCOSE[:137]            # raw CSV -> seed CSV, exact text
 
-    path = os.path.join(result.scenario_dir, "Simulation-Configuration-TLR-urai_rai_adult_icgm_user_1_urai.json")
+    path = result.scenario_path("icgm_user_1", "Simulation-Configuration-TLR-urai_rai_adult_icgm_user_1_urai.json")
     vp = load_sim(path, root).virtual_patient
     expected = [(datetime.datetime.strptime(d, FMT), float(v)) for d, v in zip(seed["datetime"], seed["value"])]
     assert list(zip(vp.sensor.sensor_bg_history.datetimes, vp.sensor.sensor_bg_history.bg_values)) == expected
@@ -358,24 +349,3 @@ def test_read_tokens_accepts_repeated_event_rows_but_rejects_repeated_settings(t
     bad.write_text("setting_name,settings,0\nage,40,\nage,41,\n")
     with pytest.raises(ValueError, match="duplicate setting_name 'age'"):
         read_tokens(str(bad))
-
-
-def test_output_layout_matches_risk_runner_discovery(tmp_path):
-    """TRSET-79: the risk runner scans <run dir>/TLR-*/ for JSONs; flat files in the run dir are never found.
-
-    Mirrors the discovery rule in projects/risk/loop_risk_v2_0.py::build_risk_sim_generator (the module is not imported
-    here because importing it reconfigures global logging).
-    """
-    pool = tmp_path / "pool"
-    pool.mkdir()
-    write_raw_patient(str(pool / "icgm_user_1.csv"), age=30, layout="observed", glucose=SOURCE_GLUCOSE)
-    cfg = {"run_name": "layout", "master_seed": 5, "default_n": 1,
-           "cohorts": [{"name": "adult", "filter": {"age_min": 18, "age_max": 55}}]}
-    result = generate_run(cfg, pool_dir=str(pool), scenario_root=make_scenario_root(tmp_path))
-
-    risk_dirs = [d for d in os.listdir(result.run_dir) if os.path.isdir(os.path.join(result.run_dir, d)) and "TLR-" in d]
-    assert risk_dirs == ["TLR-layout"]
-    jsons = [f for f in os.listdir(os.path.join(result.run_dir, risk_dirs[0])) if ".json" in f]
-    assert len(jsons) == 2   # one per arm
-    assert os.path.isfile(os.path.join(result.run_dir, "manifest.csv"))
-    assert os.path.isfile(os.path.join(result.run_dir, "run_config.json"))

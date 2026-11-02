@@ -23,6 +23,19 @@ def make_scenario_root(tmp_path) -> str:
     return str(root)
 
 
+GUARDRAILS = {"basal_rate": [0.05, 30], "carb_ratio": [2, 150], "isf": [10, 500], "target": [87, 180],
+              "suspend_threshold": [67, 110], "glucose_seed": [20, 600]}
+MAX_BOLUS = {"fraction_of_tdd": 0.5, "tdd_basal_multiplier": 2, "ceiling_u": 30, "increment_u": 0.05, "static_u": None}
+
+
+def config_dict(cohorts, **overrides) -> dict:
+    """A complete raw run config (TRSET-77 schema) around the given cohorts; ``overrides`` replace top-level keys."""
+    cfg = {"run_name": "unit", "master_seed": 7, "cohorts": cohorts, "guardrails": dict(GUARDRAILS),
+           "max_bolus": dict(MAX_BOLUS)}
+    cfg.update(overrides)
+    return cfg
+
+
 def _row(name: str, tokens: Sequence[str], layout: str, scalar: bool) -> List[str]:
     """One raw CSV row. 'observed' = scalars in settings, series from column 0; 'shifted' = the opposite."""
     tokens = [str(t) for t in tokens]

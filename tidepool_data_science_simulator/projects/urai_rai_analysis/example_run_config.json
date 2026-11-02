@@ -5,15 +5,33 @@
   "min_age": 6,
   "accept_smaller_group": false,
   "default_n": 30,
+  "default_suspend_threshold": 67,
+  "guardrails": {
+    "basal_rate": [0.05, 30],
+    "carb_ratio": [2, 150],
+    "isf": [10, 500],
+    "target": [87, 180],
+    "suspend_threshold": [67, 110],
+    "glucose_seed": [20, 600]
+  },
   "cohorts": [
-    {"name": "pediatric", "filter": {"age_min": 6, "age_max": 18}},
-    {"name": "adult", "filter": {"age_min": 18, "age_max": 55}},
-    {"name": "older_adult", "filter": {"age_min": 55}},
+    {"name": "pediatric_unannounced", "filter": {"age_min": 6, "age_max": 18}, "announced": false},
+    {"name": "adult_unannounced", "filter": {"age_min": 18, "age_max": 60}, "announced": false},
+    {"name": "older_adult_unannounced", "filter": {"age_min": 60}, "announced": false},
+    {"name": "pediatric_announced", "filter": {"age_min": 6, "age_max": 18}},
+    {"name": "adult_announced", "filter": {"age_min": 18, "age_max": 60}},
+    {"name": "older_adult_announced", "filter": {"age_min": 60}},
     {"name": "isf_high", "filter": {"isf_min": 100}},
-    {"name": "isf_low", "filter": {"isf_max": 25}},
-    {"name": "unannounced_meals", "filter": {}, "announced": false}
+    {"name": "isf_low", "filter": {"isf_max": 25}}
   ],
-  "controller": {"partial_application_factor": 0.4, "max_bolus": 20},
+  "controller": {"partial_application_factor": 0.4},
+  "max_bolus": {
+    "fraction_of_tdd": 0.5,
+    "tdd_basal_multiplier": 2,
+    "ceiling_u": 30,
+    "increment_u": 0.05,
+    "static_u": null
+  },
   "meals": {
     "meals_per_day": [2, 4],
     "window_start": "05:00",
