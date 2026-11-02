@@ -344,3 +344,38 @@ def test_glucose_flows_from_csv_through_parser_to_sensor_and_patient(tmp_path, l
     expected = [(datetime.datetime.strptime(d, FMT), float(v)) for d, v in zip(seed["datetime"], seed["value"])]
     assert list(zip(vp.sensor.sensor_bg_history.datetimes, vp.sensor.sensor_bg_history.bg_values)) == expected
     assert list(zip(vp.patient_config.glucose_history.datetimes, vp.patient_config.glucose_history.bg_values)) == expected
+
+
+def test_read_tokens_accepts_repeated_event_rows_but_rejects_repeated_settings(tmp_path):
+    """Real pool files repeat event rows (one per carb/dose); a repeated setting row is still an error."""
+    from tidepool_data_science_simulator.projects.urai_rai_analysis.patient_pool import read_tokens
+
+    ok = tmp_path / "ok.csv"
+    ok.write_text("setting_name,settings,0\nage,40,\ncarb_dates,08/15/2019 17:56:00,\ncarb_dates,08/15/2019 12:53:00,\n")
+    assert read_tokens(str(ok))["age"] == ["40"]
+
+    bad = tmp_path / "bad.csv"
+    bad.write_text("setting_name,settings,0\nage,40,\nage,41,\n")
+    with pytest.raises(ValueError, match="duplicate setting_name 'age'"):
+        read_tokens(str(bad))
+
+
+def test_output_layout_matches_risk_runner_discovery(tmp_path):
+    """TRSET-79: the risk runner scans <run dir>/TLR-*/ for JSONs; flat files in the run dir are never found.
+
+    Mirrors the discovery rule in projects/risk/loop_risk_v2_0.py::build_risk_sim_generator (the module is not imported
+    here because importing it reconfigures global logging).
+    """
+    pool = tmp_path / "pool"
+    pool.mkdir()
+    write_raw_patient(str(pool / "icgm_user_1.csv"), age=30, layout="observed", glucose=SOURCE_GLUCOSE)
+    cfg = {"run_name": "layout", "master_seed": 5, "default_n": 1,
+           "cohorts": [{"name": "adult", "filter": {"age_min": 18, "age_max": 55}}]}
+    result = generate_run(cfg, pool_dir=str(pool), scenario_root=make_scenario_root(tmp_path))
+
+    risk_dirs = [d for d in os.listdir(result.run_dir) if os.path.isdir(os.path.join(result.run_dir, d)) and "TLR-" in d]
+    assert risk_dirs == ["TLR-layout"]
+    jsons = [f for f in os.listdir(os.path.join(result.run_dir, risk_dirs[0])) if ".json" in f]
+    assert len(jsons) == 2   # one per arm
+    assert os.path.isfile(os.path.join(result.run_dir, "manifest.csv"))
+    assert os.path.isfile(os.path.join(result.run_dir, "run_config.json"))

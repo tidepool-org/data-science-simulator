@@ -256,7 +256,7 @@ def test_it7_announcement(manifest, run_a):
 
 def test_it8_every_file_loads_through_the_parser(manifest, run_a):
     root, result = run_a
-    assert os.path.isfile(os.path.join(result.scenario_dir, "run_config.json"))
+    assert os.path.isfile(os.path.join(result.run_dir, "run_config.json"))
     assert os.path.isfile(result.manifest_path)
     files = list(manifest["file_name"])
     for name in files:

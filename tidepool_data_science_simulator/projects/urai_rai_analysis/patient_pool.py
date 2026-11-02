@@ -18,6 +18,12 @@ csv.field_size_limit(2 ** 31 - 1)
 
 GLUCOSE_ROW = "actual_blood_glucose"
 
+# Event rows the pool writes once per event (one row per carb / dose). The generator does not use them; their tokens
+# are concatenated in file order. Any other repeated setting_name is still an error.
+REPEATED_EVENT_ROWS = frozenset(
+    {"carb_dates", "actual_carbs", "dose_start_times", "dose_end_times", "dose_types", "dose_values"}
+)
+
 
 @dataclass(frozen=True)
 class Schedule:
@@ -58,7 +64,7 @@ def read_tokens(path: str) -> Dict[str, List[str]]:
     Raises
     ------
     ValueError
-        If a setting_name appears twice.
+        If a setting_name outside ``REPEATED_EVENT_ROWS`` appears twice.
     """
     rows: Dict[str, List[str]] = {}
     with open(path, newline="") as f:
@@ -68,9 +74,13 @@ def read_tokens(path: str) -> Dict[str, List[str]]:
             if not row:
                 continue
             name = row[0]
+            tokens = [cell for cell in row[1:] if cell.strip() != ""]
             if name in rows:
-                raise ValueError(f"{path}: duplicate setting_name {name!r}")
-            rows[name] = [cell for cell in row[1:] if cell.strip() != ""]
+                if name not in REPEATED_EVENT_ROWS:
+                    raise ValueError(f"{path}: duplicate setting_name {name!r}")
+                rows[name].extend(tokens)
+            else:
+                rows[name] = tokens
     return rows
 
 

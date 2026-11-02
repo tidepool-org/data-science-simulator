@@ -16,8 +16,10 @@ URAI_RAI_PATIENT_POOL=/path/to/raw_files \
 
 Outputs:
 
-- `scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_urai_rai/<run_name>/` holds one JSON per scenario,
-  `manifest.csv` and `run_config.json` (a copy of the config).
+- `scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_urai_rai/<run_name>/` holds `manifest.csv`,
+  `run_config.json` (a copy of the config) and `TLR-<run_name>/` with one JSON per scenario. Point
+  `TIDEPOOL_RISK_SCENARIOS_DIR` in `projects/risk/loop_risk_v2_0.py` at the `<run_name>` folder; the runner only reads
+  JSONs inside `TLR-*` subfolders, so the results are written under `TLR-<run_name>`.
 - `scenario_configs/tidepool_risk_v2/reusable/glucose/urai_rai/<run_name>/<patient_id>.csv` holds the glucose seeds.
 
 ## Design

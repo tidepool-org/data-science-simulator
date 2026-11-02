@@ -38,7 +38,13 @@ CONFIG_COPY_NAME = "run_config.json"
 
 @dataclass(frozen=True)
 class RunResult:
-    """Where a run's outputs went."""
+    """Where a run's outputs went.
+
+    ``scenario_dir`` is the ``TLR-<run_name>`` folder holding the scenario JSONs, which is the layout the risk runner
+    (``projects/risk/loop_risk_v2_0.py``) scans. ``run_dir`` is its parent: the runner's scenario path, which also
+    holds ``manifest.csv`` and ``run_config.json``.
+    """
+    run_dir: str
     scenario_dir: str
     glucose_dir: str
     manifest_path: str
@@ -83,7 +89,8 @@ def generate_run(config: Union[RunConfig, Dict[str, Any]], pool_dir: Optional[st
     cfg = config if isinstance(config, RunConfig) else parse_run_config(config)
     pool_path = resolve_pool_dir(cfg, pool_dir)
     root = scenario_root or DEFAULT_SCENARIO_ROOT
-    scenario_dir = os.path.join(root, SCENARIO_SUBDIR, cfg.run_name)
+    run_dir = os.path.join(root, SCENARIO_SUBDIR, cfg.run_name)
+    scenario_dir = os.path.join(run_dir, f"TLR-{cfg.run_name}")
     glucose_dir = os.path.join(root, GLUCOSE_SUBDIR, cfg.run_name)
 
     table = scan_pool(pool_path)
@@ -93,7 +100,8 @@ def generate_run(config: Union[RunConfig, Dict[str, Any]], pool_dir: Optional[st
         for pid in draw.patient_ids:
             cohorts_by_patient.setdefault(pid, []).append(draw.spec.name)
 
-    _prepare_dir(scenario_dir)
+    _prepare_dir(run_dir)
+    os.makedirs(scenario_dir)
     _prepare_dir(glucose_dir)
     run_start = datetime.datetime.strptime(cfg.run_start, DATETIME_FORMAT)
     paths = dict(zip(table["patient_id"], table["path"]))
@@ -125,11 +133,11 @@ def generate_run(config: Union[RunConfig, Dict[str, Any]], pool_dir: Optional[st
                     "shortfall_note": draw.shortfall_note or "",
                 })
 
-    _write_json(os.path.join(scenario_dir, CONFIG_COPY_NAME), cfg.raw)
-    manifest_path = os.path.join(scenario_dir, MANIFEST_NAME)
+    _write_json(os.path.join(run_dir, CONFIG_COPY_NAME), cfg.raw)
+    manifest_path = os.path.join(run_dir, MANIFEST_NAME)
     manifest = write_manifest(rows, manifest_path)
     logger.info("Wrote %d scenarios to %s", len(rows), scenario_dir)
-    return RunResult(scenario_dir, glucose_dir, manifest_path, manifest)
+    return RunResult(run_dir, scenario_dir, glucose_dir, manifest_path, manifest)
 
 
 def main(argv: Optional[List[str]] = None) -> None:
