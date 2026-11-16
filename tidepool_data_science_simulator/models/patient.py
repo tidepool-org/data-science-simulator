@@ -7,6 +7,8 @@ import datetime
 
 from tidepool_data_science_simulator.models.simulation import SimulationComponent
 from tidepool_data_science_simulator.makedata.scenario_parser import PatientConfig
+from tidepool_data_science_simulator.models.insulin_action_v1 import (
+    SimpleMetabolismModelV1, is_v1_insulin_type, prediction_horizon_hours)
 from tidepool_data_science_simulator.models.measures import Carb, Bolus, ManualBolus
 from tidepool_data_science_simulator.models.events import (
     MealModel, Action, ActionTimeline, BolusTimeline, CarbTimeline, TempBasalTimeline
@@ -69,8 +71,11 @@ class VirtualPatient(SimulationComponent):
         self.bolus_event_timeline = patient_config.bolus_event_timeline
         self.hr_trace = patient_config.hr_trace
 
-        # TODO: prediction horizon should probably come from simple metabolism model
-        prediction_horizon_hrs = 8
+        # Window over which each dose's effect is applied: 8 hours for existing insulin types; for v1 curves long enough
+        # that at most 0.1% of the effect falls outside (models/insulin_action_v1.py).
+        prediction_horizon_hrs = prediction_horizon_hours(
+            getattr(patient_config, "patient_insulin_type", "rapid_acting_adult"),
+            getattr(patient_config, "insulin_timing", "main"))
         self.num_prediction_steps = int(prediction_horizon_hrs * 60 / 5)
 
     @classmethod
@@ -537,12 +542,24 @@ class VirtualPatient(SimulationComponent):
 
         # pa_egp = self.patient_config.pa_egp
 
+        # v1 insulin types (models/insulin_action_v1.py) need a metabolism model that knows them, and
+        # insulin_timing is passed only when set, so models without the argument keep working.
+        timing_kwargs = {}
+        insulin_timing = getattr(self.patient_config, "insulin_timing", "main")
+        if is_v1_insulin_type(self.patient_config.patient_insulin_type) or insulin_timing != "main":
+            if not (isinstance(self.metabolism_model, type) and issubclass(self.metabolism_model, SimpleMetabolismModelV1)):
+                raise ValueError(
+                    f"patient_insulin_type {self.patient_config.patient_insulin_type!r} with insulin_timing "
+                    f"{insulin_timing!r} needs metabolism_model=SimpleMetabolismModelV1, got {self.metabolism_model}")
+            timing_kwargs["insulin_timing"] = insulin_timing
+
         metabolism_model_instance = self.metabolism_model(
             insulin_sensitivity_factor=isf.value, 
             carb_insulin_ratio=cir.value, 
             glucose_sensitivity_factor=gsf.value, 
             basal_blood_glucose=bbg.value,
             insulin_production_rate=ipr.value,
+            **timing_kwargs,
             w_hr = w_hr,
             # w_egp = w_egp,
             a = a,
