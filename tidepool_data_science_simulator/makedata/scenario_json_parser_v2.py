@@ -42,7 +42,7 @@ from tidepool_data_science_simulator.models.pump import ContinuousInsulinPump
 from tidepool_data_science_simulator.models.sensor import IdealSensor, NoisySensor
 from tidepool_data_science_simulator.models.controller import AutomationControlTimeline, LoopController, DoNothingController, AutomationControl
 
-from tidepool_data_science_models.models.simple_metabolism_model import SimpleMetabolismModel
+from tidepool_data_science_simulator.models.insulin_action_v1 import SimpleMetabolismModelV1
 
 POINTER_OBJ_DIR = os.path.dirname(__file__) + "/../../scenario_configs/tidepool_risk_v2/"
 DATETIME_FORMAT = "%m/%d/%Y %H:%M:%S"
@@ -822,7 +822,7 @@ class ScenarioParserV2(SimulationParser):
             sim_start_time,
             pump=pump,
             sensor=sensor,
-            metabolism_model=SimpleMetabolismModel,
+            metabolism_model=SimpleMetabolismModelV1,
             patient_config=self.get_patient_config(),
         )
 
@@ -850,6 +850,8 @@ class ScenarioParserV2(SimulationParser):
         # model patient's actual insulin type
         patient_insulin_type = metabolism_settings.get("patient_insulin_type", "rapid_acting_adult")
         model["patient_insulin_type"] = patient_insulin_type
+        # v1 insulin types only: "main" (default), "faster" or "slower" (models/insulin_action_v1.py)
+        model["insulin_timing"] = metabolism_settings.get("insulin_timing", "main")
 
         basal_rate_schedule = metabolism_settings["basal_rate"]
         basal_start_times, basal_durations_minutes, basal_values = self.get_scalar_setting_schedule_info(basal_rate_schedule, self.validate_basal_rate)
@@ -1562,6 +1564,7 @@ class ScenarioParserV2(SimulationParser):
             action_timeline=self.patient_model["action_timeline"],
             pa_timeline=pa_timeline_from_model,  # Phase 2: Add PA timeline
             patient_insulin_type=self.patient_model.get("patient_insulin_type", "rapid_acting_adult"),
+            insulin_timing=self.patient_model.get("insulin_timing", "main"),
             # Physical activity and metabolism model parameters. These are always set by
             # build_model_from_config (via resolve_pa_metabolism_params), which is the one
             # place parameters are resolved -- no independent fallback here.
