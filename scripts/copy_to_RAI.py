@@ -1,12 +1,14 @@
 """
 copy_to_RAI.py  —  Run once from any directory:
-    python3 /tmp/copy_to_RAI.py
+    python3 scripts/copy_to_RAI.py
 """
 import shutil
 from pathlib import Path
 
-SOURCE = Path("/Users/shawnfoster/PycharmProjects/data-science-simulator-v2/data-science-simulator/scenario_configs/tidepool_risk_v2/loop_risk_v2_0/loop_risk_v2_2_0_full")
-DEST   = Path("/Users/shawnfoster/PycharmProjects/data-science-simulator-v2/data-science-simulator/scenario_configs/tidepool_risk_v2/loop_risk_v2_0/insulin_model_compare/RAI")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+LOOP_RISK_DIR = REPO_ROOT / "scenario_configs/tidepool_risk_v2/loop_risk_v2_0"
+SOURCE = LOOP_RISK_DIR / "loop_risk_v2_2_0_full"
+DEST = LOOP_RISK_DIR / "insulin_model_compare/RAI"
 DEST.mkdir(parents=True, exist_ok=True)
 
 dirs = [
