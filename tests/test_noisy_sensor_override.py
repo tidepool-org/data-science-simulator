@@ -325,7 +325,7 @@ class TestBaseConfigSensorFields:
     
     def test_base_median_has_sensor_fields(self):
         """Verify base_median_1dotx.json has type and parameters fields."""
-        base_path = "/Users/shawnfoster/PycharmProjects/data-science-simulator-v2/data-science-simulator"
+        base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
         config_path = os.path.join(
             base_path,
             "scenario_configs/tidepool_risk_v2/reusable/simulations/1xComparator/base_median_1dotx.json"
@@ -343,7 +343,7 @@ class TestBaseConfigSensorFields:
     
     def test_activity_preset_has_sensor_fields(self):
         """Verify activity preset configs have type and parameters fields."""
-        base_path = "/Users/shawnfoster/PycharmProjects/data-science-simulator-v2/data-science-simulator"
+        base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
         config_path = os.path.join(
             base_path,
             "scenario_configs/tidepool_risk_v2/reusable/simulations/activity_presets/ap_bike_median_2_0_v1.json"
@@ -361,7 +361,7 @@ class TestBaseConfigSensorFields:
     
     def test_base_2_0_has_sensor_fields(self):
         """Verify base 2.0 configs have type and parameters fields."""
-        base_path = "/Users/shawnfoster/PycharmProjects/data-science-simulator-v2/data-science-simulator"
+        base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
         config_path = os.path.join(
             base_path,
             "scenario_configs/tidepool_risk_v2/reusable/simulations/base/base_median_2_0_v1.json"
@@ -379,7 +379,7 @@ class TestBaseConfigSensorFields:
     
     def test_custom_preset_has_sensor_fields(self):
         """Verify custom preset configs have type and parameters fields."""
-        base_path = "/Users/shawnfoster/PycharmProjects/data-science-simulator-v2/data-science-simulator"
+        base_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
         config_path = os.path.join(
             base_path,
             "scenario_configs/tidepool_risk_v2/reusable/simulations/custom_presets/preset_170_median_2_0_v1.json"
