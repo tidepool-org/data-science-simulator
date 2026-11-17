@@ -1,9 +1,14 @@
 import sys
 import os
 
-# Add your local data-science-models to the front of the path
-local_models_path = '/Users/shawnfoster/PycharmProjects/data-science-models'
-if local_models_path not in sys.path:
+# Prefer a sibling checkout of data-science-models (if present) over the
+# installed package. Override with the DATA_SCIENCE_MODELS_PATH env var.
+_repo_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+local_models_path = os.environ.get(
+    "DATA_SCIENCE_MODELS_PATH",
+    os.path.abspath(os.path.join(_repo_root, "..", "..", "data-science-models")),
+)
+if os.path.isdir(local_models_path) and local_models_path not in sys.path:
     sys.path.insert(0, local_models_path)
 
 # Now import
