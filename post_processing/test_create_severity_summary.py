@@ -277,13 +277,16 @@ class TestRenderRtfTableValues:
     def test_na_rendered_when_raw_columns_absent(self, tmp_path):
         """A stage with no lbgi/dka_index data renders 'NA', not a blank cell."""
         tlr = str(tmp_path)
-        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS, columns=_SUMMARY_COLUMNS[:-2])
+        cols = [c for c in _SUMMARY_COLUMNS if c != "lbgi"]
+        rows_no_lbgi = [r[:6] + r[7:] for r in _PROFILE_A_ROWS]
+        _write_summary_csv(tlr, "median", rows_no_lbgi, columns=cols)
         assessment = build_assessment(tlr, "2026-07-30T00:00:00")
         rows = _table_rows(render_rtf(assessment))
         lbgi_index, dkai_index = rows[0].index("LBGI"), rows[0].index("DKAI")
         for row in rows[1:]:
             assert row[lbgi_index] == "NA"
-            assert row[dkai_index] == "NA"
+            # dka_index is a required column since TRSET-82, so DKAI is never 'NA'.
+            assert row[dkai_index] != "NA"
 
 
 # =============================================================================
@@ -727,7 +730,7 @@ class TestRenderedIncompleteStagesDocument:
 
     _OUTLIER_COLUMNS = [
         "sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54",
-        "percent_cgm_gt_180", "lbgi_risk_score", "dka_risk_score",
+        "percent_cgm_gt_180", "lbgi_risk_score", "dka_risk_score", "dka_index",
     ]
 
     @pytest.fixture
@@ -735,7 +738,7 @@ class TestRenderedIncompleteStagesDocument:
         tlr = str(tmp_path)
         for profile in ("median", "adolescent"):
             rows = [
-                (f"{stem}_{profile}", 80.0, 1.0, 20.0, 1, 0)
+                (f"{stem}_{profile}", 80.0, 1.0, 20.0, 1, 0, 0.0)
                 for stem in ("pre-Loop_NoMitigations_t1", "pre-noLoop_t1")
             ]  # no post- row -> no profile is stage-complete
             _write_summary_csv(tlr, profile, rows, columns=self._OUTLIER_COLUMNS)

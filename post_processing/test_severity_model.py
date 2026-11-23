@@ -48,8 +48,13 @@ from severity_model import (
 
 
 class TestDetermineHarmAndSeverity:
-    def test_all_zero_is_baseline(self):
-        assert determine_harm_and_severity(0, 0, 0) == ("Severity = baseline", "0")
+    def test_all_zero_is_hyperglycemia_zero_when_unconstrained(self):
+        # TRSET-82: baseline is produced ONLY by the overdelivery LBGI-score-0 row.
+        assert determine_harm_and_severity(0, 0, 0) == ("Hyperglycemia", "0")
+
+    def test_overdelivery_lbgi_zero_is_baseline(self):
+        assert determine_harm_and_severity(
+            0, 0, 0, "overdelivery") == ("Severity = baseline", "0")
 
     def test_hyperglycemia_when_lbgi_and_dka_low(self):
         # lbgi<=1, dka==0 -> hyperglycemia, carrying the hyper score
@@ -306,15 +311,17 @@ class TestBuildAssessmentValueFields:
 
     def test_value_fields_are_na_when_columns_absent(self, tmp_path):
         tlr = str(tmp_path)
-        # Same fixtures but without the trailing lbgi/dka_index columns.
-        cols = _SUMMARY_COLUMNS[:-2]
-        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS, columns=cols)
+        # Same fixtures but without the raw lbgi column. dka_index is no longer
+        # optional (TRSET-82: it keys the DKA/Hyperglycemia split), so only lbgi can
+        # degrade to 'NA'.
+        _write_summary_csv(tlr, "median", _rows_without_lbgi(_PROFILE_A_ROWS),
+                           columns=_WITHOUT_RAW_VALUE_COLUMNS)
 
         assessment = build_assessment(tlr, "2026-07-29T00:00:00")
         assert assessment is not None
         for stage in ("pre", "no_loop", "post"):
             assert assessment.stages[stage].lbgi_value_avg == "NA"
-            assert assessment.stages[stage].dka_index_value_avg == "NA"
+            assert assessment.stages[stage].dka_index_value_avg != "NA"
 
     def test_stageresult_value_fields_default_to_na(self):
         """Positional constructors that predate these fields still work."""
@@ -424,7 +431,12 @@ class TestCatastrophicFloorEndToEnd:
 # perfectly usable -- that distinction is what keeps an older-format directory off
 # the malformed path.
 _MISSING_REQUIRED_COLUMNS = ["sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54"]
-_WITHOUT_RAW_VALUE_COLUMNS = _SUMMARY_COLUMNS[:-2]
+_WITHOUT_RAW_VALUE_COLUMNS = [c for c in _SUMMARY_COLUMNS if c != "lbgi"]
+
+
+def _rows_without_lbgi(rows):
+    """Fixture rows with the raw lbgi value (index 6) removed."""
+    return [row[:6] + row[7:] for row in rows]
 
 
 def _write_unreadable_csv(directory, profile):
@@ -664,10 +676,10 @@ class TestUsableProfileCount:
         assert (assessment.profile_count, assessment.usable_profile_count) == (2, 1)
 
     def test_missing_only_the_raw_value_columns_keeps_a_file_usable(self, tmp_path):
-        """Older CSVs predate lbgi/dka_index and are DESIGNED to degrade to 'NA'.
+        """Older CSVs predate the raw lbgi and are DESIGNED to degrade to 'NA'.
         Counting them unusable would drop a clean directory to M == 0."""
         tlr = str(tmp_path)
-        _write_summary_csv(tlr, "median", _PROFILE_A_ROWS,
+        _write_summary_csv(tlr, "median", _rows_without_lbgi(_PROFILE_A_ROWS),
                            columns=_WITHOUT_RAW_VALUE_COLUMNS)
 
         assessment = build_assessment(tlr, "2026-08-06T00:00:00")
@@ -917,11 +929,16 @@ class TestOptionalColumnIsNotCalledMalformed:
 
 _OUTLIER_COLUMNS = [
     "sim_id", "percent_values_ge_70_le_180", "percent_cgm_lt_54",
-    "percent_cgm_gt_180", "lbgi_risk_score", "dka_risk_score",
+    "percent_cgm_gt_180", "lbgi_risk_score", "dka_risk_score", "dka_index",
 ]
 _OUTLIER_STAGE_STEMS = (
     "pre-Loop_NoMitigations_t1", "pre-noLoop_t1", "post-Loop_WithMitigations_t1",
 )
+
+
+def _dka_index_for(dka_score):
+    """A raw DKA index consistent with a DKA score: 0 -> 0.0, else a positive value."""
+    return 0.0 if dka_score == 0 else 10.0
 
 
 def _write_outlier_profile(directory, profile, tar, lbgi, dka):
@@ -929,7 +946,7 @@ def _write_outlier_profile(directory, profile, tar, lbgi, dka):
     (tar, lbgi, dka) -- so a finding appears once per stage and the assertions do
     not depend on which stage is which."""
     rows = [
-        (f"{stem}_{profile}", 80.0, 1.0, tar, lbgi, dka)
+        (f"{stem}_{profile}", 80.0, 1.0, tar, lbgi, dka, _dka_index_for(dka))
         for stem in _OUTLIER_STAGE_STEMS
     ]
     return _write_summary_csv(directory, profile, rows, columns=_OUTLIER_COLUMNS)
@@ -962,7 +979,8 @@ class TestHyperglycemiaScoreHasOneMapping:
     def test_baseline_label_is_named_once(self):
         """detect_outliers has to reason about the baseline GROUP, so the label and
         the string determine_harm_and_severity returns must not drift apart."""
-        assert determine_harm_and_severity(0, 0, 0) == (severity_model.BASELINE_HARM, "0")
+        assert determine_harm_and_severity(
+            0, 0, 0, "overdelivery") == (severity_model.BASELINE_HARM, "0")
 
     def test_true_zero_tar_scores_zero_on_the_outlier_path_too(self):
         """The mapping the outlier path now shares: 0 only if TAR is truly 0."""
@@ -1071,7 +1089,7 @@ class TestIncompleteStagesIsNotReportedAsAbsent:
 
     def _write_partial_stage_profile(self, directory, profile, stems):
         """A profile whose rows cover only `stems`, so it is never stage-complete."""
-        rows = [(f"{stem}_{profile}", 80.0, 1.0, 20.0, 1, 0) for stem in stems]
+        rows = [(f"{stem}_{profile}", 80.0, 1.0, 20.0, 1, 0, 0.0) for stem in stems]
         return _write_summary_csv(directory, profile, rows, columns=_OUTLIER_COLUMNS)
 
     def test_profiles_missing_a_stage_report_incomplete_not_no_data(self, tmp_path):
@@ -1102,7 +1120,7 @@ class TestIncompleteStagesIsNotReportedAsAbsent:
         path = os.path.join(tlr, f"summary_results_{_NARROW_STEM}.csv")
         with open(path, "w") as fh:
             fh.write(",".join(_OUTLIER_COLUMNS) + "\n")
-            fh.write("pre-Loop_NoMitigations_t1_x,80.0,1.0,20.0,1,0\n")
+            fh.write("pre-Loop_NoMitigations_t1_x,80.0,1.0,20.0,1,0,0.0\n")
 
         assert detect_outliers(tlr)[1] == "no_data"
 

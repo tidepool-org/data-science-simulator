@@ -61,13 +61,17 @@ TABLE_CELL_STOPS = "".join(
 )
 
 
-def render_catastrophic_identifier(catastrophic_findings):
+def render_catastrophic_identifier(catastrophic_findings, delivery_risk_type='unconstrained'):
     """RTF for the Critical/Catastrophic Identifier section.
 
     Reproduces the original generate_catastrophic_identifier_section() output
     exactly, driven by structured CatastrophicFinding objects.
+
+    Underdelivery risks (TRSET-82) are not assessed for catastrophic hypoglycemia, so
+    the section reads "not relevant" whatever the findings; build_assessment_result
+    still prints a console warning for any hit.
     """
-    if not catastrophic_findings:
+    if not catastrophic_findings or delivery_risk_type == 'underdelivery':
         return "Critical/Catastrophic level determination not relevant to this scenario."
 
     rtf_lines = []
@@ -185,6 +189,28 @@ def render_profile_count(profile_count, usable_profile_count=None):
     )
 
 
+def _format_hours(hours):
+    return f"{hours:g}"
+
+
+def render_delivery_risk_note(delivery_risk_type, duration_hours):
+    """The note for a TLR whose harm was not constrained by delivery risk type.
+
+    Empty for overdelivery/underdelivery, so constrained TLRs get no new line.
+    """
+    if delivery_risk_type != 'unconstrained':
+        return ""
+    prefix = "Harm not constrained by delivery risk type: "
+    if duration_hours is None:
+        return prefix + "simulation duration was not recorded for this risk."
+    if isinstance(duration_hours, (list, tuple)):
+        hours = ", ".join(_format_hours(h) for h in duration_hours)
+        return prefix + f"simulations for this risk used mixed durations ({hours} hours)."
+    return (prefix + f"simulation duration was {_format_hours(duration_hours)} hours, "
+            "which matches neither the 8-hour overdelivery nor the 23-hour "
+            "underdelivery duration defined in RMP-0002.")
+
+
 def render_rtf(assessment):
     """Render a full RTF document string from a SeverityAssessment.
 
@@ -204,7 +230,8 @@ def render_rtf(assessment):
     lbgi = {stage: stages[stage].lbgi_value_avg for stage in STAGE_ORDER}
     dkai = {stage: stages[stage].dka_index_value_avg for stage in STAGE_ORDER}
 
-    catastrophic_content = render_catastrophic_identifier(assessment.catastrophic_findings)
+    catastrophic_content = render_catastrophic_identifier(
+        assessment.catastrophic_findings, assessment.delivery_risk_type)
     outlier_content = render_outlier_results(
         assessment.outlier_findings, assessment.outlier_status,
         assessment.profile_count, assessment.usable_profile_count,
@@ -212,6 +239,11 @@ def render_rtf(assessment):
     profile_count_content = render_profile_count(
         assessment.profile_count, assessment.usable_profile_count
     )
+    delivery_note = render_delivery_risk_note(
+        assessment.delivery_risk_type, assessment.duration_hours)
+    if delivery_note:
+        # Directly after the profile-count line; absent for constrained TLRs.
+        profile_count_content += "\n\\par\n" + delivery_note
 
     rtf_content = r"""{\rtf1\ansi\deff0
 {\fonttbl{\f0 Arial;}}

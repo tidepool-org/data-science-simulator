@@ -9,8 +9,12 @@ ending -- fails the check and the diff names where.
 
 Fixtures (tests/fixtures/rtf_regression/Risk_Run_2026-01-01T00_00_00.000000/):
     TLR-999  populated table, all three stages, two profiles.
-    TLR-998  one profile, post-mitigation stage absent, lbgi/dka_index columns
-             absent: exercises "NA" cells and a truncated stage.
+    TLR-998  one profile, post-mitigation stage absent, lbgi column absent, no
+             per-sim duration JSONs: exercises "NA" cells, a truncated stage and
+             the unconstrained "duration not recorded" note.
+    TLR-997  TLR-999's data with 23 h per-sim durations: the underdelivery path
+             (DKA/Hyperglycemia harms, Catastrophic Identifier "not relevant").
+             TLR-999 itself carries 8 h durations: the overdelivery path.
 Goldens live under tests/fixtures/rtf_regression/golden/.
 
 NON-DETERMINISTIC FIELDS NEUTRALISED (every one is named here; nothing else is):
@@ -52,7 +56,7 @@ GOLDEN_DIR = os.path.join(FIXTURE_ROOT, 'golden')
 # Neutralised non-deterministic field #1: the run timestamp.
 FIXTURE_TIMESTAMP = '2026-01-01T00:00:00.000000'
 
-FIXTURE_NAMES = ('TLR-999', 'TLR-998')
+FIXTURE_NAMES = ('TLR-999', 'TLR-998', 'TLR-997')
 
 
 def fixture_dir(name):
