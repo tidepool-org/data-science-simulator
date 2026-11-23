@@ -33,11 +33,12 @@ Provenance flags on scores:
     the module -- detect_outliers used to compute its own without a zero case.
 """
 
+import json
 import math
 import os
 import glob
 from dataclasses import dataclass, field, asdict
-from typing import Optional
+from typing import Optional, Union
 
 
 # =============================================================================
@@ -84,6 +85,23 @@ BASELINE_HARM = 'Severity = baseline'
 
 
 # =============================================================================
+# Delivery risk types (TRSET-82, RMP-0002)
+# -----------------------------------------------------------------------------
+# RMP-0002 validates two delivery risk types: overdelivery (assessed with LBGI, 8 h
+# simulations) and underdelivery (assessed with DKAI, 23 h simulations). A TLR whose
+# simulations are not all exactly one of those durations -- a single non-standard
+# duration, mixed durations, or a duration that could not be read -- is
+# 'unconstrained' and keeps the unconstrained harm rules, with a disclosed note.
+# =============================================================================
+
+OVERDELIVERY = 'overdelivery'
+UNDERDELIVERY = 'underdelivery'
+UNCONSTRAINED = 'unconstrained'
+OVERDELIVERY_DURATION_HRS = 8.0
+UNDERDELIVERY_DURATION_HRS = 23.0
+
+
+# =============================================================================
 # Summary results discovery (single source of truth)
 # -----------------------------------------------------------------------------
 # The module previously matched summary CSVs with two different patterns:
@@ -95,11 +113,13 @@ BASELINE_HARM = 'Severity = baseline'
 # find_summary_files().
 #
 # REQUIRED_SUMMARY_COLUMNS is the set a summary CSV must carry to contribute to
-# the severity VERDICT: the sim identity plus the three columns that feed
-# determine_harm_and_severity. TIR/TBR ('percent_values_ge_70_le_180',
-# 'percent_cgm_lt_54') and the raw values ('lbgi', 'dka_index') are *reported*
-# metrics, not verdict inputs -- they degrade to 'NA' by design, so their absence
-# must not mark a file malformed.
+# the severity VERDICT: the sim identity plus the columns that feed
+# determine_harm_and_severity -- the three risk-score inputs and, since TRSET-82,
+# the raw 'dka_index' (the DKA-versus-Hyperglycemia split keys on it, so a CSV
+# without it can no longer be assessed and is malformed). TIR/TBR
+# ('percent_values_ge_70_le_180', 'percent_cgm_lt_54') and the raw 'lbgi' are
+# *reported* metrics, not verdict inputs -- they degrade to 'NA' by design, so
+# their absence must not mark a file malformed.
 # =============================================================================
 
 SUMMARY_RESULTS_GLOB = 'summary_results_*.csv'
@@ -108,6 +128,7 @@ REQUIRED_SUMMARY_COLUMNS = (
     'sim_id',
     'lbgi_risk_score',
     'dka_risk_score',
+    'dka_index',
     'percent_cgm_gt_180',
 )
 
@@ -218,6 +239,12 @@ class SeverityAssessment:
     # an older positional constructor renders exactly as it used to.
     # build_assessment always populates it.
     usable_profile_count: Optional[int] = None
+    # TRSET-82. 'overdelivery' | 'underdelivery' | 'unconstrained'. duration_hours is
+    # the single duration (float) the TLR's sims share, a sorted list of the distinct
+    # values when they are mixed, or None when it could not be read for every sim.
+    # Both defaulted so existing positional constructors keep working.
+    delivery_risk_type: str = UNCONSTRAINED
+    duration_hours: Optional[Union[float, list]] = None
 
     def to_dict(self):
         return {
@@ -230,6 +257,10 @@ class SeverityAssessment:
             'catastrophic_findings': [c.to_dict() for c in self.catastrophic_findings],
             'outlier_findings': [o.to_dict() for o in self.outlier_findings],
             'outlier_status': self.outlier_status,
+            'delivery_risk_type': self.delivery_risk_type,
+            'duration_hours': (list(self.duration_hours)
+                               if isinstance(self.duration_hours, list)
+                               else self.duration_hours),
         }
 
 
@@ -433,6 +464,101 @@ def calculate_integer_averages(metric_data):
     return averages
 
 
+def calculate_raw_means(metric_data):
+    """Untruncated per-stage mean of a raw metric; None where there is no value.
+
+    The DKA-versus-Hyperglycemia verdict keys on whether the DKA index is exactly 0,
+    which the truncated display value ('0' for 0.004) cannot tell apart from a true
+    zero. NaN values are skipped.
+    """
+    means = {}
+    for stage in STAGE_ORDER:
+        values = [v for v in metric_data[stage] if not math.isnan(v)]
+        means[stage] = sum(values) / len(values) if values else None
+    return means
+
+
+def read_sim_duration_hrs(tlr_dir, sim_id):
+    """(duration_hrs, None) from {sim_id}.json, or (None, problem) if unreadable."""
+    path = os.path.join(tlr_dir, f"{sim_id}.json")
+    if not os.path.exists(path):
+        return None, f"{sim_id}.json not found"
+    try:
+        with open(path, 'r') as f:
+            data = json.load(f)
+    except (OSError, ValueError) as exc:
+        return None, f"{sim_id}.json unreadable ({exc})"
+    if not isinstance(data, dict) or 'duration_hrs' not in data:
+        return None, f"{sim_id}.json has no duration_hrs"
+    value = data['duration_hrs']
+    try:
+        if isinstance(value, bool):
+            raise TypeError
+        hours = float(value)
+    except (TypeError, ValueError):
+        return None, f"{sim_id}.json has a non-numeric duration_hrs ({value!r})"
+    if not math.isfinite(hours):
+        return None, f"{sim_id}.json has a non-finite duration_hrs ({value!r})"
+    return hours, None
+
+
+def determine_delivery_risk_type(tlr_dir, sim_ids):
+    """Classify a TLR's delivery risk type from its sims' recorded durations.
+
+    Returns (delivery_risk_type, duration_hours):
+      all sims exactly 8.0 h  -> ('overdelivery', 8.0)
+      all sims exactly 23.0 h -> ('underdelivery', 23.0)
+      one other duration      -> ('unconstrained', <that float>)
+      mixed durations         -> ('unconstrained', <sorted list of distinct values>)
+      any duration unreadable -> ('unconstrained', None)
+    Every unconstrained outcome prints a console warning naming the TLR and what was
+    found; nothing degrades silently.
+    """
+    tlr_name = os.path.basename(os.path.normpath(tlr_dir))
+    durations, problems = [], []
+    for sim_id in sorted(set(sim_ids)):
+        hours, problem = read_sim_duration_hrs(tlr_dir, sim_id)
+        if problem:
+            problems.append(problem)
+        else:
+            durations.append(hours)
+    if not sim_ids:
+        problems.append("no simulations found in the summary results")
+
+    if problems:
+        print(f"  Warning: {tlr_name}: harm not constrained by delivery risk type; "
+              f"simulation duration not recorded: {'; '.join(problems)}")
+        return (UNCONSTRAINED, None)
+
+    distinct = sorted(set(durations))
+    if len(distinct) > 1:
+        print(f"  Warning: {tlr_name}: harm not constrained by delivery risk type; "
+              f"mixed simulation durations found: {distinct} hours")
+        return (UNCONSTRAINED, distinct)
+    hours = distinct[0]
+    if hours == OVERDELIVERY_DURATION_HRS:
+        return (OVERDELIVERY, hours)
+    if hours == UNDERDELIVERY_DURATION_HRS:
+        return (UNDERDELIVERY, hours)
+    print(f"  Warning: {tlr_name}: harm not constrained by delivery risk type; "
+          f"simulation duration {hours:g} hours matches neither "
+          f"{OVERDELIVERY_DURATION_HRS:g} (overdelivery) nor "
+          f"{UNDERDELIVERY_DURATION_HRS:g} (underdelivery)")
+    return (UNCONSTRAINED, hours)
+
+
+def summary_sim_ids(summary_files):
+    """Every distinct sim_id across the given summary CSVs (unreadable files skipped)."""
+    import pandas as pd
+    sim_ids = set()
+    for csv_file in summary_files:
+        try:
+            sim_ids.update(str(v) for v in pd.read_csv(csv_file)['sim_id'].dropna())
+        except Exception:
+            continue  # classify_summary_files has already reported unusable files
+    return sorted(sim_ids)
+
+
 CATASTROPHIC_SEVERITY = 5
 
 
@@ -470,19 +596,42 @@ def calculate_hyperglycemia_score(tar_value):
         return 2
 
 
-def determine_harm_and_severity(lbgi_score, dka_score, hyperglycemia_score):
-    """Derive (harm_type, severity_str) from the three component scores.
+def determine_harm_and_severity(lbgi_score, dka_score, hyperglycemia_score,
+                                delivery_risk_type=UNCONSTRAINED, dka_index=None):
+    """Derive (harm_type, severity_str) -- the ONE harm-rule implementation.
 
-    SOP logic, preserved exactly:
-      - all zero -> baseline
-      - lbgi<=1 and dka==0 -> Hyperglycemia (score = hyperglycemia_score)
-      - lbgi>=dka (LBGI wins ties) -> Hypoglycemia (score = lbgi)
-      - else -> DKA (score = dka)
+    Shared by the stage verdict and by outlier detection (TRSET-82), so a TLR's
+    verdict and its per-profile outlier comparison can never disagree on the rules.
+
+      overdelivery  (8 h, LBGI):  LBGI score 0 -> baseline "0";
+                                  else Hypoglycemia, severity = LBGI score
+      underdelivery (23 h, DKAI): DKAI == 0 -> Hyperglycemia, severity = hyperglycemia
+                                  score (0 allowed); DKAI > 0 -> DKA, severity = DKA score
+      unconstrained:              LBGI score <= 1 -> the DKAI split above;
+                                  LBGI score >= 2 -> Hypoglycemia if LBGI >= DKA score
+                                  (LBGI wins ties), else DKA
+
+    dka_index is the RAW, untruncated DKA index (a stage mean, or one profile's own
+    value). Omitted -- an older three-argument caller -- it is inferred from the DKA
+    score: a score of 0 is taken as a DKAI of 0, any positive score as a positive DKAI.
+    That inference is exact for positive scores but lossy for 0 (a DKAI under 2 h also
+    scores 0), so callers that have the raw value should pass it.
+
+    'Severity = baseline' is produced only by the overdelivery LBGI-score-0 row.
     """
-    if lbgi_score == 0 and dka_score == 0 and hyperglycemia_score == 0:
-        return (BASELINE_HARM, "0")
-    if lbgi_score <= 1 and dka_score == 0:
-        return ("Hyperglycemia", str(hyperglycemia_score))
+    if dka_index is None:
+        dka_index = 0.0 if dka_score == 0 else float(dka_score)
+
+    if delivery_risk_type == OVERDELIVERY:
+        if lbgi_score == 0:
+            return (BASELINE_HARM, "0")
+        return ("Hypoglycemia", str(lbgi_score))
+
+    if delivery_risk_type == UNDERDELIVERY or lbgi_score <= 1:
+        if dka_index == 0.0:
+            return ("Hyperglycemia", str(hyperglycemia_score))
+        return ("DKA", str(dka_score))
+
     if lbgi_score >= dka_score:
         return ("Hypoglycemia", str(lbgi_score))
     return ("DKA", str(dka_score))
@@ -555,7 +704,7 @@ def extract_profile_from_filename(csv_path):
 class ProfileMetrics:
     """Outlier-detection inputs for one TLR directory, and what was left out.
 
-    profiles:      profile name -> stage -> {'lbgi', 'dka', 'tar'}
+    profiles:      profile name -> stage -> {'lbgi', 'dka', 'dka_index', 'tar'}
     excluded:      paths of per-profile summary files that could not contribute
     files_present: whether the directory held any summary results files at all.
                    Distinguishes "nothing there" from "everything there was excluded",
@@ -574,7 +723,7 @@ class ProfileMetrics:
 
 
 def get_profile_metrics(tlr_dir, severity_updates=None):
-    """Per-profile, per-stage {lbgi, dka, tar} for outlier detection.
+    """Per-profile, per-stage {lbgi, dka, dka_index, tar} for outlier detection.
 
     Returns a ProfileMetrics. An unreadable file is EXCLUDED and named, rather than
     abandoning the directory: one bad profile used to cost the outlier analysis of
@@ -615,14 +764,17 @@ def get_profile_metrics(tlr_dir, severity_updates=None):
                 if severity_updates and sim_id in severity_updates:
                     lbgi_score = severity_updates[sim_id]['updated_severity']
                 dka_score = row['dka_risk_score']
+                dka_index = row['dka_index']
                 tar_value = row['percent_cgm_gt_180']
-                if pd.isna(lbgi_score) or pd.isna(dka_score) or pd.isna(tar_value):
+                if (pd.isna(lbgi_score) or pd.isna(dka_score) or pd.isna(tar_value)
+                        or pd.isna(dka_index)):
                     continue
                 stage = classify_sim_id(sim_id)
                 if stage is not None:
                     stages[stage] = {
                         'lbgi': int(lbgi_score),
                         'dka': int(dka_score),
+                        'dka_index': float(dka_index),
                         'tar': float(tar_value),
                     }
             metrics.profiles[profile_name] = stages
@@ -664,7 +816,7 @@ def resolve_simulation_id(summary_files):
 # Outlier detection — SPLIT from rendering (returns structured findings)
 # =============================================================================
 
-def detect_outliers(tlr_dir, severity_updates=None):
+def detect_outliers(tlr_dir, severity_updates=None, delivery_risk_type=UNCONSTRAINED):
     """Detect within-stage outlier profiles; return (findings, status).
 
     Returns:
@@ -688,6 +840,11 @@ def detect_outliers(tlr_dir, severity_updates=None):
     it is excluded and the rest are compared. The findings are therefore scoped to
     the profiles that survived, which the renderer discloses from the assessment's
     usable-vs-total counts. 'malformed_data' now means every one of them failed.
+
+    delivery_risk_type (TRSET-82) selects the harm rules each profile is classified
+    under -- the same determine_harm_and_severity the stage verdict uses -- and, for
+    'overdelivery', switches off the zero-TAR Hyperglycemia check (an overdelivery
+    risk is not assessed on the hyperglycemia axis).
 
     This is the detection half only. Rendering the RTF/GUI text from these
     findings lives in the consumer (create_severity_summary.render_*).
@@ -757,7 +914,9 @@ def detect_outliers(tlr_dir, severity_updates=None):
             tar = stages[stage]['tar']
             # The module's single TAR->score mapping (see the RESOLVED note above).
             hyper_score = calculate_hyperglycemia_score(tar)
-            harm, _severity = determine_harm_and_severity(lbgi, dka, hyper_score)
+            harm, _severity = determine_harm_and_severity(
+                lbgi, dka, hyper_score, delivery_risk_type,
+                dka_index=stages[stage].get('dka_index'))
             profile_harms[profile] = {'harm': harm, 'lbgi': lbgi, 'dka': dka, 'tar': tar}
 
         # Group by harm type.
@@ -787,7 +946,8 @@ def detect_outliers(tlr_dir, severity_updates=None):
         )
 
         for harm_type, profiles in harm_groups.items():
-            if harm_type == hyper_axis_at and len(hyper_axis_profiles) >= 2:
+            if (harm_type == hyper_axis_at and len(hyper_axis_profiles) >= 2
+                    and delivery_risk_type != OVERDELIVERY):
                 zero_profiles = [p for p in hyper_axis_profiles if profile_harms[p]['tar'] == 0.0]
                 non_zero_profiles = [p for p in hyper_axis_profiles if profile_harms[p]['tar'] != 0.0]
                 if len(zero_profiles) > 0 and len(non_zero_profiles) > 0:
@@ -916,11 +1076,22 @@ def build_assessment_result(tlr_dir, timestamp):
     profile_count = len(summary_files)
     usable_profile_count = len(usable_files)
 
+    delivery_risk_type, duration_hours = determine_delivery_risk_type(
+        tlr_dir, summary_sim_ids(usable_files))
+
     # Catastrophic (4->5) assessment.
     severity_4_sim_ids = identify_severity_4_hypoglycemia(tlr_dir)
     assessment_results = {}
     if severity_4_sim_ids:
         assessment_results = assess_and_update_severity(tlr_dir, severity_4_sim_ids)
+    if delivery_risk_type == UNDERDELIVERY:
+        # The RTF section reads "not relevant" for underdelivery, but the check still
+        # runs and a hit must not vanish: say so on the console.
+        for sim_id, result in sorted(assessment_results.items()):
+            if result['condition'] != 'none':
+                print(f"  Warning: {os.path.basename(tlr_dir)}: catastrophic glucose "
+                      f"condition ({result['condition']}) found in {sim_id}; not "
+                      f"reported in the RTF because this is an underdelivery risk.")
 
     # Metric extraction + averaging (LBGI carries the escalation).
     tir_averages = calculate_stage_averages(extract_metric_data(tlr_dir, 'percent_values_ge_70_le_180'))
@@ -936,7 +1107,10 @@ def build_assessment_result(tlr_dir, timestamp):
     # escalation applies to a raw value. Degrades to 'NA' if the summary CSVs lack
     # the column (extract_metric_data warns and returns empty).
     lbgi_value_averages = calculate_truncated_averages(extract_metric_data(tlr_dir, 'lbgi'))
-    dka_index_value_averages = calculate_truncated_averages(extract_metric_data(tlr_dir, 'dka_index'))
+    dka_index_data = extract_metric_data(tlr_dir, 'dka_index')
+    dka_index_value_averages = calculate_truncated_averages(dka_index_data)
+    # The verdict keys on the UNtruncated stage mean (see calculate_raw_means).
+    dka_index_raw_means = calculate_raw_means(dka_index_data)
 
     # Per-stage n for silent-drop detection.
     n_by_stage = {stage: len(lbgi_data[stage]) for stage in STAGE_ORDER}
@@ -950,8 +1124,13 @@ def build_assessment_result(tlr_dir, timestamp):
             # component scores above are left as-is.
             harm, severity = NA_VALUE, NA_VALUE
         else:
+            if dka_index_raw_means[stage] is None:
+                print(f"  Warning: {os.path.basename(tlr_dir)}: no DKA index values for "
+                      f"stage '{stage}'; the DKA-versus-Hyperglycemia split falls back "
+                      f"to the DKA score.")
             harm, severity = determine_harm_and_severity(
-                lbgi_averages[stage], dka_averages[stage], hyper)
+                lbgi_averages[stage], dka_averages[stage], hyper,
+                delivery_risk_type, dka_index=dka_index_raw_means[stage])
         stages[stage] = StageResult(
             stage=stage,
             harm_type=harm,
@@ -980,7 +1159,8 @@ def build_assessment_result(tlr_dir, timestamp):
 
     # Outlier findings (detection only) + status, both carried on the object so
     # renderers never re-read the directory or re-derive the branch.
-    outlier_list, outlier_status = detect_outliers(tlr_dir, assessment_results)
+    outlier_list, outlier_status = detect_outliers(
+        tlr_dir, assessment_results, delivery_risk_type)
 
     assessment = SeverityAssessment(
         simulation_id=simulation_id,
@@ -992,5 +1172,7 @@ def build_assessment_result(tlr_dir, timestamp):
         outlier_findings=outlier_list,
         outlier_status=outlier_status,
         usable_profile_count=usable_profile_count,
+        delivery_risk_type=delivery_risk_type,
+        duration_hours=duration_hours,
     )
     return AssessmentOutcome(assessment, 'ok')

@@ -282,3 +282,43 @@ regenerated deliberately: only the Post-mitigation Harm and Severity cells chang
 (`lbgi_score_avg=0`, `dka_score_avg=0`, `hyperglycemia_score=1`); making them `Optional`
 would be a breaking schema change and is a possible follow-up. Regression risk Medium
 (output formatting); no breaking change.
+
+## TRSET-82 — harm constrained by delivery risk type
+
+RMP-0002 validates two delivery risk types: **overdelivery** (LBGI, 8 h simulations) and
+**underdelivery** (DKAI, 23 h simulations). `build_assessment_result` now reads
+`duration_hrs` from each sim's `{sim_id}.json` (sims named by the summary CSVs) and
+classifies the TLR via `determine_delivery_risk_type`: all exactly 8.0 → `overdelivery`,
+all exactly 23.0 → `underdelivery`, anything else (one other duration, mixed durations,
+or any duration missing/unreadable) → `unconstrained`. Every unconstrained case prints a
+console warning and adds an RTF note after the profile-count line.
+
+| Path | Condition | Harm | Severity |
+|---|---|---|---|
+| Overdelivery | LBGI score 0 | Severity = baseline | 0 |
+| Overdelivery | LBGI score ≥ 1 | Hypoglycemia | LBGI score |
+| Underdelivery | DKAI = 0.0 | Hyperglycemia | hyperglycemia score |
+| Underdelivery | DKAI > 0.0 | DKA | averaged DKA score |
+| Unconstrained | LBGI score ≤ 1, DKAI = 0.0 / > 0.0 | Hyperglycemia / DKA | hyperglycemia / DKA score |
+| Unconstrained | LBGI score ≥ 2 | Hypoglycemia if LBGI ≥ DKA score, else DKA | that score |
+
+DKAI is the untruncated stage mean of raw `dka_index` (the profile's own value in outlier
+detection). One implementation, `determine_harm_and_severity(..., delivery_risk_type,
+dka_index)`, serves both. Baseline is now produced only by the overdelivery row.
+Underdelivery TLRs render the Catastrophic Identifier as "not relevant" (a hit is still
+a console warning); the zero-TAR outlier check is off for overdelivery.
+`SeverityAssessment` gains `delivery_risk_type` and `duration_hours`; `dka_index` is now a
+required summary column (CSVs without it are malformed — re-run them).
+
+### Validation (TRSET-81 arm A1, 47 TLRs)
+
+`python post_processing/rtf_before_after_diff.py <Risk_Run_dir>` renders with
+`origin/main` and the working tree and classifies each diff. Result: 0 disallowed diffs,
+15 byte-identical (including TLR-552), 32 changed, all in allowed classes. All A1 TLRs
+are 8 h or 23 h, so none gets the unconstrained note. Changed:
+TLR-613 (catastrophic, harm); TLR-843 (catastrophic, harm, outlier; this TLR is 23 h);
+harm/severity: TLR-844_170, 844_170_wmeal, 844_180, 844_180_corr, 844_180_wmeal, 844_185,
+844_190, 844_190_wmeal, 844_200, 899_01_025, 899_01_075, 899_01_105, 899_01_110,
+899_01_125, 899_01_175, 899_01_250, 899_1_75, 899_1_95, 899_1_105, 899_1_110, 899_1_125,
+899_1_175; harm and outlier: TLR-844_170_corr, 899_10_105, 899_10_110; outlier only:
+TLR-553, 844_190_corr, 844_200_corr, 899_10_125, 899_1_250.
