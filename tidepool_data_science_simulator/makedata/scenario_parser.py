@@ -465,6 +465,7 @@ class PatientConfig(object):
         basal_blood_glucose_schedule=None,
         insulin_production_rate_schedule=None,
         patient_insulin_type="rapid_acting_adult",
+        insulin_timing="main",
         w_hr=0.0,
         a=1.0,
         tau=60.0,
@@ -532,6 +533,8 @@ class PatientConfig(object):
         self.pa_timeline = pa_timeline
         self.action_timeline = action_timeline
         self.patient_insulin_type = patient_insulin_type
+        # "main", "faster" or "slower"; only for v1 insulin types (see models/insulin_action_v1.py)
+        self.insulin_timing = insulin_timing
         
         # Physical activity and metabolism model parameters
         self.w_hr = w_hr

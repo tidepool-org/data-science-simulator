@@ -86,6 +86,28 @@ The SwiftLoopController can be selected via configuration override by specifying
 
 So these two keys change nothing that the product actually runs. Do not scope work against them expecting an effect on the swift path. Note in particular that writing `maximum_autobolus` as a *config override* is worse than a silent no-op: an override naming a key the resolver does not apply fails the run with `"Only applied 1 of 2 overriding values"`.
 
+## Simulated patient insulin action: v1 curves
+
+The simulated person can use evidence-based insulin-action curves: absorption from under the skin, insulin in the
+blood, then a lag before glucose falls (`tidepool_data_science_simulator/models/insulin_action_v1.py`). Evidence and
+derivation: "Simulated patient insulin action" white paper, internal release v1.0.
+
+Set them in the scenario's patient metabolism settings (`patient_model.metabolism_settings`):
+
+| Setting | Values |
+|---|---|
+| `patient_insulin_type` | `rapid_acting_v1` (NovoLog, Humalog; peak effect 86 min) or `ultra_rapid_v1` (Fiasp, Lyumjev; 79 min) |
+| `insulin_timing` | `main` (default); `faster` (all timings × 0.750) or `slower` (× 1.334) as sensitivity runs |
+
+`faster` and `slower` are available as sensitivity runs, for insulin that acts faster or slower, as it does between
+people. Children use the adult curve. The parser only overrides
+settings present in the base scenario, so to vary `insulin_timing` in override blocks, set it in the base
+scenario's metabolism settings first. Existing insulin types (`rapid_acting_adult`, `fiasp`, ...) are unchanged.
+Loop's own insulin model is still set in the controller settings. As with the existing curves, the patient's insulin
+on board is the share of each dose's glucose-lowering effect still to come. The simulator applies each dose's effect over a fixed window: 8 hours
+for existing insulin types; for the v1 curves 8 to 14 hours (longer for slower timing), so that at most 0.1% of each
+dose's effect falls outside it (`MAX_EFFECT_OUTSIDE_WINDOW`).
+
 ## Contributing Guide
 1. All are welcome to contribute to this project.
 1. Naming convention for notebooks is 

@@ -50,6 +50,7 @@ from tidepool_data_science_simulator.models.sensor import IdealSensor
 
 from tidepool_data_science_simulator.models.controller import LoopController
 
+from tidepool_data_science_simulator.models.insulin_action_v1 import SimpleMetabolismModelV1
 from tidepool_data_science_models.models.simple_metabolism_model import (
     SimpleMetabolismModel,
 )
@@ -543,7 +544,7 @@ def get_canonical_risk_patient(
         time=t0,
         pump=pump,
         sensor=sensor,
-        metabolism_model=SimpleMetabolismModel,
+        metabolism_model=SimpleMetabolismModelV1,
         patient_config=patient_config,
     )
 
