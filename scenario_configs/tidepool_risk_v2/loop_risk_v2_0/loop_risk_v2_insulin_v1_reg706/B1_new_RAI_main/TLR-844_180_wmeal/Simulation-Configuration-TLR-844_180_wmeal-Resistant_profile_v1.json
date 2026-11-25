@@ -1,0 +1,154 @@
+{
+  "metadata": {
+    "risk-id": "TLR-844_180",
+    "simulation_id": "TLR-844_180-resistant",
+    "risk_description": "Too-aggressive override 180",
+    "config_format_version": "v1.0"
+  },
+  "base_config": {
+    "sim_id": "preset_130_resistant_v1",
+    "time_to_calculate_at": "8/15/2019 12:00:00",
+    "duration_hours": 8.0,
+    "offset_applied_to_dates": 0,
+    "patient": {
+      "sensor": {
+        "glucose_history": "reusable.glucose.flat_110_12hr",
+        "type": "IdealSensor",
+        "parameters": {}
+      },
+      "pump": {
+        "metabolism_settings": "reusable.metabolism_settings.resistant_preset_130_v1",
+        "bolus_entries": [],
+        "carb_entries": [],
+        "target_range": {
+          "start_times": [
+            "0:00:00"
+          ],
+          "lower_values": [
+            70
+          ],
+          "upper_values": [
+            90
+          ]
+        }
+      },
+      "patient_model": {
+        "metabolism_settings": {
+          "insulin_sensitivity_factor": {
+            "start_times": [
+              "00:00:00"
+            ],
+            "values": [
+              34.3
+            ]
+          },
+          "carb_insulin_ratio": {
+            "start_times": [
+              "00:00:00"
+            ],
+            "values": [
+              7
+            ]
+          },
+          "basal_rate": {
+            "start_times": [
+              "00:00:00"
+            ],
+            "values": [
+              1.04
+            ]
+          },
+          "patient_insulin_type": "rapid_acting_adult",
+          "insulin_timing": "main"
+        },
+        "glucose_history": "reusable.glucose.flat_110_12hr",
+        "bolus_entries": [],
+        "carb_entries": []
+      }
+    },
+    "controller": {
+      "id": "swift",
+      "settings": "reusable.loop_settings.2_0_v1",
+      "automation_control_timeline": []
+    }
+  },
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ],
+          "metabolism_settings": {
+            "patient_insulin_type": "rapid_acting_v1",
+            "insulin_timing": "main"
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_180_v1"
+        }
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 5.4
+            }
+          ],
+          "metabolism_settings": {
+            "patient_insulin_type": "rapid_acting_v1",
+            "insulin_timing": "main"
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": 5.4
+            }
+          ],
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_180_v1"
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_resistant",
+      "patient": {
+        "patient_model": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "bolus_entries": [
+            {
+              "time": "8/15/2019 12:00:00",
+              "value": "accept_recommendation"
+            }
+          ],
+          "metabolism_settings": {
+            "patient_insulin_type": "rapid_acting_v1",
+            "insulin_timing": "main"
+          }
+        },
+        "pump": {
+          "carb_entries": "reusable.carb_doses.resistant_profile_v1",
+          "metabolism_settings": "reusable.metabolism_settings.resistant_preset_180_v1",
+          "target_range": "reusable.mitigations.guardrails.target_range_resistant_v1"
+        }
+      },
+      "controller": {
+        "settings": "reusable.mitigations.guardrails.controller_settings_resistant_high_preset"
+      }
+    }
+  ]
+}

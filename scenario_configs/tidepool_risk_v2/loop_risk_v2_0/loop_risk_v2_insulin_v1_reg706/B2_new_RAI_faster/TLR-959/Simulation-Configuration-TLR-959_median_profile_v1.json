@@ -1,0 +1,225 @@
+{
+  "metadata": {
+    "risk-id": "TLR-959",
+    "simulation_id": "TLR-959-base_median",
+    "risk_description": "Resume before appropriate",
+    "config_format_version": "v1.0"
+  },
+  "base_config": {
+    "sim_id": "base_median_v1",
+    "time_to_calculate_at": "8/15/2019 12:00:00",
+    "duration_hours": 8.0,
+    "offset_applied_to_dates": 0,
+    "patient": {
+      "sensor": {
+        "glucose_history": "reusable.glucose.flat_110_12hr"
+      },
+      "pump": {
+        "metabolism_settings": "reusable.metabolism_settings.median_1h_suspend_v1",
+        "bolus_entries": [],
+        "carb_entries": [],
+        "target_range": {
+          "start_times": [
+            "0:00:00"
+          ],
+          "lower_values": [
+            70
+          ],
+          "upper_values": [
+            90
+          ]
+        }
+      },
+      "patient_model": {
+        "metabolism_settings": {
+          "insulin_sensitivity_factor": {
+            "start_times": [
+              "00:00:00"
+            ],
+            "values": [
+              50.0
+            ]
+          },
+          "carb_insulin_ratio": {
+            "start_times": [
+              "00:00:00"
+            ],
+            "values": [
+              13.0
+            ]
+          },
+          "basal_rate": {
+            "start_times": [
+              "0:00:00",
+              "12:00:00",
+              "13:00:00"
+            ],
+            "values": [
+              0.5,
+              0.0,
+              0.5
+            ]
+          },
+          "patient_insulin_type": "rapid_acting_adult",
+          "insulin_timing": "main"
+        },
+        "glucose_history": "reusable.glucose.flat_110_12hr",
+        "bolus_entries": [],
+        "carb_entries": []
+      }
+    },
+    "controller": {
+      "id": "swift",
+      "settings": "reusable.loop_settings.swift_v1",
+      "automation_control_timeline": []
+    }
+  },
+  "override_config": [
+    {
+      "sim_id": "pre-Loop_NoMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "12:00:00",
+                "12:15:00"
+              ],
+              "values": [
+                0.5,
+                0.0,
+                0.5
+              ]
+            },
+            "patient_insulin_type": "rapid_acting_v1",
+            "insulin_timing": "faster"
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "12:00:00",
+                "12:15:00"
+              ],
+              "values": [
+                0.5,
+                0.0,
+                0.5
+              ]
+            }
+          }
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:15:00"
+          }
+        ]
+      }
+    },
+    {
+      "sim_id": "pre-noLoop_t1_median",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "12:00:00",
+                "12:15:00"
+              ],
+              "values": [
+                0.5,
+                0.0,
+                0.5
+              ]
+            },
+            "patient_insulin_type": "rapid_acting_v1",
+            "insulin_timing": "faster"
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "12:00:00",
+                "12:15:00"
+              ],
+              "values": [
+                0.5,
+                0.0,
+                0.5
+              ]
+            }
+          }
+        }
+      },
+      "controller": null
+    },
+    {
+      "sim_id": "post-Loop_WithMitigations_t1_median",
+      "patient": {
+        "patient_model": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "12:00:00",
+                "12:15:00"
+              ],
+              "values": [
+                0.5,
+                0.0,
+                0.5
+              ]
+            },
+            "patient_insulin_type": "rapid_acting_v1",
+            "insulin_timing": "faster"
+          }
+        },
+        "pump": {
+          "metabolism_settings": {
+            "basal_rate": {
+              "start_times": [
+                "0:00:00",
+                "12:00:00",
+                "12:15:00"
+              ],
+              "values": [
+                0.5,
+                0.0,
+                0.5
+              ]
+            }
+          }
+        }
+      },
+      "controller": {
+        "automation_control_timeline": [
+          {
+            "dosing_enabled": false,
+            "time": "8/15/2019 12:00:00"
+          },
+          {
+            "dosing_enabled": true,
+            "time": "8/15/2019 12:15:00"
+          }
+        ],
+        "settings": {
+          "suspend_threshold": 75,
+          "max_basal_rate": 1.75
+        }
+      }
+    }
+  ]
+}
