@@ -58,7 +58,7 @@
               2.47
             ]
           },
-          "patient_insulin_type": "rapid_acting_adult",
+          "patient_insulin_type": "fiasp",
           "insulin_timing": "main"
         },
         "glucose_history": "reusable.glucose.flat_110_12hr",
