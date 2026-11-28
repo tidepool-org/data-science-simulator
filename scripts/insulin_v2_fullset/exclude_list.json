@@ -1,0 +1,8 @@
+{
+  "_comment": "TLR subdirectories of loop_risk_v2_2_0_full that are NOT copied into any arm. Reconciling against the active risk list is done by editing this list (REG-708), not in TRSET-84.",
+  "exclude": [
+    "TLR-799_Step1_DO_NOT_USE_FOR_RISK",
+    "TLR-799_USE_STEP1_TMP_USE_FOR_RISK_EVAL",
+    "TLR-800"
+  ]
+}

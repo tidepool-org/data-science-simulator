@@ -58,7 +58,7 @@
               0.5
             ]
           },
-          "patient_insulin_type": "rapid_acting_adult",
+          "patient_insulin_type": "ultra_rapid_v1",
           "insulin_timing": "main"
         },
         "glucose_history": "reusable.glucose.flat_110_12hr",

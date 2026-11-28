@@ -126,3 +126,6 @@ venv.bak/
 *.swp
 *.swo
 /post_processing/.env.example
+
+# TRSET-84 inventory output (regenerated; the committed translation table is beside it)
+scripts/insulin_v2_fullset/output/
