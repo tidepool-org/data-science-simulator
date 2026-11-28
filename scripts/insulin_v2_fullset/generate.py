@@ -71,8 +71,11 @@ def _base_info(scenario_root, base_pointer):
 
 
 def run(scenario_root=SCENARIO_ROOT, baseline=DEFAULT_BASELINE, out_root=None, arms=None, tlrs=None, force=False,
-        dry_run=False, exclude=None, table=None, sha=None, dirty=None, log=print):
+        dry_run=False, exclude=None, table=None, sha=None, dirty=None, log=print, manifest_dir=None):
     scenario_root, baseline = Path(scenario_root), Path(baseline)
+    # Manifests go to scripts/insulin_v2_fullset/manifests/ for the standard layout; with an explicit out_root
+    # (tests, scratch runs) they go to <out_root>/_manifests/ so nothing is written into the repo.
+    manifest_dir = Path(manifest_dir) if manifest_dir else (mf.MANIFEST_DIR if not out_root else Path(out_root) / "_manifests")
     out_root = Path(out_root) if out_root else baseline.parent
     arms = list(arms or ARMS)
     exclude = load_exclude_list() if exclude is None else exclude
@@ -189,7 +192,7 @@ def run(scenario_root=SCENARIO_ROOT, baseline=DEFAULT_BASELINE, out_root=None, a
         for arm in arms:
             m = mf.build_manifest(arm, sha, dirty, base_hash, thash, exclude, [d.name for d in dirs],
                                   {p: reg.files[p] for p in reg.by_arm.get(arm, set())}, scenario_root)
-            manifests[out_root / arm / mf.MANIFEST_NAME] = mf.dump(m)
+            manifests[mf.manifest_path(manifest_dir, arm)] = mf.dump(m)
 
         # 4. write (all-or-nothing on conflicts)
         everything = {**reg.files, **out_files, **manifests}

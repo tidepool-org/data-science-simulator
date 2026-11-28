@@ -42,6 +42,11 @@ def make_world(root, tlrs):
         subprocess.run(["cp", "-Rc", str(SCENARIO_ROOT / "reusable"), str(scen / "reusable")], check=True, capture_output=True)
     except Exception:
         shutil.copytree(SCENARIO_ROOT / "reusable", scen / "reusable")
+    # The repo's reusable/ folder holds the committed generator output. Strip it (the committed manifests list every
+    # file the generator created) so the sandbox starts from the baseline state the generator is meant to run on.
+    for manifest in sorted(mf.MANIFEST_DIR.glob("*.json")):
+        for entry in json.loads(manifest.read_text())["reusable_files"]:
+            (scen / entry["path"]).unlink(missing_ok=True)
     base = scen / "loop_risk_v2_0" / "loop_risk_v2_2_0_full"
     for t in tlrs:
         shutil.copytree(DEFAULT_BASELINE / t, base / t)
@@ -93,7 +98,7 @@ EXPECTED_PATIENT = {"loop_risk_v2_rai_main": ("rapid_acting_v1", "main"),
 def test_three_arm_directories_each_hold_all_ten_risks_and_a_manifest(world):
     for arm in ARMS:
         assert sorted(p.name for p in (world["out"] / arm).iterdir() if p.is_dir()) == sorted(SUBSET)
-        assert (world["out"] / arm / mf.MANIFEST_NAME).is_file()
+        assert (mf.manifest_path(world["out"] / "_manifests", arm)).is_file()
 
 
 def test_baseline_and_existing_reusable_files_are_unchanged(world):
@@ -176,7 +181,7 @@ def test_preset_repoint_does_not_reset_the_insulin_type(world):
 def test_generated_bases_and_profiles_contain_insulin_timing_explicitly(world):
     for arm in ("loop_risk_v2_rai_main", "loop_risk_v2_urai_main"):
         files = [json.loads(Path(p["path"] if False else world["scen"] / p["path"]).read_text())
-                 for p in json.loads((world["out"] / arm / mf.MANIFEST_NAME).read_text())["reusable_files"]
+                 for p in json.loads((mf.manifest_path(world["out"] / "_manifests", arm)).read_text())["reusable_files"]
                  if "metabolism_settings" in p["path"]]
         assert files and all(f.get("insulin_timing") == "main" for f in files)
 
@@ -184,7 +189,7 @@ def test_generated_bases_and_profiles_contain_insulin_timing_explicitly(world):
 # ---------------------------------------------------------------- names, exclude, manifest
 def test_new_reusable_names_do_not_collide_with_existing_files(world):
     for arm in ARMS:
-        for entry in json.loads((world["out"] / arm / mf.MANIFEST_NAME).read_text())["reusable_files"]:
+        for entry in json.loads((mf.manifest_path(world["out"] / "_manifests", arm)).read_text())["reusable_files"]:
             p = Path(entry["path"])
             assert p.stem.endswith(("_" + arm.replace("loop_risk_v2_", ""),)) or "_" + arm.replace("loop_risk_v2_", "") in p.stem
             assert (world["scen"] / p) not in world["reusable_before"]
@@ -192,7 +197,7 @@ def test_new_reusable_names_do_not_collide_with_existing_files(world):
 
 def test_manifest_records_provenance_and_every_created_reusable_file(world):
     for arm in ARMS:
-        m = json.loads((world["out"] / arm / mf.MANIFEST_NAME).read_text())
+        m = json.loads((mf.manifest_path(world["out"] / "_manifests", arm)).read_text())
         assert m["generator_commit"] == "testsha" and m["generator_dirty"] is False
         assert m["baseline_tree_hash"] == mf.tree_hash([world["base"] / t for t in sorted(SUBSET)])
         assert m["translation_table_hash"] == translation.table_hash(translation.load_table())

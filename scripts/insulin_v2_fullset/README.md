@@ -41,8 +41,8 @@ python -m scripts.insulin_v2_fullset.generate [--tlr NAME ...] [--arms ARM ...] 
    patient type (the model treats `main` as the default for old types).
 4. Verification runs against a staged clone of `reusable/`; files are written only when every arm passes.
 5. Refuses to overwrite an existing file whose content differs unless `--force`. Reruns are byte-identical.
-6. Writes `_manifest.json` in each arm directory (generator commit, baseline tree hash, table hash, exclude list,
-   created reusable files with hashes). The runner only lists directories containing `TLR-`, so the manifest is ignored.
+6. Writes `manifests/<arm>.json` next to the generator, not in the arm directory (generator commit, baseline tree hash, table hash, exclude list,
+   created reusable files with hashes). They are kept out of the scenario tree because `validate_configs` treats every `.json` under a directory as a simulation config.
 
 `exclude_list.json` names TLR directories left out of every arm. Names that match no directory are an error.
 

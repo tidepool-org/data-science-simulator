@@ -4,7 +4,12 @@ import json
 import subprocess
 from pathlib import Path
 
-MANIFEST_NAME = "_manifest.json"
+# Manifests live outside the scenario tree: validate_configs treats every .json under a directory as a simulation config.
+MANIFEST_DIR = Path(__file__).resolve().parent / "manifests"
+
+
+def manifest_path(manifest_dir, arm):
+    return Path(manifest_dir) / f"{arm}.json"
 
 
 def sha256_bytes(b):
