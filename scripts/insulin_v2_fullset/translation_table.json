@@ -1,0 +1,111 @@
+{
+  "_comment": "TRSET-84 translation table. NOMINAL rows are pre-filled; NEEDS_REVIEW rows are filled by hand before Phase 2.",
+  "controller_unchanged_sentinel": "<unchanged>",
+  "arm_order": [
+    "loop_risk_v2_rai_main",
+    "loop_risk_v2_urai_main",
+    "loop_risk_v2_urai_old"
+  ],
+  "rows": [
+    {
+      "key": "rapid_acting_adult | <no controller>",
+      "baseline": {
+        "patient_insulin_type": "rapid_acting_adult",
+        "controller_model": "<no controller>"
+      },
+      "status": "NOMINAL",
+      "arms": {
+        "loop_risk_v2_rai_main": {
+          "patient_insulin_type": "rapid_acting_v1",
+          "insulin_timing": "main",
+          "controller_model": "<unchanged>"
+        },
+        "loop_risk_v2_urai_main": {
+          "patient_insulin_type": "ultra_rapid_v1",
+          "insulin_timing": "main",
+          "controller_model": "<unchanged>"
+        },
+        "loop_risk_v2_urai_old": {
+          "patient_insulin_type": "fiasp",
+          "insulin_timing": null,
+          "controller_model": "<unchanged>"
+        }
+      }
+    },
+    {
+      "key": "rapid_acting_adult | fiasp",
+      "baseline": {
+        "patient_insulin_type": "rapid_acting_adult",
+        "controller_model": "fiasp"
+      },
+      "status": "REVIEWED",
+      "arms":  {
+        "loop_risk_v2_rai_main": {
+          "patient_insulin_type": "rapid_acting_v1",
+          "insulin_timing": "main",
+          "controller_model": "<unchanged>"
+        },
+        "loop_risk_v2_urai_main": {
+          "patient_insulin_type": "ultra_rapid_v1",
+          "insulin_timing": "main",
+          "controller_model": "<unchanged>"
+        },
+        "loop_risk_v2_urai_old": {
+          "patient_insulin_type": "fiasp",
+          "insulin_timing": null,
+          "controller_model": "<unchanged>"
+        }
+      }
+    },
+    {
+      "key": "rapid_acting_adult | rapid_acting_adult",
+      "baseline": {
+        "patient_insulin_type": "rapid_acting_adult",
+        "controller_model": "rapid_acting_adult"
+      },
+      "status": "NOMINAL",
+      "arms": {
+        "loop_risk_v2_rai_main": {
+          "patient_insulin_type": "rapid_acting_v1",
+          "insulin_timing": "main",
+          "controller_model": "<unchanged>"
+        },
+        "loop_risk_v2_urai_main": {
+          "patient_insulin_type": "ultra_rapid_v1",
+          "insulin_timing": "main",
+          "controller_model": "fiasp"
+        },
+        "loop_risk_v2_urai_old": {
+          "patient_insulin_type": "fiasp",
+          "insulin_timing": null,
+          "controller_model": "fiasp"
+        }
+      }
+    },
+    {
+      "key": "rapid_acting_adult | rapid_acting_child",
+      "baseline": {
+        "patient_insulin_type": "rapid_acting_adult",
+        "controller_model": "rapid_acting_child"
+      },
+      "status": "REVIEWED",
+"arms": {
+        "loop_risk_v2_rai_main": {
+          "patient_insulin_type": "rapid_acting_v1",
+          "insulin_timing": "main",
+          "controller_model": "rapid_acting_child"
+        },
+        "loop_risk_v2_urai_main": {
+          "patient_insulin_type": "ultra_rapid_v1",
+          "insulin_timing": "main",
+          "controller_model": "rapid_acting_child"
+        },
+        "loop_risk_v2_urai_old": {
+          "patient_insulin_type": "fiasp",
+          "insulin_timing": null,
+          "controller_model": "rapid_acting_child"
+        }
+      }
+    }
+  ]
+}
